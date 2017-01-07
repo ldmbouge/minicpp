@@ -1,0 +1,4 @@
+Simply type:
+
+make
+
