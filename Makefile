@@ -1,12 +1,28 @@
 CXXFLAGS=-g -std=c++14
 #CXXFLAGS=-O3 -std=c++14
 CC=c++
-OFILES = engine.o reversible.o BitDomain.o intvar.o solver.o constraint.o search.o main.o
+OFILES = mallocWatch.o context.o cont.o \
+	engine.o reversible.o BitDomain.o intvar.o solver.o constraint.o search.o 
 
-all:   cpptest
+LIBBASE = copl
+LIBNAME = lib$(LIBBASE).so.1
 
-cpptest: $(OFILES)
-	$(CC) $(CXXFLAGS) -o cpptest $(OFILES)
+all:   $(LIBNAME) cpptests
+
+$(LIBNAME): $(OFILES)
+	$(CC) $(CXXFLAGS) $(OFILES) --shared -o $(LIBNAME)
+	@if [ ! -f $(basename $(LIBNAME)) ];  \
+	then \
+	  ln -s $(LIBNAME) $(basename $(LIBNAME)); \
+	fi
+
+cpptests: test1 test2
+
+test1: main.o
+	$(CC) $(CXXFLAGS) $< -L. -l$(LIBBASE) -o $@ 
+
+test2: mainCont.o
+	$(CC) $(CXXFLAGS) $< -L. -l$(LIBBASE) -o $@
 
 %.o : %.cpp
 	$(CC) -c $(CXXFLAGS) $<
