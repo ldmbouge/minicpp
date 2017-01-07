@@ -62,4 +62,10 @@ namespace Factory {
     }
 };
 
+Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y)
+{
+   return Factory::makeNEQBinBC(x,y,0);
+}
+
+
 #endif
