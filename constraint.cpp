@@ -39,12 +39,16 @@ void NEQBinBC::post()
     else if (_y->isBound())
         _x->remove(_y->getMin() + _c);
     else {
-        _x->whenBind([this] {
-                _y->remove(_x->getMin() - _c);
-            });
-        _y->whenBind([this] {
-                _x->remove(_y->getMin() + _c);
-            });
+       hdl[0] = _x->whenBind([this] {
+             _y->remove(_x->getMin() - _c);
+             hdl[0]->detach();
+             hdl[1]->detach();
+          });
+       hdl[1] = _y->whenBind([this] {
+             _x->remove(_y->getMin() + _c);
+             hdl[0]->detach();
+             hdl[1]->detach();
+          });
     }
 }
 

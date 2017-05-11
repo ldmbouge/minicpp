@@ -14,8 +14,8 @@ class var<int> :public AVar, public IntNotifier {
     std::weak_ptr<CPSolver> _solver;
     BitDomain::Ptr             _dom;
     int                         _id;
-    std::vector<std::function<void(void)>> _onBindList;
-    std::vector<std::function<void(void)>> _onBoundsList;
+    revList<std::function<void(void)>> _onBindList;
+    revList<std::function<void(void)>> _onBoundsList;
 protected:
     void setId(int id) override { _id = id;}
 public:
@@ -38,8 +38,8 @@ public:
     void updateMinEvt(int sz) override;
     void updateMaxEvt(int sz) override;
 
-    void whenBind(std::function<void(void)>&& f) { _onBindList.emplace_back(std::move(f));}
-    void whenChangeBounds(std::function<void(void)>&& f) { _onBoundsList.emplace_back(std::move(f));}
+    auto whenBind(std::function<void(void)>&& f)         { return _onBindList.emplace_back(std::move(f));}
+    auto whenChangeBounds(std::function<void(void)>&& f) { return _onBoundsList.emplace_back(std::move(f));}
     
     friend std::ostream& operator<<(std::ostream& os,const var<int>& x) {
         if (x.getSize() == 1)

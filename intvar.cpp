@@ -2,7 +2,9 @@
 
 var<int>::var(CPSolver::Ptr& cps,int min,int max)
     : _solver(cps),
-      _dom(std::make_unique<BitDomain>(cps->_ctx,min,max))
+      _dom(std::make_unique<BitDomain>(cps->_ctx,min,max)),
+      _onBindList(cps->context()),
+      _onBoundsList(cps->context())
 {}
 
 void var<int>::bind(int v)

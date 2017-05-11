@@ -32,6 +32,7 @@ public:
 class NEQBinBC : public Constraint { // x != y + c
     var<int>::Ptr _x,_y;
     int _c;
+    revList<std::function<void(void)>>::revNode* hdl[2];
     void print(std::ostream& os) const override;
 public:
     NEQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c) : _x(x),_y(y),_c(c) {}
