@@ -6,12 +6,13 @@
 #include "constraint.hpp"
 #include "search.hpp"
 
-int main()
+int main(int argc,char* argv[])
 {
     using namespace std;
     using namespace Factory;
     CPSolver::Ptr cp  = Factory::makeSolver();
-    int n = 8;
+    const int n = argc >= 2 ? atoi(argv[1]) : 12;
+    const bool one = argc >= 3 ? atoi(argv[2])!=0 : false;
     auto q = Factory::intVarArray(cp,n,0,n-1);
     for(int i=0;i < n;i++)
         for(int j=i+1;j < n;j++) {
@@ -23,9 +24,9 @@ int main()
     cp->close();
     Chooser c([=] {
             return selectMin(q,
-                             [](var<int>::Ptr x) { return x->getSize() > 1;},
-                             [](var<int>::Ptr x) { return x->getSize();},
-                             [cp](var<int>::Ptr x) {
+                             [](const var<int>::Ptr& x) { return x->getSize() > 1;},
+                             [](const var<int>::Ptr& x) { return x->getSize();},
+                             [cp](const var<int>::Ptr& x) {
                                  int c = x->getMin();                    
                                  return  [=] { cp->add(x == c);}
                                        | [=] { cp->add(x != c);};
@@ -33,10 +34,21 @@ int main()
         });
 
     int nbSol = 0;
-    dfsAll(cp,c,[&] {
-            cout << "sol = " << q << endl;
-            nbSol++;
-        });
+    if (one) {
+       dfsAll(cp,c,[&] {
+             //cout << "sol = " << q << endl;
+             nbSol++;
+          });
+    } else {
+       try {
+          dfsAll(cp,c,[&] {
+                nbSol++;
+                throw 0;
+             });
+       } catch(int x) {
+          cout << "stopped..." << endl;
+       }
+    }
     
     cout << "Got: " << nbSol << " solutions" << endl;
     cout << *cp << endl;

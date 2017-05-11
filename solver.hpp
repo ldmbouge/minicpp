@@ -11,6 +11,8 @@
 #include "acstr.hpp"
 
 typedef std::reference_wrapper<std::function<void(void)>> Closure;
+//typedef std::function<void(void)> Closure;
+
 
 class CPSolver {
     Engine::Ptr                  _ctx;
@@ -28,7 +30,8 @@ public:
     CPSolver();
     Engine::Ptr context() { return _ctx;}
     void registerVar(AVar::Ptr avar);
-    void schedule(std::function<void(void)>& cb) { _queue.emplace_back(std::ref(cb));}
+   //void schedule(std::function<void(void)>& cb) { _queue.emplace_back(std::ref(cb));}
+    void schedule(std::function<void(void)>& cb) { _queue.emplace_back(cb);}
     Status propagate();
     Status add(Constraint::Ptr c);
     void close();
