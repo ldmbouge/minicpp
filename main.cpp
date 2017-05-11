@@ -13,10 +13,10 @@ int main(int argc,char* argv[])
     CPSolver::Ptr cp  = Factory::makeSolver();
     const int n = argc >= 2 ? atoi(argv[1]) : 12;
     const bool one = argc >= 3 ? atoi(argv[2])!=0 : false;
-    auto q = Factory::intVarArray(cp,n,0,n-1);
+    auto q = Factory::intVarArray(cp,n,1,n);
     for(int i=0;i < n;i++)
         for(int j=i+1;j < n;j++) {
-            cp->add(Factory::makeNEQBinBC(q[i],q[j],0));            
+            cp->add(q[i] != q[j]);            
             cp->add(Factory::makeNEQBinBC(q[i],q[j],i-j));            
             cp->add(Factory::makeNEQBinBC(q[i],q[j],j-i));            
         }
