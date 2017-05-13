@@ -9,6 +9,9 @@
 
 ***********************************************************************/
 
+#ifndef __CONT_H
+#define __CONT_H
+
 typedef unsigned int ORUInt;
 typedef int ORInt;
 
@@ -46,3 +49,5 @@ namespace Cont {
    void letgo(Cont* c);
    char* getContBase();
 };
+
+#endif

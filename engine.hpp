@@ -24,6 +24,7 @@ public:
     void trail(Entry* e) { _trail.push(e);}
     typedef std::shared_ptr<Engine> Ptr;
     int magic() const { return _magic;}
+    void incMagic() { _magic++;}
     void push();
     void pop();
     friend void* operator new(std::size_t sz,Engine::Ptr& e);

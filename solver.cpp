@@ -1,14 +1,17 @@
 #include "solver.hpp"
+#include "cont.hpp"
+#include "controller.hpp"
 #include <assert.h>
 #include <iostream>
 #include <iomanip>
 
 CPSolver::CPSolver()
-    : _ctx(new Engine)
+   : _ctx(new Engine),_cs(_ctx,Suspend)
 {
     _closed = false;
     _varId  = 0;
     _nbc = _nbf = _nbs = 0;
+    _ctrl = nullptr;
 }
 
 Status CPSolver::add(Constraint::Ptr c)
@@ -20,10 +23,13 @@ Status CPSolver::add(Constraint::Ptr c)
         try {
             c->post();
         } catch(Status x) {
-            std::cout << "post raised: " << x << std::endl;
+            _queue.clear();
             return x;
         }
-        return Suspend;
+        Status s =  propagate();
+        if (s == Failure)
+           fail();
+        return s;
     }
 }
 
@@ -48,12 +54,72 @@ Status CPSolver::propagate()
             cb();
         }
         assert(_queue.size() == 0);
-        return Suspend;
+        return _cs = Suspend;
     } catch(Status x) {
         _queue.clear();
         assert(_queue.size() == 0);
         _nbf += 1;
-        return Failure;
+        return _cs = Failure;
     }
 }
 
+void CPSolver::solveOne(std::function<void(void)> b)
+{
+   Cont::initContinuationLibrary((int*)&b);
+   _ctrl = new DFSController(_ctx);
+   Cont::Cont* k = Cont::Cont::takeContinuation();
+   if (k->nbCalls()==0) {
+      _ctrl->start(k);
+      b();
+      //_ctrl->fail();
+   } else {
+      Cont::letgo(k);
+      std::cout<< "Done!" << std::endl;
+   }
+}
+
+void CPSolver::solveAll(std::function<void(void)> b)
+{
+   Cont::initContinuationLibrary((int*)&b);
+   _ctrl = new DFSController(_ctx);
+   Cont::Cont* k = Cont::Cont::takeContinuation();
+   if (k->nbCalls()==0) {
+      _ctrl->start(k);
+      b();
+      _ctrl->fail();
+   } else {
+      Cont::letgo(k);
+      std::cout<< "Done!" << std::endl;
+   }
+}
+
+/*
+void CPSolver::tryBin(std::function<void(void)> left,
+                      std::function<void(void)> right)
+{
+   Cont::Cont* k = Cont::Cont::takeContinuation();
+   if (k->nbCalls()==0) {
+      _ctrl->addChoice(k);
+      left();
+   } else {
+      Cont::letgo(k);
+      _ctrl->trust();
+      right();
+   }
+   Status s = propagate();
+   std::cout << "AP:" << s << std::endl;
+   if (s == Failure)
+      fail();
+}
+*/
+
+void CPSolver::fail()
+{
+   if (_ctrl)
+      _ctrl->fail();
+}
+
+void* operator new  ( std::size_t count )
+{
+   return malloc(count);
+}

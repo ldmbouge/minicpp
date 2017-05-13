@@ -2,7 +2,7 @@
 CXXFLAGS=-O3 -std=c++14
 CC=c++
 OFILES = mallocWatch.o context.o cont.o \
-	engine.o reversible.o BitDomain.o intvar.o solver.o constraint.o search.o 
+	engine.o reversible.o BitDomain.o intvar.o solver.o constraint.o search.o controller.o
 
 LIBBASE = copl
 LIBNAME = lib$(LIBBASE).so.1
@@ -21,7 +21,10 @@ cpptests: test1 test2
 test1: main.o
 	$(CC) $(CXXFLAGS) $< -L. -l$(LIBBASE) -o $@ 
 
-test2: mainCont.o
+test2: main2.o
+	$(CC) $(CXXFLAGS) $< -L. -l$(LIBBASE) -o $@
+
+test3: mainCont.o
 	$(CC) $(CXXFLAGS) $< -L. -l$(LIBBASE) -o $@
 
 %.o : %.cpp
@@ -38,5 +41,5 @@ clean:
 
 # This imports the dependency header specs.
 
-include $(OFILES:.o=.d)
+include $(OFILES:.o=.d) main.d main2.d
 

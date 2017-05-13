@@ -2,7 +2,7 @@
 #define __REVERSIBLE_H
 
 #include <memory>
-#include "solver.hpp"
+#include "engine.hpp"
 
 template<class T> class rev {
     Engine::Ptr  _ctx;

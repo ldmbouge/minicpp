@@ -36,7 +36,7 @@ class NEQBinBC : public Constraint { // x != y + c
     void print(std::ostream& os) const override;
 public:
     NEQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c) : _x(x),_y(y),_c(c) {}
-    //~NEQBinBC() { std::cout << "~!= BIN" << std::endl;}
+    //~NEQBinBC() { std::cout << this << " : ~ != BIN" << std::endl;}
     void post() override;
 };
 

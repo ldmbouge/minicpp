@@ -13,7 +13,7 @@ void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol) {
             ctx->push();
             cps->incrNbChoices();
             alt();
-            Status s = cps->propagate();
+            Status s = cps->status();
             if (s != Failure)
                 dfsAll(cps,c,onSol);
             ctx->pop();
