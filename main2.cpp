@@ -22,39 +22,24 @@ int main(int argc,char* argv[])
         }
     
     cp->close();
-
+    auto solve = one ? &CPSolver::solveOne : &CPSolver::solveAll;
     shared_ptr<int>  nbSol = make_shared<int>(0);
-    if (one) { 
-       cp->solveOne([&] {
-             for(int i=0;i < n;i++) {
-                auto  cx = min_dom(q);
-                if (cx == q.end()) break;
-                auto& x = *cx;
-                while(!x->isBound()) {
-                   int c = x->getMin();
-                   cp->tryBin([&] { cp->add(x == c);},
-                              [&] { cp->add(x != c);});
-                }
-             }
-             cout << q << endl;
-             cp->incrNbSol();
-             *nbSol += 1;
-          });
-    } else {
-       cp->solveAll([&] {
-             for(int i=0;i < n;i++) {
-                withVarDo(q,min_dom(q),[&cp](auto& x) {
-                      while(!x->isBound()) {
-                         int c = x->getMin();
-                         cp->tryBin([&] { cp->add(x == c);},
-                                    [&] { cp->add(x != c);});
-                      }                      
-                   });
-             }
-             cp->incrNbSol();
-             *nbSol += 1;
-          });
-    }
+    //cp->solveOne([&] {
+    //cp->solveAll([&] {
+    (*cp.*solve)([&] {
+          for(int i=0;i < n;i++) {
+             withVarDo(q,min_dom(q),[&cp](auto& x) {
+                   while(!x->isBound()) {
+                      int c = x->getMin();
+                      cp->tryBin([&] { cp->add(x == c);},
+                                 [&] { cp->add(x != c);});
+                   }                      
+                });
+          }
+          cp->incrNbSol();
+          //cout << q << endl;
+          *nbSol += 1;
+       });
     
     cout << "Got: " << *nbSol << " solutions" << endl;
     cout << *cp << endl;
