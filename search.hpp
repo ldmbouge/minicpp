@@ -27,8 +27,7 @@ public:
 
 void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol);
 
-inline Branches operator|(std::function<void(void)> b0,
-                          std::function<void(void)> b1) {
+template <class B0,class B1> inline Branches operator|(B0 b0,B1 b1) {
     return Branches({b0,b1});
 }
 

@@ -46,20 +46,7 @@ public:
    void incrNbSol()     { _nbs += 1;}
    void solveOne(std::function<void(void)> b);
    void solveAll(std::function<void(void)> b);
-   template <class Body1,class Body2>
-   void tryBin(Body1 left,Body2 right) {
-      Cont::Cont* k = Cont::Cont::takeContinuation();
-      if (k->nbCalls()==0) {
-         _nbc++;
-         _ctrl->addChoice(k);
-         left();
-      } else {
-         Cont::letgo(k);
-         _nbc++;
-         _ctrl->trust();
-         right();
-      }
-   }
+   template <class Body1,class Body2> void tryBin(Body1 left,Body2 right);
    void fail();
    friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {
       return os << "CPSolver(" << &s << ")" << std::endl
@@ -84,20 +71,20 @@ void withVarDo(Container& c,FIt it,Body b)
    b(x);
 }
 
-/*
 template <class Body1,class Body2>
-void CPSolver::tryBin(Body1& left,Body2& right)
+void CPSolver::tryBin(Body1 left,Body2 right) 
 {
    Cont::Cont* k = Cont::Cont::takeContinuation();
    if (k->nbCalls()==0) {
+      _nbc++;
       _ctrl->addChoice(k);
       left();
    } else {
       Cont::letgo(k);
+      _nbc++;
       _ctrl->trust();
       right();
    }
 }
-*/
 
 #endif
