@@ -43,7 +43,7 @@ int main(int argc,char* argv[])
     } else {
        cp->solveAll([&] {
              for(int i=0;i < n;i++) {
-                withVarDo(q,min_dom(q),[&](auto& x) {
+                withVarDo(q,min_dom(q),[&cp](auto& x) {
                       while(!x->isBound()) {
                          int c = x->getMin();
                          cp->tryBin([&] { cp->add(x == c);},
