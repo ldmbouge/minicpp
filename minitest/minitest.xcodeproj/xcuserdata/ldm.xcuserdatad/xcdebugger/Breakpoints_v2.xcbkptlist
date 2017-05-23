@@ -331,7 +331,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "53"
             endingLineNumber = "53"
-            landmarkName = "tryBin(Body1 left,Body2 right)"
+            landmarkName = "operator&lt;&lt;(std::ostream&amp; os,const CPSolver&amp; s)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>

@@ -47,6 +47,7 @@ public:
    void solveOne(std::function<void(void)> b);
    void solveAll(std::function<void(void)> b);
    template <class Body1,class Body2> void tryBin(Body1 left,Body2 right);
+   //void tryBin(std::function<void(void)> left,std::function<void(void)> right);
    void fail();
    friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {
       return os << "CPSolver(" << &s << ")" << std::endl

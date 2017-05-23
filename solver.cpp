@@ -93,23 +93,19 @@ void CPSolver::solveAll(std::function<void(void)> b)
    }
 }
 
-/*
-void CPSolver::tryBin(std::function<void(void)> left,
-                      std::function<void(void)> right)
+/*void CPSolver::tryBin(std::function<void(void)> left,std::function<void(void)> right) 
 {
    Cont::Cont* k = Cont::Cont::takeContinuation();
    if (k->nbCalls()==0) {
+      _nbc++;
       _ctrl->addChoice(k);
       left();
    } else {
       Cont::letgo(k);
+      _nbc++;
       _ctrl->trust();
       right();
    }
-   Status s = propagate();
-   std::cout << "AP:" << s << std::endl;
-   if (s == Failure)
-      fail();
 }
 */
 
