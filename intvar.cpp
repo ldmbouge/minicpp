@@ -7,6 +7,11 @@ var<int>::var(CPSolver::Ptr& cps,int min,int max)
       _onBoundsList(cps->context())
 {}
 
+var<int>::~var<int>()
+{
+   //   std::cout << "dealloc(" << this << ')' << std::endl;
+}
+
 void var<int>::bind(int v)
 {
     _dom->bind(v,*this);
@@ -68,7 +73,7 @@ void var<int>::updateMaxEvt(int sz)
 
 namespace Factory {
     var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max) {
-        var<int>::Ptr rv = std::make_shared<var<int>>(cps,min,max);
+        var<int>::Ptr rv = new var<int>(cps,min,max);
         cps->registerVar(rv);
         return rv;
     }

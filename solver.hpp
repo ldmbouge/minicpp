@@ -35,6 +35,7 @@ public:
    template<typename T> friend class var;
    typedef std::shared_ptr<CPSolver> Ptr;
    CPSolver();
+   ~CPSolver();
    Engine::Ptr context() { return _ctx;}
    void registerVar(AVar::Ptr avar);
    void schedule(std::function<void(void)>& cb) { _queue.emplace_back(cb);}

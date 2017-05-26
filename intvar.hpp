@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include "handle.hpp"
 #include "avar.hpp"
 #include "solver.hpp"
 #include "BitDomain.hpp"
@@ -19,8 +20,9 @@ class var<int> :public AVar, public IntNotifier {
 protected:
     void setId(int id) override { _id = id;}
 public:
-    typedef std::shared_ptr<var<int>> Ptr;
+    typedef handle_ptr<var<int>> Ptr;
     var<int>(CPSolver::Ptr& cps,int min,int max);
+    ~var<int>();
     int getMin() const { return _dom->getMin();}
     int getMax() const { return _dom->getMax();}
     int getSize() const { return _dom->getSize();}

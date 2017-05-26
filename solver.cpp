@@ -14,6 +14,13 @@ CPSolver::CPSolver()
     _ctrl = nullptr;
 }
 
+CPSolver::~CPSolver()
+{
+   for(auto& vp : _iVars)
+      vp.dealloc();
+   _iVars.clear();
+}
+
 Status CPSolver::add(Constraint::Ptr c)
 {
     if (!_closed) {
@@ -33,9 +40,10 @@ Status CPSolver::add(Constraint::Ptr c)
     }
 }
 
-void CPSolver::registerVar(AVar::Ptr avar) {
-    avar->setId(_varId++);
-    _iVars.push_back(avar);
+void CPSolver::registerVar(AVar::Ptr avar)
+{
+   avar->setId(_varId++);
+   _iVars.push_back(avar);
 }
 
 void CPSolver::close()

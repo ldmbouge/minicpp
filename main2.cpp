@@ -28,7 +28,7 @@ int main(int argc,char* argv[])
     //cp->solveAll([&] {
     (*cp.*solve)([&] {
           for(int i=0;i < n;i++) {
-             withVarDo(q,min_dom(q),[&cp](auto& x) {
+             withVarDo(q,min_dom(q),[&cp](auto x) {
                    while(!x->isBound()) {
                       int c = x->getMin();
                       cp->tryBin([&] { cp->add(x == c);},
