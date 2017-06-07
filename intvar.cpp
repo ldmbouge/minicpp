@@ -36,39 +36,35 @@ void var<int>::updateBounds(int newMin,int newMax)
 
 void var<int>::bindEvt() 
 {
-    CPSolver::Ptr solver = _solver.lock();
     for(auto& f :  _onBindList)
-        solver->schedule(f);
+       _solver->schedule(f);
     for(auto& f :  _onBoundsList)
-        solver->schedule(f);
+       _solver->schedule(f);
 }
 
 void var<int>::domEvt(int sz)  
 {
-    CPSolver::Ptr solver = _solver.lock();
-    if (sz==1)
-        for(auto& f : _onBindList)
-            solver->schedule(f);
+   if (sz==1)
+      for(auto& f : _onBindList)
+         _solver->schedule(f);
 }
 
 void var<int>::updateMinEvt(int sz) 
 {
-    CPSolver::Ptr solver = _solver.lock();
     for(auto& f :  _onBoundsList)
-        solver->schedule(f);
+        _solver->schedule(f);
     if (sz==1)
         for(auto& f : _onBindList)
-            solver->schedule(f);
+            _solver->schedule(f);
 }
 
 void var<int>::updateMaxEvt(int sz) 
 {
-    CPSolver::Ptr solver = _solver.lock();
-    for(auto& f :  _onBoundsList)
-        solver->schedule(f);
-    if (sz==1)
-        for(auto& f : _onBindList)
-            solver->schedule(f);
+   for(auto& f :  _onBoundsList)
+      _solver->schedule(f);
+   if (sz==1)
+      for(auto& f : _onBindList)
+         _solver->schedule(f);
 }
 
 namespace Factory {

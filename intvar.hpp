@@ -12,7 +12,7 @@ template<typename T> class var {};
 
 template<>
 class var<int> :public AVar, public IntNotifier {
-    std::weak_ptr<CPSolver> _solver;
+    handle_ptr<CPSolver>    _solver;
     BitDomain::Ptr             _dom;
     int                         _id;
     revList<std::function<void(void)>> _onBindList;

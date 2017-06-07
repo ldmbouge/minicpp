@@ -6,7 +6,7 @@
 #include <functional>
 #include <stdlib.h>
 
-
+#include "handle.hpp"
 #include "fail.hpp"
 #include "engine.hpp"
 #include "avar.hpp"
@@ -33,7 +33,7 @@ class CPSolver {
    Controller*                 _ctrl;
 public:
    template<typename T> friend class var;
-   typedef std::shared_ptr<CPSolver> Ptr;
+   typedef handle_ptr<CPSolver> Ptr;
    CPSolver();
    ~CPSolver();
    Engine::Ptr context() { return _ctx;}
@@ -59,7 +59,7 @@ public:
 };
 
 namespace Factory {
-   inline CPSolver::Ptr makeSolver() { return std::make_shared<CPSolver>();}
+   inline CPSolver::Ptr makeSolver() { return handle_ptr<CPSolver>(new CPSolver);}
 };
 
 void* operator new  ( std::size_t count );

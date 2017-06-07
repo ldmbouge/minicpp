@@ -22,6 +22,7 @@ public:
    element_type& operator*() const noexcept  { return *_ptr;}
    operator bool() const noexcept { return _ptr != nullptr;}
    void dealloc() { delete _ptr;_ptr = nullptr;}
+   void free()    { delete _ptr;_ptr = nullptr;}
 };
 
 #endif

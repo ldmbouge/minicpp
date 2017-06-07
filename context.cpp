@@ -20,10 +20,10 @@ namespace Cont {
       Cont* var = 0;
       char* sp;
       asm volatile("movq %%rsp , %%rax;" // load rax with SP
-                   :"=a"(sp)
+                   :"=a"(sp)             // write rax into output var sp
                    );
-      size_t len = baseStack - sp;
-      k->saveStack(len,sp);
+      size_t len = baseStack - sp;       // compute length of stack suffix
+      k->saveStack(len,sp);              // save it (memory copy)
       asm volatile("movq %%rbx,8(%%rax);\n\t"
                    "movq %%rcx,16(%%rax);\n\t"
                    "movq %%rdx,24(%%rax);\n\t"
