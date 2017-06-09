@@ -25,6 +25,7 @@ class CPSolver {
    std::list<Constraint::Ptr> _iCstr;
    std::deque<Closure>        _queue;
    bool                      _closed;
+   long                  _afterClose;
    int                        _varId;
    int                          _nbc; // # choices
    int                          _nbf; // # fails

@@ -1,16 +1,20 @@
-#CXXFLAGS=-g -std=c++14
-CXXFLAGS=-O3 -std=c++14
-CC=c++
+CXXFLAGS=-g -std=c++14 -fPIC 
+#CXXFLAGS=-O3 -std=c++14 -fPIC
+
+CC=clang++-4.0
+# #CC=c++
+
 OFILES = mallocWatch.o context.o cont.o \
 	engine.o reversible.o BitDomain.o intvar.o solver.o constraint.o search.o controller.o
 
 LIBBASE = copl
 LIBNAME = lib$(LIBBASE).so.1
+LFLAGS  = -L. -Wl,-rpath=`pwd`
 
 all:   $(LIBNAME) cpptests
 
 $(LIBNAME): $(OFILES)
-	$(CC) $(CXXFLAGS) $(OFILES) --shared -o $(LIBNAME)
+	$(CC) $(CXXFLAGS) $(OFILES) --shared -Wl,-soname,$(LIBNAME) -o $(LIBNAME) 
 	@if [ ! -f $(basename $(LIBNAME)) ];  \
 	then \
 	  ln -s $(LIBNAME) $(basename $(LIBNAME)); \
@@ -19,20 +23,20 @@ $(LIBNAME): $(OFILES)
 cpptests: test1 test2
 
 test1: main.o
-	$(CC) $(CXXFLAGS) $< -L. -l$(LIBBASE) -o $@ 
+	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@ 
 
 test2: main2.o
-	$(CC) $(CXXFLAGS) $< -L. -l$(LIBBASE) -o $@
+	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
 
 test3: mainCont.o
-	$(CC) $(CXXFLAGS) $< -L. -l$(LIBBASE) -o $@
+	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS)  -o $@
 
 %.o : %.cpp
 	$(CC) -c $(CXXFLAGS) $<
 
 %.d: %.cpp
 	@set -e; rm -f $@; \
-	$(CC) -M $(CFLAGS) $< > $@.$$$$; \
+	$(CC) -M $(CXXFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 

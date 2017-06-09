@@ -16,6 +16,7 @@ public:
    virtual void trust() = 0;
    virtual void start(Cont::Cont* k) = 0;
    virtual void exit() = 0;
+   virtual void clear() = 0;
 };
 
 class DFSController :public Controller {
@@ -23,11 +24,13 @@ class DFSController :public Controller {
    Cont::Cont* _exitK;
 public:
    DFSController(Engine::Ptr ctx);
+  ~DFSController();
    void start(Cont::Cont* k);
    void addChoice(Cont::Cont* k);
    void trust();
    void fail();
    void exit();
+  void clear();
 };
 
 #endif

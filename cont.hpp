@@ -43,6 +43,7 @@ namespace Cont {
       Cont* grab();
       static Cont* takeContinuation();
       friend void letgo(Cont* c);
+      friend void shutdown();
    };
    void initContinuationLibrary(int *base);
    void shutdown();

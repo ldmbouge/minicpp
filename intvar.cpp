@@ -9,7 +9,9 @@ var<int>::var(CPSolver::Ptr& cps,int min,int max)
 
 var<int>::~var<int>()
 {
-   //   std::cout << "dealloc(" << this << ')' << std::endl;
+  std::cout << "dealloc(" << this << ')' << std::endl;
+  //std::cout << "\tonBIND  :" << _onBindList << std::endl;
+  //std::cout << "\tonBOUNDS:" << _onBoundsList << std::endl;
 }
 
 void var<int>::bind(int v)

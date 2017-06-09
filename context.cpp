@@ -74,7 +74,9 @@ namespace Cont {
     {
         Cont* rv = 0;
         // ctx in rdi, start in rsi, data in rdx, length in ecx   
-        asm volatile("copystack: cmp $0x0,%%ecx         ; \n\t" //test length to 0
+        asm volatile(
+		     "movq 56(%%rdi),%%rsp;\n\t"
+		     "copystack: cmp $0x0,%%ecx         ; \n\t" //test length to 0
                      "           jle donecopy           ; \n\t" //if length <= 0 break loop
                      "           movq (%%rdx),%%rax     ; \n\t" //read 8 bytes (quad)
                      "           add $0x8,%%rdx         ; \n\t" //data+=8

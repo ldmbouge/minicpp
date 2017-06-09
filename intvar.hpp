@@ -45,9 +45,12 @@ public:
     
     friend std::ostream& operator<<(std::ostream& os,const var<int>& x) {
         if (x.getSize() == 1)
-            return os << x.getMin();
+            os << x.getMin();
         else
-            return os << "x_" << x._id << '(' << *x._dom << ')';
+	  os << "x_" << x._id << '(' << *x._dom << ')';
+	//os << "\n\tonBIND  :" << x._onBindList << std::endl;
+	//os << "\tonBOUNDS:" << x._onBoundsList << std::endl;
+	return os;
     }
 };
 
