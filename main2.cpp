@@ -27,7 +27,7 @@ int main(int argc,char* argv[])
         }
     
     cp->close();
-    std::cout << q << std::endl;
+    //std::cout << q << std::endl;
     
     auto solve = one ? &CPSolver::solveOne : &CPSolver::solveAll;
     shared_ptr<int>  nbSol = make_shared<int>(0);

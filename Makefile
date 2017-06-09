@@ -1,14 +1,15 @@
 HOST=$(shell uname)
 
-ifeq ($(HOST),Darwin)
 CXXFLAGS=-g -std=c++14
 #CXXFLAGS=-O3 -std=c++14
+
+ifeq ($(HOST),Darwin)
+CXXFLAGS += -fPIC
 CC=c++
 LLIBFLAGS=
 LFLAGS= -L.
 else
-CXXFLAGS=-g -std=c++14 -fPIC 
-#CXXFLAGS=-O3 -std=c++14 -fPIC
+CXXFLAGS += -fPIC 
 CC=clang++-4.0
 LLIBFLAGS=-Wl,-soname,$(LIBNAME)
 LFLAGS  = -L. -Wl,-rpath=`pwd`
