@@ -12,28 +12,28 @@ public:
 };
 
 class Engine {
-   std::stack<Entry*>      _trail;
-   std::stack<std::tuple<int,std::size_t>>          _tops;
-   mutable int             _magic;
-   char* _block;
-   std::size_t  _bsz;
-   std::size_t  _btop;
+  std::stack<Entry*>      _trail;
+  std::stack<std::tuple<int,std::size_t>> _tops;
+  mutable int             _magic;
+  char* _block;
+  std::size_t  _bsz;
+  std::size_t  _btop;
 public:
-    Engine();
-   ~Engine();
-    void trail(Entry* e) { _trail.push(e);}
-    typedef std::shared_ptr<Engine> Ptr;
-    int magic() const { return _magic;}
-    void incMagic() { _magic++;}
-    void push();
-    void pop();
-    friend void* operator new(std::size_t sz,Engine::Ptr& e);
+  Engine();
+  ~Engine();
+  void trail(Entry* e) { _trail.push(e);}
+  typedef std::shared_ptr<Engine> Ptr;
+  int magic() const { return _magic;}
+  void incMagic() { _magic++;}
+  void push();
+  void pop();
+  friend void* operator new(std::size_t sz,Engine::Ptr& e);
 };
 
 inline void* operator new(std::size_t sz,Engine::Ptr& e) {
-   char* ptr = e->_block + e->_btop;
-   e->_btop += sz;
-   return ptr;
+  char* ptr = e->_block + e->_btop;
+  e->_btop += sz;
+  return ptr;
 }
 
 #endif

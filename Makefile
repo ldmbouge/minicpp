@@ -1,5 +1,5 @@
-#CXXFLAGS=-g -std=c++14
-CXXFLAGS=-O3 -std=c++14
+CXXFLAGS=-g -std=c++14
+#CXXFLAGS=-O3 -std=c++14
 CC=c++
 OFILES = mallocWatch.o context.o cont.o \
 	engine.o reversible.o BitDomain.o intvar.o solver.o constraint.o search.o controller.o

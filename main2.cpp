@@ -26,7 +26,7 @@ int main(int argc,char* argv[])
     shared_ptr<int>  nbSol = make_shared<int>(0);
     //cp->solveOne([&] {
     //cp->solveAll([&] {
-    (*cp.*solve)([cp,q,n,nbSol] {
+    (*cp.*solve)([&] {
           for(int i=0;i < n;i++) {
              withVarDo(q,min_dom(q),[cp](auto x) {
                    while(!x->isBound()) {
