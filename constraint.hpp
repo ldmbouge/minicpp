@@ -50,16 +50,16 @@ public:
 
 namespace Factory {
    inline Constraint::Ptr makeEQBinBC(var<int>::Ptr x,var<int>::Ptr y,int c) {
-      return std::make_shared<EQBinBC>(x,y,c);
+      return make_handle<EQBinBC>(x,y,c);
    }
    inline Constraint::Ptr makeNEQBinBC(var<int>::Ptr x,var<int>::Ptr y,int c) {
-      return std::make_shared<NEQBinBC>(x,y,c);
+      return make_handle<NEQBinBC>(x,y,c);
    }
    inline Constraint::Ptr operator==(var<int>::Ptr x,int c) {
-      return std::make_shared<EQc>(x,c);
+      return make_handle<EQc>(x,c);
    }
    inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
-      return std::make_shared<NEQc>(x,c);
+      return make_handle<NEQc>(x,c);
    }
 };
 

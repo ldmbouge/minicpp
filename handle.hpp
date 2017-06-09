@@ -5,6 +5,7 @@ template <typename T>
 class handle_ptr {
    T* _ptr;
 public:
+   template <typename DT> friend class handle_ptr;
    typedef T element_type;
    handle_ptr() noexcept : _ptr(nullptr) {}
    handle_ptr(T* ptr) noexcept : _ptr(ptr) {}
@@ -24,5 +25,11 @@ public:
    void dealloc() { delete _ptr;_ptr = nullptr;}
    void free()    { delete _ptr;_ptr = nullptr;}
 };
+
+template <class T,class... Args>
+handle_ptr<T> make_handle(Args&&... formals)
+{
+   return handle_ptr<T>(new T(std::forward<Args>(formals)...));
+}
 
 #endif

@@ -3,13 +3,13 @@
 
 #include <memory>
 #include <iostream>
-
+#include "handle.hpp"
 
 class Constraint {
 protected:
     virtual void print(std::ostream& os) const {}
 public:
-    typedef std::shared_ptr<Constraint> Ptr;
+    typedef handle_ptr<Constraint> Ptr;
     Constraint() {}
     virtual ~Constraint() {}
     virtual void post() = 0;
