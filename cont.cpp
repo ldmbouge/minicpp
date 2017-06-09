@@ -93,8 +93,8 @@ namespace Cont {
 #endif
     }
 
+  static __thread ContPool* pool = nullptr;
     inline static ContPool* instancePool() {
-        static __thread ContPool* pool = 0;
         if (!pool) {
             pool = new ContPool;
             pool->low = pool->high = pool->nbCont = 0;
@@ -103,6 +103,11 @@ namespace Cont {
         }
         return pool;
     }
+  inline static void freePool() {
+    delete[] pool->pool;
+    delete pool;
+    pool = nullptr;
+  }
     Cont* Cont::newCont()
     {
         ContPool* pool = instancePool();
@@ -144,19 +149,14 @@ namespace Cont {
         if (pool) {
             ORInt nb=0;
             for(ORInt k=pool->low;k != pool->high;) {
-#if defined(__APPLE__) || !defined(__x86_64__)
                 delete pool->pool[k];
-#else
-                Cont* ptr = pool->pool[k];
-                free(ptr->_data);
-                char* adr = ((char*)ptr) - 16;
-                free(adr);
-#endif
                 k = (k+1) % pool->sz;
                 nb++;
             }
             pool->low = pool->high = 0;
-            std::cout << "released " << nb << " continuations out of " << pool->nbCont << "..." << std::endl;
-        }
+            std::cout << "released " << nb << " continuations out of "
+		      << pool->nbCont << "..." << std::endl;
+	    freePool();
+        }	
     }
 }

@@ -122,11 +122,15 @@ void mallocReport()
 }
 
 #else
+
+#include <stdlib.h>
+#include <stdio.h>
+
 void mallocWatch()
 {}
 void mallocReport()
 {
-   return @"iOS no report";
+  printf("iOS no report\n");
 }
 
 #endif

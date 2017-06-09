@@ -6,6 +6,13 @@ DFSController::DFSController(Engine::Ptr ctx)
    _exitK = nullptr;
 }
 
+DFSController::~DFSController()
+{
+  std::cout << "DFSController::~DFSController" << std::endl;
+  clear();
+  Cont::letgo(_exitK);
+}
+
 void DFSController::start(Cont::Cont* k)
 {
    _exitK = k;
@@ -41,4 +48,12 @@ void DFSController::exit()
       _cf.pop();
    }
    _exitK->call();
+}
+
+void DFSController::clear()
+{
+   while (!_cf.empty()) {
+      Cont::letgo(_cf.top());
+      _cf.pop();
+   }
 }

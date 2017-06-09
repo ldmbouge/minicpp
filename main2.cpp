@@ -6,6 +6,11 @@
 #include "constraint.hpp"
 #include "search.hpp"
 
+void pdebug(std::vector<var<int>::Ptr>& x)
+{
+  std::cout << "DEBUG:" << x << std::endl;
+}
+
 int main(int argc,char* argv[])
 {
     using namespace std;
@@ -22,25 +27,28 @@ int main(int argc,char* argv[])
         }
     
     cp->close();
+    std::cout << q << std::endl;
+    
     auto solve = one ? &CPSolver::solveOne : &CPSolver::solveAll;
     shared_ptr<int>  nbSol = make_shared<int>(0);
     //cp->solveOne([&] {
     //cp->solveAll([&] {
     (*cp.*solve)([&] {
           for(int i=0;i < n;i++) {
-             withVarDo(q,min_dom(q),[cp](auto x) {
+	    withVarDo(q,min_dom(q),[cp](auto x) {
                    while(!x->isBound()) {
                       int c = x->getMin();
-                      cp->tryBin([=] { cp->add(x == c);},
-                                 [=] { cp->add(x != c);});
-                   }                      
-                });
+                      cp->tryBin([&] { cp->add(x == c);},
+                                 [&] { cp->add(x != c);});
+                   }                      		
+	      });
           }
           cp->incrNbSol();
           //cout << q << endl;
           *nbSol += 1;
        });
-    
+    //cout << q << endl;
+      
     cout << "Got: " << *nbSol << " solutions" << endl;
     cout << *cp << endl;
     cp.dealloc();

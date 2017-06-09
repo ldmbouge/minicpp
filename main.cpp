@@ -53,5 +53,6 @@ int main(int argc,char* argv[])
     
     cout << "Got: " << nbSol << " solutions" << endl;
     cout << *cp << endl;
+    cp.dealloc();
     return 0;
 }

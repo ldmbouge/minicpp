@@ -19,6 +19,8 @@ CPSolver::~CPSolver()
    for(auto& vp : _iVars)
       vp.dealloc();
    _iVars.clear();
+   _iCstr.clear();
+   Cont::shutdown();
 }
 
 Status CPSolver::add(Constraint::Ptr c)
@@ -34,6 +36,7 @@ Status CPSolver::add(Constraint::Ptr c)
             return x;
         }
         Status s =  propagate();
+	c = nullptr;
         if (s == Failure)
            fail();
         return s;
@@ -51,6 +54,9 @@ void CPSolver::close()
     for(auto c : _iCstr)
         c->post();
     _closed = true;
+    propagate();
+    _afterClose = _ctx->push();
+    std::cout << "closed: " << _afterClose << std::endl;
 }
 
 Status CPSolver::propagate()
@@ -81,9 +87,11 @@ void CPSolver::solveOne(std::function<void(void)> b)
       b();
       //_ctrl->fail();
    } else {
-      Cont::letgo(k);
       std::cout<< "Done!" << std::endl;
    }
+   delete _ctrl;
+   _ctrl = nullptr;
+   //_ctx->popToNode(_afterClose);
 }
 
 void CPSolver::solveAll(std::function<void(void)> b)
@@ -96,26 +104,12 @@ void CPSolver::solveAll(std::function<void(void)> b)
       b();
       _ctrl->fail();
    } else {
-      Cont::letgo(k);
       std::cout<< "Done!" << std::endl;
    }
+   delete _ctrl;
+   _ctrl = nullptr;
+   _ctx->popToNode(_afterClose);
 }
-
-/*void CPSolver::tryBin(std::function<void(void)> left,std::function<void(void)> right) 
-{
-   Cont::Cont* k = Cont::Cont::takeContinuation();
-   if (k->nbCalls()==0) {
-      _nbc++;
-      _ctrl->addChoice(k);
-      left();
-   } else {
-      Cont::letgo(k);
-      _nbc++;
-      _ctrl->trust();
-      right();
-   }
-}
-*/
 
 void CPSolver::fail()
 {
@@ -123,7 +117,11 @@ void CPSolver::fail()
       _ctrl->fail();
 }
 
+
+// [LDM] This is for debugging purposes. Don't include when using valgrind
+/*
 void* operator new  ( std::size_t count )
 {
    return malloc(count);
 }
+*/
