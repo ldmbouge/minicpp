@@ -27,7 +27,7 @@ public:
 };
 
 template <class T,class... Args>
-handle_ptr<T> make_handle(Args&&... formals)
+inline handle_ptr<T> make_handle(Args&&... formals)
 {
    return handle_ptr<T>(new T(std::forward<Args>(formals)...));
 }

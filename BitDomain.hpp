@@ -4,7 +4,7 @@
 #include <vector>
 #include <utility>
 #include "reversible.hpp"
-#include "engine.hpp"
+#include "trail.hpp"
 
 #define GETBIT(b) ((_dom[((b) - _imin)>>5] & (0x1 << (((b)-_imin) & 0x1f)))!=0)
 
@@ -16,7 +16,7 @@ struct IntNotifier   {
 };
  
 class BitDomain {
-    Engine::Ptr             _ctx;
+    Context::Ptr             _ctx;
     std::vector<rev<int>>   _dom;
     rev<int>       _min,_max,_sz;
     const int        _imin,_imax;
@@ -26,7 +26,7 @@ class BitDomain {
     void setZero(int at);
 public:
     typedef std::unique_ptr<BitDomain>  Ptr;
-    BitDomain(Engine::Ptr ctx,int min,int max);
+    BitDomain(Context::Ptr ctx,int min,int max);
     int getMin() const { return _min;}
     int getMax() const { return _max;}
     int getSize() const { return _sz;}

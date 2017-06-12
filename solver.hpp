@@ -9,18 +9,18 @@
 #include "handle.hpp"
 #include "fail.hpp"
 #include "engine.hpp"
+#include "store.hpp"
 #include "avar.hpp"
 #include "acstr.hpp"
 #include "cont.hpp"
 #include "controller.hpp"
 #include "reversible.hpp"
 
-
 typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
 
 class CPSolver {
-   Engine::Ptr                  _ctx;
+   Engine::Ptr               _engine;
    std::list<AVar::Ptr>       _iVars;
    std::list<Constraint::Ptr> _iCstr;
    std::deque<Closure>        _queue;
@@ -37,7 +37,7 @@ public:
    typedef handle_ptr<CPSolver> Ptr;
    CPSolver();
    ~CPSolver();
-   Engine::Ptr context() { return _ctx;}
+   Context::Ptr context() { return _engine->getContext();}
    void registerVar(AVar::Ptr avar);
    void schedule(std::function<void(void)>& cb) { _queue.emplace_back(cb);}
    Status status() const { return _cs;}
@@ -49,8 +49,8 @@ public:
    void solveOne(std::function<void(void)> b);
    void solveAll(std::function<void(void)> b);
    template <class Body1,class Body2> void tryBin(Body1 left,Body2 right);
-   //void tryBin(std::function<void(void)> left,std::function<void(void)> right);
    void fail();
+   friend void* operator new(std::size_t sz,CPSolver::Ptr& e);
    friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {
       return os << "CPSolver(" << &s << ")" << std::endl
                 << "\t#choices   = " << s._nbc << std::endl
@@ -62,6 +62,11 @@ public:
 namespace Factory {
    inline CPSolver::Ptr makeSolver() { return handle_ptr<CPSolver>(new CPSolver);}
 };
+
+inline void* operator new(std::size_t sz,CPSolver::Ptr& e)
+{
+   return e->_engine->getStore()->alloc(sz);
+}
 
 void* operator new  ( std::size_t count );
 

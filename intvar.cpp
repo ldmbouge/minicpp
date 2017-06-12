@@ -2,16 +2,16 @@
 
 var<int>::var(CPSolver::Ptr& cps,int min,int max)
     : _solver(cps),
-      _dom(std::make_unique<BitDomain>(cps->_ctx,min,max)),
+      _dom(std::make_unique<BitDomain>(cps->context(),min,max)),
       _onBindList(cps->context()),
       _onBoundsList(cps->context())
 {}
 
 var<int>::~var<int>()
 {
-   //std::cout << "dealloc(" << this << ')' << std::endl;
-   //std::cout << "\tonBIND  :" << _onBindList << std::endl;
-   //std::cout << "\tonBOUNDS:" << _onBoundsList << std::endl;
+   std::cout << "dealloc(" << this << ')' << std::endl;
+   std::cout << "\tonBIND  :" << _onBindList << std::endl;
+   std::cout << "\tonBOUNDS:" << _onBoundsList << std::endl;
 }
 
 void var<int>::bind(int v)

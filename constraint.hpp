@@ -9,7 +9,6 @@ class EQc : public Constraint { // x == c
    int           _c;
 public:
    EQc(var<int>::Ptr& x,int c) : _x(x),_c(c) {}
-   //~EQc() { std::cout << "destroying " << _x << " == " << _c << std::endl;}           
    void post() override;
 };
 
@@ -36,7 +35,6 @@ class NEQBinBC : public Constraint { // x != y + c
    void print(std::ostream& os) const override;
 public:
    NEQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c) : _x(x),_y(y),_c(c) {}
-   //~NEQBinBC() { std::cout << this << " : ~ != BIN" << std::endl;}
    void post() override;
 };
 
@@ -50,23 +48,23 @@ public:
 
 namespace Factory {
    inline Constraint::Ptr makeEQBinBC(var<int>::Ptr x,var<int>::Ptr y,int c) {
-      return make_handle<EQBinBC>(x,y,c);
+      return new (x->getSolver()) EQBinBC(x,y,c);
    }
    inline Constraint::Ptr makeNEQBinBC(var<int>::Ptr x,var<int>::Ptr y,int c) {
-      return make_handle<NEQBinBC>(x,y,c);
+      return new (x->getSolver()) NEQBinBC(x,y,c);
    }
    inline Constraint::Ptr operator==(var<int>::Ptr x,int c) {
-      return make_handle<EQc>(x,c);
+      return new (x->getSolver()) EQc(x,c);
    }
    inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
-      return make_handle<NEQc>(x,c);
+      return new (x->getSolver()) NEQc(x,c);
+   }
+   inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y)
+   {
+      return Factory::makeNEQBinBC(x,y,0);
    }
 };
 
-inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y)
-{
-   return Factory::makeNEQBinBC(x,y,0);
-}
 
 
 #endif

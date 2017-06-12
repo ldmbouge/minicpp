@@ -3,7 +3,7 @@
 #include "constraint.hpp"
 
 void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol) {
-    Engine::Ptr ctx = cps->context();
+    Context::Ptr ctx = cps->context();
     Branches b = c();
     if (b.size() == 0) {
         cps->incrNbSol();

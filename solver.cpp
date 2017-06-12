@@ -6,7 +6,7 @@
 #include <iomanip>
 
 CPSolver::CPSolver()
-   : _ctx(new Engine),_cs(_ctx,Suspend)
+   : _engine(new Engine),_cs(_engine->getContext(),Suspend)
 {
     _closed = false;
     _varId  = 0;
@@ -18,8 +18,6 @@ CPSolver::~CPSolver()
 {
    for(auto& vh : _iVars)
       vh.dealloc();
-   for(auto& ch : _iCstr)
-      ch.dealloc();
    _iVars.clear();
    _iCstr.clear();
    Cont::shutdown();
@@ -57,7 +55,7 @@ void CPSolver::close()
         c->post();
     _closed = true;
     propagate();
-    _afterClose = _ctx->push();
+    _afterClose = _engine->push();
     std::cout << "closed: " << _afterClose << std::endl;
 }
 
@@ -82,7 +80,7 @@ Status CPSolver::propagate()
 void CPSolver::solveOne(std::function<void(void)> b)
 {
    Cont::initContinuationLibrary((int*)&b);
-   _ctrl = new DFSController(_ctx);
+   _ctrl = new DFSController(_engine->getContext());
    Cont::Cont* k = Cont::Cont::takeContinuation();
    if (k->nbCalls()==0) {
       _ctrl->start(k);
@@ -93,13 +91,13 @@ void CPSolver::solveOne(std::function<void(void)> b)
    }
    delete _ctrl;
    _ctrl = nullptr;
-   //_ctx->popToNode(_afterClose);
+   _engine->popToNode(_afterClose);
 }
 
 void CPSolver::solveAll(std::function<void(void)> b)
 {
    Cont::initContinuationLibrary((int*)&b);
-   _ctrl = new DFSController(_ctx);
+   _ctrl = new DFSController(_engine->getContext());
    Cont::Cont* k = Cont::Cont::takeContinuation();
    if (k->nbCalls()==0) {
       _ctrl->start(k);
@@ -110,7 +108,7 @@ void CPSolver::solveAll(std::function<void(void)> b)
    }
    delete _ctrl;
    _ctrl = nullptr;
-   _ctx->popToNode(_afterClose);
+   _engine->popToNode(_afterClose);
 }
 
 void CPSolver::fail()

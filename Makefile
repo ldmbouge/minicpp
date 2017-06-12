@@ -15,7 +15,7 @@ LLIBFLAGS=-Wl,-soname,$(LIBNAME)
 LFLAGS  = -L. -Wl,-rpath=`pwd`
 endif
 
-OFILES = mallocWatch.o context.o cont.o \
+OFILES = mallocWatch.o context.o cont.o store.o trail.o \
 	engine.o reversible.o BitDomain.o intvar.o solver.o constraint.o search.o controller.o
 
 LIBBASE = copl

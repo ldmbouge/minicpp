@@ -2,14 +2,14 @@
 #define __REVERSIBLE_H
 
 #include <memory>
-#include "engine.hpp"
+#include "trail.hpp"
 
 template<class T> class rev {
-  Engine::Ptr  _ctx;
+  Context::Ptr  _ctx;
   int        _magic;
   T          _value;
 public:
-  rev(Engine::Ptr ctx,const T& v)
+  rev(Context::Ptr ctx,const T& v)
     : _ctx(ctx),_magic(ctx->magic()),_value(v) {}
   operator T() const { return _value;}
   T value() const { return _value;}
@@ -39,14 +39,14 @@ rev<T>& rev<T>::operator=(const T& v)
 }
 
 template<class T> class revList {
-  Engine::Ptr _ctx;
+  Context::Ptr _ctx;
 public:
   struct revNode {
     revList<T>*   _owner;
     rev<revNode*> _prev;
     rev<revNode*> _next;
     T            _value;
-    revNode(revList<T>* own,Engine::Ptr ctx,revNode* p,revNode* n,T&& v)
+    revNode(revList<T>* own,Context::Ptr ctx,revNode* p,revNode* n,T&& v)
       : _owner(own),_prev(ctx,p),_next(ctx,n),_value(std::move(v)) {
       if (p) p->_next = this;
       if (n) n->_prev = this;
@@ -78,7 +78,7 @@ public:
 private:
   rev<revNode*> _head;
 public:
-  revList(Engine::Ptr ctx) : _ctx(ctx),_head(ctx,nullptr) {}
+  revList(Context::Ptr ctx) : _ctx(ctx),_head(ctx,nullptr) {}
   ~revList() {
     //std::cout << "revList::~revList(" << this << ") head = "
     //<< _head.value() << std::endl;

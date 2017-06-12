@@ -2,14 +2,14 @@
 #define __CONTROLLER_H
 
 #include "cont.hpp"
-#include "engine.hpp"
+#include "trail.hpp"
 #include <stack>
 
 class Controller {
 protected:
-   Engine::Ptr _ctx;
+   Context::Ptr _ctx;
 public:
-   Controller(Engine::Ptr ctx) : _ctx(ctx) {}
+   Controller(Context::Ptr ctx) : _ctx(ctx) {}
    virtual ~Controller() {}
    virtual void addChoice(Cont::Cont* k) = 0;
    virtual void fail() = 0;
@@ -23,7 +23,7 @@ class DFSController :public Controller {
    std::stack<Cont::Cont*> _cf;
    Cont::Cont* _exitK;
 public:
-   DFSController(Engine::Ptr ctx);
+   DFSController(Context::Ptr ctx);
   ~DFSController();
    void start(Cont::Cont* k);
    void addChoice(Cont::Cont* k);

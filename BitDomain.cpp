@@ -2,7 +2,7 @@
 #include "fail.hpp"
 #include <iostream>
 
-BitDomain::BitDomain(Engine::Ptr ctx,int min,int max)
+BitDomain::BitDomain(Context::Ptr ctx,int min,int max)
     : _ctx(ctx),
       _min(ctx,min),
       _max(ctx,max),

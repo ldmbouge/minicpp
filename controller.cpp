@@ -1,6 +1,6 @@
 #include "controller.hpp"
 
-DFSController::DFSController(Engine::Ptr ctx)
+DFSController::DFSController(Context::Ptr ctx)
    : Controller(ctx)
 {
    _exitK = nullptr;
