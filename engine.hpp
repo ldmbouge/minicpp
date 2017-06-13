@@ -1,6 +1,7 @@
 #ifndef __ENGINE_H
 #define __ENGINE_H
 
+#include "handle.hpp"
 #include "trail.hpp"
 #include "store.hpp"
 
@@ -10,7 +11,7 @@ class Engine {
 public:
    Engine();
    ~Engine();
-   typedef std::shared_ptr<Engine> Ptr;
+   typedef handle_ptr<Engine> Ptr;
    auto& getContext()        { return _ctx;}
    auto& getStore()          { return _store;}
    int magic() const         { return _ctx->magic();}

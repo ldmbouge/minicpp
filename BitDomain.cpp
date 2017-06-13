@@ -2,18 +2,18 @@
 #include "fail.hpp"
 #include <iostream>
 
-BitDomain::BitDomain(Context::Ptr ctx,int min,int max)
-    : _ctx(ctx),
-      _min(ctx,min),
-      _max(ctx,max),
-      _sz(ctx,max - min + 1),
+BitDomain::BitDomain(Engine::Ptr eng,int min,int max)
+    : _engine(eng),
+      _min(eng->getContext(),min),
+      _max(eng->getContext(),max),
+      _sz(eng->getContext(),max - min + 1),
       _imin(min),
       _imax(max)
 {
     const int nb = (_sz >> 5) + ((_sz & 0x1f) != 0); // number of 32-bit words
-    _dom.reserve(nb);
+    _dom = (rev<int>*)eng->getStore()->alloc(sizeof(rev<int>) * nb); // allocate storage from stack allocator
     for(int i=0;i<nb;i++)
-        _dom.emplace_back(rev<int>(ctx,0xffffffff));
+       new (_dom+i) rev<int>(eng->getContext(),0xffffffff);  // placement-new for each reversible.
     const bool partial = _sz & 0x1f;
     if (partial)
         _dom[nb - 1] = _dom[nb - 1] & ~(0xffffffff << (max - min + 1) % 32);    

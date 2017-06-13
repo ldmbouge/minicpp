@@ -30,7 +30,8 @@ int main(int argc,char* argv[])
     //std::cout << q << std::endl;
     
     auto solve = one ? &CPSolver::solveOne : &CPSolver::solveAll;
-    shared_ptr<int>  nbSol = make_shared<int>(0);
+    int* nbSol = new (cp) int(0);
+    cout << "START: " << *nbSol << endl;
     //cp->solveOne([&] {
     //cp->solveAll([&] {
     (*cp.*solve)([&] {

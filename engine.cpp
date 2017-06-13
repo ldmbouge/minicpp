@@ -8,4 +8,7 @@ Engine::Engine()
 
 Engine::~Engine()
 {
+   std::cout << "Engine::~Engine" << std::endl;
+   _ctx.dealloc();
+   _store.dealloc();
 }

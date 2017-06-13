@@ -16,10 +16,9 @@ CPSolver::CPSolver()
 
 CPSolver::~CPSolver()
 {
-   for(auto& vh : _iVars)
-      vh.dealloc();
    _iVars.clear();
    _iCstr.clear();
+   _engine.dealloc();
    Cont::shutdown();
 }
 

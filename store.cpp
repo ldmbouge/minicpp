@@ -32,8 +32,8 @@ Storage::~Storage()
 void* Storage::alloc(std::size_t sz)
 {
    if (sz & 7)  // unaligned on 8 bytes boundary
-      sz += (~(sz & 7)) + 1; // increase to align
-   assert((sz & 7) == 0);           // check alignment
+      sz = (sz | 7) + 1; // increase to align
+   assert((sz & 7) == 0 && sz != 0);           // check alignment
    auto s = _store[_seg];
    if (_top + sz >= s->_sz) {
       if (_seg == _store.size() - 1)

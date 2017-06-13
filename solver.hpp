@@ -38,6 +38,7 @@ public:
    CPSolver();
    ~CPSolver();
    Context::Ptr context() { return _engine->getContext();}
+   Engine::Ptr engine()   { return _engine;}
    void registerVar(AVar::Ptr avar);
    void schedule(std::function<void(void)>& cb) { _queue.emplace_back(cb);}
    Status status() const { return _cs;}

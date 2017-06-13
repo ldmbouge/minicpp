@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <tuple>
+#include "handle.hpp"
 
 class Entry {
 public:
@@ -24,7 +25,7 @@ public:
    Context();
    ~Context();
    void trail(Entry* e) { _trail.push(e);}
-   typedef std::shared_ptr<Context> Ptr;
+   typedef handle_ptr<Context> Ptr;
    int magic() const { return _magic;}
    void incMagic() { _magic++;}
    long push();

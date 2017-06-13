@@ -7,6 +7,7 @@
 #include "avar.hpp"
 #include "solver.hpp"
 #include "BitDomain.hpp"
+#include "revList.hpp"
 
 template<typename T> class var {};
 

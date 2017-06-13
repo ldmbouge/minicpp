@@ -2,8 +2,9 @@
 #define __STORE_H
 
 #include <vector>
-#include "reversible.hpp"
+#include "handle.hpp"
 #include "trail.hpp"
+#include "reversible.hpp"
 
 class Storage {
    struct Segment {
@@ -20,9 +21,13 @@ class Storage {
 public:
    Storage(Context::Ptr ctx); 
    ~Storage();
-   typedef std::shared_ptr<Storage> Ptr;
+   typedef handle_ptr<Storage> Ptr;
    void* alloc(std::size_t sz);   
 };
 
+inline void* operator new(std::size_t sz,Storage::Ptr& store)
+{
+   return store->alloc(sz);
+}
 
 #endif

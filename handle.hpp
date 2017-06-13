@@ -1,6 +1,8 @@
 #ifndef __HANDLE_H
 #define __HANDLE_H
 
+#include <memory>
+
 template <typename T>
 class handle_ptr {
    T* _ptr;
