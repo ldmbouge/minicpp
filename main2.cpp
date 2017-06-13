@@ -27,20 +27,18 @@ int main(int argc,char* argv[])
         }
     
     cp->close();
-    //std::cout << q << std::endl;
     
     auto solve = one ? &CPSolver::solveOne : &CPSolver::solveAll;
-    int* nbSol = new (cp) int(0);
-    cout << "START: " << *nbSol << endl;
+    int* nbSol = new (cp) int(0);    // allocate the integer on the solver allocator
     //cp->solveOne([&] {
     //cp->solveAll([&] {
-    (*cp.*solve)([&] {
+    (*cp.*solve)([cp,q,n,nbSol] {
           for(int i=0;i < n;i++) {
 	    withVarDo(q,min_dom(q),[cp](auto x) {
                    while(!x->isBound()) {
                       int c = x->getMin();
-                      cp->tryBin([&] { cp->add(x == c);},
-                                 [&] { cp->add(x != c);});
+                      cp->tryBin([cp,x,c] { cp->add(x == c);},
+                                 [cp,x,c] { cp->add(x != c);});
                    }                      		
 	      });
           }
