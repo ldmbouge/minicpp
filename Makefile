@@ -1,7 +1,7 @@
 HOST=$(shell uname)
 
-#CXXFLAGS=-g -std=c++14
-CXXFLAGS=-O3 -std=c++14
+CXXFLAGS=-g -std=c++14
+#CXXFLAGS=-O3 -std=c++14
 
 ifeq ($(HOST),Darwin)
 CXXFLAGS += -fPIC

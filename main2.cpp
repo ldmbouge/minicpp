@@ -32,7 +32,7 @@ int main(int argc,char* argv[])
     int* nbSol = new (cp) int(0);    // allocate the integer on the solver allocator
     //cp->solveOne([&] {
     //cp->solveAll([&] {
-    (*cp.*solve)([cp,q,n,nbSol] {
+    (*cp.*solve)([=] {
           for(int i=0;i < n;i++) {
 	    withVarDo(q,min_dom(q),[cp](auto x) {
                    while(!x->isBound()) {

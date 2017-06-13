@@ -61,7 +61,7 @@ public:
 };
 
 namespace Factory {
-   inline CPSolver::Ptr makeSolver() { return handle_ptr<CPSolver>(new CPSolver);}
+   inline CPSolver::Ptr makeSolver() { return new CPSolver;}
 };
 
 inline void* operator new(std::size_t sz,CPSolver::Ptr& e)
