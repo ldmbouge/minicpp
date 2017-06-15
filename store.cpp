@@ -24,12 +24,17 @@ Storage::Storage(Context::Ptr ctx)
    _store.push_back(std::make_shared<Storage::Segment>(SEGSIZE));
 }
 
+std::size_t Storage::capacity() const
+{
+   return SEGSIZE;
+}
+
 Storage::~Storage()
 {
    _store.clear();
 }
 
-void* Storage::alloc(std::size_t sz)
+void* Storage::allocate(std::size_t sz)
 {
    if (sz & 7)  // unaligned on 8 bytes boundary
       sz = (sz | 7) + 1; // increase to align

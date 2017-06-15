@@ -5,6 +5,7 @@
 #include "handle.hpp"
 #include "trail.hpp"
 #include "reversible.hpp"
+#include "stlAllocAdapter.hpp"
 
 class Storage {
    struct Segment {
@@ -22,12 +23,14 @@ public:
    Storage(Context::Ptr ctx); 
    ~Storage();
    typedef handle_ptr<Storage> Ptr;
-   void* alloc(std::size_t sz);   
+   void* allocate(std::size_t sz);
+   void free(void* ptr) {}
+   std::size_t capacity() const;
 };
 
 inline void* operator new(std::size_t sz,Storage::Ptr& store)
 {
-   return store->alloc(sz);
+   return store->allocate(sz);
 }
 
 #endif

@@ -11,7 +11,7 @@ BitDomain::BitDomain(Engine::Ptr eng,int min,int max)
       _imax(max)
 {
     const int nb = (_sz >> 5) + ((_sz & 0x1f) != 0); // number of 32-bit words
-    _dom = (rev<int>*)eng->getStore()->alloc(sizeof(rev<int>) * nb); // allocate storage from stack allocator
+    _dom = (rev<int>*)eng->getStore()->allocate(sizeof(rev<int>) * nb); // allocate storage from stack allocator
     for(int i=0;i<nb;i++)
        new (_dom+i) rev<int>(eng->getContext(),0xffffffff);  // placement-new for each reversible.
     const bool partial = _sz & 0x1f;

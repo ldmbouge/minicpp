@@ -37,8 +37,9 @@ public:
    typedef handle_ptr<CPSolver> Ptr;
    CPSolver();
    ~CPSolver();
-   Context::Ptr context() { return _engine->getContext();}
-   Engine::Ptr engine()   { return _engine;}
+   Context::Ptr context()  { return _engine->getContext();}
+   Storage::Ptr getStore() { return _engine->getStore();}
+   Engine::Ptr engine()    { return _engine;}
    void registerVar(AVar::Ptr avar);
    void schedule(std::function<void(void)>& cb) { _queue.emplace_back(cb);}
    Status status() const { return _cs;}
@@ -66,7 +67,7 @@ namespace Factory {
 
 inline void* operator new(std::size_t sz,CPSolver::Ptr& e)
 {
-   return e->_engine->getStore()->alloc(sz);
+   return e->_engine->getStore()->allocate(sz);
 }
 
 void* operator new  ( std::size_t count );

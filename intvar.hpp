@@ -60,7 +60,7 @@ inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
    return os << *xp;
 }
 
-template <class T> inline std::ostream& operator<<(std::ostream& os,const std::vector<T>& v) {
+template <class T,class A> inline std::ostream& operator<<(std::ostream& os,const std::vector<T,A>& v) {
    os << '[';
    for(auto& e : v)
       os << e << ',';
@@ -68,8 +68,9 @@ template <class T> inline std::ostream& operator<<(std::ostream& os,const std::v
 }
 
 namespace Factory {
-   inline var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
-   std::vector<var<int>::Ptr> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
+   using alloc = stl::StackAdapter<var<int>::Ptr,Storage>;
+   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
+   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
 };
 
 template<class ForwardIt> ForwardIt min_dom(ForwardIt first, ForwardIt last)

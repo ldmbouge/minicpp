@@ -9,6 +9,7 @@ class handle_ptr {
 public:
    template <typename DT> friend class handle_ptr;
    typedef T element_type;
+   typedef T* pointer;
    handle_ptr() noexcept : _ptr(nullptr) {}
    handle_ptr(T* ptr) noexcept : _ptr(ptr) {}
    handle_ptr(const handle_ptr<T>& ptr) noexcept : _ptr(ptr._ptr)  {}
