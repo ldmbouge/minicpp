@@ -24,6 +24,8 @@ class CPSolver {
    std::list<AVar::Ptr>       _iVars;
    std::list<Constraint::Ptr> _iCstr;
    std::deque<Closure>        _queue;
+   std::list<std::function<void(void)>>  _onFix;
+   Objective::Ptr         _objective;
    bool                      _closed;
    long                  _afterClose;
    int                        _varId;
@@ -41,10 +43,14 @@ public:
    Storage::Ptr getStore() { return _engine->getStore();}
    Engine::Ptr engine()    { return _engine;}
    void registerVar(AVar::Ptr avar);
-   void schedule(std::function<void(void)>& cb) { _queue.emplace_back(cb);}
+   void schedule(std::function<void(void)>& cb)   { _queue.emplace_back(cb);}
+   void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}
+   void fixpoint();
+   void tighten();
    Status status() const { return _cs;}
    Status propagate();
    Status add(Constraint::Ptr c);
+   Status optimize(Objective::Ptr c);
    void close();
    void incrNbChoices() { _nbc += 1;}
    void incrNbSol()     { _nbs += 1;}

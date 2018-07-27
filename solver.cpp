@@ -22,6 +22,12 @@ CPSolver::~CPSolver()
    Cont::shutdown();
 }
 
+Status CPSolver::optimize(Objective::Ptr c)
+{
+   _objective = c;
+   return add(c);
+}
+
 Status CPSolver::add(Constraint::Ptr c)
 {
     if (!_closed) {
@@ -58,22 +64,30 @@ void CPSolver::close()
     std::cout << "closed: " << _afterClose << std::endl;
 }
 
+void CPSolver::fixpoint()
+{
+   for(auto& body : _onFix)
+      body();
+}   
+
 Status CPSolver::propagate()
 {
-    try {
-        while (!_queue.empty()) {
+   try {
+      for(auto& body : _onFix)
+         body();
+      while (!_queue.empty()) {
             auto cb = _queue.front();
             _queue.pop_front();
             cb();
-        }
-        assert(_queue.size() == 0);
-        return _cs = Suspend;
-    } catch(Status x) {
-        _queue.clear();
-        assert(_queue.size() == 0);
-        _nbf += 1;
-        return _cs = Failure;
-    }
+      }
+      assert(_queue.size() == 0);
+      return _cs = Suspend;
+   } catch(Status x) {
+      _queue.clear();
+      assert(_queue.size() == 0);
+      _nbf += 1;
+      return _cs = Failure;
+   }
 }
 
 void CPSolver::solveOne(std::function<void(void)> b)
@@ -92,6 +106,12 @@ void CPSolver::solveOne(std::function<void(void)> b)
    _engine->popToNode(_afterClose);
 }
 
+void CPSolver::tighten()
+{
+   if (_objective)
+      _objective->tighten();
+}
+
 void CPSolver::solveAll(std::function<void(void)> b)
 {
    Cont::initContinuationLibrary((int*)&b);
@@ -100,6 +120,8 @@ void CPSolver::solveAll(std::function<void(void)> b)
    if (k->nbCalls()==0) {
       _ctrl->start(k);
       b();
+      if (_objective)
+         _objective->tighten();
       _ctrl->fail();
    } else {
       std::cout<< "Done!" << std::endl;

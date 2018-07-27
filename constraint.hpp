@@ -46,6 +46,18 @@ public:
    void post() override;
 };
 
+class Minimize : public Objective {
+   var<int>::Ptr _obj;
+   int        _primal;
+   std::function<void(void)> _todo;
+   void print(std::ostream& os) const override;
+public:
+   Minimize(var<int>::Ptr& x) : _obj(x),_primal(0x7FFFFFFF) {}
+   void post() override;
+   void propagate();
+   void tighten() override;
+};
+
 namespace Factory {
    inline Constraint::Ptr makeEQBinBC(var<int>::Ptr x,var<int>::Ptr y,int c) {
       return new (x->getSolver()) EQBinBC(x,y,c);
@@ -59,9 +71,11 @@ namespace Factory {
    inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
       return new (x->getSolver()) NEQc(x,c);
    }
-   inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y)
-   {
+   inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y) {
       return Factory::makeNEQBinBC(x,y,0);
+   }
+   inline Objective::Ptr minimize(var<int>::Ptr x) {
+      return new Minimize(x);
    }
 };
 

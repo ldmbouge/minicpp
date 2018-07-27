@@ -73,3 +73,27 @@ void EQBinDC::post()
       _y->whenBind([this] { _x->bind(_y->getMin() + _c);});
    }
 }
+
+void Minimize::print(std::ostream& os) const
+{
+   os << "minimize(" << *_obj << ", primal = " << _primal << ")";
+}
+
+void Minimize::tighten()
+{
+   assert(_obj->isBound());
+   _primal = _obj->getMax() - 1;
+   _obj->getSolver()->schedule(_todo);
+}
+
+void Minimize::post() 
+{
+   _todo = std::bind(&Minimize::propagate,this);
+   _obj->getSolver()->onFixpoint(_todo);
+   _obj->whenChangeBounds(std::bind(&Minimize::propagate,this));
+}
+
+void Minimize::propagate()
+{
+   _obj->updateMax(_primal);
+}

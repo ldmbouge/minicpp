@@ -15,4 +15,10 @@ public:
     virtual void post() = 0;
 };
 
+class Objective : public Constraint {
+public:
+   typedef handle_ptr<Objective> Ptr;
+   virtual void tighten() = 0;
+};
+
 #endif

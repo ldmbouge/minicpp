@@ -20,6 +20,7 @@ int main(int argc,char* argv[])
             cp->add(Factory::makeNEQBinBC(q[i],q[j],i-j));            
             cp->add(Factory::makeNEQBinBC(q[i],q[j],j-i));            
         }
+    cp->optimize(Factory::minimize(q[n-1]));
     
     cp->close();
     Chooser c([=] {
@@ -46,7 +47,7 @@ int main(int argc,char* argv[])
        }
     } else {
        dfsAll(cp,c,[&] {
-             //cout << "sol = " << q << endl;
+             cout << "sol = " << q << endl;
              nbSol++;
           });
     }
