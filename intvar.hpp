@@ -5,6 +5,7 @@
 #include <vector>
 #include "handle.hpp"
 #include "avar.hpp"
+#include "acstr.hpp"
 #include "solver.hpp"
 #include "BitDomain.hpp"
 #include "revList.hpp"
@@ -18,6 +19,7 @@ class var<int> :public AVar, public IntNotifier {
    int                         _id;
    revList<std::function<void(void)>> _onBindList;
    revList<std::function<void(void)>> _onBoundsList;
+   revList<std::function<void(void)>> _onDomList;
 protected:
    void setId(int id) override { _id = id;}
 public:
@@ -25,29 +27,35 @@ public:
    var<int>(CPSolver::Ptr& cps,int min,int max);
    ~var<int>();
    auto& getSolver()  { return _solver;}
-   int getMin() const { return _dom->getMin();}
-   int getMax() const { return _dom->getMax();}
-   int getSize() const { return _dom->getSize();}
+   int min() const { return _dom->min();}
+   int max() const { return _dom->max();}
+   int size() const { return _dom->size();}
    bool isBound() const { return _dom->isBound();}
    bool contains(int v) const { return _dom->member(v);}
 
-   void bind(int v);
+   void assign(int v);
    void remove(int v);
-   void updateMin(int newMin);
-   void updateMax(int newMax);
+   void removeBelow(int newMin);
+   void removeAbove(int newMax);
    void updateBounds(int newMin,int newMax);
-    
-   void bindEvt() override;
-   void domEvt(int sz)  override;
-   void updateMinEvt(int sz) override;
-   void updateMaxEvt(int sz) override;
+
+   void empty() override;
+   void bind() override;
+   void change()  override;
+   void changeMin() override;
+   void changeMax() override;
 
    auto whenBind(std::function<void(void)>&& f)         { return _onBindList.emplace_back(std::move(f));}
-   auto whenChangeBounds(std::function<void(void)>&& f) { return _onBoundsList.emplace_back(std::move(f));}
+   auto whenBoundsChange(std::function<void(void)>&& f) { return _onBoundsList.emplace_back(std::move(f));}
+   auto whenDomainChange(std::function<void(void)>&& f) { return _onDomList.emplace_back(std::move(f));}
+
+   auto propagateOnDomainChange(Constraint::Ptr c);
+   auto propagateOnBind(Constraint::Ptr c);
+   auto propagateOnBounChange(Constraint::Ptr c);
     
    friend std::ostream& operator<<(std::ostream& os,const var<int>& x) {
-      if (x.getSize() == 1)
-         os << x.getMin();
+      if (x.size() == 1)
+         os << x.min();
       else
          os << "x_" << x._id << '(' << *x._dom << ')';
       //os << "\n\tonBIND  :" << x._onBindList << std::endl;
@@ -80,7 +88,7 @@ template<class ForwardIt> ForwardIt min_dom(ForwardIt first, ForwardIt last)
    int ds = 0x7fffffff;
    ForwardIt smallest = last;
    for (; first != last; ++first) {
-      auto fsz = (*first)->getSize();
+      auto fsz = (*first)->size();
       if (fsz > 1 && fsz < ds) {
          smallest = first;
          ds = fsz;

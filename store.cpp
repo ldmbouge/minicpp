@@ -15,7 +15,7 @@ Storage::Segment::~Segment()
    std::cout << "Segment(" << _sz << ") deallocated" <<  std::endl;
 }
 
-Storage::Storage(Context::Ptr ctx)
+Storage::Storage(Trailer::Ptr ctx)
    : _ctx(ctx),
      _store(0),
      _top(ctx,0),

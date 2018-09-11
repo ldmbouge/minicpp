@@ -16,21 +16,20 @@ int main(int argc,char* argv[])
     auto q = Factory::intVarArray(cp,n,1,n);
     for(int i=0;i < n;i++)
         for(int j=i+1;j < n;j++) {
-            cp->add(q[i] != q[j]);            
-            cp->add(Factory::makeNEQBinBC(q[i],q[j],i-j));            
-            cp->add(Factory::makeNEQBinBC(q[i],q[j],j-i));            
+            cp->post(q[i] != q[j]);            
+            cp->post(Factory::makeNEQBinBC(q[i],q[j],i-j));            
+            cp->post(Factory::makeNEQBinBC(q[i],q[j],j-i));            
         }
     cp->optimize(Factory::minimize(q[n-1]));
     
-    cp->close();
     Chooser c([=] {
             return selectMin(q,
-                             [](const var<int>::Ptr& x) { return x->getSize() > 1;},
-                             [](const var<int>::Ptr& x) { return x->getSize();},
+                             [](const var<int>::Ptr& x) { return x->size() > 1;},
+                             [](const var<int>::Ptr& x) { return x->size();},
                              [cp](const var<int>::Ptr& x) {
-                                 int c = x->getMin();                    
-                                 return  [=] { cp->add(x == c);}
-                                       | [=] { cp->add(x != c);};
+                                 int c = x->min();                    
+                                 return  [=] { cp->post(x == c);}
+                                       | [=] { cp->post(x != c);};
                              });
         });
 

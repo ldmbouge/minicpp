@@ -2,18 +2,17 @@
 #include "fail.hpp"
 #include <iostream>
 
-BitDomain::BitDomain(Engine::Ptr eng,int min,int max)
-    : _engine(eng),
-      _min(eng->getContext(),min),
-      _max(eng->getContext(),max),
-      _sz(eng->getContext(),max - min + 1),
+BitDomain::BitDomain(Trailer::Ptr eng,Storage::Ptr store,int min,int max)
+    : _min(eng,min),
+      _max(eng,max),
+      _sz(eng,max - min + 1),
       _imin(min),
       _imax(max)
 {
     const int nb = (_sz >> 5) + ((_sz & 0x1f) != 0); // number of 32-bit words
-    _dom = (rev<int>*)eng->getStore()->allocate(sizeof(rev<int>) * nb); // allocate storage from stack allocator
+    _dom = (rev<int>*)store->allocate(sizeof(rev<int>) * nb); // allocate storage from stack allocator
     for(int i=0;i<nb;i++)
-       new (_dom+i) rev<int>(eng->getContext(),0xffffffff);  // placement-new for each reversible.
+       new (_dom+i) rev<int>(eng,0xffffffff);  // placement-new for each reversible.
     const bool partial = _sz & 0x1f;
     if (partial)
         _dom[nb - 1] = _dom[nb - 1] & ~(0xffffffff << (max - min + 1) % 32);    
@@ -85,16 +84,24 @@ void BitDomain::setZero(int at)
     _dom[mw] = _dom[mw] & ~(0x1 << mb);
 }
 
-void BitDomain::bind(int v,IntNotifier& x)
+void BitDomain::assign(int v,IntNotifier& x)  // removeAllBut(v,x)
 {
     if (_sz == 1 && v == _min)
         return;
-    if (v < _min || v > _max || !GETBIT(v))
-        failNow();
+    if (v < _min || v > _max || !GETBIT(v)) {
+        _sz = 0;
+        x.empty();
+        return;
+    }
+    bool minChanged = _min != v;
+    bool maxChanged = _max != v;
     _min = v;
     _max = v;
     _sz  = 1;
-    x.bindEvt();
+    x.bind();
+    x.change();
+    if (minChanged) x.changeMin();
+    if (maxChanged) x.changeMax();
 }
 
 void BitDomain::remove(int v,IntNotifier& x)
@@ -102,58 +109,74 @@ void BitDomain::remove(int v,IntNotifier& x)
     if (v < _min || v > _max)
         return;
     if (_min.value() == _max.value())
-        failNow();
-    if (v == _min) {
+        x.empty();
+    bool minChanged = v == _min;
+    bool maxChanged = v == _max;
+    if (minChanged) {
         _sz = _sz - 1;
        _min = findMin(_min + 1);
-        x.updateMinEvt(_sz);
+        x.changeMin();
+        if (_sz == 1) x.bind();
+        if (_sz == 0) x.empty();
+        x.change();
     } else if (v == _max) {
         _sz = _sz - 1;
         _max = findMax(_max - 1);
-        x.updateMaxEvt(_sz);
+        x.changeMax();
+        if (_sz == 1) x.bind();
+        if (_sz == 0) x.empty();
+        x.change();
     } else if (member(v)) {
         setZero(v);
         _sz = _sz - 1;
-        x.domEvt(_sz);
+        if (_sz == 1) x.bind();
+        if (_sz == 0) x.empty();
+        x.change();
     }
 }
 
-void BitDomain::updateMin(int newMin,IntNotifier& x)
+void BitDomain::removeBelow(int newMin,IntNotifier& x)
 {
     if (newMin <= _min)
         return;
     if (newMin > _max)
-        failNow();
+        x.empty();
     bool isCompact = (_max - _min + 1) == _sz;
     int nbRemove = isCompact ? newMin - _min : count(_min,newMin - 1);
     _sz = _sz - nbRemove;
     if (!isCompact)
         newMin = findMin(newMin);
     _min = newMin;
-    x.updateMinEvt(_sz);
+    x.changeMin();
+    x.change();
+    if (_sz==0) x.empty();
+    if (_sz==1) x.bind();
 }
 
-void BitDomain::updateMax(int newMax,IntNotifier& x)
+void BitDomain::removeAbove(int newMax,IntNotifier& x)
 {
     if (newMax >= _max)
         return;
     if (newMax < _min)
-        failNow();    
+        x.empty();
     bool isCompact = (_max - _min + 1) == _sz;
     int nbRemove = isCompact ? _max - newMax : count(newMax + 1,_max);
     _sz = _sz - nbRemove;
     if (!isCompact)
         newMax = findMax(newMax);
     _max = newMax;
-    x.updateMaxEvt(_sz);
+    x.changeMax();
+    x.change();
+    if (_sz==0) x.empty();
+    if (_sz==1) x.bind();
 }
 
 std::ostream& operator<<(std::ostream& os,const BitDomain& x)
 {
-    if (x.getSize()==1)
-        os << x.getMin();
+    if (x.size()==1)
+        os << x.min();
     else {
-        os << '(' << x.getSize() << ")[";
+        os << '(' << x.size() << ")[";
         bool first = true;
         bool seq = false;
         int lastIn=x._min,firstIn = x._min;

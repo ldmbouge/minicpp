@@ -6,9 +6,10 @@
 #include <iomanip>
 
 CPSolver::CPSolver()
-   : _engine(new Engine),_cs(_engine->getContext(),Suspend)
+    : _sm(new Trailer),
+      _store(new Storage(_sm)),
+      _cs(_sm,Suspend)
 {
-    _closed = false;
     _varId  = 0;
     _nbc = _nbf = _nbs = 0;
     _ctrl = nullptr;
@@ -17,35 +18,25 @@ CPSolver::CPSolver()
 CPSolver::~CPSolver()
 {
    _iVars.clear();
-   _iCstr.clear();
-   _engine.dealloc();
+   _store.dealloc();
+   _sm.dealloc();
    Cont::shutdown();
 }
 
 Status CPSolver::optimize(Objective::Ptr c)
 {
    _objective = c;
-   return add(c);
+   return post(c);
 }
 
-Status CPSolver::add(Constraint::Ptr c)
+Status CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
 {
-    if (!_closed) {
-        _iCstr.push_back(c);
-        return Suspend;
-    } else {
-        try {
-            c->post();
-        } catch(Status x) {
-            _queue.clear();
-            return x;
-        }
-        Status s =  propagate();
-	c = nullptr;
-        if (s == Failure)
-           fail();
+    c->post();
+    if (enforceFixPoint) {
+        Status s =  fixpoint();
+        if (s == Failure) fail();
         return s;
-    }
+    } else return Suspend;
 }
 
 void CPSolver::registerVar(AVar::Ptr avar)
@@ -54,31 +45,20 @@ void CPSolver::registerVar(AVar::Ptr avar)
    _iVars.push_back(avar);
 }
 
-void CPSolver::close()
-{
-    for(auto c : _iCstr)
-        c->post();
-    _closed = true;
-    propagate();
-    _afterClose = _engine->push();
-    std::cout << "closed: " << _afterClose << std::endl;
-}
-
-void CPSolver::fixpoint()
+void CPSolver::notifyFixpoint()
 {
    for(auto& body : _onFix)
       body();
 }   
 
-Status CPSolver::propagate()
+Status CPSolver::fixpoint()
 {
    try {
-      for(auto& body : _onFix)
-         body();
+      notifyFixpoint();
       while (!_queue.empty()) {
-            auto cb = _queue.front();
-            _queue.pop_front();
-            cb();
+         auto cb = _queue.front();
+         _queue.pop_front();
+         cb();
       }
       assert(_queue.size() == 0);
       return _cs = Suspend;
@@ -92,8 +72,9 @@ Status CPSolver::propagate()
 
 void CPSolver::solveOne(std::function<void(void)> b)
 {
-   Cont::initContinuationLibrary((int*)&b);
-   _ctrl = new DFSController(_engine->getContext());
+    Cont::initContinuationLibrary((int*)&b);
+    _ctrl = new DFSController(_sm);
+    _afterClose = _sm->push();
    Cont::Cont* k = Cont::Cont::takeContinuation();
    if (k->nbCalls()==0) {
       _ctrl->start(k);
@@ -103,7 +84,7 @@ void CPSolver::solveOne(std::function<void(void)> b)
    }
    delete _ctrl;
    _ctrl = nullptr;
-   _engine->popToNode(_afterClose);
+   _sm->popToNode(_afterClose);
 }
 
 void CPSolver::tighten()
@@ -114,9 +95,10 @@ void CPSolver::tighten()
 
 void CPSolver::solveAll(std::function<void(void)> b)
 {
-   Cont::initContinuationLibrary((int*)&b);
-   _ctrl = new DFSController(_engine->getContext());
-   Cont::Cont* k = Cont::Cont::takeContinuation();
+    Cont::initContinuationLibrary((int*)&b);
+    _ctrl = new DFSController(_sm);
+    _afterClose = _sm->push();
+    Cont::Cont* k = Cont::Cont::takeContinuation();
    if (k->nbCalls()==0) {
       _ctrl->start(k);
       b();
@@ -128,7 +110,7 @@ void CPSolver::solveAll(std::function<void(void)> b)
    }
    delete _ctrl;
    _ctrl = nullptr;
-   _engine->popToNode(_afterClose);
+   _sm->popToNode(_afterClose);
 }
 
 void CPSolver::fail()

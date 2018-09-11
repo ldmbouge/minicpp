@@ -6,13 +6,13 @@
 #include "store.hpp"
 
 class Engine {
-   Context::Ptr   _ctx;
+   Trailer::Ptr   _ctx;
    Storage::Ptr _store;
 public:
    Engine();
    ~Engine();
    typedef handle_ptr<Engine> Ptr;
-   auto& getContext()        { return _ctx;}
+   auto& getStateManager()   { return _ctx;}
    auto& getStore()          { return _store;}
    int magic() const         { return _ctx->magic();}
    void incMagic()           { _ctx->incMagic();}

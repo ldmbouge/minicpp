@@ -21,13 +21,11 @@ int main(int argc,char* argv[])
    auto q = Factory::intVarArray(cp,n,1,n);
    for(int i=0;i < n;i++)
       for(int j=i+1;j < n;j++) {
-         cp->add(q[i] != q[j]);            
-         cp->add(Factory::makeNEQBinBC(q[i],q[j],i-j));            
-         cp->add(Factory::makeNEQBinBC(q[i],q[j],j-i));            
+         cp->post(q[i] != q[j]);            
+         cp->post(Factory::makeNEQBinBC(q[i],q[j],i-j));            
+         cp->post(Factory::makeNEQBinBC(q[i],q[j],j-i));            
       }
-    
-   cp->close();
-    
+       
    auto solve = one ? &CPSolver::solveOne : &CPSolver::solveAll;
    int* nbSol = new (cp) int(0);    // allocate the integer on the solver allocator
    //cp->solveOne([&] {
@@ -36,9 +34,9 @@ int main(int argc,char* argv[])
          for(int i=0;i < n;i++) {
 	    withVarDo(q,min_dom(q),[cp](auto x) {
                   while(!x->isBound()) {
-                     int c = x->getMin();
-                     cp->tryBin([cp,x,c] { cp->add(x == c);},
-                                [cp,x,c] { cp->add(x != c);});
+                     int c = x->min();
+                     cp->tryBin([cp,x,c] { cp->post(x == c);},
+                                [cp,x,c] { cp->post(x != c);});
                   }                      		
                });
          }

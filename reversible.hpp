@@ -5,12 +5,12 @@
 #include "trail.hpp"
 
 template<class T> class rev {
-   Context::Ptr  _ctx;
-   int         _magic;
-   T           _value;
+   Trailer::Ptr       _ctx;
+   int              _magic;
+   T                _value;
 public:
    rev() : _ctx(nullptr),_magic(-1),_value(T())  {}
-   rev(Context::Ptr ctx,const T& v = T()) : _ctx(ctx),_magic(ctx->magic()),_value(v) {}
+   rev(Trailer::Ptr ctx,const T& v = T()) : _ctx(ctx),_magic(ctx->magic()),_value(v) {}
    operator T() const { return _value;}
    T value() const { return _value;}
    rev<T>& operator=(const T& v);

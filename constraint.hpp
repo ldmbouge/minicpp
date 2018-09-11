@@ -54,7 +54,7 @@ class Minimize : public Objective {
 public:
    Minimize(var<int>::Ptr& x) : _obj(x),_primal(0x7FFFFFFF) {}
    void post() override;
-   void propagate();
+   void propagate() override;
    void tighten() override;
 };
 

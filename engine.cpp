@@ -1,7 +1,7 @@
 #include "engine.hpp"
 
 Engine::Engine()
-   : _ctx(new Context),
+   : _ctx(new Trailer),
      _store(new Storage(_ctx))
 {
 }

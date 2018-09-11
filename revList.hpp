@@ -2,17 +2,19 @@
 #define __REVLIST_H
 
 #include "reversible.hpp"
-#include "engine.hpp"
+#include "store.hpp"
+#include "trail.hpp"
 
 template<class T> class revList {
-  Engine::Ptr _engine;
+   Trailer::Ptr _sm;
+   Storage::Ptr _store;
 public:
   struct revNode {
     revList<T>*   _owner;
     rev<revNode*> _prev;
     rev<revNode*> _next;
     T            _value;
-    revNode(revList<T>* own,Context::Ptr ctx,revNode* p,revNode* n,T&& v)
+    revNode(revList<T>* own,Trailer::Ptr ctx,revNode* p,revNode* n,T&& v)
       : _owner(own),_prev(ctx,p),_next(ctx,n),_value(std::move(v)) {
       if (p) p->_next = this;
       if (n) n->_prev = this;
@@ -41,13 +43,13 @@ public:
 private:
   rev<revNode*> _head;
 public:
-   revList(Engine::Ptr eng) : _engine(eng),_head(eng->getContext(),nullptr) {}
+   revList(Trailer::Ptr sm,Storage::Ptr store) : _sm(sm),_store(store),_head(sm,nullptr) {}
   ~revList() {
      _head = nullptr;
   }
   revNode* emplace_back(T&& v) {
      // Allocate list node on the stack allocator
-     return _head = new (_engine->getStore()) revNode(this,_engine->getContext(),nullptr,_head,std::move(v));
+     return _head = new (_store) revNode(this,_sm,nullptr,_head,std::move(v));
   }
   iterator begin()  { return iterator(_head);}
   iterator end()    { return iterator(nullptr);}

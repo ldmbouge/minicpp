@@ -2,9 +2,10 @@
 
 var<int>::var(CPSolver::Ptr& cps,int min,int max)
    : _solver(cps),
-     _dom(new (cps) BitDomain(cps->engine(),min,max)),  // allocate domain on stack allocator
-     _onBindList(cps->engine()),
-     _onBoundsList(cps->engine())
+     _dom(new (cps) BitDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
+     _onBindList(cps->getStateManager(),cps->getStore()),
+     _onBoundsList(cps->getStateManager(),cps->getStore()),
+     _onDomList(cps->getStateManager(),cps->getStore())
 {}
 
 var<int>::~var<int>()
@@ -12,59 +13,68 @@ var<int>::~var<int>()
    std::cout << "var<int>::~var<int> called ?" << std::endl;
 }
 
-void var<int>::bind(int v)
+auto var<int>::propagateOnDomainChange(Constraint::Ptr c)
 {
-   _dom->bind(v,*this);
+   return _onDomList.emplace_back([c]() { c->propagate();});
+}
+auto var<int>::propagateOnBind(Constraint::Ptr c)
+{
+   return _onBindList.emplace_back([c]() { c->propagate();});
+}
+auto var<int>::propagateOnBounChange(Constraint::Ptr c)
+{
+   return _onBoundsList.emplace_back([c]() { c->propagate();});
+}
+
+void var<int>::assign(int v)
+{
+   _dom->assign(v,*this);
 }
 void var<int>::remove(int v)
 {
    _dom->remove(v,*this);
 }
-void var<int>::updateMin(int newMin)
+void var<int>::removeBelow(int newMin)
 {
-   _dom->updateMin(newMin,*this);
+   _dom->removeBelow(newMin,*this);
 }
-void var<int>::updateMax(int newMax)
+void var<int>::removeAbove(int newMax)
 {
-   _dom->updateMax(newMax,*this);
+   _dom->removeAbove(newMax,*this);
 }
 void var<int>::updateBounds(int newMin,int newMax)
 {
-   _dom->updateMin(newMin,*this);
-   _dom->updateMax(newMax,*this);
+   _dom->removeBelow(newMin,*this);
+   _dom->removeAbove(newMax,*this);
 }
 
-void var<int>::bindEvt() 
+void var<int>::empty() 
+{
+   failNow();
+}
+
+void var<int>::bind() 
 {
    for(auto& f :  _onBindList)
       _solver->schedule(f);
+}
+
+void var<int>::change()  
+{
+    for(auto& f : _onDomList)
+        _solver->schedule(f);
+}
+
+void var<int>::changeMin() 
+{
    for(auto& f :  _onBoundsList)
       _solver->schedule(f);
 }
 
-void var<int>::domEvt(int sz)  
-{
-   if (sz==1)
-      for(auto& f : _onBindList)
-         _solver->schedule(f);
-}
-
-void var<int>::updateMinEvt(int sz) 
+void var<int>::changeMax() 
 {
    for(auto& f :  _onBoundsList)
       _solver->schedule(f);
-   if (sz==1)
-      for(auto& f : _onBindList)
-         _solver->schedule(f);
-}
-
-void var<int>::updateMaxEvt(int sz) 
-{
-   for(auto& f :  _onBoundsList)
-      _solver->schedule(f);
-   if (sz==1)
-      for(auto& f : _onBindList)
-         _solver->schedule(f);
 }
 
 namespace Factory {

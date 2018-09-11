@@ -1,6 +1,6 @@
 #include "trail.hpp"
 
-Context::Context()
+Trailer::Trailer()
     : _magic(-1)
 {
    _block = (char*)malloc(1<<24);
@@ -9,19 +9,19 @@ Context::Context()
    _lastNode = 0;
 }
 
-Context::~Context()
+Trailer::~Trailer()
 {
    free(_block);
 }
 
-long Context::push()
+long Trailer::push()
 {
     ++_magic;
     long rv = ++_lastNode;
     _tops.emplace(std::make_tuple(_trail.size(),_btop,rv));
     return rv;
 }
-void Context::popToNode(long node)
+void Trailer::popToNode(long node)
 {
   while (true) {
     int to;
@@ -34,7 +34,7 @@ void Context::popToNode(long node)
   }  
 }
 
-void Context::pop()
+void Trailer::pop()
 {
    int to;
    std::size_t mem;
@@ -50,8 +50,23 @@ void Context::pop()
     _btop = mem;
 }
 
-void Context::clear()
+void Trailer::clear()
 {
   while (_tops.size() > 0) 
     pop();  
+}
+
+void Trailer::saveState() 
+{
+   push();
+}
+void Trailer::restoreState() 
+{
+   pop();
+}
+void Trailer::withNewState(std::function<void(void)>& body) 
+{
+   int lvl = push();
+   body();
+   popToNode(lvl);
 }

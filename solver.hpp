@@ -8,7 +8,6 @@
 
 #include "handle.hpp"
 #include "fail.hpp"
-#include "engine.hpp"
 #include "store.hpp"
 #include "avar.hpp"
 #include "acstr.hpp"
@@ -20,13 +19,12 @@ typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
 
 class CPSolver {
-   Engine::Ptr               _engine;
+   Trailer::Ptr                  _sm;
+   Storage::Ptr               _store;
    std::list<AVar::Ptr>       _iVars;
-   std::list<Constraint::Ptr> _iCstr;
    std::deque<Closure>        _queue;
    std::list<std::function<void(void)>>  _onFix;
    Objective::Ptr         _objective;
-   bool                      _closed;
    long                  _afterClose;
    int                        _varId;
    int                          _nbc; // # choices
@@ -39,19 +37,17 @@ public:
    typedef handle_ptr<CPSolver> Ptr;
    CPSolver();
    ~CPSolver();
-   Context::Ptr context()  { return _engine->getContext();}
-   Storage::Ptr getStore() { return _engine->getStore();}
-   Engine::Ptr engine()    { return _engine;}
+   Trailer::Ptr getStateManager()  { return _sm;}
+   Storage::Ptr getStore()              { return _store;}
    void registerVar(AVar::Ptr avar);
    void schedule(std::function<void(void)>& cb)   { _queue.emplace_back(cb);}
    void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}
-   void fixpoint();
+   void notifyFixpoint();
    void tighten();
    Status status() const { return _cs;}
-   Status propagate();
-   Status add(Constraint::Ptr c);
+   Status fixpoint();
+    Status post(Constraint::Ptr c,bool enforceFixPoint=true);
    Status optimize(Objective::Ptr c);
-   void close();
    void incrNbChoices() { _nbc += 1;}
    void incrNbSol()     { _nbs += 1;}
    void solveOne(std::function<void(void)> b);
@@ -73,7 +69,7 @@ namespace Factory {
 
 inline void* operator new(std::size_t sz,CPSolver::Ptr& e)
 {
-   return e->_engine->getStore()->allocate(sz);
+   return e->_store->allocate(sz);
 }
 
 void* operator new  ( std::size_t count );

@@ -2,7 +2,7 @@
 
 void EQc::post()
 {
-   _x->bind(_c);
+   _x->assign(_c);
 }
 
 void NEQc::post()
@@ -13,18 +13,18 @@ void NEQc::post()
 void EQBinBC::post()
 {
    if (_x->isBound())
-      _y->bind(_x->getMin() - _c);
+      _y->assign(_x->min() - _c);
    else if (_y->isBound())
-      _x->bind(_y->getMin() + _c);
+      _x->assign(_y->min() + _c);
    else {
-      _x->updateBounds(_y->getMin() + _c,_y->getMax() + _c);
-      _y->updateBounds(_x->getMin() - _c,_x->getMax() - _c);
-      _x->whenChangeBounds([this] {
-            _y->updateBounds(_x->getMin() - _c,_x->getMax() - _c);
-         });
-      _y->whenChangeBounds([this] {
-            _x->updateBounds(_y->getMin() + _c,_y->getMax() + _c);
-         });
+      _x->updateBounds(_y->min() + _c,_y->max() + _c);
+      _y->updateBounds(_x->min() - _c,_x->max() - _c);
+      _x->whenBoundsChange([this] {
+                              _y->updateBounds(_x->min() - _c,_x->max() - _c);
+                           });
+      _y->whenBoundsChange([this] {
+                              _x->updateBounds(_y->min() + _c,_y->max() + _c);
+                           });
    }
 }
 void NEQBinBC::print(std::ostream& os) const
@@ -35,17 +35,17 @@ void NEQBinBC::print(std::ostream& os) const
 void NEQBinBC::post()
 {
    if (_x->isBound())
-      _y->remove(_x->getMin() - _c);
+      _y->remove(_x->min() - _c);
    else if (_y->isBound())
-      _x->remove(_y->getMin() + _c);
+      _x->remove(_y->min() + _c);
    else {
       hdl[0] = _x->whenBind([this] {
-            _y->remove(_x->getMin() - _c);
+            _y->remove(_x->min() - _c);
             hdl[0]->detach();
             hdl[1]->detach();
          });
       hdl[1] = _y->whenBind([this] {
-            _x->remove(_y->getMin() + _c);
+            _x->remove(_y->min() + _c);
             hdl[0]->detach();
             hdl[1]->detach();
          });
@@ -55,22 +55,22 @@ void NEQBinBC::post()
 void EQBinDC::post()
 {
    if (_x->isBound())
-      _y->bind(_x->getMin() - _c);
+      _y->assign(_x->min() - _c);
    else if (_y->isBound())
-      _x->bind(_y->getMin() + _c);
+      _x->assign(_y->min() + _c);
    else {
-      _x->updateBounds(_y->getMin() + _c,_y->getMax() + _c);
-      _y->updateBounds(_x->getMin() - _c,_x->getMax() - _c);
-      int lx = _x->getMin(), ux = _x->getMax();
+      _x->updateBounds(_y->min() + _c,_y->max() + _c);
+      _y->updateBounds(_x->min() - _c,_x->max() - _c);
+      int lx = _x->min(), ux = _x->max();
       for(int i = lx ; i <= ux; i++)
          if (!_x->contains(i))
             _y->remove(i - _c);
-      int ly = _y->getMin(),uy = _y->getMax();
+      int ly = _y->min(),uy = _y->max();
       for(int i= ly;i <= uy; i++)
          if (!_y->contains(i))
             _x->remove(i + _c);
-      _x->whenBind([this] { _y->bind(_x->getMin() - _c);});
-      _y->whenBind([this] { _x->bind(_y->getMin() + _c);});
+      _x->whenBind([this] { _y->assign(_x->min() - _c);});
+      _y->whenBind([this] { _x->assign(_y->min() + _c);});
    }
 }
 
@@ -82,7 +82,7 @@ void Minimize::print(std::ostream& os) const
 void Minimize::tighten()
 {
    assert(_obj->isBound());
-   _primal = _obj->getMax() - 1;
+   _primal = _obj->max() - 1;
    _obj->getSolver()->schedule(_todo);
 }
 
@@ -90,10 +90,10 @@ void Minimize::post()
 {
    _todo = std::bind(&Minimize::propagate,this);
    _obj->getSolver()->onFixpoint(_todo);
-   _obj->whenChangeBounds(std::bind(&Minimize::propagate,this));
+   _obj->whenBoundsChange(std::bind(&Minimize::propagate,this));
 }
 
 void Minimize::propagate()
 {
-   _obj->updateMax(_primal);
+   _obj->removeAbove(_primal);
 }

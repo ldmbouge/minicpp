@@ -7,12 +7,13 @@
 
 class Constraint {
 protected:
-    virtual void print(std::ostream& os) const {}
+   virtual void print(std::ostream& os) const {}
 public:
-    typedef handle_ptr<Constraint> Ptr;
-    Constraint() {}
-    virtual ~Constraint() {}
-    virtual void post() = 0;
+   typedef handle_ptr<Constraint> Ptr;
+   Constraint() {}
+   virtual ~Constraint() {}
+   virtual void post() = 0;
+   virtual void propagate() {}
 };
 
 class Objective : public Constraint {

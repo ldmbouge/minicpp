@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "handle.hpp"
+#include "state.hpp"
 #include "trail.hpp"
 #include "reversible.hpp"
 #include "stlAllocAdapter.hpp"
@@ -15,12 +16,12 @@ class Storage {
       ~Segment();
       typedef std::shared_ptr<Segment> Ptr;
    };
-   Context::Ptr                         _ctx;
+   Trailer::Ptr                         _ctx;
    std::vector<Storage::Segment::Ptr> _store;
    rev<int>    _seg;
    rev<size_t> _top;   
 public:
-   Storage(Context::Ptr ctx); 
+   Storage(Trailer::Ptr ctx); 
    ~Storage();
    typedef handle_ptr<Storage> Ptr;
    void* allocate(std::size_t sz);

@@ -7,9 +7,9 @@
 
 class Controller {
 protected:
-   Context::Ptr _ctx;
+   Trailer::Ptr _ctx;
 public:
-   Controller(Context::Ptr ctx) : _ctx(ctx) {}
+   Controller(Trailer::Ptr ctx) : _ctx(ctx) {}
    virtual ~Controller() {}
    virtual void addChoice(Cont::Cont* k) = 0;
    virtual void fail() = 0;
@@ -23,7 +23,7 @@ class DFSController :public Controller {
    std::stack<Cont::Cont*> _cf;
    Cont::Cont* _exitK;
 public:
-   DFSController(Context::Ptr ctx);
+   DFSController(Trailer::Ptr ctx);
   ~DFSController();
    void start(Cont::Cont* k);
    void addChoice(Cont::Cont* k);
