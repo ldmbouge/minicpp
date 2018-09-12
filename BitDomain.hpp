@@ -1,9 +1,8 @@
 #ifndef __BITDOMAIN_H
 #define __BITDOMAIN_H
 
-#include <vector>
-#include <utility>
 #include "handle.hpp"
+#include "trailable.hpp"
 #include "store.hpp"
 
 #define GETBIT(b) ((_dom[((b) - _imin)>>5] & (0x1 << (((b)-_imin) & 0x1f)))!=0)

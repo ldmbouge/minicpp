@@ -3,7 +3,6 @@
 
 #include "trailable.hpp"
 #include "store.hpp"
-#include "trail.hpp"
 
 template<class T> class revList {
     Trailer::Ptr _sm;
@@ -48,10 +47,6 @@ public:
         _head = nullptr;
     }
     revNode* emplace_back(T&& v) {
-        // Allocate list node on the stack allocator
-        return _head = new (_store) revNode(this,_sm,nullptr,_head,std::move(v));
-    }
-    revNode* push_back(T& v) {
         // Allocate list node on the stack allocator
         return _head = new (_store) revNode(this,_sm,nullptr,_head,std::move(v));
     }

@@ -1,8 +1,6 @@
 #ifndef __ACSTR_H
 #define __ACSTR_H
 
-#include <memory>
-#include <iostream>
 #include "handle.hpp"
 #include "trailable.hpp"
 
@@ -21,6 +19,8 @@ public:
    virtual void propagate() {}
    void setScheduled(bool s) { _scheduled = s;}
    bool isScheduled() const  { return _scheduled;}
+   void setActive(bool a)    { _active = a;}
+   bool isActive() const     { return _active;}
 };
 
 class Objective {

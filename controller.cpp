@@ -1,4 +1,9 @@
 #include "controller.hpp"
+#include "cont.hpp"
+#include <iostream>
+
+Controller::Controller(Trailer::Ptr ctx)
+   : _ctx(ctx) {}
 
 DFSController::DFSController(Trailer::Ptr ctx)
    : Controller(ctx)

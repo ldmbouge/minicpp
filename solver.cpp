@@ -56,14 +56,20 @@ Status CPSolver::fixpoint()
    try {
       notifyFixpoint();
       while (!_queue.empty()) {
-         auto cb = _queue.front();
+         auto c = _queue.front();
          _queue.pop_front();
-         cb->propagate();
+         c->setScheduled(false);
+         if (c->isActive())
+            c->propagate();
       }
       assert(_queue.size() == 0);
       return _cs = Suspend;
    } catch(Status x) {
-      _queue.clear();
+      while (!_queue.empty()) {
+         _queue.front()->setScheduled(false);
+         _queue.pop_front();
+      }
+      //_queue.clear();
       assert(_queue.size() == 0);
       _nbf += 1;
       return _cs = Failure;

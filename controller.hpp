@@ -1,15 +1,18 @@
 #ifndef __CONTROLLER_H
 #define __CONTROLLER_H
 
-#include "cont.hpp"
 #include "trail.hpp"
 #include <stack>
+
+namespace Cont {
+   class Cont;
+};
 
 class Controller {
 protected:
    Trailer::Ptr _ctx;
 public:
-   Controller(Trailer::Ptr ctx) : _ctx(ctx) {}
+   Controller(Trailer::Ptr ctx);
    virtual ~Controller() {}
    virtual void addChoice(Cont::Cont* k) = 0;
    virtual void fail() = 0;
@@ -24,13 +27,13 @@ class DFSController :public Controller {
    Cont::Cont* _exitK;
 public:
    DFSController(Trailer::Ptr ctx);
-  ~DFSController();
+   ~DFSController();
    void start(Cont::Cont* k);
    void addChoice(Cont::Cont* k);
    void trust();
    void fail();
    void exit();
-  void clear();
+   void clear();
 };
 
 #endif

@@ -1,7 +1,6 @@
 #ifndef __TRAILABLE_H
 #define __TRAILABLE_H
 
-#include <memory>
 #include "trail.hpp"
 
 template<class T> class trail {

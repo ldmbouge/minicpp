@@ -3,7 +3,6 @@
 
 #include <vector>
 #include "handle.hpp"
-#include "state.hpp"
 #include "trail.hpp"
 #include "trailable.hpp"
 #include "stlAllocAdapter.hpp"

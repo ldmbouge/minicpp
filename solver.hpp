@@ -6,12 +6,12 @@
 #include <functional>
 #include <stdlib.h>
 
+#include "cont.hpp"
 #include "handle.hpp"
 #include "fail.hpp"
 #include "store.hpp"
 #include "avar.hpp"
 #include "acstr.hpp"
-#include "cont.hpp"
 #include "controller.hpp"
 #include "trailable.hpp"
 
@@ -40,7 +40,12 @@ public:
    Trailer::Ptr getStateManager()  { return _sm;}
    Storage::Ptr getStore()              { return _store;}
    void registerVar(AVar::Ptr avar);
-   void schedule(Constraint::Ptr& cb)             { if (!cb->isScheduled()) _queue.emplace_back(cb);}
+   void schedule(Constraint::Ptr& c) {
+      if (c->isActive() && !c->isScheduled()) {
+         c->setScheduled(true);
+         _queue.emplace_back(c);
+      }
+   }
    void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}
    void notifyFixpoint();
    void tighten();
