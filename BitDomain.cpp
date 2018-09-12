@@ -10,9 +10,9 @@ BitDomain::BitDomain(Trailer::Ptr eng,Storage::Ptr store,int min,int max)
       _imax(max)
 {
     const int nb = (_sz >> 5) + ((_sz & 0x1f) != 0); // number of 32-bit words
-    _dom = (rev<int>*)store->allocate(sizeof(rev<int>) * nb); // allocate storage from stack allocator
+    _dom = (trail<int>*)store->allocate(sizeof(trail<int>) * nb); // allocate storage from stack allocator
     for(int i=0;i<nb;i++)
-       new (_dom+i) rev<int>(eng,0xffffffff);  // placement-new for each reversible.
+       new (_dom+i) trail<int>(eng,0xffffffff);  // placement-new for each reversible.
     const bool partial = _sz & 0x1f;
     if (partial)
         _dom[nb - 1] = _dom[nb - 1] & ~(0xffffffff << (max - min + 1) % 32);    

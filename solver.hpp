@@ -13,7 +13,7 @@
 #include "acstr.hpp"
 #include "cont.hpp"
 #include "controller.hpp"
-#include "reversible.hpp"
+#include "trailable.hpp"
 
 typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
@@ -22,7 +22,7 @@ class CPSolver {
    Trailer::Ptr                  _sm;
    Storage::Ptr               _store;
    std::list<AVar::Ptr>       _iVars;
-   std::deque<Closure>        _queue;
+   std::deque<Constraint::Ptr>   _queue;
    std::list<std::function<void(void)>>  _onFix;
    Objective::Ptr         _objective;
    long                  _afterClose;
@@ -30,7 +30,7 @@ class CPSolver {
    int                          _nbc; // # choices
    int                          _nbf; // # fails
    int                          _nbs; // # solutions
-   rev<Status>                   _cs;
+   trail<Status>                 _cs;
    Controller*                 _ctrl;
 public:
    template<typename T> friend class var;
@@ -40,14 +40,14 @@ public:
    Trailer::Ptr getStateManager()  { return _sm;}
    Storage::Ptr getStore()              { return _store;}
    void registerVar(AVar::Ptr avar);
-   void schedule(std::function<void(void)>& cb)   { _queue.emplace_back(cb);}
+   void schedule(Constraint::Ptr& cb)             { if (!cb->isScheduled()) _queue.emplace_back(cb);}
    void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}
    void notifyFixpoint();
    void tighten();
    Status status() const { return _cs;}
    Status fixpoint();
-    Status post(Constraint::Ptr c,bool enforceFixPoint=true);
-   Status optimize(Objective::Ptr c);
+   Status post(Constraint::Ptr c,bool enforceFixPoint=true);
+   void optimize(Objective::Ptr c);
    void incrNbChoices() { _nbc += 1;}
    void incrNbSol()     { _nbs += 1;}
    void solveOne(std::function<void(void)> b);

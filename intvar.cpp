@@ -13,17 +13,27 @@ var<int>::~var<int>()
    std::cout << "var<int>::~var<int> called ?" << std::endl;
 }
 
-auto var<int>::propagateOnDomainChange(Constraint::Ptr c)
+class ClosureConstraint : public Constraint {
+    std::function<void(void)> _f;
+public:
+    ClosureConstraint(std::function<void(void)>&& f) : _f(std::move(f)) {}
+    void post() {}
+    void propagate() {
+        _f();
+    }
+};
+
+revList<Constraint::Ptr>::revNode* var<int>::whenBind(std::function<void(void)>&& f)
 {
-   return _onDomList.emplace_back([c]() { c->propagate();});
+    return propagateOnBind(new (getSolver()) ClosureConstraint(std::move(f)));  
 }
-auto var<int>::propagateOnBind(Constraint::Ptr c)
+revList<Constraint::Ptr>::revNode* var<int>::whenBoundsChange(std::function<void(void)>&& f)
 {
-   return _onBindList.emplace_back([c]() { c->propagate();});
+    return propagateOnBoundChange(new (getSolver()) ClosureConstraint(std::move(f)));  
 }
-auto var<int>::propagateOnBounChange(Constraint::Ptr c)
+revList<Constraint::Ptr>::revNode* var<int>::whenDomainChange(std::function<void(void)>&& f)
 {
-   return _onBoundsList.emplace_back([c]() { c->propagate();});
+    return propagateOnDomainChange(new (getSolver()) ClosureConstraint(std::move(f)));  
 }
 
 void var<int>::assign(int v)

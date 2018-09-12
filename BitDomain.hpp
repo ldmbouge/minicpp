@@ -17,8 +17,8 @@ struct IntNotifier   {
 };
  
 class BitDomain {
-    rev<int>*               _dom;
-    rev<int>       _min,_max,_sz;
+    trail<int>*               _dom;
+    trail<int>       _min,_max,_sz;
     const int        _imin,_imax;
     int count(int from,int to) const;
     int findMin(int from) const;

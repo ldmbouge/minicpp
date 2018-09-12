@@ -74,6 +74,15 @@ void EQBinDC::post()
    }
 }
 
+Minimize::Minimize(var<int>::Ptr& x)
+    : _obj(x),_primal(0x7FFFFFFF)
+{
+    auto todo = std::function<void(void)>([this]() {
+                                             _obj->removeAbove(_primal);
+                                         });
+    _obj->getSolver()->onFixpoint(todo);
+}
+
 void Minimize::print(std::ostream& os) const
 {
    os << "minimize(" << *_obj << ", primal = " << _primal << ")";
@@ -83,17 +92,6 @@ void Minimize::tighten()
 {
    assert(_obj->isBound());
    _primal = _obj->max() - 1;
-   _obj->getSolver()->schedule(_todo);
+   _obj->getSolver()->fail();
 }
 
-void Minimize::post() 
-{
-   _todo = std::bind(&Minimize::propagate,this);
-   _obj->getSolver()->onFixpoint(_todo);
-   _obj->whenBoundsChange(std::bind(&Minimize::propagate,this));
-}
-
-void Minimize::propagate()
-{
-   _obj->removeAbove(_primal);
-}

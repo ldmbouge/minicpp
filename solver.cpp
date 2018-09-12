@@ -20,13 +20,13 @@ CPSolver::~CPSolver()
    _iVars.clear();
    _store.dealloc();
    _sm.dealloc();
+   std::cout << "CPSolver::~CPSolver(" << this << ")" << std::endl;
    Cont::shutdown();
 }
 
-Status CPSolver::optimize(Objective::Ptr c)
+void CPSolver::optimize(Objective::Ptr c)
 {
    _objective = c;
-   return post(c);
 }
 
 Status CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
@@ -58,7 +58,7 @@ Status CPSolver::fixpoint()
       while (!_queue.empty()) {
          auto cb = _queue.front();
          _queue.pop_front();
-         cb();
+         cb->propagate();
       }
       assert(_queue.size() == 0);
       return _cs = Suspend;

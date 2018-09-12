@@ -1,7 +1,7 @@
 #include <iostream>
 #include <iomanip>
 #include "solver.hpp"
-#include "reversible.hpp"
+#include "trailable.hpp"
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
