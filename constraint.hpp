@@ -8,7 +8,7 @@ class EQc : public Constraint { // x == c
     var<int>::Ptr _x;
     int           _c;
 public:
-    EQc(var<int>::Ptr& x,int c) : _x(x),_c(c) {}
+   EQc(var<int>::Ptr& x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
     void post() override;
 };
 
@@ -16,15 +16,16 @@ class NEQc : public Constraint { // x != c
     var<int>::Ptr _x;
     int           _c;
 public:
-    NEQc(var<int>::Ptr& x,int c) : _x(x),_c(c) {}
-    void post() override;
+   NEQc(var<int>::Ptr& x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
+   void post() override;
 };
 
 class EQBinBC : public Constraint { // x == y + c
     var<int>::Ptr _x,_y;
     int _c;
 public:
-    EQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c) : _x(x),_y(y),_c(c) {}
+    EQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
+       : Constraint(x->getSolver()),_x(x),_y(y),_c(c) {}
     void post() override;
 };
 
@@ -34,7 +35,8 @@ class NEQBinBC : public Constraint { // x != y + c
     revList<Constraint::Ptr>::revNode* hdl[2];
     void print(std::ostream& os) const override;
 public:
-    NEQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c) : _x(x),_y(y),_c(c) {}
+    NEQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
+       : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
     void post() override;
 };
 
@@ -42,7 +44,8 @@ class EQBinDC : public Constraint { // x == y + c
     var<int>::Ptr _x,_y;
     int _c;
 public:
-    EQBinDC(var<int>::Ptr& x,var<int>::Ptr& y,int c) : _x(x),_y(y),_c(c) {}
+    EQBinDC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
+       : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
     void post() override;
 };
 

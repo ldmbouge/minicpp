@@ -16,7 +16,9 @@ var<int>::~var<int>()
 class ClosureConstraint : public Constraint {
     std::function<void(void)> _f;
 public:
-    ClosureConstraint(std::function<void(void)>&& f) : _f(std::move(f)) {}
+   ClosureConstraint(CPSolver::Ptr cp,std::function<void(void)>&& f)
+      : Constraint(cp),
+        _f(std::move(f)) {}
     void post() {}
     void propagate() {
         _f();
@@ -25,15 +27,15 @@ public:
 
 revList<Constraint::Ptr>::revNode* var<int>::whenBind(std::function<void(void)>&& f)
 {
-    return propagateOnBind(new (getSolver()) ClosureConstraint(std::move(f)));  
+   return propagateOnBind(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }
 revList<Constraint::Ptr>::revNode* var<int>::whenBoundsChange(std::function<void(void)>&& f)
 {
-    return propagateOnBoundChange(new (getSolver()) ClosureConstraint(std::move(f)));  
+    return propagateOnBoundChange(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }
 revList<Constraint::Ptr>::revNode* var<int>::whenDomainChange(std::function<void(void)>&& f)
 {
-    return propagateOnDomainChange(new (getSolver()) ClosureConstraint(std::move(f)));  
+   return propagateOnDomainChange(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }
 
 void var<int>::assign(int v)

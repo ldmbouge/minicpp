@@ -4,14 +4,18 @@
 #include <memory>
 #include <iostream>
 #include "handle.hpp"
+#include "trailable.hpp"
+
+class CPSolver;
 
 class Constraint {
    bool _scheduled;
+   trail<bool> _active;
 protected:
    virtual void print(std::ostream& os) const {}
 public:
    typedef handle_ptr<Constraint> Ptr;
-   Constraint() : _scheduled(false) {}
+   Constraint(handle_ptr<CPSolver> cp);
    virtual ~Constraint() {}
    virtual void post() = 0;
    virtual void propagate() {}
@@ -21,8 +25,8 @@ public:
 
 class Objective {
 public:
-   typedef handle_ptr<Objective> Ptr;
-   virtual void tighten() = 0;
+    typedef handle_ptr<Objective> Ptr;
+    virtual void tighten() = 0;
 };
 
 #endif
