@@ -7,8 +7,7 @@
 
 CPSolver::CPSolver()
     : _sm(new Trailer),
-      _store(new Storage(_sm)),
-      _cs(_sm,Suspend)
+      _store(new Storage(_sm))
 {
     _varId  = 0;
     _nbc = _nbf = _nbs = 0;
@@ -29,14 +28,24 @@ void CPSolver::optimize(Objective::Ptr c)
    _objective = c;
 }
 
-Status CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
+void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
 {
     c->post();
-    if (enforceFixPoint) {
-        Status s =  fixpoint();
-        if (s == Failure) fail();
-        return s;
-    } else return Suspend;
+    if (enforceFixPoint) 
+        fixpoint();    
+}
+
+/**
+ * Useful only for using continuation-style search combinator
+ */
+void CPSolver::branch(Constraint::Ptr c)
+{
+    try {
+        c->post();
+        fixpoint();
+    } catch(Status s) {
+        fail();
+    }
 }
 
 void CPSolver::registerVar(AVar::Ptr avar)
@@ -51,7 +60,7 @@ void CPSolver::notifyFixpoint()
       body();
 }   
 
-Status CPSolver::fixpoint()
+void CPSolver::fixpoint()
 {
    try {
       notifyFixpoint();
@@ -63,7 +72,6 @@ Status CPSolver::fixpoint()
             c->propagate();
       }
       assert(_queue.size() == 0);
-      return _cs = Suspend;
    } catch(Status x) {
       while (!_queue.empty()) {
          _queue.front()->setScheduled(false);
@@ -72,7 +80,7 @@ Status CPSolver::fixpoint()
       //_queue.clear();
       assert(_queue.size() == 0);
       _nbf += 1;
-      return _cs = Failure;
+      throw x;
    }
 }
 

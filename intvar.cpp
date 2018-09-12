@@ -5,7 +5,8 @@ var<int>::var(CPSolver::Ptr& cps,int min,int max)
      _dom(new (cps) BitDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
      _onBindList(cps->getStateManager(),cps->getStore()),
      _onBoundsList(cps->getStateManager(),cps->getStore()),
-     _onDomList(cps->getStateManager(),cps->getStore())
+     _onDomList(cps->getStateManager(),cps->getStore()),
+     _domListener(new (cps) DomainListener(this))
 {}
 
 var<int>::~var<int>()
@@ -40,53 +41,53 @@ revList<Constraint::Ptr>::revNode* var<int>::whenDomainChange(std::function<void
 
 void var<int>::assign(int v)
 {
-   _dom->assign(v,*this);
+   _dom->assign(v,*_domListener);
 }
 void var<int>::remove(int v)
 {
-   _dom->remove(v,*this);
+   _dom->remove(v,*_domListener);
 }
 void var<int>::removeBelow(int newMin)
 {
-   _dom->removeBelow(newMin,*this);
+   _dom->removeBelow(newMin,*_domListener);
 }
 void var<int>::removeAbove(int newMax)
 {
-   _dom->removeAbove(newMax,*this);
+   _dom->removeAbove(newMax,*_domListener);
 }
 void var<int>::updateBounds(int newMin,int newMax)
 {
-   _dom->removeBelow(newMin,*this);
-   _dom->removeAbove(newMax,*this);
+   _dom->removeBelow(newMin,*_domListener);
+   _dom->removeAbove(newMax,*_domListener);
 }
 
-void var<int>::empty() 
+void var<int>::DomainListener::empty() 
 {
    failNow();
 }
 
-void var<int>::bind() 
+void var<int>::DomainListener::bind() 
 {
-   for(auto& f :  _onBindList)
-      _solver->schedule(f);
+   for(auto& f : theVar->_onBindList)
+      theVar->_solver->schedule(f);
 }
 
-void var<int>::change()  
+void var<int>::DomainListener::change()  
 {
-    for(auto& f : _onDomList)
-        _solver->schedule(f);
+    for(auto& f : theVar->_onDomList)
+        theVar->_solver->schedule(f);
 }
 
-void var<int>::changeMin() 
+void var<int>::DomainListener::changeMin() 
 {
-   for(auto& f :  _onBoundsList)
-      _solver->schedule(f);
+   for(auto& f :  theVar->_onBoundsList)
+      theVar->_solver->schedule(f);
 }
 
-void var<int>::changeMax() 
+void var<int>::DomainListener::changeMax() 
 {
-   for(auto& f :  _onBoundsList)
-      _solver->schedule(f);
+   for(auto& f :  theVar->_onBoundsList)
+      theVar->_solver->schedule(f);
 }
 
 namespace Factory {

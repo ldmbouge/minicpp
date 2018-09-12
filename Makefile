@@ -31,7 +31,7 @@ $(LIBNAME): $(OFILES)
 	  ln -s $(LIBNAME) $(basename $(LIBNAME)); \
 	fi
 
-cpptests: test1 test2
+cpptests: test1 test2 test3
 
 test1: main.o
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
@@ -39,7 +39,10 @@ test1: main.o
 test2: main2.o
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
 
-test3: mainCont.o
+test3: main3.o
+	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
+
+test0: mainCont.o
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS)  -o $@
 
 run: test1

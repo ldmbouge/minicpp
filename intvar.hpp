@@ -12,18 +12,29 @@
 template<typename T> class var {};
 
 template<>
-class var<int> :public AVar, public IntNotifier {
+class var<int> :public AVar { 
    handle_ptr<CPSolver>    _solver;
    BitDomain::Ptr             _dom;
    int                         _id;
    revList<Constraint::Ptr> _onBindList;
    revList<Constraint::Ptr> _onBoundsList;
    revList<Constraint::Ptr> _onDomList;
+   struct DomainListener :public IntNotifier {
+      var<int>* theVar;
+      DomainListener(var<int>* x) : theVar(x) {}
+      void empty() override;
+      void bind() override;
+      void change()  override;
+      void changeMin() override;
+      void changeMax() override;      
+   };
+   DomainListener*       _domListener;
 protected:
    void setId(int id) override { _id = id;}
 public:
    typedef handle_ptr<var<int>> Ptr;
    var<int>(CPSolver::Ptr& cps,int min,int max);
+   var<int>(CPSolver::Ptr& cps,int n) : var<int>(cps,0,n-1) {}
    ~var<int>();
    auto& getSolver()  { return _solver;}
    int min() const { return _dom->min();}
@@ -37,17 +48,10 @@ public:
    void removeBelow(int newMin);
    void removeAbove(int newMax);
    void updateBounds(int newMin,int newMax);
-
-   void empty() override;
-   void bind() override;
-   void change()  override;
-   void changeMin() override;
-   void changeMax() override;
-
+   
    revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f);
    revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f);
    revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f);
-
    auto propagateOnBind(Constraint::Ptr c)          { return _onBindList.emplace_back(std::move(c));}
    auto propagateOnBoundChange(Constraint::Ptr c)   { return _onBoundsList.emplace_back(std::move(c));}
    auto propagateOnDomainChange(Constraint::Ptr c ) { return _onDomList.emplace_back(std::move(c));}

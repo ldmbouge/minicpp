@@ -33,7 +33,7 @@ public:
 
    void saveState() override;
    void restoreState() override;
-   void withNewState(std::function<void(void)>& body) override;
+   void withNewState(const std::function<void(void)>& body) override;
 
    friend void* operator new(std::size_t sz,Trailer::Ptr& e);
 };

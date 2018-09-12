@@ -64,7 +64,7 @@ void Trailer::restoreState()
 {
    pop();
 }
-void Trailer::withNewState(std::function<void(void)>& body) 
+void Trailer::withNewState(const std::function<void(void)>& body) 
 {
    int lvl = push();
    body();
