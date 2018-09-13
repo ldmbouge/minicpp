@@ -82,6 +82,7 @@ namespace Factory {
    using alloc = stl::StackAdapter<var<int>::Ptr,Storage>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
+   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);
 };
 
 template<class ForwardIt> ForwardIt min_dom(ForwardIt first, ForwardIt last)

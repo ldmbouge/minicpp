@@ -2,6 +2,7 @@
 #define __SEARCH_H
 
 #include "solver.hpp"
+#include "constraint.hpp"
 #include <vector>
 #include <initializer_list>
 #include <functional>
@@ -18,6 +19,7 @@ public:
    size_t size() const { return _alts.size();}
 };
 
+
 class Chooser {
    std::function<Branches(void)> _sel;
 public:
@@ -25,12 +27,39 @@ public:
    Branches operator()() { return _sel();}
 };
 
+void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol);
+
+class SearchStatistics {
+    int _nFailures;
+    int _nNodes;
+    int _nSolutions;
+    bool _completed;
+public:
+   SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {}
+   void incrFailures() { _nFailures++; }
+   void incrNodes() { _nNodes++; }
+   void incrSolutions() { _nSolutions++; }
+   void setCompleted() { _completed = true; }
+   int numberOfFailures() const { return _nFailures; }
+   int numberOfNodes() const { return _nNodes; }
+   int numberOfSolutions() const { return _nSolutions; }
+   bool isCompleted() const { return _completed; }
+   friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
+      return os << "\n\t#choice   : " << ss._nNodes
+                << "\n\t#fail     : " << ss._nFailures
+                << "\n\t#sols     : " << ss._nSolutions
+                << "\n\tcompleted : " << ss._completed << std::endl;
+   }
+};
+
+typedef std::function<bool(const SearchStatistics&)> Limit;
+
 class DFSearch {
    StateManager::Ptr                      _sm;
    std::function<Branches(void)>   _branching;
    std::vector<std::function<void(void)>>    _solutionListeners;
    std::vector<std::function<void(void)>>    _failureListeners;
-   void dfs();
+   void dfs(SearchStatistics& stats,Limit limit);
 public:
    DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b) : _sm(cp->getStateManager()),_branching(std::move(b)) {}
    DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b) : _sm(sm),_branching(std::move(b)) {}
@@ -38,33 +67,55 @@ public:
    template <class B> void onFailure(B c)  { _failureListeners.emplace_back(std::move(c));}
    void notifySolution() { for_each(_solutionListeners.begin(),_solutionListeners.end(),[](std::function<void(void)>& c) { c();});}
    void notifyFailure()  { for_each(_failureListeners.begin(),_failureListeners.end(),[](std::function<void(void)>& c) { c();});}
-   void solve();
+   SearchStatistics solve(SearchStatistics& stat,Limit limit);
+   SearchStatistics solve(Limit limit);
+   SearchStatistics solve();
 };
 
-
-
-void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol);
+template<class B> std::function<Branches(void)> land(std::initializer_list<B> allB) {
+   return [allB]() {
+             for(const B& brs : allB) {
+                auto br = brs();
+                if (br.size() != 0)
+                   return br;
+             }
+             return Branches({});
+          };
+}
 
 template <class B0,class B1> inline Branches operator|(B0 b0,B1 b1) {
    return Branches({b0,b1});
 }
 
-template<class Container,typename Cond,typename Fun,typename Do>
-inline Branches selectMin(Container& c,Cond test,Fun f,Do block) {
+template<class Container,typename Predicate,typename Fun>
+inline typename Container::value_type selectMin(Container& c,Predicate test,Fun f) {
    auto from = c.begin(),to  = c.end();
    auto min = to;
-   int ds = 0x7fffffff;
    for(;from != to;++from) {
-      auto fv = f(*from);
-      if (test(*from) && fv < ds) {
-         min = from;
-         ds = fv;
-      }
+       if (test(*from)) {
+           auto fv = f(*from);       
+           if (min == to || fv < f(*min)) 
+              min = from;           
+       }
    }
-   if (min != to) {
-      return block(*min);
-   } else
-      return Branches({});
+   if (min == to)
+      return typename Container::value_type();
+   else 
+      return *min;
+}
+
+template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,Container& c) {
+    using namespace Factory;
+    return [&]() {
+               auto sx = selectMin(c,
+                                   [](const auto& x) { return x->size() > 1;},
+                                   [](const auto& x) { return x->size();});
+               if (sx) {
+                   int v = sx->min();
+                   return [=] { return cp->post(sx == v);}
+                       |  [=] { return cp->post(sx != v);};
+               } else return Branches({});                   
+           };
 }
 
 #endif

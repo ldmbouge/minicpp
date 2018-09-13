@@ -22,7 +22,7 @@ OFILES = mallocWatch.o context.o cont.o store.o trail.o \
 LIBBASE = copl
 LIBNAME = lib$(LIBBASE).so.1
 
-all:   $(LIBNAME) cpptests
+all: $(LIBNAME) cpptests
 
 $(LIBNAME): $(OFILES)
 	$(CC) $(CXXFLAGS) $(OFILES) --shared $(LLIBFLAGS) -o $(LIBNAME)
@@ -31,7 +31,7 @@ $(LIBNAME): $(OFILES)
 	  ln -s $(LIBNAME) $(basename $(LIBNAME)); \
 	fi
 
-cpptests: test1 test2 test3
+cpptests: test0 test1 test2 test3
 
 test1: main.o
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
@@ -58,8 +58,8 @@ run: test1
 	rm -f $@.$$$$
 
 clean:
-	rm -rf $(OFILES) cpptest *~ *.d
+	rm -rf $(OFILES) cpptest test1 test2 test3 *~ *.d
 
 # This imports the dependency header specs.
 
-include $(OFILES:.o=.d) main.d main2.d
+include $(OFILES:.o=.d) main.d main2.d main3.d

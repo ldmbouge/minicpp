@@ -23,15 +23,15 @@ int main(int argc,char* argv[])
     cp->optimize(Factory::minimize(q[n-1]));
     
     Chooser c([=] {
-            return selectMin(q,
-                             [](const var<int>::Ptr& x) { return x->size() > 1;},
-                             [](const var<int>::Ptr& x) { return x->size();},
-                             [cp](const var<int>::Ptr& x) {
-                                 int c = x->min();                    
-                                 return  [=] { cp->post(x == c);}
-                                       | [=] { cp->post(x != c);};
-                             });
-        });
+                  auto x =  selectMin(q,
+                                      [](const auto& x) { return x->size() > 1;},
+                                      [](const auto& x) { return x->size();});
+                  if (x) {
+                      int c = x->min();                    
+                      return  [=] { cp->post(x == c);}
+                            | [=] { cp->post(x != c);};
+                  } else return Branches({});
+              });
 
     int nbSol = 0;
     if (one) {
