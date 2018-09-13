@@ -55,11 +55,11 @@ public:
 typedef std::function<bool(const SearchStatistics&)> Limit;
 
 class DFSearch {
-   StateManager::Ptr                      _sm;
-   std::function<Branches(void)>   _branching;
-   std::vector<std::function<void(void)>>    _solutionListeners;
-   std::vector<std::function<void(void)>>    _failureListeners;
-   void dfs(SearchStatistics& stats,Limit limit);
+    StateManager::Ptr                      _sm;
+    std::function<Branches(void)>   _branching;
+    std::vector<std::function<void(void)>>    _solutionListeners;
+    std::vector<std::function<void(void)>>    _failureListeners;
+    void dfs(SearchStatistics& stats,Limit limit);
 public:
    DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b) : _sm(cp->getStateManager()),_branching(std::move(b)) {}
    DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b) : _sm(sm),_branching(std::move(b)) {}
@@ -70,6 +70,10 @@ public:
    SearchStatistics solve(SearchStatistics& stat,Limit limit);
    SearchStatistics solve(Limit limit);
    SearchStatistics solve();
+   SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo);
+   SearchStatistics optimize(Objective::Ptr obj,Limit limit);
+   SearchStatistics optimize(Objective::Ptr obj);
+   SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo);
 };
 
 template<class B> std::function<Branches(void)> land(std::initializer_list<B> allB) {

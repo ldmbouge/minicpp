@@ -28,6 +28,42 @@ SearchStatistics DFSearch::solve()
     return solve(stats,[](const SearchStatistics& ss) { return false;});
 }
 
+SearchStatistics DFSearch::solveSubjectTo(Limit limit,std::function<void(void)> subjectTo)
+{
+    SearchStatistics stats;
+    _sm->withNewState(VVFun([this,&stats,&limit,&subjectTo]() {
+                               try {
+                                  subjectTo();
+                                  dfs(stats,limit);
+                               } catch(StopException& sx) {}
+                            }));
+    return stats;
+}
+
+SearchStatistics DFSearch::optimize(Objective::Ptr obj,Limit limit)
+{
+   SearchStatistics stats;
+   onSolution([obj] { obj->tighten();});
+   return solve(stats,limit);
+}
+
+SearchStatistics DFSearch::optimize(Objective::Ptr obj)
+{
+   return optimize(obj,[](const SearchStatistics& ss) { return false;});
+}
+
+SearchStatistics DFSearch::optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo)
+{
+   SearchStatistics stats;
+   _sm->withNewState(VVFun([this,&stats,obj,&limit,&subjectTo]() {
+                              try {
+                                 subjectTo();
+                                 stats = optimize(obj,limit);
+                              } catch(StopException& sx) {}
+                           }));
+   return stats;
+}
+
 void DFSearch::dfs(SearchStatistics& stats,Limit limit)
 {
     if (limit(stats))
