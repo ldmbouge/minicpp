@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <vector>
+#include <assert.h>
 #include "avar.hpp"
 #include "acstr.hpp"
 #include "solver.hpp"
@@ -11,17 +12,42 @@
 
 template<typename T> class var {};
 
-template<>
-class var<int> :public AVar { 
-   handle_ptr<CPSolver>    _solver;
+template<> class var<int> : public AVar {
+public:
+   typedef handle_ptr<var<int>> Ptr;
+   virtual CPSolver::Ptr getSolver() = 0;
+   virtual int min() const  = 0;
+   virtual int max() const  = 0;
+   virtual int size() const = 0;
+   virtual bool isBound() const = 0;
+   virtual bool contains(int v) const = 0;
+   
+   virtual void assign(int v) = 0;
+   virtual void remove(int v) = 0;
+   virtual void removeBelow(int newMin) = 0;
+   virtual void removeAbove(int newMax) = 0;
+   virtual void updateBounds(int newMin,int newMax) = 0;
+   
+   virtual revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) = 0;
+   virtual revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) = 0;
+   virtual revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) = 0;
+   virtual revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          = 0;
+   virtual revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   = 0;
+   virtual revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) = 0;
+   virtual std::ostream& print(std::ostream& os) const = 0;
+   friend std::ostream& operator<<(std::ostream& os,const var<int>& x) { return x.print(os);}
+};
+
+class IntVarImpl :public var<int> { 
+   CPSolver::Ptr           _solver;
    BitDomain::Ptr             _dom;
    int                         _id;
    revList<Constraint::Ptr> _onBindList;
    revList<Constraint::Ptr> _onBoundsList;
    revList<Constraint::Ptr> _onDomList;
    struct DomainListener :public IntNotifier {
-      var<int>* theVar;
-      DomainListener(var<int>* x) : theVar(x) {}
+      IntVarImpl* theVar;
+      DomainListener(IntVarImpl* x) : theVar(x) {}
       void empty() override;
       void bind() override;
       void change()  override;
@@ -30,55 +56,143 @@ class var<int> :public AVar {
    };
    DomainListener*       _domListener;
 protected:
-   void setId(int id) override { _id = id;}
+    void setId(int id) override { _id = id;}
+    int getId() const { return _id;}
 public:
-   typedef handle_ptr<var<int>> Ptr;
-   var<int>(CPSolver::Ptr& cps,int min,int max);
-   var<int>(CPSolver::Ptr& cps,int n) : var<int>(cps,0,n-1) {}
-   ~var<int>();
-   auto& getSolver()  { return _solver;}
-   int min() const { return _dom->min();}
-   int max() const { return _dom->max();}
-   int size() const { return _dom->size();}
-   bool isBound() const { return _dom->isBound();}
-   bool contains(int v) const { return _dom->member(v);}
+    IntVarImpl(CPSolver::Ptr& cps,int min,int max);
+    IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
+   ~IntVarImpl();
+   CPSolver::Ptr getSolver() override { return _solver;}
+   int min() const override { return _dom->min();}
+   int max() const override { return _dom->max();}
+   int size() const override { return _dom->size();}
+   bool isBound() const override { return _dom->isBound();}
+   bool contains(int v) const override { return _dom->member(v);}
 
-   void assign(int v);
-   void remove(int v);
-   void removeBelow(int newMin);
-   void removeAbove(int newMax);
-   void updateBounds(int newMin,int newMax);
+   void assign(int v) override;
+   void remove(int v) override;
+   void removeBelow(int newMin) override;
+   void removeAbove(int newMax) override;
+   void updateBounds(int newMin,int newMax) override;
    
-   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f);
-   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f);
-   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f);
-   auto propagateOnBind(Constraint::Ptr c)          { return _onBindList.emplace_back(std::move(c));}
-   auto propagateOnBoundChange(Constraint::Ptr c)   { return _onBoundsList.emplace_back(std::move(c));}
-   auto propagateOnDomainChange(Constraint::Ptr c ) { return _onDomList.emplace_back(std::move(c));}
-    
-   friend std::ostream& operator<<(std::ostream& os,const var<int>& x) {
-      if (x.size() == 1)
-         os << x.min();
-      else
-         os << "x_" << x._id << '(' << *x._dom << ')';
-      //os << "\n\tonBIND  :" << x._onBindList << std::endl;
-      //os << "\tonBOUNDS:" << x._onBoundsList << std::endl;
-      return os;
+   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override;
+   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override;
+   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override;
+   revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)  override         { return _onBindList.emplace_back(std::move(c));}
+   revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)  override  { return _onBoundsList.emplace_back(std::move(c));}
+   revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _onDomList.emplace_back(std::move(c));}
+
+    std::ostream& print(std::ostream& os) const override {
+        if (size() == 1)
+            os << min();
+        else
+            os << "x_" << getId() << '(' << *_dom << ')';
+        //os << "\n\tonBIND  :" << x._onBindList << std::endl;
+        //os << "\tonBOUNDS:" << x._onBoundsList << std::endl;
+        return os;
+    }
+};
+
+class IntVarViewOpposite :public var<int> {
+   int _id;
+   var<int>::Ptr _x;
+protected:
+   void setId(int id) override { _id = id;}
+   int getId() const { return _id;}
+public:
+   IntVarViewOpposite(const var<int>::Ptr& x) : _x(x) {}
+   CPSolver::Ptr getSolver() override { return _x->getSolver();}
+   int min() const  override { return - _x->max();}
+   int max() const  override { return - _x->min();}
+   int size() const override { return _x->size();}
+   bool isBound() const override { return _x->isBound();}
+   bool contains(int v) const override { return _x->contains(-v);}
+   
+   void assign(int v) override { _x->assign(-v);}
+   void remove(int v) override { _x->remove(-v);}
+   void removeBelow(int newMin) override { _x->removeAbove(-newMin);}
+   void removeAbove(int newMax) override { _x->removeBelow(-newMax);}
+   void updateBounds(int newMin,int newMax) override { _x->updateBounds(-newMax,-newMin);}
+   
+   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
+   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
+   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
+   revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
+   revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
+   revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
+   std::ostream& print(std::ostream& os) const override {
+      os << '{';
+      for(int i = min();i <= max() - 1;i++) 
+         if (contains(i)) os << i << ',';
+      if (size()>0) os << max();
+      return os << '}';      
+   }
+};
+
+static inline int floorDiv(int a,int b) {
+   const int q = a/b;
+   return (a < 0 && q * b != a) ? q - 1 : q;
+}
+static inline int ceilDiv(int a,int b) {
+   const int q = a / b;
+   return (a > 0 && q * b != a) ? q + 1 : q;
+}
+
+class IntVarViewMul :public var<int> {
+   int _id;
+   int _a;
+   var<int>::Ptr _x;
+protected:
+   void setId(int id) override { _id = id;}
+   int getId() const { return _id;}
+public:
+   IntVarViewMul(const var<int>::Ptr& x,int a) : _x(x),_a(a) { assert(a> 0);}
+   CPSolver::Ptr getSolver() override { return _x->getSolver();}
+   int min() const  override { return _a * _x->min();}
+   int max() const  override { return _a * _x->max();}
+   int size() const override { return _x->size();}
+   bool isBound() const override { return _x->isBound();}
+   bool contains(int v) const override { return (v % _a != 0) ? false : _x->contains(v / _a);}
+   
+   void assign(int v) override {
+      if (v % _a == 0)
+         _x->assign(v / _a);
+      else throw Failure;
+   }
+   void remove(int v) override {
+      if (v % _a == 0)
+         _x->remove(v / _a);
+   }
+   void removeBelow(int v) override { _x->removeBelow(ceilDiv(v,_a));}
+   void removeAbove(int v) override { _x->removeAbove(floorDiv(v,_a));}
+   void updateBounds(int min,int max) override { _x->updateBounds(ceilDiv(min,_a),floorDiv(max,_a));}   
+   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
+   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
+   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
+   revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
+   revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
+   revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
+   std::ostream& print(std::ostream& os) const override {
+      os << '{';
+      for(int i = min();i <= max() - 1;i++) 
+         if (contains(i)) os << i << ',';
+      if (size()>0) os << max();
+      return os << '}';      
    }
 };
 
 template <>
-class var<bool> :public var<int> {
+class var<bool> :public IntVarImpl {
 public:
     typedef handle_ptr<var<bool>> Ptr;
-    var<bool>(CPSolver::Ptr& cps) : var<int>(cps,0,1) {}
+    var<bool>(CPSolver::Ptr& cps) : IntVarImpl(cps,0,1) {}
     bool isTrue() const { return min()==1;}
     bool isFalse() const { return max()==0;}
-    void assign(bool b)  { var<int>::assign(b);}
+    void assign(bool b)  { IntVarImpl::assign(b);}
 };
 
 inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
-   return os << *xp;
+    return xp->print(os);
 }
 
 template <class T,class A> inline std::ostream& operator<<(std::ostream& os,const std::vector<T,A>& v) {
@@ -89,19 +203,30 @@ template <class T,class A> inline std::ostream& operator<<(std::ostream& os,cons
 }
 
 namespace Factory {
-    using alloc = stl::StackAdapter<var<int>::Ptr,Storage>;
-    using Vecv  = std::vector<var<int>::Ptr,alloc>;
-    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
-    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
-    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
-    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int n);
-    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);
-    template<typename Fun> std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
-        auto x = intVarArray(cps,sz);
-        for(int i=0;i < x.size();i++)
-            x[i] = body(i);
-        return x;
-    }
+   using alloc = stl::StackAdapter<var<int>::Ptr,Storage>;
+   using Vecv  = std::vector<var<int>::Ptr,alloc>;
+   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
+   var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
+   inline var<int>::Ptr  minus(var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOpposite(x);}
+   inline var<int>::Ptr operator*(var<int>::Ptr x,int a) {
+      if (a == 0)
+         return makeIntVar(x->getSolver(),0,0);
+      else if (a==1)
+         return x;
+      else if (a <0)
+         return minus(new (x->getSolver()) IntVarViewMul(x,a));
+      else return new (x->getSolver()) IntVarViewMul(x,a);
+   }
+   inline var<int>::Ptr operator*(int a,var<int>::Ptr x) { return x * a;}
+   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
+   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int n);
+   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);
+   template<typename Fun> std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
+      auto x = intVarArray(cps,sz);
+      for(int i=0;i < x.size();i++)
+         x[i] = body(i);
+      return x;
+   }
 };
 
 template<class ForwardIt> ForwardIt min_dom(ForwardIt first, ForwardIt last)

@@ -7,7 +7,7 @@ LFLAGS = -L$(shell pwd)/..
 BENCHSRCS = mainCont.cpp main.cpp main2.cpp main3.cpp nqperf.cpp magicserie.cpp
 BENCHS = test0 test1 test2 test3 nqperf magicserie
 
-all: cpptests
+all: cpptests 
 
 cpptests: $(BENCHS)
 
@@ -44,4 +44,4 @@ test0: mainCont.o
 clean:
 	rm -rf *.o *.d $(BENCHS)
 
-include $(OFILES:.cpp=.d) 
+include $(BENCHSRCS:.cpp=.d) 

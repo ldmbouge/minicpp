@@ -40,11 +40,11 @@ namespace stl {
    public:
       explicit StackAdapter(CA* ca) : _ca(ca) {}  
       pointer allocate(size_type n, const void* hint = nullptr) {
-         std::cout << "allocate called  : " << n << " bytes:" << n * sizeof(T) << std::endl;
+         //std::cout << "allocate called  : " << n << " bytes:" << n * sizeof(T) << std::endl;
          return (pointer)_ca->allocate(n * sizeof(T));
       } 
       void deallocate(value_type* p, size_type n) {
-         std::cout << "deallocate called: " << p << " sz = " << n << std::endl;
+         //std::cout << "deallocate called: " << p << " sz = " << n << std::endl;
          return;
       } 
       size_type max_size() const noexcept {

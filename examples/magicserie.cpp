@@ -10,15 +10,14 @@ int main(int argc,char* argv[])
 {
     using namespace std;
     using namespace Factory;
-    const int n = 5;
+    const int n = 50;
     CPSolver::Ptr cp  = Factory::makeSolver();
     auto s = Factory::intVarArray(cp,n,n);
     for(int i=0;i < n;i++) {
-        auto b = Factory::intVarArray(cp,n,[s,i](int j) { return Factory::isEqual(s[j],i);});
-        cp->post(sum(b,s[i]));
+        cp->post(sum(Factory::intVarArray(cp,n,[&s,i](int j) { return Factory::isEqual(s[j],i);}),s[i]));
     }
-    //cp->post(sum(s,n));
-    //cp->post(sum(Factory:intVarArray(cp,n,[](int i) { return s[i]*i;}),n));
+    cp->post(sum(s,n));
+    cp->post(sum(Factory::intVarArray(cp,n,[&s](int i) { return s[i]*i;}),n));
     
     DFSearch search(cp,[=]() {
                           auto x = selectMin(s,

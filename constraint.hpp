@@ -61,15 +61,15 @@ public:
 };
 
 class Sum : public Constraint { // s = Sum({x0,...,xk})
-    std::vector<var<int>::Ptr> _x;
-    trail<int>   _nUnBounds;
-    trail<int>   _sumBounds;
-    int _n;
-    std::vector<int> _unBounds;
+   std::vector<var<int>::Ptr> _x;
+   trail<int>    _nUnBounds;
+   trail<int>    _sumBounds;
+   int _n;
+   std::vector<int> _unBounds;
 public:
-    Sum(const Factory::Vecv& x,var<int>::Ptr s);
-    void post() override;
-    void propagate() override;
+   Sum(const Factory::Vecv& x,var<int>::Ptr s);
+   void post() override;
+   void propagate() override;
 };
 
 class Minimize : public Objective {
@@ -118,12 +118,12 @@ namespace Factory {
         cp->post(new (cp) Sum(xs,s));
         return s;        
     }
-    template <class Vec> Constraint::Ptr sum(Vec xs,var<int>::Ptr s) {
-        return new (xs[0]->getSolver()) Sum(std::move(xs),s);
+    template <class Vec> Constraint::Ptr sum(const Vec& xs,var<int>::Ptr s) {
+        return new (xs[0]->getSolver()) Sum(xs,s);
     }
-    template <class Vec> Constraint::Ptr sum(Vec xs,int s) {
+    template <class Vec> Constraint::Ptr sum(const Vec& xs,int s) {
         auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
-        return new (xs[0]->getSolver()) Sum(std::move(xs),sv);
+        return new (xs[0]->getSolver()) Sum(xs,sv);
     }
 };
 

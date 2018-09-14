@@ -131,7 +131,7 @@ Sum::Sum(const Factory::Vecv& x,var<int>::Ptr s)
 {
     for(int i=0;i < x.size();i++)
         _x[i] = x[i];
-    _x[_n-1] = s;
+    _x[_n-1] = Factory::minus(s);
     for(int i=0; i < _n;i++)
         _unBounds[i] = i;
 }        
@@ -144,13 +144,7 @@ void Sum::post()
 }
 
 void Sum::propagate()
-{
-   std::cout << "-->sum::: {" ;
-   for(int i=0;i < _x.size();i++) {
-      std::cout << "x[" << i << "]=" << _x[i] << ",";
-   }
-   std::cout << "}" << std::endl;
-   
+{  
    int nU = _nUnBounds;
    int sumMin = _sumBounds,sumMax = _sumBounds;
    for(int i = nU - 1; i >= 0;i--) {
@@ -172,11 +166,4 @@ void Sum::propagate()
       _x[idx]->removeAbove(-(sumMin - _x[idx]->min()));
       _x[idx]->removeBelow(-(sumMax - _x[idx]->max()));
    }
-   
-   std::cout << "<--sum::: {" ;
-   for(int i=0;i < _x.size();i++) {
-      std::cout << "x[" << i << "]=" << _x[i] << ",";
-   }
-   std::cout << "}" << std::endl;
-
 }

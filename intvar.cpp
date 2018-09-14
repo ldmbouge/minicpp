@@ -1,6 +1,7 @@
 #include "intvar.hpp"
+#include "store.hpp"
 
-var<int>::var(CPSolver::Ptr& cps,int min,int max)
+IntVarImpl::IntVarImpl(CPSolver::Ptr& cps,int min,int max)
     : _solver(cps),
       _dom(new (cps) BitDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
       _onBindList(cps->getStateManager(),cps->getStore()),
@@ -9,9 +10,9 @@ var<int>::var(CPSolver::Ptr& cps,int min,int max)
       _domListener(new (cps) DomainListener(this))
 {}
 
-var<int>::~var<int>()
+IntVarImpl::~IntVarImpl()
 {
-    std::cout << "var<int>::~var<int> called ?" << std::endl;
+    std::cout << "IntVarImpl::~IntVarImpl called ?" << std::endl;
 }
 
 class ClosureConstraint : public Constraint {
@@ -26,65 +27,65 @@ public:
     }
 };
 
-revList<Constraint::Ptr>::revNode* var<int>::whenBind(std::function<void(void)>&& f)
+revList<Constraint::Ptr>::revNode* IntVarImpl::whenBind(std::function<void(void)>&& f)
 {
     return propagateOnBind(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }
-revList<Constraint::Ptr>::revNode* var<int>::whenBoundsChange(std::function<void(void)>&& f)
+revList<Constraint::Ptr>::revNode* IntVarImpl::whenBoundsChange(std::function<void(void)>&& f)
 {
     return propagateOnBoundChange(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }
-revList<Constraint::Ptr>::revNode* var<int>::whenDomainChange(std::function<void(void)>&& f)
+revList<Constraint::Ptr>::revNode* IntVarImpl::whenDomainChange(std::function<void(void)>&& f)
 {
     return propagateOnDomainChange(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }
 
-void var<int>::assign(int v)
+void IntVarImpl::assign(int v)
 {
     _dom->assign(v,*_domListener);
 }
-void var<int>::remove(int v)
+void IntVarImpl::remove(int v)
 {
     _dom->remove(v,*_domListener);
 }
-void var<int>::removeBelow(int newMin)
+void IntVarImpl::removeBelow(int newMin)
 {
     _dom->removeBelow(newMin,*_domListener);
 }
-void var<int>::removeAbove(int newMax)
+void IntVarImpl::removeAbove(int newMax)
 {
     _dom->removeAbove(newMax,*_domListener);
 }
-void var<int>::updateBounds(int newMin,int newMax)
+void IntVarImpl::updateBounds(int newMin,int newMax)
 {
     _dom->removeBelow(newMin,*_domListener);
     _dom->removeAbove(newMax,*_domListener);
 }
 
-void var<int>::DomainListener::empty() 
+void IntVarImpl::DomainListener::empty() 
 {
     failNow();
 }
 
-void var<int>::DomainListener::bind() 
+void IntVarImpl::DomainListener::bind() 
 {
     for(auto& f : theVar->_onBindList)
         theVar->_solver->schedule(f);
 }
 
-void var<int>::DomainListener::change()  
+void IntVarImpl::DomainListener::change()  
 {
     for(auto& f : theVar->_onDomList)
         theVar->_solver->schedule(f);
 }
 
-void var<int>::DomainListener::changeMin() 
+void IntVarImpl::DomainListener::changeMin() 
 {
     for(auto& f :  theVar->_onBoundsList)
         theVar->_solver->schedule(f);
 }
 
-void var<int>::DomainListener::changeMax() 
+void IntVarImpl::DomainListener::changeMax() 
 {
     for(auto& f :  theVar->_onBoundsList)
         theVar->_solver->schedule(f);
@@ -92,12 +93,12 @@ void var<int>::DomainListener::changeMax()
 
 namespace Factory {
     var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max) {
-        var<int>::Ptr rv = new (cps) var<int>(cps,min,max);  // allocate var on stack allocator
+        var<int>::Ptr rv = new (cps) IntVarImpl(cps,min,max);  // allocate var on stack allocator
         cps->registerVar(rv);
         return rv;
     }
     var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int n) {
-        var<int>::Ptr rv = new (cps) var<int>(cps,n);  // allocate var on stack allocator
+        var<int>::Ptr rv = new (cps) IntVarImpl(cps,n);  // allocate var on stack allocator
         cps->registerVar(rv);
         return rv;
     }

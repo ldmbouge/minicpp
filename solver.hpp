@@ -58,7 +58,7 @@ public:
     void solveAll(std::function<void(void)> b);
     template <class Body1,class Body2> void tryBin(Body1 left,Body2 right);
     void fail();
-    friend void* operator new(std::size_t sz,CPSolver::Ptr& e);
+    friend void* operator new(std::size_t sz,CPSolver::Ptr e);
     friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {
         return os << "CPSolver(" << &s << ")" << std::endl
                   << "\t#choices   = " << s._nbc << std::endl
@@ -71,7 +71,7 @@ namespace Factory {
    inline CPSolver::Ptr makeSolver() { return new CPSolver;}
 };
 
-inline void* operator new(std::size_t sz,CPSolver::Ptr& e)
+inline void* operator new(std::size_t sz,CPSolver::Ptr e)
 {
    return e->_store->allocate(sz);
 }
