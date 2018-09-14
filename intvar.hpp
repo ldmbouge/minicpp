@@ -67,6 +67,16 @@ public:
    }
 };
 
+template <>
+class var<bool> :public var<int> {
+public:
+    typedef handle_ptr<var<bool>> Ptr;
+    var<bool>(CPSolver::Ptr& cps) : var<int>(cps,0,1) {}
+    bool isTrue() const { return min()==1;}
+    bool isFalse() const { return max()==0;}
+    void assign(bool b)  { var<int>::assign(b);}
+};
+
 inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
    return os << *xp;
 }
@@ -79,10 +89,19 @@ template <class T,class A> inline std::ostream& operator<<(std::ostream& os,cons
 }
 
 namespace Factory {
-   using alloc = stl::StackAdapter<var<int>::Ptr,Storage>;
-   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
-   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
-   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);
+    using alloc = stl::StackAdapter<var<int>::Ptr,Storage>;
+    using Vecv  = std::vector<var<int>::Ptr,alloc>;
+    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
+    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
+    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
+    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int n);
+    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);
+    template<typename Fun> std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
+        auto x = intVarArray(cps,sz);
+        for(int i=0;i < x.size();i++)
+            x[i] = body(i);
+        return x;
+    }
 };
 
 template<class ForwardIt> ForwardIt min_dom(ForwardIt first, ForwardIt last)

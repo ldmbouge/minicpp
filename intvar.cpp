@@ -96,6 +96,17 @@ namespace Factory {
         cps->registerVar(rv);
         return rv;
     }
+    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int n) {
+        var<int>::Ptr rv = new (cps) var<int>(cps,n);  // allocate var on stack allocator
+        cps->registerVar(rv);
+        return rv;
+    }
+    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps) {
+        var<bool>::Ptr rv = new (cps) var<bool>(cps);
+        cps->registerVar(rv);
+        return rv;
+    }
+
     /**
      * ldm : This factory method for a vector of var<int> is meant to not only allocate the vector
      *       and the elements, but, more importantly, to allocate on the library Store (Storage type).
@@ -118,6 +129,14 @@ namespace Factory {
         std::vector<var<int>::Ptr,alloc> a(sz,(alloc(cps->getStore().get())));
         for(int i=0;i<sz;i++)
             a[i] = Factory::makeIntVar(cps,min,max);
+        return a;
+    }
+
+    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int n)
+    {
+        std::vector<var<int>::Ptr,alloc> a(sz,(alloc(cps->getStore().get())));
+        for(int i=0;i<sz;i++)
+            a[i] = Factory::makeIntVar(cps,n);
         return a;
     }
 

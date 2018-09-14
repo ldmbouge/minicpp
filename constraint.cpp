@@ -95,3 +95,88 @@ void Minimize::tighten()
    _obj->getSolver()->fail();
 }
 
+void IsEqual::post() 
+{
+    propagate();
+    if (isActive()) {
+        _x->propagateOnDomainChange(this);
+        _b->propagateOnBind(this);
+    }
+}
+
+void IsEqual::propagate() 
+{
+    if (_b->isTrue()) {
+        _x->assign(_c);
+        setActive(false);
+    } else if (_b->isFalse()) {
+        _x->remove(_c);
+        setActive(false);
+    } else if (!_x->contains(_c)) {
+        _b->assign(false);
+        setActive(false);
+    } else if (_x->isBound()) {
+        _b->assign(true);
+        setActive(false);
+    }
+}
+
+Sum::Sum(const Factory::Vecv& x,var<int>::Ptr s)
+    : Constraint(s->getSolver()),
+      _x(x.size() + 1),
+      _nUnBounds(s->getSolver()->getStateManager(),x.size()+1),
+      _sumBounds(s->getSolver()->getStateManager(),0),
+      _n(x.size() + 1),
+      _unBounds(_n)
+{
+    for(int i=0;i < x.size();i++)
+        _x[i] = x[i];
+    _x[_n-1] = s;
+    for(int i=0; i < _n;i++)
+        _unBounds[i] = i;
+}        
+
+void Sum::post()
+{
+   for(auto& var : _x)
+      var->propagateOnBoundChange(this);
+   propagate();
+}
+
+void Sum::propagate()
+{
+   std::cout << "-->sum::: {" ;
+   for(int i=0;i < _x.size();i++) {
+      std::cout << "x[" << i << "]=" << _x[i] << ",";
+   }
+   std::cout << "}" << std::endl;
+   
+   int nU = _nUnBounds;
+   int sumMin = _sumBounds,sumMax = _sumBounds;
+   for(int i = nU - 1; i >= 0;i--) {
+      int idx = _unBounds[i];
+      sumMin += _x[idx]->min();
+      sumMax += _x[idx]->max();
+      if (_x[idx]->isBound()) {
+         _sumBounds = _sumBounds + _x[idx]->min();
+         _unBounds[i] = _unBounds[nU - 1];
+         _unBounds[nU - 1] = idx;
+         nU--;
+      }
+   }
+   _nUnBounds = nU;
+   if (0 < sumMin ||  sumMax < 0)
+      throw Failure;
+   for(int i = nU - 1; i >= 0;i--) {
+      int idx = _unBounds[i];
+      _x[idx]->removeAbove(-(sumMin - _x[idx]->min()));
+      _x[idx]->removeBelow(-(sumMax - _x[idx]->max()));
+   }
+   
+   std::cout << "<--sum::: {" ;
+   for(int i=0;i < _x.size();i++) {
+      std::cout << "x[" << i << "]=" << _x[i] << ",";
+   }
+   std::cout << "}" << std::endl;
+
+}

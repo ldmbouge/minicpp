@@ -16,8 +16,8 @@ int main(int argc,char* argv[])
     for(int i=0;i < n;i++)
         for(int j=i+1;j < n;j++) {
             cp->post(q[i] != q[j]);            
-            cp->post(Factory::makeNEQBinBC(q[i],q[j],i-j));            
-            cp->post(Factory::makeNEQBinBC(q[i],q[j],j-i));            
+            cp->post(Factory::notEqual(q[i],q[j],i-j));            
+            cp->post(Factory::notEqual(q[i],q[j],j-i));            
         }
     cp->optimize(Factory::minimize(q[n-1]));
 

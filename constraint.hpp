@@ -49,6 +49,29 @@ public:
     void post() override;
 };
 
+class IsEqual : public Constraint { // b <=> x == c
+    var<bool>::Ptr _b;
+    var<int>::Ptr _x;
+    int _c;
+public:
+    IsEqual(var<bool>::Ptr b,var<int>::Ptr x,int c)
+        : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
+    void post() override;
+    void propagate() override;
+};
+
+class Sum : public Constraint { // s = Sum({x0,...,xk})
+    std::vector<var<int>::Ptr> _x;
+    trail<int>   _nUnBounds;
+    trail<int>   _sumBounds;
+    int _n;
+    std::vector<int> _unBounds;
+public:
+    Sum(const Factory::Vecv& x,var<int>::Ptr s);
+    void post() override;
+    void propagate() override;
+};
+
 class Minimize : public Objective {
     var<int>::Ptr _obj;
     int        _primal;
@@ -59,10 +82,10 @@ public:
 };
 
 namespace Factory {
-    inline Constraint::Ptr makeEQBinBC(var<int>::Ptr x,var<int>::Ptr y,int c) {
+    inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
         return new (x->getSolver()) EQBinBC(x,y,c);
     }
-    inline Constraint::Ptr makeNEQBinBC(var<int>::Ptr x,var<int>::Ptr y,int c) {
+    inline Constraint::Ptr notEqual(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
         return new (x->getSolver()) NEQBinBC(x,y,c);
     }
     inline Constraint::Ptr operator==(var<int>::Ptr x,int c) {
@@ -72,10 +95,35 @@ namespace Factory {
         return new (x->getSolver()) NEQc(x,c);
     }
     inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y) {
-        return Factory::makeNEQBinBC(x,y,0);
+        return Factory::notEqual(x,y,0);
     }
     inline Objective::Ptr minimize(var<int>::Ptr x) {
         return new Minimize(x);
+    }
+    inline var<bool>::Ptr isEqual(var<int>::Ptr x,const int c) {
+        var<bool>::Ptr b = makeBoolVar(x->getSolver());
+        try {
+            x->getSolver()->post(new (x->getSolver()) IsEqual(b,x,c));
+        } catch(Status s) {}
+        return b;
+    }
+    template <class Vec> var<int>::Ptr sum(Vec& xs) {
+        int sumMin = 0,sumMax = 0;
+        for(const auto& x : xs) {
+            sumMin += x->min();
+            sumMax += x->max();
+        }
+        auto cp = xs[0]->getSolver();
+        auto s = Factory::makeIntVar(cp,sumMin,sumMax);
+        cp->post(new (cp) Sum(xs,s));
+        return s;        
+    }
+    template <class Vec> Constraint::Ptr sum(Vec xs,var<int>::Ptr s) {
+        return new (xs[0]->getSolver()) Sum(std::move(xs),s);
+    }
+    template <class Vec> Constraint::Ptr sum(Vec xs,int s) {
+        auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
+        return new (xs[0]->getSolver()) Sum(std::move(xs),sv);
     }
 };
 
