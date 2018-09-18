@@ -94,7 +94,6 @@ void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol) {
     if (b.size() == 0) {
         cps->incrNbSol();
         onSol();
-        cps->tighten();
     } else {
         for(auto& alt : b) {
             ctx->saveState();
@@ -102,8 +101,7 @@ void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol) {
                 cps->incrNbChoices();
                 alt();
                 dfsAll(cps,c,onSol);
-            } catch(Status s) {
-            }
+            } catch(Status s) {}
             ctx->restoreState();
         }
     }

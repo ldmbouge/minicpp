@@ -4,18 +4,15 @@
 <dict>
 	<key>SchemeUserState</key>
 	<dict>
-		<key>minicpp.xcscheme</key>
+		<key>copl.xcscheme</key>
 		<dict>
 			<key>orderHint</key>
 			<integer>0</integer>
 		</dict>
-	</dict>
-	<key>SuppressBuildableAutocreation</key>
-	<dict>
-		<key>5BE4DA921EC4C6330011E682</key>
+		<key>qap.xcscheme</key>
 		<dict>
-			<key>primary</key>
-			<true/>
+			<key>orderHint</key>
+			<integer>1</integer>
 		</dict>
 	</dict>
 </dict>

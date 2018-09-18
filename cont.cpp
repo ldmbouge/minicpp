@@ -27,6 +27,9 @@ typedef struct  {
     Cont::Cont** pool;
 } ContPool;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-register"
+
 // [ldm] The routine is meant to operate over 32-bit words (4-bytes at a time) or 64-bit wide 
 // datum. dest / src must be increased by the data item size.
 static inline void fastmemcpy(register ORUInt* dest,register ORUInt* src,register size_t len)
@@ -36,6 +39,8 @@ static inline void fastmemcpy(register ORUInt* dest,register ORUInt* src,registe
         len -= sizeof(ORUInt);
     }
 }
+
+#pragma clang diagnostic pop
 
 namespace Cont {
     Cont::Cont() {

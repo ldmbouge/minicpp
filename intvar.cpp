@@ -1,6 +1,11 @@
 #include "intvar.hpp"
 #include "store.hpp"
 
+void printVar(var<int>::Ptr x) {
+   std::cout << x << std::endl;
+}
+
+
 IntVarImpl::IntVarImpl(CPSolver::Ptr& cps,int min,int max)
     : _solver(cps),
       _dom(new (cps) BitDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator

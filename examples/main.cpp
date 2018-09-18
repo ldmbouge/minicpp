@@ -20,7 +20,7 @@ int main(int argc,char* argv[])
             cp->post(Factory::notEqual(q[i],q[j],i-j));            
             cp->post(Factory::notEqual(q[i],q[j],j-i));            
         }
-    cp->optimize(Factory::minimize(q[n-1]));
+    Objective::Ptr obj = Factory::minimize(q[n-1]);
     
     Chooser c([=] {
                   auto x =  selectMin(q,
@@ -39,6 +39,7 @@ int main(int argc,char* argv[])
           dfsAll(cp,c,[&] {
                 cout << "sol = " << q << endl;
                 nbSol++;
+                obj->tighten();
                 throw 0;
              });
        } catch(int x) {
@@ -48,6 +49,7 @@ int main(int argc,char* argv[])
        dfsAll(cp,c,[&] {
              cout << "sol = " << q << endl;
              nbSol++;
+             obj->tighten();
           });
     }
     

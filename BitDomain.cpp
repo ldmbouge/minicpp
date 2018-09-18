@@ -119,7 +119,7 @@ void BitDomain::remove(int v,IntNotifier& x)
         if (_sz == 1) x.bind();
         if (_sz == 0) x.empty();
         x.change();
-    } else if (v == _max) {
+    } else if (maxChanged) {
         _sz = _sz - 1;
         _max = findMax(_max - 1);
         x.changeMax();

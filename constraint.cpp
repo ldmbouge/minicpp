@@ -1,5 +1,11 @@
 #include "constraint.hpp"
 
+void printCstr(Constraint::Ptr c) {
+   c->print(std::cout);
+   std::cout << std::endl;
+}
+
+
 void EQc::post()
 {
    _x->assign(_c);
@@ -124,9 +130,9 @@ void IsEqual::propagate()
 Sum::Sum(const Factory::Vecv& x,var<int>::Ptr s)
     : Constraint(s->getSolver()),
       _x(x.size() + 1),
-      _nUnBounds(s->getSolver()->getStateManager(),x.size()+1),
+      _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
       _sumBounds(s->getSolver()->getStateManager(),0),
-      _n(x.size() + 1),
+      _n((int)x.size() + 1),
       _unBounds(_n)
 {
     for(int i=0;i < x.size();i++)
@@ -166,4 +172,89 @@ void Sum::propagate()
       _x[idx]->removeAbove(-(sumMin - _x[idx]->min()));
       _x[idx]->removeBelow(-(sumMax - _x[idx]->max()));
    }
+}
+
+AllDifferentBinary::AllDifferentBinary(const Factory::Vecv& x)
+    : Constraint(x[0]->getSolver()),
+      _x(x.size())
+{
+    for(int i=0;i < x.size();i++)
+        _x[i] = x[i];
+}
+
+void AllDifferentBinary::post()
+{
+    CPSolver::Ptr cp = _x[0]->getSolver();
+    const long n = _x.size();
+    for(int i=0;i < n;i++) 
+        for(int j=i+1;j < n;j++)
+            cp->post(Factory::notEqual(_x[i],_x[j]));    
+}
+
+Element2D::Element2D(const matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z)
+    : Constraint(x->getSolver()),
+      _matrix(mat),
+      _x(x),_y(y),_z(z),
+      _n(mat.size(0)),
+      _m(mat.size(1)),
+      _low(x->getSolver()->getStateManager(),0),
+      _up(x->getSolver()->getStateManager(),_n * _m - 1)
+{
+    //_xyz.resize(_up + 1);
+    for(int i=0;i < _matrix.size(0);i++)
+        for(int j=0;j < _matrix.size(1);j++)
+            _xyz.push_back(Triplet(i,j,_matrix[i][j]));
+    std::sort(_xyz.begin(),_xyz.end(),[](const Triplet& a,const Triplet& b) {
+                                          return a.z < b.z;
+                                      });
+    _nColsSup = new (x->getSolver()) trail<int>[_n];
+    _nRowsSup = new (x->getSolver()) trail<int>[_m];
+    auto sm = x->getSolver()->getStateManager();
+    for(int i=0;i<_n;i++)
+        new (_nColsSup + i) trail<int>(sm,_m);
+    for(int j=0;j <_m;j++)
+       new (_nRowsSup + j) trail<int>(sm,_n);
+}
+
+void Element2D::updateSupport(int lostPos)
+{
+   int nv1 = _nColsSup[_xyz[lostPos].x] = _nColsSup[_xyz[lostPos].x] - 1;
+   if (nv1 == 0)
+      _x->remove(_xyz[lostPos].x);  
+   int nv2 = _nRowsSup[_xyz[lostPos].y] = _nRowsSup[_xyz[lostPos].y] - 1;
+   if (nv2==0)
+      _y->remove(_xyz[lostPos].y);
+}
+
+
+void Element2D::post() 
+{
+   _x->updateBounds(0,_n-1);
+   _y->updateBounds(0,_m-1);
+   _x->propagateOnDomainChange(this);
+   _y->propagateOnDomainChange(this);
+   _z->propagateOnBoundChange(this);
+   propagate();
+}
+
+void Element2D::propagate() 
+{
+   int l =  _low,u = _up;
+   int zMin = _z->min(),zMax = _z->max();
+   while (_xyz[l].z < zMin || !_x->contains(_xyz[l].x) || !_y->contains(_xyz[l].y)) {
+      updateSupport(l++);
+      if (l > u) throw Failure;      
+   }
+   while (_xyz[u].z > zMax || !_x->contains(_xyz[u].x) || !_y->contains(_xyz[u].y)) {
+      updateSupport(u--);
+      if (l > u) throw Failure;
+   }
+   _z->updateBounds(_xyz[l].z,_xyz[u].z);
+   _low = l;
+   _up  = u;
+}
+
+void Element2D::print(std::ostream& os) const
+{
+   os << "element2D(" << _x << ',' << _y << ',' << _z << ')' << std::endl;
 }

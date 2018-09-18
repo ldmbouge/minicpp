@@ -23,11 +23,6 @@ CPSolver::~CPSolver()
    Cont::shutdown();
 }
 
-void CPSolver::optimize(Objective::Ptr c)
-{
-   _objective = c;
-}
-
 void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
 {
     c->post();
@@ -101,12 +96,6 @@ void CPSolver::solveOne(std::function<void(void)> b)
    _sm->popToNode(_afterClose);
 }
 
-void CPSolver::tighten()
-{
-   if (_objective)
-      _objective->tighten();
-}
-
 void CPSolver::solveAll(std::function<void(void)> b)
 {
     Cont::initContinuationLibrary((int*)&b);
@@ -116,8 +105,6 @@ void CPSolver::solveAll(std::function<void(void)> b)
    if (k->nbCalls()==0) {
       _ctrl->start(k);
       b();
-      if (_objective)
-         _objective->tighten();
       _ctrl->fail();
    } else {
       std::cout<< "Done!" << std::endl;

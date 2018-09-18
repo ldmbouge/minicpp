@@ -24,7 +24,6 @@ class CPSolver {
     std::list<AVar::Ptr>       _iVars;
     std::deque<Constraint::Ptr>   _queue;
     std::list<std::function<void(void)>>  _onFix;
-    Objective::Ptr         _objective;
     long                  _afterClose;
     int                        _varId;
     int                          _nbc; // # choices
@@ -51,7 +50,6 @@ public:
     void fixpoint();
     void post(Constraint::Ptr c,bool enforceFixPoint=true);
     void branch(Constraint::Ptr c);
-    void optimize(Objective::Ptr c);
     void incrNbChoices() { _nbc += 1;}
     void incrNbSol()     { _nbs += 1;}
     void solveOne(std::function<void(void)> b);
@@ -59,6 +57,7 @@ public:
     template <class Body1,class Body2> void tryBin(Body1 left,Body2 right);
     void fail();
     friend void* operator new(std::size_t sz,CPSolver::Ptr e);
+    friend void* operator new[](std::size_t sz,CPSolver::Ptr e);
     friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {
         return os << "CPSolver(" << &s << ")" << std::endl
                   << "\t#choices   = " << s._nbc << std::endl
@@ -72,6 +71,11 @@ namespace Factory {
 };
 
 inline void* operator new(std::size_t sz,CPSolver::Ptr e)
+{
+   return e->_store->allocate(sz);
+}
+
+inline void* operator new[](std::size_t sz,CPSolver::Ptr e)
 {
    return e->_store->allocate(sz);
 }

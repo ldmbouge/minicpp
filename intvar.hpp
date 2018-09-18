@@ -249,4 +249,6 @@ template<class Container> auto min_dom(Container& c) {
    return min_dom(c.begin(),c.end());
 }
 
+void printVar(var<int>::Ptr x);
+
 #endif

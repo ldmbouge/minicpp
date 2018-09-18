@@ -19,7 +19,6 @@ int main(int argc,char* argv[])
             cp->post(Factory::notEqual(q[i],q[j],i-j));            
             cp->post(Factory::notEqual(q[i],q[j],j-i));            
         }
-    cp->optimize(Factory::minimize(q[n-1]));
 
     auto q1 = Factory::intVarArray(cp,n/2);
     auto q2 = Factory::intVarArray(cp,n/2);
