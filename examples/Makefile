@@ -36,7 +36,8 @@ test0: mainCont.o
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS)  -o $@
 
 %.o : %.cpp
-	$(CC) -c $(CXXFLAGS) $<
+	@echo "Compiling (C++)... " $<
+	@$(CC) -c $(CXXFLAGS) $<
 
 %.d: %.cpp
 	@set -e; rm -f $@; \

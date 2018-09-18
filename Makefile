@@ -20,7 +20,8 @@ $(LIBNAME): $(OFILES)
 	fi
 
 %.o : %.cpp
-	$(CC) -c $(CXXFLAGS) $<
+	@echo "Compiling (C++)... " $<
+	@$(CC) -c $(CXXFLAGS) $<
 
 %.d: %.cpp
 	@set -e; rm -f $@; \
