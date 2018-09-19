@@ -10,7 +10,7 @@ int main(int argc,char* argv[])
 {
     using namespace std;
     using namespace Factory;
-    const int n = 50;
+    const int n = 300;
     CPSolver::Ptr cp  = Factory::makeSolver();
     auto s = Factory::intVarArray(cp,n,n);
     for(int i=0;i < n;i++) {

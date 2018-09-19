@@ -12,7 +12,7 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
 
-    const int n = 7;
+    const int n = 5;
     const int sumResult = n * (n * n + 1) / 2;
     
     CPSolver::Ptr cp  = Factory::makeSolver();
@@ -29,19 +29,15 @@ int main(int argc,char* argv[])
     cp->post(sum(slice<var<int>::Ptr>(0,n,[&x](int i) { return x[i][i];}),sumResult));
     cp->post(sum(slice<var<int>::Ptr>(0,n,[n,&x](int i) { return x[n-i-1][i];}),sumResult));
 
+    cp->post(x[0][n-1] <= x[n-1][0] - 1);
+    cp->post(x[0][0] <= x[n-1][n-1] - 1);
+    cp->post(x[0][0] <= x[n-1][0] - 1);
+    
+    
     DFSearch search(cp,firstFail(cp,x.flat()));
-    std::vector<int> best(n);
-
-    search.onSolution([&x]() {
-                         for(int i=0;i < x.size(0);i++) {
-                            for(int j=0;j < x.size(1);j++)
-                               cout << std::setw(3) << x[i][j]->min() << " ";
-                            cout << std::endl;
-                         }
-                      });
 
     auto stat = search.solve([](const SearchStatistics& stats) {
-                                return stats.numberOfSolutions() >= 1;
+                                return stats.numberOfSolutions() >= 10000;
                              });
     cout << stat << endl;    
     cp.dealloc();

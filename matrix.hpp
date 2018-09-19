@@ -3,6 +3,7 @@
 
 #include <vector>
 #include <array>
+#include <functional>
 
 template <class T,int a> class matrix;
 
@@ -64,6 +65,7 @@ const T& MSlice<T,a,1>::operator[](int i) const {
 }
 
 template <class T,typename Body> std::vector<T> slice(int l,int u,Body b) {
+    //template <class T> std::vector<T> slice(int l,int u,std::function<T(int)>&& b) {
    std::vector<T> x;
    for(int k=l;k < u;k++)
       x.emplace_back(b(k));

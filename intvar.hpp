@@ -182,6 +182,43 @@ public:
    }
 };
 
+class IntVarViewOffset :public var<int> {
+   int _id;
+   int _o;
+   var<int>::Ptr _x;
+protected:
+   void setId(int id) override { _id = id;}
+   int getId() const { return _id;}
+public:
+    IntVarViewOffset(const var<int>::Ptr& x,int o) : _x(x),_o(o) {}
+   CPSolver::Ptr getSolver() override { return _x->getSolver();}
+   int min() const  override { return _o + _x->min();}
+   int max() const  override { return _o + _x->max();}
+   int size() const override { return _x->size();}
+   bool isBound() const override { return _x->isBound();}
+   bool contains(int v) const override { return _x->contains(v - _o);}
+   
+   void assign(int v) override { _x->assign(v - _o);}
+   void remove(int v) override { _x->remove(v - _o);}
+   void removeBelow(int v) override { _x->removeBelow(v - _o);}
+   void removeAbove(int v) override { _x->removeAbove(v - _o);}
+   void updateBounds(int min,int max) override { _x->updateBounds(min - _o,max - _o);}   
+   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
+   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
+   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
+   revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
+   revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
+   revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
+   std::ostream& print(std::ostream& os) const override {
+      os << '{';
+      for(int i = min();i <= max() - 1;i++) 
+         if (contains(i)) os << i << ',';
+      if (size()>0) os << max();
+      return os << '}';      
+   }
+};
+
+
 template <>
 class var<bool> :public IntVarImpl {
 public:
@@ -208,7 +245,8 @@ namespace Factory {
    using Vecv  = std::vector<var<int>::Ptr,alloc>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
-   inline var<int>::Ptr  minus(var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOpposite(x);}
+   inline var<int>::Ptr minus(var<int>::Ptr x)     { return new (x->getSolver()) IntVarViewOpposite(x);}
+   inline var<int>::Ptr operator-(var<int>::Ptr x) { return minus(x);}
    inline var<int>::Ptr operator*(var<int>::Ptr x,int a) {
       if (a == 0)
          return makeIntVar(x->getSolver(),0,0);
@@ -219,6 +257,10 @@ namespace Factory {
       else return new (x->getSolver()) IntVarViewMul(x,a);
    }
    inline var<int>::Ptr operator*(int a,var<int>::Ptr x) { return x * a;}
+   inline var<int>::Ptr operator+(var<int>::Ptr x,int a) { return new (x->getSolver()) IntVarViewOffset(x,a);}
+   inline var<int>::Ptr operator+(int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(x,a);}
+   inline var<int>::Ptr operator-(var<int>::Ptr x,int a) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
+   inline var<int>::Ptr operator-(int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int n);
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);

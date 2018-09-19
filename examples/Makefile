@@ -5,8 +5,9 @@ CXXFLAGS += -I..
 LFLAGS = -L$(shell pwd)/.. 
 
 BENCHSRCS = mainCont.cpp main.cpp main2.cpp main3.cpp nqperf.cpp \
-	magicserie.cpp qap.cpp tsp.cpp  magicsquare.cpp 
-BENCHS = test0 test1 test2 test3 nqperf magicserie qap tsp magicsquare
+	magicserie.cpp qap.cpp tsp.cpp  magicsquare.cpp msperf.cpp
+BENCHS = test0 test1 test2 test3 nqperf magicserie qap tsp magicsquare \
+	msperf
 
 all: cpptests 
 
@@ -37,6 +38,9 @@ tsp: tsp.o
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
 
 magicsquare: magicsquare.o
+	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
+
+msperf: msperf.o
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
 
 test0: mainCont.o

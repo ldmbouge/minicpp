@@ -54,6 +54,15 @@ public:
     void post() override;
 };
 
+class LessOrEqual :public Constraint { // x <= y
+    var<int>::Ptr _x,_y;
+public:
+    LessOrEqual(var<int>::Ptr x,var<int>::Ptr y)
+        : Constraint(x->getSolver()),_x(x),_y(y) {}
+    void post() override;
+    void propagate() override;
+};
+
 class IsEqual : public Constraint { // b <=> x == c
     var<bool>::Ptr _b;
     var<int>::Ptr _x;
@@ -155,6 +164,12 @@ namespace Factory {
     }
     inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y) {
         return Factory::notEqual(x,y,0);
+    }
+    inline Constraint::Ptr operator<=(var<int>::Ptr x,var<int>::Ptr y) {
+        return new (x->getSolver()) LessOrEqual(x,y);
+    }
+    inline Constraint::Ptr operator>=(var<int>::Ptr x,var<int>::Ptr y) {
+        return new (x->getSolver()) LessOrEqual(y,x);
     }
     inline Objective::Ptr minimize(var<int>::Ptr x) {
         return new Minimize(x);

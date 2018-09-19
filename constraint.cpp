@@ -80,6 +80,20 @@ void EQBinDC::post()
    }
 }
 
+void LessOrEqual::post()
+{
+    _x->propagateOnBoundChange(this);
+    _y->propagateOnBoundChange(this);
+    propagate();
+}
+    
+void LessOrEqual::propagate()
+{
+    _x->removeAbove(_y->max());
+    _y->removeBelow(_x->min());
+    setActive(_x->max() >= _y->min());
+}
+
 Minimize::Minimize(var<int>::Ptr& x)
     : _obj(x),_primal(0x7FFFFFFF)
 {
