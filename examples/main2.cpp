@@ -35,8 +35,8 @@ int main(int argc,char* argv[])
 	    withVarDo(q,min_dom(q),[cp](auto x) {
                   while(!x->isBound()) {
                      int c = x->min();
-                     cp->tryBin([cp,x,c] { cp->branch(x == c);},
-                                [cp,x,c] { cp->branch(x != c);});
+                     cp->tryBin([cp,x,c] { cp->branch(Factory::operator==(x,c));},
+  			        [cp,x,c] { cp->branch(Factory::operator!=(x,c));});
                   }                      		
                });
          }
