@@ -142,6 +142,21 @@ Sum::Sum(const Factory::Vecv& x,var<int>::Ptr s)
         _unBounds[i] = i;
 }        
 
+Sum::Sum(const std::vector<var<int>::Ptr>& x,var<int>::Ptr s)
+   : Constraint(s->getSolver()),
+     _x(x.size()+1),
+      _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
+      _sumBounds(s->getSolver()->getStateManager(),0),
+      _n((int)x.size() + 1),
+      _unBounds(_n)
+{
+    for(int i=0;i < x.size();i++)
+        _x[i] = x[i];
+    _x[_n-1] = Factory::minus(s);
+    for(int i=0; i < _n;i++)
+        _unBounds[i] = i;
+}        
+     
 void Sum::post()
 {
    for(auto& var : _x)

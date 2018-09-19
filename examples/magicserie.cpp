@@ -17,7 +17,7 @@ int main(int argc,char* argv[])
         cp->post(sum(Factory::intVarArray(cp,n,[&s,i](int j) { return Factory::isEqual(s[j],i);}),s[i]));
     }
     cp->post(sum(s,n));
-    cp->post(sum(Factory::intVarArray(cp,n,[&s](int i) { return s[i]*i;}),n));
+    //cp->post(sum(Factory::intVarArray(cp,n,[&s](int i) { return s[i]*i;}),n));
     
     DFSearch search(cp,[=]() {
                           auto x = selectMin(s,

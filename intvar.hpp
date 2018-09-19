@@ -9,6 +9,7 @@
 #include "solver.hpp"
 #include "BitDomain.hpp"
 #include "revList.hpp"
+#include "matrix.hpp"
 
 template<typename T> class var {};
 
@@ -221,7 +222,8 @@ namespace Factory {
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int n);
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);
-   template<typename Fun> std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
+   template<typename Fun>
+   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
       for(int i=0;i < x.size();i++)
          x[i] = body(i);
