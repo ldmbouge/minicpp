@@ -30,7 +30,7 @@ $(LIBNAME): $(OFILES)
 	rm -f $@.$$$$
 
 clean:
-	rm -rf $(OFILES) cpptest *~ *.d *.o *.dylib
+	rm -rf $(OFILES) cpptest *~ *.d *.o $(LIBNAME)
 	make -C examples clean
 
 # This imports the dependency header specs.

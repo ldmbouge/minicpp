@@ -24,13 +24,14 @@ CC=c++
 LLIBFLAGS=  -install_name '$(CWD)/$(LIBNAME)' -current_version 1.0
 LIBNAME = lib$(LIBBASE).dylib
 LFLAGS= -L. -dynamiclib -undefined suppress -flat_namespace
-
+LFLAGSX=
 else
 
+CWD=$(shell pwd)
 CXXFLAGS += -fPIC
 CC=clang++-4.0
 LLIBFLAGS=-Wl,-soname,$(LIBNAME)
-LFLAGS  = -L. -Wl,-rpath=`pwd`
+LFLAGSX  = -L. -Wl,-rpath=$(CWD)/..
 LIBNAME = lib$(LIBBASE).so.1
 
 

@@ -1,5 +1,7 @@
 #include <iostream>
 #include <iomanip>
+#include <functional>
+
 #include "cont.hpp"
 
 
