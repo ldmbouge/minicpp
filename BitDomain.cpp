@@ -179,13 +179,13 @@ std::ostream& operator<<(std::ostream& os,const BitDomain& x)
         os << '(' << x.size() << ")[";
         bool first = true;
         bool seq = false;
-        int lastIn=x._min,firstIn = x._min;
+        int lastIn=x._min;
         for(int k = x._min;k <= x._max;k++) {
             if (x.member(k)) {
                 if (first) {
                     os << k;
                     first = seq = false;
-                    lastIn = firstIn = k;
+                    lastIn = k;
                 } else {
                     if (lastIn + 1 == k) {
                         lastIn = k;
@@ -195,7 +195,7 @@ std::ostream& operator<<(std::ostream& os,const BitDomain& x)
                             os << ".." << lastIn << ',' << k;
                         else
                             os << ',' << k;
-                        firstIn = lastIn = k;
+                        lastIn = k;
                         seq = false;
                     }
                 }

@@ -45,6 +45,17 @@ public:
     void post() override;
 };
 
+class NEQBinBCLight : public Constraint { // x != y + c
+    var<int>::Ptr _x,_y;
+    int _c;
+    void print(std::ostream& os) const override;
+public:
+    NEQBinBCLight(var<int>::Ptr& x,var<int>::Ptr& y,int c=0)
+       : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
+    void post() override;
+    void propagate() override;
+};
+
 class EQBinDC : public Constraint { // x == y + c
     var<int>::Ptr _x,_y;
     int _c;

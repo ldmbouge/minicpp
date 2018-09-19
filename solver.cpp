@@ -122,9 +122,11 @@ void CPSolver::fail()
 
 // [LDM] This is for debugging purposes. Don't include when using valgrind
 
+/*
 #if defined(__APPLE__)
 void* operator new  ( std::size_t count )
 {
    return malloc(count);
 }
 #endif
+*/

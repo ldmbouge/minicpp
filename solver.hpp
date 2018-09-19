@@ -80,7 +80,7 @@ inline void* operator new[](std::size_t sz,CPSolver::Ptr e)
    return e->_store->allocate(sz);
 }
 
-void* operator new  ( std::size_t count );
+//void* operator new  ( std::size_t count );
 
 template <class Container,class FIt,class Body>
 void withVarDo(Container& c,FIt it,Body b)

@@ -58,6 +58,30 @@ void NEQBinBC::post()
    }
 }
 
+void NEQBinBCLight::print(std::ostream& os) const
+{
+   os << _x << " !=L " << _y << " + " << _c << std::endl;
+}
+void NEQBinBCLight::post()
+{
+    if (_y->isBound())
+        _x->remove(_y->min() + _c);
+    else if (_x->isBound())
+        _y->remove(_x->min() - _c);
+    else {
+        _x->propagateOnBind(this);
+        _y->propagateOnBind(this);
+    }
+}
+void NEQBinBCLight::propagate()
+{
+    if (_y->isBound())
+        _x->remove(_y->min() + _c);
+    else
+        _y->remove(_x->min() - _c);
+    setActive(false);
+}
+
 void EQBinDC::post()
 {
    if (_x->isBound())
@@ -221,7 +245,7 @@ void AllDifferentBinary::post()
     const long n = _x.size();
     for(int i=0;i < n;i++) 
         for(int j=i+1;j < n;j++)
-            cp->post(Factory::notEqual(_x[i],_x[j]));    
+            cp->post(new (cp) NEQBinBCLight(_x[i],_x[j]));    
 }
 
 Circuit::Circuit(const Factory::Vecv& x)

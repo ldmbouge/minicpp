@@ -77,8 +77,9 @@ public:
 };
 
 template<class B> std::function<Branches(void)> land(std::initializer_list<B> allB) {
-   return [allB]() {
-             for(const B& brs : allB) {
+   std::vector<B> vec(allB);
+   return [vec]() {
+             for(const B& brs : vec) {
                 auto br = brs();
                 if (br.size() != 0)
                    return br;
