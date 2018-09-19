@@ -79,8 +79,21 @@ public:
 class AllDifferentBinary :public Constraint {
     std::vector<var<int>::Ptr> _x;
 public:
-    AllDifferentBinary(const Factory::Vecv& x);
-    void post() override;
+   AllDifferentBinary(const Factory::Vecv& x);
+   AllDifferentBinary(const std::vector<var<int>::Ptr>& x);
+   void post() override;
+};
+
+class Circuit :public Constraint {
+   std::vector<var<int>::Ptr>  _x;
+   trail<int>* _dest;
+   trail<int>* _orig;
+   trail<int>* _lengthToDest;
+   void bind(int i);
+public:
+   Circuit(const Factory::Vecv& x);
+   Circuit(const std::vector<var<int>::Ptr>& x);
+   void post() override;
 };
 
 class Minimize : public Objective {
@@ -95,30 +108,34 @@ public:
 
 template <class T,int a> class matrix;
 
-template <class T,int a,int d> class mtxIndex {
+template <class T,int a,int d> class MSlice {
    matrix<T,a>* _mtx;
    int         _flat;      
-   mtxIndex(matrix<T,a>* m,int idx) : _mtx(m),_flat(idx) {}      
+   MSlice(matrix<T,a>* m,int idx) : _mtx(m),_flat(idx) {}      
 public:
    friend class matrix<T,a>;
-   friend class mtxIndex<T,a,d+1>;
-   mtxIndex<T,a,d-1> operator[](int i);
+   friend class MSlice<T,a,d+1>;
+   MSlice<T,a,d-1> operator[](int i);
+   const MSlice<T,a,d-1> operator[](int i) const;
+   int size() const { return _mtx->_dim[a-d];}
 };
-template<class T,int a> class mtxIndex<T,a,1> { 
+template<class T,int a> class MSlice<T,a,1> { 
    matrix<T,a>* _mtx;
    int        _flat;      
-   friend class mtxIndex<T,a,2>;
-   mtxIndex(matrix<T,a>* m,int idx) : _mtx(m),_flat(idx) {}
+   friend class MSlice<T,a,2>;
+   MSlice(matrix<T,a>* m,int idx) : _mtx(m),_flat(idx) {}
 public:        
    friend class matrix<T,a>;
    T& operator[](int i);
+   const T& operator[](int i) const;
+   int size() const { return _mtx->_dim[a-1];}
 };
 
 template<class T,int a> class matrix {
    std::vector<T>    _data;
    std::array<int,a>  _dim;
 public:
-   friend class mtxIndex<T,a,a-1>;
+   friend class MSlice<T,a,a-1>;
    matrix(std::initializer_list<int> li) {
       std::copy(li.begin(),li.end(),_dim.begin());
       int ttl = 1;
@@ -127,15 +144,23 @@ public:
       _data.resize(ttl);
    }
    const int size(int d) const { return _dim[d];}
-   mtxIndex<T,a,a-1> operator[](int i) { return mtxIndex<T,a,a-1>(this,i);}
+   MSlice<T,a,a-1> operator[](int i) { return MSlice<T,a,a-1>(this,i);}
 };
 
 template <class T,int a,int d>
-mtxIndex<T,a,d-1> mtxIndex<T,a,d>::operator[](int i) {
-   return mtxIndex<T,a,d-1>(_mtx,_flat * _mtx->_dim[a - d] + i);
+MSlice<T,a,d-1> MSlice<T,a,d>::operator[](int i) {
+   return MSlice<T,a,d-1>(_mtx,_flat * _mtx->_dim[a - d] + i);
 }
 template<class T,int a>
-T& mtxIndex<T,a,1>::operator[](int i) {
+T& MSlice<T,a,1>::operator[](int i) {
+   return _mtx->_data[_flat * _mtx->_dim[a - 1] + i];
+}
+template <class T,int a,int d>
+const MSlice<T,a,d-1> MSlice<T,a,d>::operator[](int i) const {
+   return MSlice<T,a,d-1>(_mtx,_flat * _mtx->_dim[a - d] + i);
+}
+template<class T,int a>
+const T& MSlice<T,a,1>::operator[](int i) const {
    return _mtx->_data[_flat * _mtx->_dim[a - 1] + i];
 }
 
@@ -160,6 +185,15 @@ public:
     void post() override;;
     void propagate() override;
     void print(std::ostream& os) const override;
+};
+
+class Element1D : public Constraint {
+   std::vector<int> _t;
+   var<int>::Ptr _y;
+   var<int>::Ptr _z;
+public:
+   Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z);
+   void post() override;
 };
 
 namespace Factory {
@@ -206,10 +240,13 @@ namespace Factory {
         auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
         return new (xs[0]->getSolver()) Sum(xs,sv);
     }
-   inline Constraint::Ptr allDifferent(const Vecv& xs) {
+   template <class Vec> Constraint::Ptr allDifferent(const Vec& xs) {
       return new (xs[0]->getSolver()) AllDifferentBinary(xs);
    }
-    inline var<int>::Ptr element(matrix<int,2>& d,var<int>::Ptr x,var<int>::Ptr y) {
+   template <class Vec>  Constraint::Ptr circuit(const Vec& xs) {
+      return new (xs[0]->getSolver()) Circuit(xs);
+   }
+   inline var<int>::Ptr element(matrix<int,2>& d,var<int>::Ptr x,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       for(int i=0;i<d.size(0);i++)
           for(int j=0;j < d.size(1);j++) {
@@ -218,6 +255,24 @@ namespace Factory {
           }
       auto z = makeIntVar(x->getSolver(),min,max);
       x->getSolver()->post(new (x->getSolver()) Element2D(d,x,y,z));
+      return z;
+    }
+   inline Constraint::Ptr element(const MSlice<int,2,1>& array,var<int>::Ptr y,var<int>::Ptr z) {
+      std::vector<int> flat(array.size());
+      for(int i=0;i < array.size();i++) 
+         flat[i] = array[i];
+      return new (y->getSolver()) Element1D(flat,y,z);
+   }
+   inline var<int>::Ptr element(const MSlice<int,2,1>& array,var<int>::Ptr y) {
+      int min = INT32_MAX,max = INT32_MIN;
+      std::vector<int> flat(array.size());
+      for(int i=0;i < array.size();i++) {
+         const int v = flat[i] = array[i];
+         min = min < v ? min : v;
+         max = max > v ? max : v;
+      }
+      auto z = makeIntVar(y->getSolver(),min,max);
+      y->getSolver()->post(new (y->getSolver()) Element1D(flat,y,z));
       return z;
    }
 };

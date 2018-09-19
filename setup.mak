@@ -1,7 +1,7 @@
 HOST=$(shell uname)
 
-CXXFLAGS=-O0 -g -std=c++14
-#CXXFLAGS=-O3 -std=c++14
+#CXXFLAGS=-O0 -g3 -std=c++14
+CXXFLAGS=-O3 -std=c++14
 
 LIBBASE = copl
 

@@ -178,9 +178,13 @@ AllDifferentBinary::AllDifferentBinary(const Factory::Vecv& x)
     : Constraint(x[0]->getSolver()),
       _x(x.size())
 {
-    for(int i=0;i < x.size();i++)
-        _x[i] = x[i];
+   for(int i=0;i < x.size();i++)
+      _x[i] = x[i];
 }
+AllDifferentBinary::AllDifferentBinary(const std::vector<var<int>::Ptr>& x)
+   : Constraint(x[0]->getSolver()),
+     _x(x)
+{}
 
 void AllDifferentBinary::post()
 {
@@ -189,6 +193,71 @@ void AllDifferentBinary::post()
     for(int i=0;i < n;i++) 
         for(int j=i+1;j < n;j++)
             cp->post(Factory::notEqual(_x[i],_x[j]));    
+}
+
+Circuit::Circuit(const Factory::Vecv& x)
+   : Constraint(x[0]->getSolver()),
+     _x(x.size())
+{
+    auto cp = x[0]->getSolver();
+    for(int i=0;i < x.size();i++)
+       _x[i] = x[i];
+    _dest = new (cp) trail<int>[_x.size()];
+    _orig = new (cp) trail<int>[_x.size()];
+    _lengthToDest = new (cp) trail<int>[_x.size()];
+    for(int i=0;i<_x.size();i++) {
+        new (_dest+i) trail<int>(cp->getStateManager(),i);
+        new (_orig+i) trail<int>(cp->getStateManager(),i);
+        new (_lengthToDest+i) trail<int>(cp->getStateManager(),0);
+    }
+}
+
+Circuit::Circuit(const std::vector<var<int>::Ptr>& x)
+   : Constraint(x[0]->getSolver()),
+     _x(x)
+{
+    auto cp = x[0]->getSolver();
+    //    for(int i=0;i < x.size();i++)
+    //        _x[i] = x[i];
+    _dest = new (cp) trail<int>[_x.size()];
+    _orig = new (cp) trail<int>[_x.size()];
+    _lengthToDest = new (cp) trail<int>[_x.size()];
+    for(int i=0;i<_x.size();i++) {
+        new (_dest+i) trail<int>(cp->getStateManager(),i);
+        new (_orig+i) trail<int>(cp->getStateManager(),i);
+        new (_lengthToDest+i) trail<int>(cp->getStateManager(),0);
+    }
+}
+
+void Circuit::post()
+{
+   auto cp = _x[0]->getSolver();
+   cp->post(Factory::allDifferent(_x));
+   if (_x.size() == 1) {
+      _x[0]->assign(0);
+      return ;      
+   }
+   for(int i=0;i < _x.size();i++)
+      _x[i]->remove(i);
+   for(int i=0;i < _x.size();i++) {
+      if (_x[i]->isBound())
+         bind(i);
+      else 
+         _x[i]->whenBind([i,this]() { bind(i);});      
+   }
+}
+
+void Circuit::bind(int i)
+{
+   int j = _x[i]->min();
+   int origi = _orig[i];
+   int destj = _dest[j];
+   _dest[origi] = destj;
+   _orig[destj] = origi;
+   int length = _lengthToDest[origi] + _lengthToDest[j] + 1;
+   _lengthToDest[origi] = length;
+   if (length < _x.size() - 1)
+      _x[destj]->remove(origi);                     
 }
 
 Element2D::Element2D(const matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z)
@@ -258,3 +327,18 @@ void Element2D::print(std::ostream& os) const
 {
    os << "element2D(" << _x << ',' << _y << ',' << _z << ')' << std::endl;
 }
+
+Element1D::Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z)
+   : Constraint(y->getSolver()),_t(array),_y(y),_z(z)
+{}
+
+void Element1D::post()
+{
+   matrix<int,2> t2({1,(int)_t.size()});
+   for(int j=0;j< _t.size();j++)
+      t2[0][j] = _t[j];
+   auto x = Factory::makeIntVar(_y->getSolver(),0,0);
+   auto c = new (_y->getSolver()) Element2D(t2,x,_y,_z);
+   _y->getSolver()->post(c,false);
+}
+
