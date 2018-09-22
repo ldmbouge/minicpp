@@ -259,8 +259,8 @@ namespace Factory {
    inline var<int>::Ptr operator*(int a,var<int>::Ptr x) { return x * a;}
    inline var<int>::Ptr operator+(var<int>::Ptr x,int a) { return new (x->getSolver()) IntVarViewOffset(x,a);}
    inline var<int>::Ptr operator+(int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(x,a);}
-   inline var<int>::Ptr operator-(var<int>::Ptr x,int a) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
-   inline var<int>::Ptr operator-(int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
+   inline var<int>::Ptr operator-(var<int>::Ptr x,const int a) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
+   inline var<int>::Ptr operator-(const int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int n);
    std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);

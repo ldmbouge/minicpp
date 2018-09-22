@@ -1,3 +1,18 @@
+/*
+ * mini-cp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License  v3
+ * as published by the Free Software Foundation.
+ *
+ * mini-cp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY.
+ * See the GNU Lesser General Public License  for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with mini-cp. If not, see http://www.gnu.org/licenses/lgpl-3.0.en.html
+ *
+ * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
+ */
+
 #ifndef __CONSTRAINT_H
 #define __CONSTRAINT_H
 
@@ -83,6 +98,16 @@ public:
         : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
     void post() override;
     void propagate() override;
+};
+
+class IsLessOrEqual : public Constraint { // b <=> x <= c
+    var<bool>::Ptr _b;
+    var<int>::Ptr _x;
+    int _c;
+public:
+    IsLessOrEqual(var<bool>::Ptr b,var<int>::Ptr x,int c)
+        : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
+    void post() override;
 };
 
 class Sum : public Constraint { // s = Sum({x0,...,xk})
@@ -192,6 +217,22 @@ namespace Factory {
         } catch(Status s) {}
         return b;
     }
+    inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x,const int c) {
+        var<bool>::Ptr b = makeBoolVar(x->getSolver());
+        try {
+            x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b,x,c));
+        } catch(Status s) {}
+        return b;
+    }
+    inline var<bool>::Ptr isLess(var<int>::Ptr x,const int c) {
+        return isLessOrEqual(x,c - 1);
+    }
+    inline var<bool>::Ptr isLargerOrEqual(var<int>::Ptr x,const int c) {
+        return isLessOrEqual(- x,- c);        
+    }
+    inline var<bool>::Ptr isLarger(var<int>::Ptr x,const int c) {
+        return isLargerOrEqual(x , c + 1);
+    }
     template <class Vec> var<int>::Ptr sum(Vec& xs) {
         int sumMin = 0,sumMax = 0;
         for(const auto& x : xs) {
@@ -209,6 +250,10 @@ namespace Factory {
     template <class Vec> Constraint::Ptr sum(const Vec& xs,int s) {
         auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
         return new (xs[0]->getSolver()) Sum(xs,sv);
+    }
+    inline var<bool>::Ptr implies(var<bool>::Ptr a,var<bool>::Ptr b) { // a=>b is not(a) or b is (1-a)+b >= 1
+        std::vector<var<int>::Ptr> left = {1- (var<int>::Ptr)a,b};
+        return isLargerOrEqual(sum(left),1);
     }
    template <class Vec> Constraint::Ptr allDifferent(const Vec& xs) {
       return new (xs[0]->getSolver()) AllDifferentBinary(xs);

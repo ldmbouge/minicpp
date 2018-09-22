@@ -1,3 +1,18 @@
+/*
+ * mini-cp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License  v3
+ * as published by the Free Software Foundation.
+ *
+ * mini-cp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY.
+ * See the GNU Lesser General Public License  for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with mini-cp. If not, see http://www.gnu.org/licenses/lgpl-3.0.en.html
+ *
+ * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
+ */
+
 #include "constraint.hpp"
 
 void printCstr(Constraint::Ptr c) {
@@ -165,6 +180,31 @@ void IsEqual::propagate()
     }
 }
 
+void IsLessOrEqual::post()
+{
+    if (_b->isTrue())
+        _x->removeAbove(_c);
+    else if (_b->isFalse())
+        _x->removeBelow(_c + 1);
+    else if (_x->max() <= _c)
+        _b->assign(1);
+    else if (_x->min() > _c)
+        _b->assign(0);
+    else {
+        _b->whenBind([b=_b,x=_x,c=_c] {
+                         if (b->isTrue())
+                             x->removeAbove(c);
+                         else x->removeBelow(c + 1);
+                     });
+        _x->whenBoundsChange([b=_b,x=_x,c=_c] {
+                                 if (x->max() <= c)
+                                     b->assign(1);
+                                 else if (x->min() > c)
+                                     b->assign(0);
+                             });        
+    }
+}
+   
 Sum::Sum(const Factory::Vecv& x,var<int>::Ptr s)
     : Constraint(s->getSolver()),
       _x(x.size() + 1),
