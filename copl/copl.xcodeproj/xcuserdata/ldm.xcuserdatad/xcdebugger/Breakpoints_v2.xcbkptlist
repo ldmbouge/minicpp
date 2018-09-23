@@ -15,8 +15,8 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "204"
             endingLineNumber = "204"
-            landmarkName = "unknown"
-            landmarkType = "0">
+            landmarkName = "IsLessOrEqual::post()"
+            landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
       <BreakpointProxy
@@ -31,7 +31,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "210"
             endingLineNumber = "210"
-            landmarkName = "Sum::propagate()"
+            landmarkName = "Sum::Sum(const Factory::Vecv&amp; x,var&lt;int&gt;::Ptr s)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -47,7 +47,7 @@
             endingColumnNumber = "9223372036854775807"
             startingLineNumber = "232"
             endingLineNumber = "232"
-            landmarkName = "AllDifferentBinary::AllDifferentBinary(const Factory::Vecv&amp; x)"
+            landmarkName = "Sum::Sum(const std::vector&lt;var&lt;int&gt;::Ptr&gt;&amp; x,var&lt;int&gt;::Ptr s)"
             landmarkType = "7">
          </BreakpointContent>
       </BreakpointProxy>
@@ -73,14 +73,14 @@
             shouldBeEnabled = "Yes"
             ignoreCount = "0"
             continueAfterRunningActions = "No"
-            filePath = "../constraint.hpp"
-            timestampString = "559072953.113631"
+            filePath = "../examples/stablemarriage.cpp"
+            timestampString = "559405882.132073"
             startingColumnNumber = "9223372036854775807"
             endingColumnNumber = "9223372036854775807"
-            startingLineNumber = "157"
-            endingLineNumber = "157"
-            landmarkName = "Element1D"
-            landmarkType = "3">
+            startingLineNumber = "71"
+            endingLineNumber = "71"
+            landmarkName = "main(int argc,char* argv[])"
+            landmarkType = "9">
          </BreakpointContent>
       </BreakpointProxy>
    </Breakpoints>

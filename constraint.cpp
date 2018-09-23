@@ -435,3 +435,60 @@ void Element1D::post()
    _y->getSolver()->post(c,false);
 }
 
+
+void Element1DVar::post()
+{
+    _y->updateBounds(0,(int)_array.size() - 1);
+   for(auto t : _array)
+      t->propagateOnBoundChange(this);
+   _y->propagateOnDomainChange(this);
+   _z->propagateOnBoundChange(this);
+   propagate();
+}
+
+void Element1DVar::propagate()
+{
+   _zMin = _z->min();
+   _zMax = _z->max();
+   if (_y->isBound()) equalityPropagate();
+   else {
+      filterY();
+      if (_y->isBound())
+         equalityPropagate();
+      else
+         _z->updateBounds(_supMin->min(),_supMax->max());
+   }
+}
+
+void Element1DVar::equalityPropagate()
+{
+   auto tVar = _array[_y->min()];
+   tVar->updateBounds(_zMin,_zMax);
+   _z->updateBounds(tVar->min(),tVar->max());
+}
+
+void Element1DVar::filterY()
+{
+   int min = INT32_MAX,max = INT32_MIN;
+   int i = 0;
+   for (int k=_y->min();k <= _y->max();k++)
+       if (_y->contains(k))
+           _yValues[i++] = k;
+   while (i > 0) {
+       int id = _yValues[--i];
+       auto tVar =  _array[id];
+       int tMin = tVar->min(),tMax = tVar->max();
+       if (tMax < _zMin || tMin > _zMax)
+           _y->remove(id);
+       else {
+           if (tMin < min) {
+               min = tMin;
+               _supMin = tVar;
+           }
+           if (tMax > max) {
+               max = tMax;
+               _supMax = tVar;
+           }
+       }
+   }
+}

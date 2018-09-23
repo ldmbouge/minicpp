@@ -28,7 +28,7 @@ class EQc : public Constraint { // x == c
     var<int>::Ptr _x;
     int           _c;
 public:
-   EQc(var<int>::Ptr& x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
+   EQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
     void post() override;
 };
 
@@ -36,7 +36,7 @@ class NEQc : public Constraint { // x != c
     var<int>::Ptr _x;
     int           _c;
 public:
-   NEQc(var<int>::Ptr& x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
+   NEQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
    void post() override;
 };
 
@@ -185,6 +185,24 @@ public:
    void post() override;
 };
 
+class Element1DVar : public Constraint {  // _z = _array[y]
+   std::vector<var<int>::Ptr> _array;
+   var<int>::Ptr _y,_z;
+   std::vector<int> _yValues;
+   var<int>::Ptr _supMin,_supMax;
+   int _zMin,_zMax;
+   void equalityPropagate();
+   void filterY();
+public:
+   Element1DVar(const std::vector<var<int>::Ptr>& array,var<int>::Ptr y,var<int>::Ptr z)
+      : Constraint(y->getSolver()),_y(y),_z(z) {
+      for(auto  x : array) _array.push_back(x);
+      _yValues.resize(_y->size());
+   }
+   void post() override;
+   void propagate() override;
+};
+
 namespace Factory {
     inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
         return new (x->getSolver()) EQBinBC(x,y,c);
@@ -197,6 +215,12 @@ namespace Factory {
     }
     inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
         return new (x->getSolver()) NEQc(x,c);
+    }
+    inline Constraint::Ptr operator==(var<bool>::Ptr x,bool c) {
+       return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
+    }
+    inline Constraint::Ptr operator!=(var<bool>::Ptr x,bool c) {
+        return new (x->getSolver()) NEQc((var<int>::Ptr)x,c);
     }
     inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y) {
         return Factory::notEqual(x,y,0);
@@ -288,6 +312,24 @@ namespace Factory {
       }
       auto z = makeIntVar(y->getSolver(),min,max);
       y->getSolver()->post(new (y->getSolver()) Element1D(flat,y,z));
+      return z;
+   }
+   template <class Vec> Constraint::Ptr element(const Vec& xs,var<int>::Ptr y,var<int>::Ptr z) {
+       std::vector<var<int>::Ptr> flat(xs.size());
+       for(int i=0;i<xs.size();i++)
+           flat[i] = xs[i];
+       return new (y->getSolver()) Element1DVar(flat,y,z);
+   }
+   template <class Vec> var<int>::Ptr element(const Vec& xs,var<int>::Ptr y) {
+      int min = INT32_MAX,max = INT32_MIN;
+      std::vector<var<int>::Ptr> flat(xs.size());
+      for(int i=0;i < xs.size();i++) {
+         const auto& v = flat[i] = xs[i];
+         min = min < v->min() ? min : v->min();
+         max = max > v->max() ? max : v->max();
+      }
+      auto z = makeIntVar(y->getSolver(),min,max);
+      y->getSolver()->post(new (y->getSolver()) Element1DVar(flat,y,z));
       return z;
    }
 };
