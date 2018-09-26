@@ -26,6 +26,7 @@ class Branches {
    std::vector<std::function<void(void)>> _alts;
 public:
    Branches(Branches&& b) : _alts(std::move(b._alts)) {}
+   Branches(std::vector<std::function<void(void)>> alts) : _alts(alts) {}
    Branches(std::initializer_list<std::function<void(void)>> alts) {
       _alts.insert(_alts.begin(),alts.begin(),alts.end());
    }

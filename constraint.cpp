@@ -204,37 +204,7 @@ void IsLessOrEqual::post()
                              });        
     }
 }
-   
-Sum::Sum(const Factory::Vecv& x,var<int>::Ptr s)
-    : Constraint(s->getSolver()),
-      _x(x.size() + 1),
-      _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
-      _sumBounds(s->getSolver()->getStateManager(),0),
-      _n((int)x.size() + 1),
-      _unBounds(_n)
-{
-    for(int i=0;i < x.size();i++)
-        _x[i] = x[i];
-    _x[_n-1] = Factory::minus(s);
-    for(int i=0; i < _n;i++)
-        _unBounds[i] = i;
-}        
-
-Sum::Sum(const std::vector<var<int>::Ptr>& x,var<int>::Ptr s)
-   : Constraint(s->getSolver()),
-     _x(x.size()+1),
-      _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
-      _sumBounds(s->getSolver()->getStateManager(),0),
-      _n((int)x.size() + 1),
-      _unBounds(_n)
-{
-    for(int i=0;i < x.size();i++)
-        _x[i] = x[i];
-    _x[_n-1] = Factory::minus(s);
-    for(int i=0; i < _n;i++)
-        _unBounds[i] = i;
-}        
-     
+      
 void Sum::post()
 {
    for(auto& var : _x)
@@ -266,6 +236,102 @@ void Sum::propagate()
       _x[idx]->removeBelow(-(sumMax - _x[idx]->max()));
    }
 }
+
+Clause::Clause(const std::vector<var<bool>::Ptr>& x)
+    : Constraint(x[0]->getSolver()),
+      _wL(x[0]->getSolver()->getStateManager(),0),
+      _wR(x[0]->getSolver()->getStateManager(),(int)x.size() - 1)
+{
+    for(auto xi : x) _x.push_back(xi);
+}
+
+void Clause::propagate()
+{
+    const long n = _x.size();
+    int i = _wL;
+    while (i < n && _x[i]->isBound()) {
+        if (_x[i]->isTrue()) {
+            setActive(false);
+            return;
+        }
+        i += 1;
+    }
+    _wL = i;
+    i = _wR;
+    while (i>=0 && _x[i]->isBound()) {
+        if (_x[i]->isTrue()) {
+            setActive(false);
+            return;
+        }
+        i -= 1;
+    }
+    _wR = i;
+    if (_wL > _wR) throw Failure;
+    else if (_wL == _wR) {
+        _x[_wL]->assign(true);
+        setActive(false);
+    } else {
+        assert(_wL != _wR);
+        assert(!_x[_wL]->isBound());
+        assert(!_x[_wR]->isBound());
+        _x[_wL]->propagateOnBind(this);
+        _x[_wR]->propagateOnBind(this);
+    }
+}
+
+IsClause::IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x)
+    : Constraint(x[0]->getSolver()),
+      _b(b),
+      _unBounds(x.size()),
+      _nUnBounds(x[0]->getSolver()->getStateManager(),(int)x.size())
+{
+    for(auto xi : x) _x.push_back(xi);
+    for(int i = 0; i < _x.size();i++)
+        _unBounds[i] = i;
+    _clause = new (x[0]->getSolver()) Clause(x);
+}
+
+void IsClause::post()
+{
+    _b->propagateOnBind(this);
+    for(auto& xi : _x)
+        xi->propagateOnBind(this);
+}
+
+void IsClause::propagate()
+{
+    auto cp = _x[0]->getSolver();
+    if (_b->isTrue()) {
+        setActive(false);
+        cp->post(_clause,false);
+    } else if (_b->isFalse()) {
+        for(auto& xi : _x)
+            xi->assign(false);
+        setActive(false);
+    } else {
+        int nU = _nUnBounds;
+        for(int i = nU - 1;i >=0;i--) {
+            int idx = _unBounds[i];
+            auto y = _x[idx];
+            if (y->isBound()) {
+                if (y->isTrue()) {
+                    _b->assign(true);
+                    setActive(false);
+                    return;
+                }
+                _unBounds[i] = _unBounds[nU -1];
+                _unBounds[nU - 1] = idx;
+                nU--;
+            }
+        }
+        if (nU == 0) {
+            _b->assign(false);
+            setActive(false);
+        }
+        _nUnBounds = nU;
+    }
+}
+
 
 AllDifferentBinary::AllDifferentBinary(const Factory::Vecv& x)
     : Constraint(x[0]->getSolver()),

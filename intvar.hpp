@@ -1,3 +1,18 @@
+/*
+ * mini-cp is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License  v3
+ * as published by the Free Software Foundation.
+ *
+ * mini-cp is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY.
+ * See the GNU Lesser General Public License  for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with mini-cp. If not, see http://www.gnu.org/licenses/lgpl-3.0.en.html
+ *
+ * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
+ */
+
 #ifndef __INTVAR_H
 #define __INTVAR_H
 
@@ -241,8 +256,10 @@ template <class T,class A> inline std::ostream& operator<<(std::ostream& os,cons
 }
 
 namespace Factory {
-   using alloc = stl::StackAdapter<var<int>::Ptr,Storage>;
-   using Vecv  = std::vector<var<int>::Ptr,alloc>;
+   using alloci = stl::StackAdapter<var<int>::Ptr,Storage>;
+   using allocb = stl::StackAdapter<var<bool>::Ptr,Storage>;
+   using Vecv   = std::vector<var<int>::Ptr,alloci>;
+   using Vecb   = std::vector<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
    inline var<int>::Ptr minus(var<int>::Ptr x)     { return new (x->getSolver()) IntVarViewOpposite(x);}
@@ -253,19 +270,21 @@ namespace Factory {
       else if (a==1)
          return x;
       else if (a <0)
-         return minus(new (x->getSolver()) IntVarViewMul(x,a));
+         return minus(new (x->getSolver()) IntVarViewMul(x,-a));
       else return new (x->getSolver()) IntVarViewMul(x,a);
    }
    inline var<int>::Ptr operator*(int a,var<int>::Ptr x) { return x * a;}
+   inline var<int>::Ptr operator*(var<bool>::Ptr x,int a)  { return Factory::operator*((var<int>::Ptr)x,a);}
+   inline var<int>::Ptr operator*(int a,var<bool>::Ptr x)  { return x * a;}
    inline var<int>::Ptr operator+(var<int>::Ptr x,int a) { return new (x->getSolver()) IntVarViewOffset(x,a);}
    inline var<int>::Ptr operator+(int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(x,a);}
    inline var<int>::Ptr operator-(var<int>::Ptr x,const int a) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
    inline var<int>::Ptr operator-(const int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(-x,a);}
-   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
-   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,int n);
-   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz);
-   template<typename Fun>
-   std::vector<var<int>::Ptr,alloc> intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
+   Vecv intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
+   Vecv intVarArray(CPSolver::Ptr cps,int sz,int n);
+   Vecv intVarArray(CPSolver::Ptr cps,int sz);
+   Vecb boolVarArray(CPSolver::Ptr cps,int sz);
+   template<typename Fun> Vecv intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
       for(int i=0;i < x.size();i++)
          x[i] = body(i);
@@ -293,6 +312,6 @@ template<class Container> auto min_dom(Container& c) {
    return min_dom(c.begin(),c.end());
 }
 
-void printVar(var<int>::Ptr x);
+void printVar(var<int>* x);
 
 #endif

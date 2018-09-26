@@ -117,10 +117,43 @@ class Sum : public Constraint { // s = Sum({x0,...,xk})
    int _n;
    std::vector<int> _unBounds;
 public:
-   Sum(const Factory::Vecv& x,var<int>::Ptr s);
-   Sum(const std::vector<var<int>::Ptr>& x,var<int>::Ptr s);
+   template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
+       : Constraint(s->getSolver()),
+         _x(x.size() + 1),
+         _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
+         _sumBounds(s->getSolver()->getStateManager(),0),
+         _n((int)x.size() + 1),
+         _unBounds(_n)
+    {
+        for(int i=0;i < x.size();i++)
+            _x[i] = x[i];
+        _x[_n-1] = Factory::minus(s);
+        for(int i=0; i < _n;i++)
+            _unBounds[i] = i;
+    }        
    void post() override;
    void propagate() override;
+};
+
+class Clause : public Constraint { // x0 OR x1 .... OR xn
+    std::vector<var<bool>::Ptr> _x;
+    trail<int> _wL,_wR;
+public:
+    Clause(const std::vector<var<bool>::Ptr>& x);
+    void post() override { propagate();}
+    void propagate() override;
+};
+
+class IsClause : public Constraint { // b <=> x0 OR .... OR xn
+    var<bool>::Ptr _b;
+    std::vector<var<bool>::Ptr> _x;
+    std::vector<int> _unBounds;
+    trail<int>      _nUnBounds;
+    Clause::Ptr        _clause;
+public:
+    IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x);
+    void post() override;
+    void propagate() override;
 };
 
 class AllDifferentBinary :public Constraint {
@@ -231,6 +264,16 @@ namespace Factory {
     inline Constraint::Ptr operator>=(var<int>::Ptr x,var<int>::Ptr y) {
         return new (x->getSolver()) LessOrEqual(y,x);
     }
+    inline Constraint::Ptr operator<=(var<int>::Ptr x,const int c) {
+       x->removeAbove(c);
+       x->getSolver()->fixpoint();
+       return nullptr;
+    }
+    inline Constraint::Ptr operator>=(var<int>::Ptr x,const int c) {
+       x->removeBelow(c);
+       x->getSolver()->fixpoint();
+       return nullptr;
+    }
     inline Objective::Ptr minimize(var<int>::Ptr x) {
         return new Minimize(x);
     }
@@ -275,6 +318,12 @@ namespace Factory {
         auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
         return new (xs[0]->getSolver()) Sum(xs,sv);
     }
+    template <class Vec> Constraint::Ptr clause(const Vec& xs) {
+        return new (xs[0]->getSolver()) Clause(xs);
+    }
+    template <class Vec> Constraint::Ptr isClause(var<bool>::Ptr b,const Vec& xs) {
+        return new (b->getSolver()) IsClause(b,xs);
+    }
     inline var<bool>::Ptr implies(var<bool>::Ptr a,var<bool>::Ptr b) { // a=>b is not(a) or b is (1-a)+b >= 1
         std::vector<var<int>::Ptr> left = {1- (var<int>::Ptr)a,b};
         return isLargerOrEqual(sum(left),1);
@@ -302,7 +351,7 @@ namespace Factory {
          flat[i] = array[i];
       return new (y->getSolver()) Element1D(flat,y,z);
    }
-   inline var<int>::Ptr element(const MSlice<int,2,1>& array,var<int>::Ptr y) {
+   template <class Vec> inline var<int>::Ptr element(const Vec& array,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       std::vector<int> flat(array.size());
       for(int i=0;i < array.size();i++) {
@@ -320,7 +369,7 @@ namespace Factory {
            flat[i] = xs[i];
        return new (y->getSolver()) Element1DVar(flat,y,z);
    }
-   template <class Vec> var<int>::Ptr element(const Vec& xs,var<int>::Ptr y) {
+   template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       std::vector<var<int>::Ptr> flat(xs.size());
       for(int i=0;i < xs.size();i++) {

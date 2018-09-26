@@ -40,6 +40,7 @@ CPSolver::~CPSolver()
 
 void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
 {
+    if (!c) return;
     c->post();
     if (enforceFixPoint) 
         fixpoint();    

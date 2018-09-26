@@ -46,11 +46,11 @@ int main(int argc,char* argv[])
     auto husbandPref = Factory::intVarArray(cp,n,n+1);
 
     for(int m=0;m < n;m++) {
-       cp->post(Factory::element(husband,wife[m]) == m);
+       cp->post(Factory::elementVar(husband,wife[m]) == m);
        cp->post(Factory::element(rankWomen[m],wife[m],wifePref[m]));
     }
     for(int w=0;w < n;w++) {
-       cp->post(Factory::element(wife,husband[w]) == w);
+       cp->post(Factory::elementVar(wife,husband[w]) == w);
        cp->post(Factory::element(rankMen[w],husband[w],husbandPref[w]));
     }
     for(int m=0; m < n;m++) {
