@@ -75,7 +75,7 @@ class DFSearch {
     std::function<Branches(void)>   _branching;
     std::vector<std::function<void(void)>>    _solutionListeners;
     std::vector<std::function<void(void)>>    _failureListeners;
-    void dfs(SearchStatistics& stats,Limit limit);
+    void dfs(SearchStatistics& stats,const Limit& limit);
 public:
    DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b) : _sm(cp->getStateManager()),_branching(std::move(b)) {}
    DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b) : _sm(sm),_branching(std::move(b)) {}

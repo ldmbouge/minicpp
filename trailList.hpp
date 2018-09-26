@@ -77,4 +77,6 @@ public:
     }
 };
 
+typedef trailList<Constraint::Ptr>::revNode TLCNode;
+
 #endif

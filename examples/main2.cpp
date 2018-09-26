@@ -26,6 +26,27 @@ void pdebug(std::vector<var<int>::Ptr>& x)
    std::cout << "DEBUG:" << x << std::endl;
 }
 
+template<class ForwardIt> ForwardIt min_dom(ForwardIt first, ForwardIt last)
+{
+   if (first == last) return last;
+
+   int ds = 0x7fffffff;
+   ForwardIt smallest = last;
+   for (; first != last; ++first) {
+      auto fsz = (*first)->size();
+      if (fsz > 1 && fsz < ds) {
+         smallest = first;
+         ds = fsz;
+      }
+   }
+   return smallest;
+}
+
+template<class Container> auto min_dom(Container& c) {
+   return min_dom(c.begin(),c.end());
+}
+
+
 int main(int argc,char* argv[])
 {
    using namespace std;

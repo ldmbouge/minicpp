@@ -79,7 +79,7 @@ SearchStatistics DFSearch::optimizeSubjectTo(Objective::Ptr obj,Limit limit,std:
    return stats;
 }
 
-void DFSearch::dfs(SearchStatistics& stats,Limit limit)
+void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
 {
     if (limit(stats))
         throw StopException();

@@ -244,10 +244,18 @@ namespace Factory {
         return new (x->getSolver()) NEQBinBC(x,y,c);
     }
     inline Constraint::Ptr operator==(var<int>::Ptr x,int c) {
-        return new (x->getSolver()) EQc(x,c);
+       auto cp = x->getSolver();
+       x->assign(c);
+       cp->fixpoint();
+       return nullptr;
+       //return new (x->getSolver()) EQc(x,c);
     }
     inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
-        return new (x->getSolver()) NEQc(x,c);
+       auto cp = x->getSolver();
+       x->remove(c);
+       cp->fixpoint();
+       return nullptr;
+       //return new (x->getSolver()) NEQc(x,c);
     }
     inline Constraint::Ptr operator==(var<bool>::Ptr x,bool c) {
        return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
