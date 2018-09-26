@@ -47,15 +47,15 @@ public:
     }
 };
 
-revList<Constraint::Ptr>::revNode* IntVarImpl::whenBind(std::function<void(void)>&& f)
+trailList<Constraint::Ptr>::revNode* IntVarImpl::whenBind(std::function<void(void)>&& f)
 {
     return propagateOnBind(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }
-revList<Constraint::Ptr>::revNode* IntVarImpl::whenBoundsChange(std::function<void(void)>&& f)
+trailList<Constraint::Ptr>::revNode* IntVarImpl::whenBoundsChange(std::function<void(void)>&& f)
 {
     return propagateOnBoundChange(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }
-revList<Constraint::Ptr>::revNode* IntVarImpl::whenDomainChange(std::function<void(void)>&& f)
+trailList<Constraint::Ptr>::revNode* IntVarImpl::whenDomainChange(std::function<void(void)>&& f)
 {
     return propagateOnDomainChange(new (getSolver()) ClosureConstraint(_solver,std::move(f)));  
 }

@@ -52,7 +52,7 @@ public:
 class NEQBinBC : public Constraint { // x != y + c
     var<int>::Ptr _x,_y;
     int _c;
-    revList<Constraint::Ptr>::revNode* hdl[2];
+    trailList<Constraint::Ptr>::revNode* hdl[2];
     void print(std::ostream& os) const override;
 public:
     NEQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c)

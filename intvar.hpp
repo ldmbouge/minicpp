@@ -23,7 +23,7 @@
 #include "acstr.hpp"
 #include "solver.hpp"
 #include "BitDomain.hpp"
-#include "revList.hpp"
+#include "trailList.hpp"
 #include "matrix.hpp"
 
 template<typename T> class var {};
@@ -44,12 +44,12 @@ public:
    virtual void removeAbove(int newMax) = 0;
    virtual void updateBounds(int newMin,int newMax) = 0;
    
-   virtual revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) = 0;
-   virtual revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) = 0;
-   virtual revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) = 0;
-   virtual revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          = 0;
-   virtual revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   = 0;
-   virtual revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) = 0;
+   virtual trailList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) = 0;
+   virtual trailList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) = 0;
+   virtual trailList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) = 0;
+   virtual trailList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          = 0;
+   virtual trailList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   = 0;
+   virtual trailList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) = 0;
    virtual std::ostream& print(std::ostream& os) const = 0;
    friend std::ostream& operator<<(std::ostream& os,const var<int>& x) { return x.print(os);}
 };
@@ -58,9 +58,9 @@ class IntVarImpl :public var<int> {
    CPSolver::Ptr           _solver;
    BitDomain::Ptr             _dom;
    int                         _id;
-   revList<Constraint::Ptr> _onBindList;
-   revList<Constraint::Ptr> _onBoundsList;
-   revList<Constraint::Ptr> _onDomList;
+   trailList<Constraint::Ptr> _onBindList;
+   trailList<Constraint::Ptr> _onBoundsList;
+   trailList<Constraint::Ptr> _onDomList;
    struct DomainListener :public IntNotifier {
       IntVarImpl* theVar;
       DomainListener(IntVarImpl* x) : theVar(x) {}
@@ -91,12 +91,12 @@ public:
    void removeAbove(int newMax) override;
    void updateBounds(int newMin,int newMax) override;
    
-   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override;
-   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override;
-   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override;
-   revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)  override         { return _onBindList.emplace_back(std::move(c));}
-   revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)  override  { return _onBoundsList.emplace_back(std::move(c));}
-   revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _onDomList.emplace_back(std::move(c));}
+   trailList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override;
+   trailList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override;
+   trailList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override;
+   trailList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)  override         { return _onBindList.emplace_back(std::move(c));}
+   trailList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)  override  { return _onBoundsList.emplace_back(std::move(c));}
+   trailList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _onDomList.emplace_back(std::move(c));}
 
     std::ostream& print(std::ostream& os) const override {
         if (size() == 1)
@@ -130,12 +130,12 @@ public:
    void removeAbove(int newMax) override { _x->removeBelow(-newMax);}
    void updateBounds(int newMin,int newMax) override { _x->updateBounds(-newMax,-newMin);}
    
-   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
-   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
-   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
-   revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
-   revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
-   revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
+   trailList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
+   trailList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
+   trailList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
    std::ostream& print(std::ostream& os) const override {
       os << '{';
       for(int i = min();i <= max() - 1;i++) 
@@ -182,12 +182,12 @@ public:
    void removeBelow(int v) override { _x->removeBelow(ceilDiv(v,_a));}
    void removeAbove(int v) override { _x->removeAbove(floorDiv(v,_a));}
    void updateBounds(int min,int max) override { _x->updateBounds(ceilDiv(min,_a),floorDiv(max,_a));}   
-   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
-   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
-   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
-   revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
-   revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
-   revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
+   trailList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
+   trailList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
+   trailList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
    std::ostream& print(std::ostream& os) const override {
       os << '{';
       for(int i = min();i <= max() - 1;i++) 
@@ -218,12 +218,12 @@ public:
    void removeBelow(int v) override { _x->removeBelow(v - _o);}
    void removeAbove(int v) override { _x->removeAbove(v - _o);}
    void updateBounds(int min,int max) override { _x->updateBounds(min - _o,max - _o);}   
-   revList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
-   revList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
-   revList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
-   revList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
-   revList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
-   revList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
+   trailList<Constraint::Ptr>::revNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
+   trailList<Constraint::Ptr>::revNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
+   trailList<Constraint::Ptr>::revNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
+   trailList<Constraint::Ptr>::revNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
    std::ostream& print(std::ostream& os) const override {
       os << '{';
       for(int i = min();i <= max() - 1;i++) 

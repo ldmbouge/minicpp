@@ -19,16 +19,16 @@
 #include "trailable.hpp"
 #include "store.hpp"
 
-template<class T> class revList {
+template<class T> class trailList {
     Trailer::Ptr _sm;
     Storage::Ptr _store;
 public:
     struct revNode {
-        revList<T>*   _owner;
+        trailList<T>*   _owner;
         trail<revNode*> _prev;
         trail<revNode*> _next;
         T            _value;
-        revNode(revList<T>* own,Trailer::Ptr ctx,revNode* p,revNode* n,T&& v)
+        revNode(trailList<T>* own,Trailer::Ptr ctx,revNode* p,revNode* n,T&& v)
             : _owner(own),_prev(ctx,p),_next(ctx,n),_value(std::move(v)) {
             if (p) p->_next = this;
             if (n) n->_prev = this;
@@ -42,7 +42,7 @@ public:
         }
     };
     class iterator {
-        friend class revList<T>;
+        friend class trailList<T>;
         revNode* _cur;
     protected:
         iterator(revNode* c) : _cur(c) {}
@@ -57,8 +57,8 @@ public:
 private:
     trail<revNode*> _head;
 public:
-    revList(Trailer::Ptr sm,Storage::Ptr store) : _sm(sm),_store(store),_head(sm,nullptr) {}
-    ~revList() {
+    trailList(Trailer::Ptr sm,Storage::Ptr store) : _sm(sm),_store(store),_head(sm,nullptr) {}
+    ~trailList() {
         _head = nullptr;
     }
     revNode* emplace_back(T&& v) {
@@ -67,7 +67,7 @@ public:
     }
     iterator begin()  { return iterator(_head);}
     iterator end()    { return iterator(nullptr);}
-    friend std::ostream& operator<<(std::ostream& os,const revList<T>& rl) {
+    friend std::ostream& operator<<(std::ostream& os,const trailList<T>& rl) {
         revNode* cur = rl._head;
         while (cur) {
             os << "," << cur;
