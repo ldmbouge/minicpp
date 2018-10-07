@@ -332,19 +332,6 @@ void IsClause::propagate()
     }
 }
 
-
-AllDifferentBinary::AllDifferentBinary(const Factory::Veci& x)
-    : Constraint(x[0]->getSolver()),
-      _x(x.size())
-{
-   for(int i=0;i < x.size();i++)
-      _x[i] = x[i];
-}
-AllDifferentBinary::AllDifferentBinary(const std::vector<var<int>::Ptr>& x)
-   : Constraint(x[0]->getSolver()),
-     _x(x)
-{}
-
 void AllDifferentBinary::post()
 {
     CPSolver::Ptr cp = _x[0]->getSolver();
@@ -354,38 +341,16 @@ void AllDifferentBinary::post()
             cp->post(new (cp) NEQBinBCLight(_x[i],_x[j]));    
 }
 
-Circuit::Circuit(const Factory::Veci& x)
-   : Constraint(x[0]->getSolver()),
-     _x(x.size())
+void Circuit::setup(CPSolver::Ptr cp)
 {
-    auto cp = x[0]->getSolver();
-    for(int i=0;i < x.size();i++)
-       _x[i] = x[i];
-    _dest = new (cp) trail<int>[_x.size()];
-    _orig = new (cp) trail<int>[_x.size()];
-    _lengthToDest = new (cp) trail<int>[_x.size()];
-    for(int i=0;i<_x.size();i++) {
-        new (_dest+i) trail<int>(cp->getStateManager(),i);
-        new (_orig+i) trail<int>(cp->getStateManager(),i);
-        new (_lengthToDest+i) trail<int>(cp->getStateManager(),0);
-    }
-}
-
-Circuit::Circuit(const std::vector<var<int>::Ptr>& x)
-   : Constraint(x[0]->getSolver()),
-     _x(x)
-{
-    auto cp = x[0]->getSolver();
-    //    for(int i=0;i < x.size();i++)
-    //        _x[i] = x[i];
-    _dest = new (cp) trail<int>[_x.size()];
-    _orig = new (cp) trail<int>[_x.size()];
-    _lengthToDest = new (cp) trail<int>[_x.size()];
-    for(int i=0;i<_x.size();i++) {
-        new (_dest+i) trail<int>(cp->getStateManager(),i);
-        new (_orig+i) trail<int>(cp->getStateManager(),i);
-        new (_lengthToDest+i) trail<int>(cp->getStateManager(),0);
-    }
+   _dest = new (cp) trail<int>[_x.size()];
+   _orig = new (cp) trail<int>[_x.size()];
+   _lengthToDest = new (cp) trail<int>[_x.size()];
+   for(int i=0;i<_x.size();i++) {
+      new (_dest+i) trail<int>(cp->getStateManager(),i);
+      new (_orig+i) trail<int>(cp->getStateManager(),i);
+      new (_lengthToDest+i) trail<int>(cp->getStateManager(),0);
+   }
 }
 
 void Circuit::post()

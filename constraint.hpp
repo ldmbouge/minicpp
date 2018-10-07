@@ -111,8 +111,8 @@ public:
 };
 
 class Sum : public Constraint { // s = Sum({x0,...,xk})
-   //Factory::Veci _x;
-   std::vector<var<int>::Ptr> _x;
+   Factory::Veci _x;
+   //std::vector<var<int>::Ptr> _x;
    trail<int>    _nUnBounds;
    trail<int>    _sumBounds;
    int _n;
@@ -120,18 +120,18 @@ class Sum : public Constraint { // s = Sum({x0,...,xk})
 public:
    template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
        : Constraint(s->getSolver()),
-         _x(x.size() + 1),
-         //_x(x.size() + 1,Factory::alloci(s->getStore())), 
+         //_x(x.size() + 1),
+         _x(x.size() + 1,Factory::alloci(s->getStore())), 
          _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
          _sumBounds(s->getSolver()->getStateManager(),0),
          _n((int)x.size() + 1),
          _unBounds(_n)
     {
-        for(int i=0;i < x.size();i++)
-            _x[i] = x[i];
-        _x[_n-1] = Factory::minus(s);
-        for(int i=0; i < _n;i++)
-            _unBounds[i] = i;
+       for(auto i=0;i < x.size();i++)
+          _x[i] = x[i];
+       _x[_n-1] = Factory::minus(s);
+       for(auto i=0; i < _n;i++)
+          _unBounds[i] = i;
     }        
    void post() override;
    void propagate() override;
@@ -159,22 +159,35 @@ public:
 };
 
 class AllDifferentBinary :public Constraint {
-    std::vector<var<int>::Ptr> _x;
+   Factory::Veci _x;
 public:
-   AllDifferentBinary(const Factory::Veci& x);
-   AllDifferentBinary(const std::vector<var<int>::Ptr>& x);
+   template <class Vec> AllDifferentBinary(const Vec& x)
+      : Constraint(x[0]->getSolver()),
+        _x(x.size(),Factory::alloci(x[0]->getStore()))
+   {
+      for(auto i=0;i < x.size();i++)
+         _x[i] = x[i];
+   }
    void post() override;
 };
 
 class Circuit :public Constraint {
-   std::vector<var<int>::Ptr>  _x;
+   Factory::Veci  _x;
    trail<int>* _dest;
    trail<int>* _orig;
    trail<int>* _lengthToDest;
    void bind(int i);
+   void setup(CPSolver::Ptr cp);
 public:
-   Circuit(const Factory::Veci& x);
-   Circuit(const std::vector<var<int>::Ptr>& x);
+   template <class Vec> Circuit(const Vec& x)
+      : Constraint(x[0]->getSolver()),
+        _x(x.size(),Factory::alloci(x[0]->getStore()))
+   {
+      auto cp = x[0]->getSolver();
+      for(auto i=0;i < x.size();i++)
+         _x[i] = x[i];
+      setup(cp);
+   }
    void post() override;
 };
 
@@ -221,18 +234,23 @@ public:
 };
 
 class Element1DVar : public Constraint {  // _z = _array[y]
-   std::vector<var<int>::Ptr> _array;
-   var<int>::Ptr _y,_z;
+   Factory::Veci  _array;
+   var<int>::Ptr   _y,_z;
    std::vector<int> _yValues;
    var<int>::Ptr _supMin,_supMax;
    int _zMin,_zMax;
    void equalityPropagate();
    void filterY();
 public:
-   Element1DVar(const std::vector<var<int>::Ptr>& array,var<int>::Ptr y,var<int>::Ptr z)
-      : Constraint(y->getSolver()),_y(y),_z(z) {
-      for(auto  x : array) _array.push_back(x);
-      _yValues.resize(_y->size());
+   template <class Vec> Element1DVar(const Vec& array,var<int>::Ptr y,var<int>::Ptr z)
+      : Constraint(y->getSolver()),
+        _array(array.size(),Factory::alloci(z->getStore())),
+        _y(y),
+        _z(z),
+        _yValues(_y->size())
+   {
+      for(auto i = 0;i < array.size();i++)
+         _array[i] = array[i];
    }
    void post() override;
    void propagate() override;
@@ -373,7 +391,7 @@ namespace Factory {
       y->getSolver()->post(new (y->getSolver()) Element1D(flat,y,z));
       return z;
    }
-   template <class Vec> Constraint::Ptr element(const Vec& xs,var<int>::Ptr y,var<int>::Ptr z) {
+   template <class Vec> Constraint::Ptr elementVar(const Vec& xs,var<int>::Ptr y,var<int>::Ptr z) {
        std::vector<var<int>::Ptr> flat(xs.size());
        for(int i=0;i<xs.size();i++)
            flat[i] = xs[i];

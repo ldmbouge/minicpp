@@ -261,9 +261,26 @@ template <class T,class A> inline std::ostream& operator<<(std::ostream& os,cons
 }
 
 namespace Factory {
+   template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y);
+};
+
+template <class T,class A = std::allocator<T>>
+class EVec : public std::vector<T,A> {
+   typedef std::vector<T,A> BVec;
+public:
+   using BVec::BVec;
+   var<int>::Ptr operator[](var<int>::Ptr i) {
+      return Factory::elementVar(*this,i);
+   }
+   T& operator[](typename BVec::size_type i)      { return BVec::operator[](i);}
+   T operator[](typename BVec::size_type i) const { return BVec::operator[](i);}
+};
+
+namespace Factory {
    using alloci = stl::StackAdapter<var<int>::Ptr,Storage::Ptr>;
    using allocb = stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>;
-   using Veci   = std::vector<var<int>::Ptr,alloci>;
+   //using Veci   = std::vector<var<int>::Ptr,alloci>;
+   using Veci   = EVec<var<int>::Ptr,alloci>;
    using Vecb   = std::vector<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);

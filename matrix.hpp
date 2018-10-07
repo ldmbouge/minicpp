@@ -45,6 +45,9 @@ public:
    int size() const { return _mtx->_dim[a-1];}
 };
 
+// ======================================================================
+// Matrix definition
+
 template<class T,int a> class matrix {
    std::vector<T>    _data;
    std::array<int,a>  _dim;
@@ -80,7 +83,6 @@ const T& MSlice<T,a,1>::operator[](int i) const {
 }
 
 template <class T,typename Body> std::vector<T> slice(int l,int u,Body b) {
-    //template <class T> std::vector<T> slice(int l,int u,std::function<T(int)>&& b) {
    std::vector<T> x;
    for(int k=l;k < u;k++)
       x.emplace_back(b(k));
