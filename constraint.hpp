@@ -111,6 +111,7 @@ public:
 };
 
 class Sum : public Constraint { // s = Sum({x0,...,xk})
+   //Factory::Veci _x;
    std::vector<var<int>::Ptr> _x;
    trail<int>    _nUnBounds;
    trail<int>    _sumBounds;
@@ -120,6 +121,7 @@ public:
    template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
        : Constraint(s->getSolver()),
          _x(x.size() + 1),
+         //_x(x.size() + 1,Factory::alloci(s->getStore())), 
          _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
          _sumBounds(s->getSolver()->getStateManager(),0),
          _n((int)x.size() + 1),
@@ -159,7 +161,7 @@ public:
 class AllDifferentBinary :public Constraint {
     std::vector<var<int>::Ptr> _x;
 public:
-   AllDifferentBinary(const Factory::Vecv& x);
+   AllDifferentBinary(const Factory::Veci& x);
    AllDifferentBinary(const std::vector<var<int>::Ptr>& x);
    void post() override;
 };
@@ -171,7 +173,7 @@ class Circuit :public Constraint {
    trail<int>* _lengthToDest;
    void bind(int i);
 public:
-   Circuit(const Factory::Vecv& x);
+   Circuit(const Factory::Veci& x);
    Circuit(const std::vector<var<int>::Ptr>& x);
    void post() override;
 };

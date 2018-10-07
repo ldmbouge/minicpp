@@ -31,6 +31,7 @@ template<typename T> class var {};
 template<> class var<int> : public AVar {
 public:
    typedef handle_ptr<var<int>> Ptr;
+   virtual Storage::Ptr getStore() = 0;
    virtual CPSolver::Ptr getSolver() = 0;
    virtual int min() const  = 0;
    virtual int max() const  = 0;
@@ -78,6 +79,7 @@ public:
     IntVarImpl(CPSolver::Ptr& cps,int min,int max);
     IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
    ~IntVarImpl();
+   Storage::Ptr getStore() override   { return _solver->getStore();}
    CPSolver::Ptr getSolver() override { return _solver;}
    int min() const override { return _dom->min();}
    int max() const override { return _dom->max();}
@@ -117,6 +119,7 @@ protected:
    int getId() const { return _id;}
 public:
    IntVarViewOpposite(const var<int>::Ptr& x) : _x(x) {}
+   Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
    int min() const  override { return - _x->max();}
    int max() const  override { return - _x->min();}
@@ -163,6 +166,7 @@ protected:
    int getId() const { return _id;}
 public:
    IntVarViewMul(const var<int>::Ptr& x,int a) : _x(x),_a(a) { assert(a> 0);}
+   Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
    int min() const  override { return _a * _x->min();}
    int max() const  override { return _a * _x->max();}
@@ -206,6 +210,7 @@ protected:
    int getId() const { return _id;}
 public:
     IntVarViewOffset(const var<int>::Ptr& x,int o) : _x(x),_o(o) {}
+   Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
    int min() const  override { return _o + _x->min();}
    int max() const  override { return _o + _x->max();}
@@ -256,9 +261,9 @@ template <class T,class A> inline std::ostream& operator<<(std::ostream& os,cons
 }
 
 namespace Factory {
-   using alloci = stl::StackAdapter<var<int>::Ptr,Storage>;
-   using allocb = stl::StackAdapter<var<bool>::Ptr,Storage>;
-   using Vecv   = std::vector<var<int>::Ptr,alloci>;
+   using alloci = stl::StackAdapter<var<int>::Ptr,Storage::Ptr>;
+   using allocb = stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>;
+   using Veci   = std::vector<var<int>::Ptr,alloci>;
    using Vecb   = std::vector<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
@@ -280,11 +285,11 @@ namespace Factory {
    inline var<int>::Ptr operator+(int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(x,a);}
    inline var<int>::Ptr operator-(var<int>::Ptr x,const int a) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
    inline var<int>::Ptr operator-(const int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(-x,a);}
-   Vecv intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
-   Vecv intVarArray(CPSolver::Ptr cps,int sz,int n);
-   Vecv intVarArray(CPSolver::Ptr cps,int sz);
+   Veci intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
+   Veci intVarArray(CPSolver::Ptr cps,int sz,int n);
+   Veci intVarArray(CPSolver::Ptr cps,int sz);
    Vecb boolVarArray(CPSolver::Ptr cps,int sz);
-   template<typename Fun> Vecv intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
+   template<typename Fun> Veci intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
       for(int i=0;i < x.size();i++)
          x[i] = body(i);

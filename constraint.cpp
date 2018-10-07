@@ -333,7 +333,7 @@ void IsClause::propagate()
 }
 
 
-AllDifferentBinary::AllDifferentBinary(const Factory::Vecv& x)
+AllDifferentBinary::AllDifferentBinary(const Factory::Veci& x)
     : Constraint(x[0]->getSolver()),
       _x(x.size())
 {
@@ -354,7 +354,7 @@ void AllDifferentBinary::post()
             cp->post(new (cp) NEQBinBCLight(_x[i],_x[j]));    
 }
 
-Circuit::Circuit(const Factory::Vecv& x)
+Circuit::Circuit(const Factory::Veci& x)
    : Constraint(x[0]->getSolver()),
      _x(x.size())
 {

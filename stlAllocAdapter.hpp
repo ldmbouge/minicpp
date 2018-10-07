@@ -43,7 +43,7 @@ namespace stl {
    };
 
    template <class T,typename CA> class StackAdapter {
-      CA* _ca;
+      CA _ca;
    public:  
       typedef T value_type;
       typedef T*  pointer;
@@ -53,7 +53,7 @@ namespace stl {
       typedef std::size_t size_type;
       typedef std::ptrdiff_t difference_type;
    public:
-      explicit StackAdapter(CA* ca) : _ca(ca) {}  
+      explicit StackAdapter(CA ca) : _ca(ca) {}  
       pointer allocate(size_type n, const void* hint = nullptr) {
          //std::cout << "allocate called  : " << n << " bytes:" << n * sizeof(T) << std::endl;
          return (pointer)_ca->allocate(n * sizeof(T));

@@ -146,28 +146,26 @@ namespace Factory {
      *       create an adapter from it again. Observe how CoreAlloc and Storage both have the same API. They
      *       are both stack-allocator (meaning FIFO allocation, no free). 
      */
-    Vecv intVarArray(CPSolver::Ptr cps,int sz,int min,int max) {
-        Vecv a(sz,(alloci(cps->getStore().get())));
+    Veci intVarArray(CPSolver::Ptr cps,int sz,int min,int max) {
+        Veci a(sz,(alloci(cps->getStore())));
         for(int i=0;i<sz;i++)
             a[i] = Factory::makeIntVar(cps,min,max);
         return a;
     }
 
-    Vecv intVarArray(CPSolver::Ptr cps,int sz,int n)
+    Veci intVarArray(CPSolver::Ptr cps,int sz,int n)
     {
-        Vecv a(sz,(alloci(cps->getStore().get())));
+        Veci a(sz,(alloci(cps->getStore())));
         for(int i=0;i<sz;i++)
             a[i] = Factory::makeIntVar(cps,n);
         return a;
     }
 
-    Vecv intVarArray(CPSolver::Ptr cps,int sz) {
-        Vecv a(sz,(alloci(cps->getStore().get())));
-        return a;
+    Veci intVarArray(CPSolver::Ptr cps,int sz) {
+        return Veci(sz,(alloci(cps->getStore())));
     }
     Vecb boolVarArray(CPSolver::Ptr cps,int sz) {
-        Vecb a(sz,(allocb(cps->getStore().get())));
-        return a;
+        return Vecb(sz,(allocb(cps->getStore())));
     }
 
 };
