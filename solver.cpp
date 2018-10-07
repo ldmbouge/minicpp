@@ -46,19 +46,6 @@ void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
         fixpoint();    
 }
 
-/**
- * Useful only for using continuation-style search combinator
- */
-void CPSolver::branch(Constraint::Ptr c)
-{
-    try {
-        c->post();
-        fixpoint();
-    } catch(Status s) {
-        fail();
-    }
-}
-
 void CPSolver::registerVar(AVar::Ptr avar)
 {
    avar->setId(_varId++);
@@ -70,6 +57,30 @@ void CPSolver::notifyFixpoint()
    for(auto& body : _onFix)
       body();
 }   
+
+void CPSolver::fixpointNT()
+{
+   try {
+      notifyFixpoint();
+      while (!_queue.empty()) {
+         auto c = _queue.front();
+         _queue.pop_front();
+         c->setScheduled(false);
+         if (c->isActive())
+            c->propagate();
+      }
+      assert(_queue.size() == 0);
+   } catch(Status x) {
+      while (!_queue.empty()) {
+         _queue.front()->setScheduled(false);
+         _queue.pop_front();
+      }
+      //_queue.clear();
+      assert(_queue.size() == 0);
+      _nbf += 1;
+      fail();
+   }
+}
 
 void CPSolver::fixpoint()
 {

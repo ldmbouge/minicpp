@@ -248,14 +248,14 @@ namespace Factory {
     inline Constraint::Ptr operator==(var<int>::Ptr x,int c) {
        auto cp = x->getSolver();
        x->assign(c);
-       cp->fixpoint();
+       cp->fixpointNT();
        return nullptr;
        //return new (x->getSolver()) EQc(x,c);
     }
     inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
        auto cp = x->getSolver();
        x->remove(c);
-       cp->fixpoint();
+       cp->fixpointNT();
        return nullptr;
        //return new (x->getSolver()) NEQc(x,c);
     }

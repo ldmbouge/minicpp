@@ -62,9 +62,9 @@ public:
     void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}
     void notifyFixpoint();
     void tighten();
-    void fixpoint();
+    void fixpoint(); 
+    void fixpointNT();
     void post(Constraint::Ptr c,bool enforceFixPoint=true);
-    void branch(Constraint::Ptr c);
     void incrNbChoices() { _nbc += 1;}
     void incrNbSol()     { _nbs += 1;}
     void solveOne(std::function<void(void)> b);
