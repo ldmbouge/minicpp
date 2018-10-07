@@ -44,18 +44,7 @@ int main(int argc,char* argv[])
     }
     
     DFSearch search(cp,land({firstFail(cp,q1),firstFail(cp,q2)}));
-    //DFSearch search(cp,firstFail(cp,q));
-    /*    DFSearch search(cp,[=]() {
-                           auto x = selectMin(q,
-                                              [](const auto& x) { return x->size() > 1;},
-                                              [](const auto& x) { return x->size();});
-                           if (x) {
-                               int c = x->min();                    
-                               return  [=] { cp->post(x == c);}
-                                     | [=] { cp->post(x != c);};
-                           } else return Branches({});
-                       });
-    */
+
     int nbSol = 0;
     search.onSolution([&nbSol,&q]() {
                          cout << "sol = " << q << endl;

@@ -26,7 +26,6 @@ CPSolver::CPSolver()
 {
     _varId  = 0;
     _nbc = _nbf = _nbs = 0;
-    _ctrl = nullptr;
 }
 
 CPSolver::~CPSolver()
@@ -35,7 +34,7 @@ CPSolver::~CPSolver()
    _store.dealloc();
    _sm.dealloc();
    std::cout << "CPSolver::~CPSolver(" << this << ")" << std::endl;
-   Cont::shutdown();
+   //Cont::shutdown();
 }
 
 void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
@@ -57,30 +56,6 @@ void CPSolver::notifyFixpoint()
    for(auto& body : _onFix)
       body();
 }   
-
-void CPSolver::fixpointNT()
-{
-   try {
-      notifyFixpoint();
-      while (!_queue.empty()) {
-         auto c = _queue.front();
-         _queue.pop_front();
-         c->setScheduled(false);
-         if (c->isActive())
-            c->propagate();
-      }
-      assert(_queue.size() == 0);
-   } catch(Status x) {
-      while (!_queue.empty()) {
-         _queue.front()->setScheduled(false);
-         _queue.pop_front();
-      }
-      //_queue.clear();
-      assert(_queue.size() == 0);
-      _nbf += 1;
-      fail();
-   }
-}
 
 void CPSolver::fixpoint()
 {
@@ -104,47 +79,6 @@ void CPSolver::fixpoint()
       _nbf += 1;
       throw x;
    }
-}
-
-void CPSolver::solveOne(std::function<void(void)> b)
-{
-    Cont::initContinuationLibrary((int*)&b);
-    _ctrl = new DFSController(_sm);
-    _afterClose = _sm->push();
-   Cont::Cont* k = Cont::Cont::takeContinuation();
-   if (k->nbCalls()==0) {
-      _ctrl->start(k);
-      b();
-   } else {
-      std::cout<< "Done!" << std::endl;
-   }
-   delete _ctrl;
-   _ctrl = nullptr;
-   _sm->popToNode(_afterClose);
-}
-
-void CPSolver::solveAll(std::function<void(void)> b)
-{
-    Cont::initContinuationLibrary((int*)&b);
-    _ctrl = new DFSController(_sm);
-    _afterClose = _sm->push();
-    Cont::Cont* k = Cont::Cont::takeContinuation();
-   if (k->nbCalls()==0) {
-      _ctrl->start(k);
-      b();
-      _ctrl->fail();
-   } else {
-      std::cout<< "Done!" << std::endl;
-   }
-   delete _ctrl;
-   _ctrl = nullptr;
-   _sm->popToNode(_afterClose);
-}
-
-void CPSolver::fail()
-{
-   if (_ctrl)
-      _ctrl->fail();
 }
 
 // [LDM] This is for debugging purposes. Don't include when using valgrind

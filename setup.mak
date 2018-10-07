@@ -1,7 +1,7 @@
 HOST=$(shell uname)
 
-CXXFLAGS=-O0 -g3 -std=c++14
-#CXXFLAGS=-O3 -std=c++14
+#CXXFLAGS=-O0 -g3 -std=c++14
+CXXFLAGS=-O3 -std=c++14
 
 LIBBASE = copl
 
@@ -16,8 +16,8 @@ WARN = -Wnon-modular-include-in-framework-module -Werror=non-modular-include-in-
 	-Wnon-literal-null-conversion -Wobjc-literal-conversion -Wshorten-64-to-32 -Wno-newline-eof -Wno-c++11-extensions \
 	-Wno-sign-conversion -Winfinite-recursion -Wmove -Wcomma -Wblock-capture-autoreleasing -Wstrict-prototypes \
 	-Wrange-loop-analysis -Wno-semicolon-before-method-body -Wunguarded-availability \
-	-fstandalone-debug -fno-limit-debug-info \
-	-fno-omit-frame-pointer -fno-optimize-sibling-calls
+	-fstandalone-debug -fno-limit-debug-info 
+#	-fno-omit-frame-pointer -fno-optimize-sibling-calls
 
 CWD=$(shell pwd)
 CXXFLAGS += $(WARN) -fPIC

@@ -151,7 +151,7 @@ void Minimize::tighten()
 {
    assert(_obj->isBound());
    _primal = _obj->max() - 1;
-   _obj->getSolver()->fail();
+   throw Failure;
 }
 
 void IsEqual::post() 

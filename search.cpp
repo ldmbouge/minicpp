@@ -102,22 +102,3 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
         }
     }   
 }
-
-void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol) {
-    auto ctx = cps->getStateManager();
-    Branches b = c();
-    if (b.size() == 0) {
-        cps->incrNbSol();
-        onSol();
-    } else {
-        for(auto& alt : b) {
-            ctx->saveState();
-            try {
-                cps->incrNbChoices();
-                alt();
-                dfsAll(cps,c,onSol);
-            } catch(Status s) {}
-            ctx->restoreState();
-        }
-    }
-}

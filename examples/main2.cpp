@@ -53,7 +53,6 @@ int main(int argc,char* argv[])
    using namespace Factory;
    CPSolver::Ptr cp  = Factory::makeSolver();
    const int n = argc >= 2 ? atoi(argv[1]) : 12;
-   const bool one = argc >= 3 ? atoi(argv[2])==0 : false;
    auto q = Factory::intVarArray(cp,n,1,n);
    for(int i=0;i < n;i++)
       for(int j=i+1;j < n;j++) {
@@ -61,29 +60,23 @@ int main(int argc,char* argv[])
          cp->post(Factory::notEqual(q[i],q[j],i-j));            
          cp->post(Factory::notEqual(q[i],q[j],j-i));            
       }
-       
-   auto solve = one ? &CPSolver::solveOne : &CPSolver::solveAll;
-   int* nbSol = new (cp) int(0);    // allocate the integer on the solver allocator
-   //cp->solveOne([&] {
-   //cp->solveAll([&] {
-   (*cp.*solve)([&] {
-         for(int i=0;i < n;i++) {
-	    withVarDo(q,min_dom(q),[cp](auto x) {
-                  while(!x->isBound()) {
-                     int c = x->min();
-                     cp->tryBin([cp,x,c] { cp->post(Factory::operator==(x,c));},
-  			        [cp,x,c] { cp->post(Factory::operator!=(x,c));});
-                  }                      		
-               });
-         }
-         cp->incrNbSol();
-         //cout << q << endl;
-         *nbSol += 1;
-      });
-   //cout << q << endl;
-      
-   cout << "Got: " << *nbSol << " solutions" << endl;
-   cout << *cp << endl;
+
+   DFSearch search(cp,[=]() {
+                         auto x = selectMin(q,
+                                            [](const auto& x) { return x->size() > 1;},
+                                            [](const auto& x) { return x->size();});
+                         if (x) {
+                            int c = x->min();                    
+                            return  [=] { cp->post(x == c);}
+                                  | [=] { cp->post(x != c);};
+                         } else return Branches({});
+                      });
+   int nbSol = 0;
+   search.onSolution([&nbSol]() { nbSol++;});
+   auto stat = search.solve();
+   
+   cout << "Got: " << nbSol << " solutions" << endl;
+   cout << stat << endl;
    cp.dealloc();
    return 0;
 }

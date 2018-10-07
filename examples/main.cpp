@@ -37,39 +37,28 @@ int main(int argc,char* argv[])
         }
     Objective::Ptr obj = Factory::minimize(q[n-1]);
     
-    Chooser c([=] {
-                  auto x =  selectMin(q,
-                                      [](const auto& x) { return x->size() > 1;},
-                                      [](const auto& x) { return x->size();});
-                  if (x) {
-                      int c = x->min();                    
-                      return  [=] { cp->post(x == c);}
-                            | [=] { cp->post(x != c);};
-                  } else return Branches({});
-              });
+    DFSearch search(cp,[=]() {
+                           auto x = selectMin(q,
+                                              [](const auto& x) { return x->size() > 1;},
+                                              [](const auto& x) { return x->size();});
+                           if (x) {
+                               int c = x->min();                    
+                               return  [=] { cp->post(x == c);}
+                                     | [=] { cp->post(x != c);};
+                           } else return Branches({});
+                       });
 
     int nbSol = 0;
-    if (one) {
-       try {
-          dfsAll(cp,c,[&] {
-                cout << "sol = " << q << endl;
-                nbSol++;
-                obj->tighten();
-                throw 0;
-             });
-       } catch(int x) {
-          cout << "stopped..." << endl;
-       }
-    } else {
-       dfsAll(cp,c,[&] {
-             cout << "sol = " << q << endl;
-             nbSol++;
-             obj->tighten();
-          });
-    }
-    
+    search.onSolution([&nbSol,&q]() {
+                         cout << "sol = " << q << endl;
+                         nbSol++;
+                      });
+    auto stat = search.optimize(obj,[one,&nbSol](const SearchStatistics& stats) {
+                                       return one ? nbSol > 1 : false;
+                                    });
+   
     cout << "Got: " << nbSol << " solutions" << endl;
-    cout << *cp << endl;
+    cout << stat << endl;
     cp.dealloc();
     return 0;
 }

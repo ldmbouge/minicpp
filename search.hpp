@@ -43,8 +43,6 @@ public:
    Branches operator()() { return _sel();}
 };
 
-void dfsAll(CPSolver::Ptr cps,Chooser& c,std::function<void(void)> onSol);
-
 class SearchStatistics {
     int _nFailures;
     int _nNodes;
