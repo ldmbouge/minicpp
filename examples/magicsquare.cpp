@@ -27,7 +27,7 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
 
-    const int n = 7;
+    const int n = 6;
     const int sumResult = n * (n * n + 1) / 2;
     
     CPSolver::Ptr cp  = Factory::makeSolver();

@@ -54,4 +54,56 @@ public:
     friend std::ostream& operator<<(std::ostream& os,const BitDomain& x);
 };
 
+class SparseSet {
+    std::vector<int> _values;
+    std::vector<int> _indexes;
+    trail<int>       _size,_min,_max;
+    int              _ofs,_n;
+    void exchangePositions(int val1,int val2);
+    bool checkVal(int val) const { assert( val <= _values.size()-1);return true;}
+    bool internalContains(int val) const {
+        if (val < 0 || val >= _n)
+            return false;
+        else return _indexes[val] < _size;
+    }
+    void updateBoundsValRemoved(int val);
+    void updateMaxValRemoved(int val);
+    void updateMinValRemoved(int val);
+public:
+    SparseSet(Trailer::Ptr eng,int n,int ofs);
+    bool isEmpty() const { return _size == 0;}
+    int size() const { return _size;}
+    int min() const { return _min + _ofs;}
+    int max() const { return _max + _ofs;}
+    bool contains(int val) const {
+        val -= _ofs;
+        if (val < 0 || val >= _n) return false;
+        return _indexes[val] < _size;
+    }
+    bool remove(int val);
+    void removeAllBut(int v);
+    void removeAll() { _size = 0;}
+    void removeBelow(int value);
+    void removeAbove(int value);
+};
+
+class SparseSetDomain {
+    SparseSet _dom;
+public:
+    typedef handle_ptr<SparseSetDomain>  Ptr;
+    SparseSetDomain(Trailer::Ptr trail,Storage::Ptr store,int min,int max)
+        : _dom(trail,max - min + 1,min) {}
+    int min() const { return _dom.min();}
+    int max() const { return _dom.max();}
+    int size() const { return _dom.size();}
+    bool member(int v) const { return _dom.contains(v);}
+    bool isBound() const { return _dom.size() == 1;}
+
+    void assign(int v,IntNotifier& x);
+    void remove(int v,IntNotifier& x);
+    void removeBelow(int newMin,IntNotifier& x);
+    void removeAbove(int newMax,IntNotifier& x);
+    friend std::ostream& operator<<(std::ostream& os,const SparseSetDomain& x);
+};
+    
 #endif

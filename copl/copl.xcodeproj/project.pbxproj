@@ -7,24 +7,26 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		5B1DD927216BD0FA00E554E9 /* libcopl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5BA79F9A21517C0500B5CF67 /* libcopl.dylib */; };
 		5B33A68D2152BADB00BF7B26 /* main3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B33A68C2152BADB00BF7B26 /* main3.cpp */; };
 		5B33A68E2152BAE400BF7B26 /* libcopl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5BA79F9A21517C0500B5CF67 /* libcopl.dylib */; };
 		5B33A6922152BEE700BF7B26 /* matrix.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5B33A6912152BEE700BF7B26 /* matrix.hpp */; };
 		5B4232692152C30000EDC5AD /* libcopl.dylib in Frameworks */ = {isa = PBXBuildFile; fileRef = 5BA79F9A21517C0500B5CF67 /* libcopl.dylib */; };
 		5B42326B2152C31E00EDC5AD /* msperf.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B42326A2152C31E00EDC5AD /* msperf.cpp */; };
+		5B9ACA44216BD141002E24A0 /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5B1DD928216BD11F00E554E9 /* main.cpp */; };
 		5BA79FC821517C5000B5CF67 /* state.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FA821517C4E00B5CF67 /* state.hpp */; };
 		5BA79FC921517C5000B5CF67 /* cont.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FA921517C4E00B5CF67 /* cont.hpp */; };
 		5BA79FCA21517C5000B5CF67 /* handle.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FAA21517C4E00B5CF67 /* handle.hpp */; };
 		5BA79FCB21517C5000B5CF67 /* constraint.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FAB21517C4E00B5CF67 /* constraint.hpp */; };
 		5BA79FCC21517C5000B5CF67 /* cont.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5BA79FAC21517C4E00B5CF67 /* cont.cpp */; };
-		5BA79FCD21517C5000B5CF67 /* revList.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FAD21517C4E00B5CF67 /* revList.hpp */; };
+		5BA79FCD21517C5000B5CF67 /* trailList.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FAD21517C4E00B5CF67 /* trailList.hpp */; };
 		5BA79FCE21517C5000B5CF67 /* stlAllocAdapter.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FAE21517C4E00B5CF67 /* stlAllocAdapter.hpp */; };
 		5BA79FCF21517C5000B5CF67 /* context.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FAF21517C4E00B5CF67 /* context.hpp */; };
 		5BA79FD021517C5000B5CF67 /* trail.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5BA79FB021517C4E00B5CF67 /* trail.cpp */; };
 		5BA79FD121517C5000B5CF67 /* trail.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FB121517C4E00B5CF67 /* trail.hpp */; };
 		5BA79FD221517C5000B5CF67 /* trailable.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FB221517C4E00B5CF67 /* trailable.hpp */; };
 		5BA79FD321517C5000B5CF67 /* avar.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FB321517C4E00B5CF67 /* avar.hpp */; };
-		5BA79FD421517C5000B5CF67 /* BitDomain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5BA79FB421517C4E00B5CF67 /* BitDomain.cpp */; };
+		5BA79FD421517C5000B5CF67 /* domain.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5BA79FB421517C4E00B5CF67 /* domain.cpp */; };
 		5BA79FD521517C5000B5CF67 /* fail.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FB521517C4E00B5CF67 /* fail.hpp */; };
 		5BA79FD621517C5000B5CF67 /* store.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FB621517C4E00B5CF67 /* store.hpp */; };
 		5BA79FD721517C5000B5CF67 /* acstr.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FB721517C4E00B5CF67 /* acstr.hpp */; };
@@ -34,7 +36,7 @@
 		5BA79FDB21517C5000B5CF67 /* solver.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FBB21517C4F00B5CF67 /* solver.hpp */; };
 		5BA79FDC21517C5000B5CF67 /* controller.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FBC21517C4F00B5CF67 /* controller.hpp */; };
 		5BA79FDD21517C5000B5CF67 /* store.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5BA79FBD21517C4F00B5CF67 /* store.cpp */; };
-		5BA79FDE21517C5000B5CF67 /* BitDomain.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FBE21517C4F00B5CF67 /* BitDomain.hpp */; };
+		5BA79FDE21517C5000B5CF67 /* domain.hpp in Headers */ = {isa = PBXBuildFile; fileRef = 5BA79FBE21517C4F00B5CF67 /* domain.hpp */; };
 		5BA79FDF21517C5000B5CF67 /* context.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5BA79FBF21517C4F00B5CF67 /* context.cpp */; };
 		5BA79FE021517C5000B5CF67 /* intvar.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5BA79FC021517C4F00B5CF67 /* intvar.cpp */; };
 		5BA79FE121517C5000B5CF67 /* search.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 5BA79FC121517C4F00B5CF67 /* search.cpp */; };
@@ -53,6 +55,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		5B1DD925216BD0F200E554E9 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 5BA79F9221517C0500B5CF67 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 5BA79F9921517C0500B5CF67;
+			remoteInfo = copl;
+		};
 		5B33A68F2152BAE800BF7B26 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 5BA79F9221517C0500B5CF67 /* Project object */;
@@ -84,6 +93,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		5B1DD91C216BD0E800E554E9 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = /usr/share/man/man1/;
+			dstSubfolderSpec = 0;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 1;
+		};
 		5B33A6832152BABE00BF7B26 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -125,6 +143,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		5B1DD91E216BD0E800E554E9 /* test1 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test1; sourceTree = BUILT_PRODUCTS_DIR; };
+		5B1DD928216BD11F00E554E9 /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = main.cpp; path = ../../examples/main.cpp; sourceTree = "<group>"; };
 		5B33A6852152BABE00BF7B26 /* test3 */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = test3; sourceTree = BUILT_PRODUCTS_DIR; };
 		5B33A68C2152BADB00BF7B26 /* main3.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = main3.cpp; path = ../../examples/main3.cpp; sourceTree = "<group>"; };
 		5B33A6912152BEE700BF7B26 /* matrix.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = matrix.hpp; path = ../../matrix.hpp; sourceTree = "<group>"; };
@@ -136,14 +156,14 @@
 		5BA79FAA21517C4E00B5CF67 /* handle.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = handle.hpp; path = ../../handle.hpp; sourceTree = "<group>"; };
 		5BA79FAB21517C4E00B5CF67 /* constraint.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = constraint.hpp; path = ../../constraint.hpp; sourceTree = "<group>"; };
 		5BA79FAC21517C4E00B5CF67 /* cont.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = cont.cpp; path = ../../cont.cpp; sourceTree = "<group>"; };
-		5BA79FAD21517C4E00B5CF67 /* revList.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = revList.hpp; path = ../../revList.hpp; sourceTree = "<group>"; };
+		5BA79FAD21517C4E00B5CF67 /* trailList.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = trailList.hpp; path = ../../trailList.hpp; sourceTree = "<group>"; };
 		5BA79FAE21517C4E00B5CF67 /* stlAllocAdapter.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = stlAllocAdapter.hpp; path = ../../stlAllocAdapter.hpp; sourceTree = "<group>"; };
 		5BA79FAF21517C4E00B5CF67 /* context.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = context.hpp; path = ../../context.hpp; sourceTree = "<group>"; };
 		5BA79FB021517C4E00B5CF67 /* trail.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = trail.cpp; path = ../../trail.cpp; sourceTree = "<group>"; };
 		5BA79FB121517C4E00B5CF67 /* trail.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = trail.hpp; path = ../../trail.hpp; sourceTree = "<group>"; };
 		5BA79FB221517C4E00B5CF67 /* trailable.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = trailable.hpp; path = ../../trailable.hpp; sourceTree = "<group>"; };
 		5BA79FB321517C4E00B5CF67 /* avar.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = avar.hpp; path = ../../avar.hpp; sourceTree = "<group>"; };
-		5BA79FB421517C4E00B5CF67 /* BitDomain.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = BitDomain.cpp; path = ../../BitDomain.cpp; sourceTree = "<group>"; };
+		5BA79FB421517C4E00B5CF67 /* domain.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = domain.cpp; path = ../../domain.cpp; sourceTree = "<group>"; };
 		5BA79FB521517C4E00B5CF67 /* fail.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = fail.hpp; path = ../../fail.hpp; sourceTree = "<group>"; };
 		5BA79FB621517C4E00B5CF67 /* store.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = store.hpp; path = ../../store.hpp; sourceTree = "<group>"; };
 		5BA79FB721517C4E00B5CF67 /* acstr.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = acstr.hpp; path = ../../acstr.hpp; sourceTree = "<group>"; };
@@ -153,7 +173,7 @@
 		5BA79FBB21517C4F00B5CF67 /* solver.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = solver.hpp; path = ../../solver.hpp; sourceTree = "<group>"; };
 		5BA79FBC21517C4F00B5CF67 /* controller.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = controller.hpp; path = ../../controller.hpp; sourceTree = "<group>"; };
 		5BA79FBD21517C4F00B5CF67 /* store.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = store.cpp; path = ../../store.cpp; sourceTree = "<group>"; };
-		5BA79FBE21517C4F00B5CF67 /* BitDomain.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = BitDomain.hpp; path = ../../BitDomain.hpp; sourceTree = "<group>"; };
+		5BA79FBE21517C4F00B5CF67 /* domain.hpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.h; name = domain.hpp; path = ../../domain.hpp; sourceTree = "<group>"; };
 		5BA79FBF21517C4F00B5CF67 /* context.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = context.cpp; path = ../../context.cpp; sourceTree = "<group>"; };
 		5BA79FC021517C4F00B5CF67 /* intvar.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = intvar.cpp; path = ../../intvar.cpp; sourceTree = "<group>"; };
 		5BA79FC121517C4F00B5CF67 /* search.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = search.cpp; path = ../../search.cpp; sourceTree = "<group>"; };
@@ -173,6 +193,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		5B1DD91B216BD0E800E554E9 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5B1DD927216BD0FA00E554E9 /* libcopl.dylib in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5B33A6822152BABE00BF7B26 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -215,6 +243,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		5B1DD91F216BD0E800E554E9 /* test1 */ = {
+			isa = PBXGroup;
+			children = (
+				5B1DD928216BD11F00E554E9 /* main.cpp */,
+			);
+			path = test1;
+			sourceTree = "<group>";
+		};
 		5B33A6862152BABE00BF7B26 /* test3 */ = {
 			isa = PBXGroup;
 			children = (
@@ -240,6 +276,7 @@
 				5B33A6862152BABE00BF7B26 /* test3 */,
 				5B4232612152C2F400EDC5AD /* msperf */,
 				5BF4BA292157D800008E955B /* stablemarriage */,
+				5B1DD91F216BD0E800E554E9 /* test1 */,
 				5BA79F9B21517C0500B5CF67 /* Products */,
 				5BA79FF72151848400B5CF67 /* Frameworks */,
 			);
@@ -253,6 +290,7 @@
 				5B33A6852152BABE00BF7B26 /* test3 */,
 				5B4232602152C2F300EDC5AD /* msperf */,
 				5BF4BA282157D800008E955B /* stablemarriage */,
+				5B1DD91E216BD0E800E554E9 /* test1 */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -264,23 +302,23 @@
 				5BA79FC521517C4F00B5CF67 /* acstr.cpp */,
 				5BA79FB721517C4E00B5CF67 /* acstr.hpp */,
 				5BA79FB321517C4E00B5CF67 /* avar.hpp */,
-				5BA79FB421517C4E00B5CF67 /* BitDomain.cpp */,
-				5BA79FBE21517C4F00B5CF67 /* BitDomain.hpp */,
+				5BA79FB421517C4E00B5CF67 /* domain.cpp */,
+				5BA79FBE21517C4F00B5CF67 /* domain.hpp */,
 				5BA79FC421517C4F00B5CF67 /* constraint.cpp */,
 				5BA79FAB21517C4E00B5CF67 /* constraint.hpp */,
 				5BA79FAC21517C4E00B5CF67 /* cont.cpp */,
 				5BA79FA921517C4E00B5CF67 /* cont.hpp */,
 				5BA79FBF21517C4F00B5CF67 /* context.cpp */,
 				5BA79FAF21517C4E00B5CF67 /* context.hpp */,
-				5BA79FB921517C4E00B5CF67 /* controller.cpp */,
 				5BA79FBC21517C4F00B5CF67 /* controller.hpp */,
+				5BA79FB921517C4E00B5CF67 /* controller.cpp */,
 				5BA79FB521517C4E00B5CF67 /* fail.hpp */,
 				5BA79FAA21517C4E00B5CF67 /* handle.hpp */,
 				5BA79FC021517C4F00B5CF67 /* intvar.cpp */,
 				5BA79FC721517C5000B5CF67 /* intvar.hpp */,
 				5BA79FC621517C4F00B5CF67 /* mallocWatch.cpp */,
 				5BA79FC221517C4F00B5CF67 /* mallocWatch.hpp */,
-				5BA79FAD21517C4E00B5CF67 /* revList.hpp */,
+				5BA79FAD21517C4E00B5CF67 /* trailList.hpp */,
 				5BA79FC121517C4F00B5CF67 /* search.cpp */,
 				5BA79FB821517C4E00B5CF67 /* search.hpp */,
 				5BA79FC321517C4F00B5CF67 /* solver.cpp */,
@@ -344,7 +382,7 @@
 				5BA79FE721517C5000B5CF67 /* intvar.hpp in Headers */,
 				5BA79FD521517C5000B5CF67 /* fail.hpp in Headers */,
 				5B33A6922152BEE700BF7B26 /* matrix.hpp in Headers */,
-				5BA79FCD21517C5000B5CF67 /* revList.hpp in Headers */,
+				5BA79FCD21517C5000B5CF67 /* trailList.hpp in Headers */,
 				5BA79FCB21517C5000B5CF67 /* constraint.hpp in Headers */,
 				5BA79FD621517C5000B5CF67 /* store.hpp in Headers */,
 				5BA79FD121517C5000B5CF67 /* trail.hpp in Headers */,
@@ -354,7 +392,7 @@
 				5BA79FCF21517C5000B5CF67 /* context.hpp in Headers */,
 				5BA79FCA21517C5000B5CF67 /* handle.hpp in Headers */,
 				5BA79FCE21517C5000B5CF67 /* stlAllocAdapter.hpp in Headers */,
-				5BA79FDE21517C5000B5CF67 /* BitDomain.hpp in Headers */,
+				5BA79FDE21517C5000B5CF67 /* domain.hpp in Headers */,
 				5BA79FD321517C5000B5CF67 /* avar.hpp in Headers */,
 				5BA79FC821517C5000B5CF67 /* state.hpp in Headers */,
 				5BA79FD721517C5000B5CF67 /* acstr.hpp in Headers */,
@@ -364,6 +402,24 @@
 /* End PBXHeadersBuildPhase section */
 
 /* Begin PBXNativeTarget section */
+		5B1DD91D216BD0E800E554E9 /* test1 */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 5B1DD924216BD0E800E554E9 /* Build configuration list for PBXNativeTarget "test1" */;
+			buildPhases = (
+				5B1DD91A216BD0E800E554E9 /* Sources */,
+				5B1DD91B216BD0E800E554E9 /* Frameworks */,
+				5B1DD91C216BD0E800E554E9 /* CopyFiles */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				5B1DD926216BD0F200E554E9 /* PBXTargetDependency */,
+			);
+			name = test1;
+			productName = test1;
+			productReference = 5B1DD91E216BD0E800E554E9 /* test1 */;
+			productType = "com.apple.product-type.tool";
+		};
 		5B33A6842152BABE00BF7B26 /* test3 */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 5B33A68B2152BABE00BF7B26 /* Build configuration list for PBXNativeTarget "test3" */;
@@ -462,6 +518,9 @@
 				LastUpgradeCheck = 1000;
 				ORGANIZATIONNAME = "Laurent Michel";
 				TargetAttributes = {
+					5B1DD91D216BD0E800E554E9 = {
+						CreatedOnToolsVersion = 10.0;
+					};
 					5B33A6842152BABE00BF7B26 = {
 						CreatedOnToolsVersion = 10.0;
 					};
@@ -496,11 +555,20 @@
 				5B33A6842152BABE00BF7B26 /* test3 */,
 				5B42325F2152C2F300EDC5AD /* msperf */,
 				5BF4BA272157D800008E955B /* stablemarriage */,
+				5B1DD91D216BD0E800E554E9 /* test1 */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		5B1DD91A216BD0E800E554E9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5B9ACA44216BD141002E24A0 /* main.cpp in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		5B33A6812152BABE00BF7B26 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -522,7 +590,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5BA79FE321517C5000B5CF67 /* solver.cpp in Sources */,
-				5BA79FD421517C5000B5CF67 /* BitDomain.cpp in Sources */,
+				5BA79FD421517C5000B5CF67 /* domain.cpp in Sources */,
 				5BA79FE621517C5000B5CF67 /* mallocWatch.cpp in Sources */,
 				5BA79FE121517C5000B5CF67 /* search.cpp in Sources */,
 				5BA79FDF21517C5000B5CF67 /* context.cpp in Sources */,
@@ -556,6 +624,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		5B1DD926216BD0F200E554E9 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 5BA79F9921517C0500B5CF67 /* copl */;
+			targetProxy = 5B1DD925216BD0F200E554E9 /* PBXContainerItemProxy */;
+		};
 		5B33A6902152BAE800BF7B26 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 5BA79F9921517C0500B5CF67 /* copl */;
@@ -579,6 +652,27 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		5B1DD922216BD0E800E554E9 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		5B1DD923216BD0E800E554E9 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
 		5B33A6892152BABE00BF7B26 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -805,6 +899,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		5B1DD924216BD0E800E554E9 /* Build configuration list for PBXNativeTarget "test1" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5B1DD922216BD0E800E554E9 /* Debug */,
+				5B1DD923216BD0E800E554E9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		5B33A68B2152BABE00BF7B26 /* Build configuration list for PBXNativeTarget "test3" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

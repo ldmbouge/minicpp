@@ -24,6 +24,7 @@ void printVar(var<int>* x) {
 IntVarImpl::IntVarImpl(CPSolver::Ptr& cps,int min,int max)
     : _solver(cps),
       _dom(new (cps) BitDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
+      //_dom(new (cps) SparseSetDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
       _onBindList(cps->getStateManager(),cps->getStore()),
       _onBoundsList(cps->getStateManager(),cps->getStore()),
       _onDomList(cps->getStateManager(),cps->getStore()),

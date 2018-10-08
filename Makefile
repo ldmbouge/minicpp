@@ -3,7 +3,7 @@ include setup.mak
 .PHONY: examples
 
 OFILES = mallocWatch.o context.o cont.o store.o trail.o \
-	trailable.o BitDomain.o intvar.o solver.o \
+	trailable.o domain.o intvar.o solver.o \
 	acstr.o constraint.o search.o controller.o
 
 

@@ -22,7 +22,7 @@
 #include "avar.hpp"
 #include "acstr.hpp"
 #include "solver.hpp"
-#include "BitDomain.hpp"
+#include "domain.hpp"
 #include "trailList.hpp"
 #include "matrix.hpp"
 
@@ -58,6 +58,7 @@ public:
 class IntVarImpl :public var<int> { 
    CPSolver::Ptr           _solver;
    BitDomain::Ptr             _dom;
+   //SparseSetDomain::Ptr       _dom;  // used to be BitDomain::Ptr
    int                         _id;
    trailList<Constraint::Ptr> _onBindList;
    trailList<Constraint::Ptr> _onBoundsList;

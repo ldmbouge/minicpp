@@ -13,7 +13,7 @@
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  */
 
-#include "BitDomain.hpp"
+#include "domain.hpp"
 #include "fail.hpp"
 #include <iostream>
 
@@ -222,3 +222,183 @@ std::ostream& operator<<(std::ostream& os,const BitDomain& x)
     }
     return os;
 }
+
+
+// ======================================================================
+// SparseSet
+
+SparseSet::SparseSet(Trailer::Ptr eng,int n,int ofs)
+    : _values(n),
+      _indexes(n),
+      _size(eng,n),
+      _min(eng,0),
+      _max(eng,n-1),
+      _ofs(ofs),
+      _n(n)
+{
+    for(int i=0;i < n;i++)
+        _values[i] = _indexes[i] = i;
+}
+
+void SparseSet::exchangePositions(int val1,int val2)
+{
+    int i1 = _indexes[val1],i2 = _indexes[val2];
+    _values[i1] = val2;
+    _values[i2] = val1;
+    _indexes[val1] = i2;
+    _indexes[val2] = i1;
+}
+
+void SparseSet::updateBoundsValRemoved(int val)
+{
+    updateMaxValRemoved(val);
+    updateMinValRemoved(val);
+}
+void SparseSet::updateMaxValRemoved(int val)
+{
+    if (!isEmpty() && _max == val) {
+        assert(!internalContains(val));
+        for(int v=val-1; v >= _min;v--) {
+            if (internalContains(v)) {
+                _max = v;
+                return;
+            }
+        }
+    }
+}
+void SparseSet::updateMinValRemoved(int val)
+{
+    if (!isEmpty() && _min == val) {
+        assert(!internalContains(val));
+        for(int v=val+1;v <= _max;v++) {
+            if (internalContains(v)) {
+                _min = v;
+                return;
+            }
+        }
+    }
+}
+
+bool SparseSet::remove(int val)
+{
+    if (!contains(val))
+        return false;
+    val -= _ofs;
+    assert(checkVal(val));
+    int s = _size;
+    exchangePositions(val,_values[s - 1]);
+    _size = s - 1;
+    updateBoundsValRemoved(val);
+    return true;
+}
+
+void SparseSet::removeAllBut(int v)
+{
+    assert(contains(v));
+    v -= _ofs;
+    assert(checkVal(v));
+    int val = _values[0];
+    int index = _indexes[v];
+    _indexes[v] = 0;
+    _values[0] = v;
+    _indexes[val] = index;
+    _values[index] = val;
+    _min = v;
+    _max = v;
+    _size = 1;
+}
+
+void SparseSet::removeBelow(int value)
+{
+    if (max() < value)
+        removeAll();
+    else 
+        for(int v= min() ; v < value;v++)
+            remove(v);    
+}
+
+void SparseSet::removeAbove(int value)
+{
+    if (min() > value)
+        removeAll();
+    else 
+        for(int v = value + 1; v <= max();v++)
+            remove(v);    
+}
+
+void SparseSetDomain::assign(int v,IntNotifier& x)
+{
+    if (_dom.contains(v)) {
+        if (_dom.size() != 1) {
+            bool maxChanged = max() != v;
+            bool minChanged = min() != v;
+            _dom.removeAllBut(v);
+            if (_dom.size() == 0)
+                x.empty();
+            x.bind();
+            x.change();
+            if (maxChanged) x.changeMax();
+            if (minChanged) x.changeMin();
+        }
+    } else {
+        _dom.removeAll();
+        x.empty();
+    }
+}
+
+void SparseSetDomain::remove(int v,IntNotifier& x)
+{
+    if (_dom.contains(v)) {
+        bool maxChanged = max() == v;
+        bool minChanged = min() == v;
+        _dom.remove(v);
+        if (_dom.size()==0)
+            x.empty();
+        x.change();
+        if (maxChanged) x.changeMax();
+        if (minChanged) x.changeMin();
+        if (_dom.size()==1) x.bind();
+    }
+}
+
+void SparseSetDomain::removeBelow(int newMin,IntNotifier& x)
+{
+    if (_dom.min() < newMin) {
+        _dom.removeBelow(newMin);
+        switch(_dom.size()) {
+            case 0: x.empty();break;
+            case 1: x.bind();
+            default:
+                x.changeMin();
+                x.change();
+                break;
+        }
+    }
+}
+
+void SparseSetDomain::removeAbove(int newMax,IntNotifier& x)
+{
+    if (_dom.max()  > newMax) {
+        _dom.removeAbove(newMax);
+        switch(_dom.size()) {
+            case 0: x.empty();break;
+            case 1: x.bind();
+            default:
+                x.changeMax();
+                x.change();
+                break;
+        }
+    }
+}
+
+std::ostream& operator<<(std::ostream& os,const SparseSetDomain& x)
+{
+    os << '{';
+    for(int i = x.min();i <= x.max()-1;i++)
+        if (x.member(i))
+            os << i << ',';
+    if (x.size() > 0) os << x.max();
+    os << '}';
+    return os;            
+}
+
