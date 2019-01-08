@@ -23,6 +23,7 @@
 #include "matrix.hpp"
 #include "intvar.hpp"
 #include "acstr.hpp"
+#include "matching.hpp"
 
 class EQc : public Constraint { // x == c
     var<int>::Ptr _x;
@@ -170,7 +171,28 @@ public:
    }
    void post() override;
 };
-
+/*
+class AllDifferentAC : public Constraint {
+   Factory::Veci _x;
+   MaximumMatching _mm;
+   Graph           _rg;
+   int* _match;
+   bool* _matched;
+   int _minVal,_maxVal;
+   int _nVar,_nVal;
+public:
+   template <class Vec> AllDifferentAC(const Vec& x)
+      : Constraint(x[0]->getSolver()),
+        _x(x.size(),Factory::alloci(x[0]->getStore())),
+        _mm(x) {
+      for(auto i=0;i < x.size();i++)
+         _x[i] = x[i];
+      _nVar = _x.size();
+      _match = new int[_nVar];
+   }
+   void post() override;
+};
+*/
 class Circuit :public Constraint {
    Factory::Veci  _x;
    trail<int>* _dest;

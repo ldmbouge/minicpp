@@ -4,7 +4,7 @@ include setup.mak
 
 OFILES = mallocWatch.o context.o cont.o store.o trail.o \
 	trailable.o domain.o intvar.o solver.o \
-	acstr.o constraint.o search.o controller.o
+	matching.o acstr.o constraint.o search.o controller.o
 
 
 all: $(LIBNAME) examples

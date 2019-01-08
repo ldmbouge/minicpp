@@ -341,6 +341,13 @@ void AllDifferentBinary::post()
             cp->post(new (cp) NEQBinBCLight(_x[i],_x[j]));    
 }
 
+/*
+void AllDifferentAC::post() override
+{
+   
+}
+*/
+
 void Circuit::setup(CPSolver::Ptr cp)
 {
    _dest = new (cp) trail<int>[_x.size()];
