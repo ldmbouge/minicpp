@@ -48,4 +48,9 @@ inline void* operator new(std::size_t sz,Storage::Ptr store)
    return store->allocate(sz);
 }
 
+inline void* operator new[](std::size_t sz,Storage::Ptr store)
+{
+   return store->allocate(sz);
+}
+
 #endif

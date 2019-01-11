@@ -171,28 +171,28 @@ public:
    }
    void post() override;
 };
-/*
+
 class AllDifferentAC : public Constraint {
-   Factory::Veci _x;
-   MaximumMatching _mm;
-   Graph           _rg;
-   int* _match;
-   bool* _matched;
-   int _minVal,_maxVal;
-   int _nVar,_nVal;
+    Factory::Veci    _x;
+    MaximumMatching _mm;
+    Graph           _rg;
+    int* _match;
+    bool* _matched;
+    int _minVal,_maxVal;
+    int _nVar,_nVal,_nNodes;
+    int updateRange();
+    void updateGraph();
+    int valNode(int vid) const { return vid - _minVal + _nVar;}
 public:
-   template <class Vec> AllDifferentAC(const Vec& x)
-      : Constraint(x[0]->getSolver()),
-        _x(x.size(),Factory::alloci(x[0]->getStore())),
-        _mm(x) {
-      for(auto i=0;i < x.size();i++)
-         _x[i] = x[i];
-      _nVar = _x.size();
-      _match = new int[_nVar];
-   }
-   void post() override;
+    template <class Vec> AllDifferentAC(const Vec& x)
+        : Constraint(x[0]->getSolver()),
+          _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore())),
+          _mm(_x,x[0]->getStore()) {}
+    ~AllDifferentAC() {}
+    void post() override;
+    void propagate() override;
 };
-*/
+
 class Circuit :public Constraint {
    Factory::Veci  _x;
    trail<int>* _dest;
@@ -380,6 +380,9 @@ namespace Factory {
     }
    template <class Vec> Constraint::Ptr allDifferent(const Vec& xs) {
       return new (xs[0]->getSolver()) AllDifferentBinary(xs);
+   }
+   template <class Vec> Constraint::Ptr allDifferentAC(const Vec& xs) {
+      return new (xs[0]->getSolver()) AllDifferentAC(xs);
    }
    template <class Vec>  Constraint::Ptr circuit(const Vec& xs) {
       return new (xs[0]->getSolver()) Circuit(xs);

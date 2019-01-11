@@ -341,12 +341,72 @@ void AllDifferentBinary::post()
             cp->post(new (cp) NEQBinBCLight(_x[i],_x[j]));    
 }
 
-/*
-void AllDifferentAC::post() override
+
+void AllDifferentAC::post() 
 {
-   
+    CPSolver::Ptr cp = _x[0]->getSolver();
+    _nVar    = (int)_x.size();
+    _nVal    = updateRange();
+    _mm.setup();
+    for(int i=0;i < _nVar;i++)
+        _x[i]->propagateOnDomainChange(this);
+    _match   = new (cp) int[_nVar];
+    _matched = new (cp) bool[_nVal];
+    _nNodes  = _nVar + _nVal + 1;
+    _rg = Graph(_nNodes);
+    propagate();
 }
-*/
+
+int AllDifferentAC::updateRange()
+{
+   _minVal = INT32_MAX;
+   _maxVal = INT32_MIN;
+   for(int i=0;i < _nVar;i++) {
+       _minVal = std::min(_minVal,_x[i]->min());
+       _maxVal = std::max(_maxVal,_x[i]->max());
+   }
+   return _maxVal - _minVal + 1;      
+}
+
+void AllDifferentAC::updateGraph()
+{
+   const int sink = _nNodes - 1;
+   _rg.clear();
+   memset(_matched,0,_nVal);
+   for(int i=0;i < _nVar;i++) {
+      _rg.addEdge(valNode(_match[i]),i);
+      _matched[_match[i] - _minVal] = true;
+   }
+   for(int i = 0; i < _nVar;i++) 
+      for(int v = _x[i]->min();v <= _x[i]->max();v++) 
+         if (_x[i]->contains(v) && _match[i] != v) 
+            _rg.addEdge(i,valNode(v));
+   for(int v = _minVal;v <= _maxVal;v++) {
+      if (!_matched[v - _minVal])
+         _rg.addEdge(valNode(v),sink);
+      else _rg.addEdge(sink,valNode(v));
+   }  
+}
+
+void AllDifferentAC::propagate()
+{
+   int size = _mm.compute(_match);
+   if (size < _nVar)
+      throw Failure;
+   updateRange();
+   updateGraph();
+   int nc = 0;
+   int scc[_nNodes];
+   _rg.SCC([&scc,&nc](int n,int nd[]) {
+               for(int i=0;i < n;i++)
+                   scc[nd[i]] = nc;
+               ++nc;
+           });
+   for(int i=0;i < _nVar;i++) 
+       for(int v = _minVal; v <= _maxVal;v++) 
+           if (_match[i] != v && scc[i] != scc[valNode(v)])
+               _x[i]->remove(v);
+}
 
 void Circuit::setup(CPSolver::Ptr cp)
 {

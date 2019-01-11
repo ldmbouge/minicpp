@@ -35,7 +35,5 @@ LLIBFLAGS=-Wl,-soname,$(LIBNAME)
 LFLAGSX  = -L. -Wl,-rpath=$(CWD)/..
 LIBNAME = lib$(LIBBASE).so.1
 
-
-
 endif
 

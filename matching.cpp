@@ -15,6 +15,24 @@
 
 #include "matching.hpp"
 
+void MaximumMatching::setup() {
+   _min = INT32_MAX;
+   _max = INT32_MIN;
+   for(auto& xi : _x) {
+      _min = std::min(_min,xi->min());
+      _max = std::max(_max,xi->max());
+   }
+   _valSize = _max - _min + 1;
+   _valMatch = new (_store) int[_valSize];
+   for(int k=0;k < _valSize;k++) _valMatch[k] = -1;
+   _magic = 0;
+   _match = new (_store) int[_x.size()];
+   for(int k=0;k < _x.size();k++) _match[k] = INT32_MIN;
+   _varSeen = new (_store) int[_x.size()];
+   _valSeen = new (_store) int[_valSize];
+   findInitialMatching();
+}
+
 void MaximumMatching::findInitialMatching() {
    _szMatching = 0;
    for(int k=0;k < _x.size();k++) {
@@ -74,7 +92,8 @@ bool MaximumMatching::findAlternatingPathFromVal(int v) {
    return false;
 }
 
-MaximumMatching::~MaximumMatching() {
+MaximumMatching::~MaximumMatching()
+{
    delete[] _valMatch;
    delete[] _match;
    delete[] _varSeen;

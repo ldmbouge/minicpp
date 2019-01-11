@@ -6,55 +6,27 @@ LFLAGS = -L$(shell pwd)/.. $(LFLAGSX)
 
 BENCHSRCS = mainCont.cpp main.cpp main2.cpp main3.cpp nqperf.cpp \
 	magicserie.cpp qap.cpp tsp.cpp  magicsquare.cpp msperf.cpp \
-	stablemarriage.cpp steel.cpp qaplns.cpp
-BENCHS = test0 test1 test2 test3 nqperf magicserie qap tsp magicsquare \
-	msperf stablemarriage steel qaplns
+	stablemarriage.cpp steel.cpp qaplns.cpp nqueensAC.cpp adac.cpp 
+
+BENCHS = test0 
+
+AT = main main2 main3 adac nqperf magicserie qap tsp magicsquare \
+	msperf stablemarriage  steel qaplns nqueensAC
 
 all: cpptests 
 
-cpptests: $(BENCHS)
+cpptests: $(BENCHS) $(AT)
 
-run: test1
-	test1
-
-test1: main.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-test2: main2.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-test3: main3.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-nqperf: nqperf.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-magicserie: magicserie.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-qap: qap.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-tsp: tsp.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-magicsquare: magicsquare.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-msperf: msperf.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-stablemarriage: stablemarriage.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-steel: steel.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
-
-qaplns: qaplns.o
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
+run: main
+	main
 
 test0: mainCont.o
+	@echo "Linking... " $@
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS)  -o $@
+
+% : %.cpp
+	@echo "Compile(C++) & Link... " $@
+	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
 
 %.o : %.cpp
 	@echo "Compiling (C++)... " $<
@@ -67,6 +39,6 @@ test0: mainCont.o
 	rm -f $@.$$$$
 
 clean:
-	rm -rf *.o *.d $(BENCHS)
+	rm -rf *.o *.d *.dSYM $(BENCHS) $(AT)
 
 include $(BENCHSRCS:.cpp=.d) 

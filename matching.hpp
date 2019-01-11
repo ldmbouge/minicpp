@@ -24,7 +24,7 @@
 
 class Graph { 
    int V; 
-   std::vector<std::list<int>> adj; 
+   std::vector<std::vector<int>> adj; 
    template <typename B>
    void SCCUtil(B body,int& time,int u, int disc[], int low[],std::stack<int>& st, bool inStack[]); 
 public: 
@@ -32,12 +32,14 @@ public:
    Graph() : V(0) {}
    Graph(Graph&& g) : V(g.V),adj(std::move(g.adj)) {}
    Graph& operator=(Graph&& g) { V = std::move(g.V); adj = std::move(g.adj);return *this;}
-   void addEdge(int v, int w) { adj[v].push_back(w);}
+   void clear()                { for(auto& al : adj) al.clear();}
+   void addEdge(int v, int w)  { adj[v].push_back(w);}
    template <typename B> void SCC(B body); // apply body to each SCC
 }; 
 
 class MaximumMatching {
-   Factory::Veci _x;
+   Storage::Ptr _store;
+   Factory::Veci& _x;
    int* _match,*_varSeen;
    int _min,_max;
    int _valSize;
@@ -49,26 +51,10 @@ class MaximumMatching {
    bool findAlternatingPathFromVar(int i);
    bool findAlternatingPathFromVal(int v);
 public:
-   template <class V> MaximumMatching(const V& x)
-      : _x(x.size(),Factory::alloci(x[0]->getStore())) {
-      for(int i=0;i<x.size();i++) _x[i] = x[i];
-      _min = INT32_MAX;
-      _max = INT32_MIN;
-      for(auto& xi : _x) {
-         _min = std::min(_min,xi->min());
-         _max = std::max(_max,xi->max());
-      }
-      _valSize = _max - _min + 1;
-      _valMatch = new int[_valSize];
-      for(int k=0;k < _valSize;k++) _valMatch[k] = -1;
-      _magic = 0;
-      _match = new int[_x.size()];
-      for(int k=0;k < _x.size();k++) _match[k] = INT32_MIN;
-      _varSeen = new int[_x.size()];
-      _valSeen = new int[_valSize];
-      findInitialMatching();
-   }
+   MaximumMatching(Factory::Veci& x,Storage::Ptr store)
+      : _store(store),_x(x) {}
    ~MaximumMatching();
+   void setup();
    int compute(int result[]);
 };
 

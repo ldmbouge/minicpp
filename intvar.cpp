@@ -20,11 +20,15 @@ void printVar(var<int>* x) {
     x->print(std::cout) << std::endl;
 }
 
+void printVar(var<int>::Ptr x) {
+    x->print(std::cout) << std::endl;
+}
+
 
 IntVarImpl::IntVarImpl(CPSolver::Ptr& cps,int min,int max)
     : _solver(cps),
-      //_dom(new (cps) BitDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
-      _dom(new (cps) SparseSetDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
+      _dom(new (cps) BitDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
+      //_dom(new (cps) SparseSetDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
       _onBindList(cps->getStateManager(),cps->getStore()),
       _onBoundsList(cps->getStateManager(),cps->getStore()),
       _onDomList(cps->getStateManager(),cps->getStore()),
@@ -123,6 +127,17 @@ namespace Factory {
         cps->registerVar(rv);
         return rv;
     }
+   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals) {
+      auto minVal = std::min(vals);
+      auto maxVal = std::max(vals);
+      auto var = makeIntVar(cps,minVal,maxVal);
+      for(int k=minVal;k <= maxVal;k++) {
+         if (std::find(vals.begin(),vals.end(),k) == vals.end())
+            var->remove(k);
+      }
+      return var;
+   }
+
     var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps) {
         var<bool>::Ptr rv = new (cps) var<bool>(cps);
         cps->registerVar(rv);

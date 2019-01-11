@@ -57,8 +57,8 @@ public:
 
 class IntVarImpl :public var<int> { 
    CPSolver::Ptr           _solver;
-   //BitDomain::Ptr             _dom;
-   SparseSetDomain::Ptr       _dom;  // used to be BitDomain::Ptr
+   BitDomain::Ptr             _dom;
+   //SparseSetDomain::Ptr       _dom;  // used to be BitDomain::Ptr
    int                         _id;
    trailList<Constraint::Ptr> _onBindList;
    trailList<Constraint::Ptr> _onBoundsList;
@@ -284,6 +284,7 @@ namespace Factory {
    using Veci   = EVec<var<int>::Ptr,alloci>;
    using Vecb   = std::vector<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
+   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);   
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
    inline var<int>::Ptr minus(var<int>::Ptr x)     { return new (x->getSolver()) IntVarViewOpposite(x);}
    inline var<int>::Ptr operator-(var<int>::Ptr x) { return minus(x);}
@@ -316,5 +317,6 @@ namespace Factory {
 };
 
 void printVar(var<int>* x);
+void printVar(var<int>::Ptr x);
 
 #endif
