@@ -31,7 +31,7 @@ else
 CWD=$(shell pwd)
 CXXFLAGS += -fPIC
 CC=clang++-6.0
-CC=clang++
+CC=c++
 LLIBFLAGS=-Wl,-soname,$(LIBNAME)
 LFLAGSX  = -L. -Wl,-rpath=$(CWD)/..
 LIBNAME = lib$(LIBBASE).so.1
