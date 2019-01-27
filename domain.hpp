@@ -16,6 +16,7 @@
 #ifndef __BITDOMAIN_H
 #define __BITDOMAIN_H
 
+#include <assert.h>
 #include "handle.hpp"
 #include "trailable.hpp"
 #include "store.hpp"

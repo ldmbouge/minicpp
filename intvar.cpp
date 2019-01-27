@@ -15,6 +15,7 @@
 
 #include "intvar.hpp"
 #include "store.hpp"
+#include <algorithm>
 
 void printVar(var<int>* x) {
     x->print(std::cout) << std::endl;

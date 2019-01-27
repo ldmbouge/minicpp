@@ -14,6 +14,7 @@
  */
 
 #include "constraint.hpp"
+#include <string.h>
 
 void printCstr(Constraint::Ptr c) {
    c->print(std::cout);
