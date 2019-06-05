@@ -9,7 +9,7 @@ OFILES = mallocWatch.o context.o cont.o store.o trail.o \
 
 all: $(LIBNAME) examples
 
-examples:
+test:
 	make -C examples
 
 $(LIBNAME): $(OFILES)
