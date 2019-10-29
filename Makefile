@@ -2,11 +2,11 @@ include setup.mak
 
 .PHONY: examples
 
-OFILES = mallocWatch.o store.o trail.o \
+OFILES = mallocWatch.o context.o cont.o store.o trail.o \
 	trailable.o domain.o intvar.o solver.o \
-	matching.o acstr.o constraint.o search.o 
+	matching.o acstr.o constraint.o search.o controller.o \
+        bitset.o
 
-# context.o cont.o controller.o
 
 all: $(LIBNAME) examples
 
@@ -20,7 +20,7 @@ $(LIBNAME): $(OFILES)
 	  ln -s $(LIBNAME) $(basename $(LIBNAME)); \
 	fi
 
-%.o : %.cpp
+%.o : %.cpp %.hpp
 	@echo "Compiling (C++)... " $<
 	$(CC) -c $(CXXFLAGS) $<
 

@@ -44,6 +44,9 @@ public:
    virtual void removeBelow(int newMin) = 0;
    virtual void removeAbove(int newMax) = 0;
    virtual void updateBounds(int newMin,int newMax) = 0;
+
+   virtual int getId2() const { return -1;}
+
    
    virtual TLCNode* whenBind(std::function<void(void)>&& f) = 0;
    virtual TLCNode* whenBoundsChange(std::function<void(void)>&& f) = 0;
@@ -77,6 +80,7 @@ protected:
     void setId(int id) override { _id = id;}
     int getId() const { return _id;}
 public:
+    int getId2() const override { return _id;}
     IntVarImpl(CPSolver::Ptr& cps,int min,int max);
     IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
    ~IntVarImpl();
