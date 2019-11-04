@@ -1,8 +1,8 @@
-include ../setup.mak
+include ../src/setup.mak
 
-CXXFLAGS += -I..
+CXXFLAGS += -I../src
 
-LFLAGS = -L$(shell pwd)/.. $(LFLAGSX)
+LFLAGS = -L$(shell pwd)/../src $(LFLAGSX)
 
 # mainCont.cpp
 

@@ -11,7 +11,7 @@ OFILES = mallocWatch.o context.o cont.o store.o trail.o \
 all: $(LIBNAME) examples
 
 test:
-	make -C examples
+	make -C ../examples
 
 $(LIBNAME): $(OFILES)
 	$(CC) $(CXXFLAGS) $(OFILES) --shared $(LLIBFLAGS) -o $(LIBNAME)
@@ -32,7 +32,7 @@ $(LIBNAME): $(OFILES)
 
 clean:
 	rm -rf $(OFILES) cpptest *~ *.d *.o $(LIBNAME)
-	make -C examples clean
+	make -C ../examples clean
 
 # This imports the dependency header specs.
 

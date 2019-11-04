@@ -33,7 +33,7 @@ CXXFLAGS += -fPIC
 CC=clang++-6.0
 CC=c++
 LLIBFLAGS=-Wl,-soname,$(LIBNAME)
-LFLAGSX  = -L. -Wl,-rpath=$(CWD)/..
+LFLAGSX  = -L. -Wl,-rpath=$(CWD)/../src
 LIBNAME = lib$(LIBBASE).so.1
 
 endif
