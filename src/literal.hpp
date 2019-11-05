@@ -19,15 +19,22 @@ protected:
     void setId(int id) override {_id = id;}
     int getId() const { return _id;}
 public:
-    LitVarEQ(const var<int>::Ptr& x, const int c) : _x(x), _val(0x02), _c(c) {}
+    LitVarEQ(const var<int>::Ptr& x, const int c) : _x(x), _val(0x02), _c(c) { setVal();}
     inline bool isBound() {return _val != 0x02;}
     inline bool isTrue() {return _val == 0x01;}
     inline bool isFalse() {return _val == 0x00;}
-    // void setTrue() {_val = 0x01; _x->assign(_c);}
-    // void setFalse() {_val = 0x00; _x->remove(_c);}
+    void setVal();
 };
 
-
+void LitVarEQ<char>::setVal() {
+    if (_x->contains(_c)) {
+        if (_x->size() == 1) 
+            _val = 0x01;
+        else return;
+    }
+    else 
+        _val = 0x00;
+}
 
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -49,23 +56,41 @@ class LitVarEQ<trail<char>> : public AVar {
     int _c;
     int _id;
     LitVarEQ(const var<int>::Ptr& x, const int c) 
-      : _cps(x->getSolver()), _x(x), _val(x->getSolver()->getStateManager(), 0x02), _c(c) {}
+      : _cps(x->getSolver()), _x(x), _val(x->getSolver()->getStateManager(), 0x02), _c(c) {update();}
 protected:
     void setId(int id) override {_id = id;}
     int getId() const { return _id;}
 public:
     typedef handle_ptr<LitVarEQ<trail<char>>> Ptr;
-    // LitVarEQ(const var<int>::Ptr& x, const int c) 
-    //   : _cps(x->getSolver()), _x(x), _val(x->getSolver()->getStateManager(), 0x02), _c(c) {}
     inline bool isBound() {return _val != 0x02;}
     inline bool isTrue() {return _val == 0x01;}
     inline bool isFalse() {return _val == 0x00;}
-    void setTrue() {_val = 0x01; _x->assign(_c);}
-    void setFalse() {_val = 0x00; _x->remove(_c);}
+    void setTrue();
+    void setFalse();
+    void update();
 private:
     friend Ptr Factory::makeLitVarEQ(const var<int>::Ptr& x, const int c);
 };
 
+void LitVarEQ<trail<char>>::setTrue() {
+    if (isBound()) return;
+    _val = 0x01;
+    _x->assign(_c);
+}
+
+void LitVarEQ<trail<char>>::setFalse() {
+    if (isBound()) return;
+    _val = 0x00;
+    _x->remove(_c);
+}
+
+void LitVarEQ<trail<char>>::update() {
+    if (isBound()) return;
+    if (_x->contains(_c)) {
+        if (_x->size() == 1) setTrue();
+    }
+    else setFalse();
+}
 
 
 #endif

@@ -16,9 +16,11 @@ int main() {
     int n = 3;
     auto q = Factory::intVarArray(cp,n,1,n);
 
-    // add literal here
+   //  add literal here
     auto l = Factory::makeLitVarEQ(q[0],3);
     l->setTrue();
+   auto l2 = LitVarEQ<char>(q[0],2);
+   cout << "is [[x1 == 2]]? A: " <<  (l2.isTrue() ? "YES" : "NO") << endl;
 
 
 
