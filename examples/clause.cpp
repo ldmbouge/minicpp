@@ -17,10 +17,12 @@ int main() {
     auto q = Factory::intVarArray(cp,n,1,n);
 
    //  add literal here
-    auto l = Factory::makeLitVarEQ(q[0],3);
-    l->setTrue();
-   auto l2 = LitVarEQ<char>(q[0],2);
-   cout << "is [[x1 == 2]]? A: " <<  (l2.isTrue() ? "YES" : "NO") << endl;
+    auto l = Factory::makeLitVarLEQ(q[0],2,cp->getStore());
+   //  cout << "isBound: " << l->isBound() << endl;
+    l->setFalse();
+   auto l2 = Factory::tempLitVarEQ(q[0],3).isTrue();
+   cout << "is [[x1 == 3]]? A: " <<  (l2 ? "YES" : "NO") << endl;
+   // cout << "is [[x1 == 2]]? A: " <<  (l2.isTrue() ? "YES" : "NO") << endl;
 
 
 
