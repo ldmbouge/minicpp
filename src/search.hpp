@@ -137,4 +137,15 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
            };
 }
 
+template<class Container>
+inline typename Container::value_type selectUnboundLit(Container& c) {
+   auto from = c.begin(),to  = c.end();
+   for(;from != to;++from) {
+       if (!((*from)->isBound())) {
+              return *from;           
+       }
+   }
+   return typename Container::value_type();
+}
+
 #endif

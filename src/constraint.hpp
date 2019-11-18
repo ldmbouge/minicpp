@@ -28,6 +28,7 @@
 #include "acstr.hpp"
 #include "matching.hpp"
 #include "bitset.hpp"
+#include "literal.hpp"
 
 class EQc : public Constraint { // x == c
     var<int>::Ptr _x;
@@ -147,6 +148,15 @@ class Clause : public Constraint { // x0 OR x1 .... OR xn
     trail<int> _wL,_wR;
 public:
     Clause(const std::vector<var<bool>::Ptr>& x);
+    void post() override { propagate();}
+    void propagate() override;
+};
+
+class LitClause : public Constraint { // x0 OR x1 .... OR xn
+    std::vector<LitVar::Ptr> _x;
+    trail<int> _wL,_wR;
+public:
+    LitClause(const std::vector<LitVar::Ptr>& x);
     void post() override { propagate();}
     void propagate() override;
 };
@@ -438,6 +448,9 @@ namespace Factory {
     }
     template <class Vec> Constraint::Ptr clause(const Vec& xs) {
         return new (xs[0]->getSolver()) Clause(xs);
+    }
+    template <class Vec> Constraint::Ptr makeLitClause(const Vec& xs) {
+        return new (xs[0]->getSolver()) LitClause(xs);
     }
     template <class Vec> Constraint::Ptr isClause(var<bool>::Ptr b,const Vec& xs) {
         return new (b->getSolver()) IsClause(b,xs);

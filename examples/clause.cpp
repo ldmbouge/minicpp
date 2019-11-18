@@ -13,27 +13,23 @@ int main() {
    using namespace Factory;
    CPSolver::Ptr cp  = Factory::makeSolver();
 
-    int n = 3;
-    auto q = Factory::intVarArray(cp,n,1,n);
+    int n = 2;
+    auto q = Factory::intVarArray(cp,n,1,2);
 
-   //  add literal here
-    auto l = Factory::makeLitVarLEQ(q[0],2,cp->getStore());
-   //  cout << "isBound: " << l->isBound() << endl;
-    l->setFalse();
-   auto l2 = Factory::tempLitVarEQ(q[0],3).isTrue();
-   cout << "is [[x1 == 3]]? A: " <<  (l2 ? "YES" : "NO") << endl;
-   // cout << "is [[x1 == 2]]? A: " <<  (l2.isTrue() ? "YES" : "NO") << endl;
-
+   //  add vector of literals here
+    auto l1 = Factory::makeLitVarEQ(q[0],1);
+    auto l2 = Factory::makeLitVarEQ(q[1],1);
+   //  auto l3 = Factory::makeLitVarEQ(q[2],1);
+    auto allLits = vector<LitVar::Ptr>({l1,l2});
+    auto lits = vector<LitVar::Ptr>({l1,l2});
+    cp->post(Factory::makeLitClause(lits));
 
 
     DFSearch search(cp,[=]() {
-                          auto x = selectMin(q,
-                                             [](const auto& x) { return x->size() > 1;},
-                                             [](const auto& x) { return x->size();});
+                          auto x = selectUnboundLit(allLits);
                           if (x) {
-                             int c = x->min();                    
-                             return  [=] { cp->post(x == c);}
-                                | [=] { cp->post(x != c);};
+                             return  [=] { x->assign(true); cp->fixpoint();}
+                                | [=] { x->assign(false); cp->fixpoint();};
                           } else return Branches({});
                        });    
     search.onSolution([&q]() {

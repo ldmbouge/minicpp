@@ -280,6 +280,48 @@ void Clause::propagate()
     }
 }
 
+LitClause::LitClause(const std::vector<LitVar::Ptr>& x)
+    : Constraint(x[0]->getSolver()),
+      _wL(x[0]->getSolver()->getStateManager(),0),
+      _wR(x[0]->getSolver()->getStateManager(),(int)x.size() - 1)
+{
+    for(auto xi : x) _x.push_back(xi);
+}
+
+void LitClause::propagate()
+{
+    const long n = _x.size();
+    int i = _wL;
+    while (i < n && _x[i]->isBound()) {
+        if (_x[i]->isTrue()) {
+            setActive(false);
+            return;
+        }
+        i += 1;
+    }
+    _wL = i;
+    i = _wR;
+    while (i>=0 && _x[i]->isBound()) {
+        if (_x[i]->isTrue()) {
+            setActive(false);
+            return;
+        }
+        i -= 1;
+    }
+    _wR = i;
+    if (_wL > _wR) throw Failure;
+    else if (_wL == _wR) {
+        _x[_wL]->assign(true);
+        setActive(false);
+    } else {
+        assert(_wL != _wR);
+        assert(!_x[_wL]->isBound());
+        assert(!_x[_wR]->isBound());
+        _x[_wL]->propagateOnBind(this);
+        _x[_wR]->propagateOnBind(this);
+    }
+}
+
 IsClause::IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x)
     : Constraint(x[0]->getSolver()),
       _b(b),
