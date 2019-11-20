@@ -161,6 +161,20 @@ public:
     void propagate() override;
 };
 
+class IsTrue : public Constraint {
+    LitVar::Ptr _x;
+public:
+    IsTrue(const LitVar::Ptr& x);
+    void post() override;
+};
+
+class IsFalse : public Constraint {
+    LitVar::Ptr _x;
+public:
+    IsFalse(const LitVar::Ptr& x);
+    void post() override;
+};
+
 class IsClause : public Constraint { // b <=> x0 OR .... OR xn
     var<bool>::Ptr _b;
     std::vector<var<bool>::Ptr> _x;
@@ -449,8 +463,14 @@ namespace Factory {
     template <class Vec> Constraint::Ptr clause(const Vec& xs) {
         return new (xs[0]->getSolver()) Clause(xs);
     }
-    template <class Vec> Constraint::Ptr makeLitClause(const Vec& xs) {
+    template <class Vec> Constraint::Ptr litClause(const Vec& xs) {
         return new (xs[0]->getSolver()) LitClause(xs);
+    }
+    inline Constraint::Ptr isTrue(const LitVar::Ptr& x) {
+        return new (x->getSolver()) IsTrue(x);
+    }
+    inline Constraint::Ptr isFalse(const LitVar::Ptr& x) {
+        return new (x->getSolver()) IsFalse(x);
     }
     template <class Vec> Constraint::Ptr isClause(var<bool>::Ptr b,const Vec& xs) {
         return new (b->getSolver()) IsClause(b,xs);

@@ -322,6 +322,22 @@ void LitClause::propagate()
     }
 }
 
+IsTrue::IsTrue(const LitVar::Ptr& x)
+    : Constraint(x->getSolver()),
+      _x(x) {}
+
+void IsTrue::post() {
+    _x->assign(true);
+}
+
+IsFalse::IsFalse(const LitVar::Ptr& x)
+    : Constraint(x->getSolver()),
+      _x(x) {}
+
+void IsFalse::post() {
+    _x->assign(false);
+}
+
 IsClause::IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x)
     : Constraint(x[0]->getSolver()),
       _b(b),
