@@ -22,7 +22,7 @@ public:
     virtual void setTrue() {}
     virtual void setFalse() {}
     virtual void assign(bool b) {}
-    virtual TLCNode* propagateOnBind(Constraint::Ptr c) {}
+    virtual TLCNode* propagateOnBind(Constraint::Ptr c) { return NULL;}
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EQ
@@ -92,7 +92,7 @@ public:
     void updateVal() override;
     void assign(bool b) override;
     void makePerm() override {}
-    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));}
+   TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));return nullptr;}
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% NEQ
@@ -160,7 +160,7 @@ public:
     void updateVal() override;
     void assign(bool b) override;
     void makePerm() override {}
-    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));}
+    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));return nullptr;}
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GEQ
@@ -228,7 +228,7 @@ public:
     void updateVal() override;
     void assign(bool b) override;
     void makePerm() override {}
-    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));}
+    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));return nullptr;}
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LEQ
@@ -296,7 +296,7 @@ public:
     void updateVal() override;
     void assign(bool b) override;
     void makePerm() override {}
-    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));}
+    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));return nullptr;}
 };
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
