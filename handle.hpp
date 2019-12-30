@@ -36,9 +36,9 @@ public:
    handle_ptr& operator=(const handle_ptr<T>& ptr) { _ptr = ptr._ptr;return *this;}
    handle_ptr& operator=(handle_ptr<T>&& ptr)      { _ptr = std::move(ptr._ptr);return *this;}
    handle_ptr& operator=(T* ptr)                   { _ptr = ptr;return *this;}
-   element_type* get() const noexcept { return _ptr;}
-   element_type* operator->() const noexcept { return _ptr;}
-   element_type& operator*() const noexcept  { return *_ptr;}
+   T* get() const noexcept { return _ptr;}
+   T* operator->() const noexcept { return _ptr;}
+   T& operator*() const noexcept  { return *_ptr;}
    template<typename SET> SET& operator*() const noexcept {return *_ptr;}
    operator bool() const noexcept { return _ptr != nullptr;}
    void dealloc() { delete _ptr;_ptr = nullptr;}

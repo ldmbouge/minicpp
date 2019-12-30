@@ -25,13 +25,13 @@
 class Branches {
    std::vector<std::function<void(void)>> _alts;
 public:
+   Branches(const Branches& b) : _alts(b._alts) {}
    Branches(Branches&& b) : _alts(std::move(b._alts)) {}
    Branches(std::vector<std::function<void(void)>> alts) : _alts(alts) {}
-   Branches(std::initializer_list<std::function<void(void)>> alts) {
-      _alts.insert(_alts.begin(),alts.begin(),alts.end());
-   }
-   auto begin() { return _alts.begin();}
-   auto end()   { return _alts.end();}
+   Branches(std::initializer_list<std::function<void(void)>> alts) { _alts.insert(_alts.begin(),alts.begin(),alts.end());}
+   ~Branches() {}
+   std::vector<std::function<void(void)>>::iterator begin() { return _alts.begin();}
+   std::vector<std::function<void(void)>>::iterator end()   { return _alts.end();}
    size_t size() const { return _alts.size();}
 };
 

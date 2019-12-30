@@ -128,7 +128,7 @@ public:
          _n((int)x.size() + 1),
          _unBounds(_n)
     {
-       for(auto i=0;i < x.size();i++)
+       for(decltype(_x)::size_type i=0;i < x.size();i++)
           _x[i] = x[i];
        _x[_n-1] = Factory::minus(s);
        for(auto i=0; i < _n;i++)

@@ -18,42 +18,15 @@
 
 #include <iostream>
 #include <vector>
+#include <functional>
 #include <assert.h>
 #include "avar.hpp"
+#include "varitf.hpp"
 #include "acstr.hpp"
 #include "solver.hpp"
 #include "domain.hpp"
 #include "trailList.hpp"
 #include "matrix.hpp"
-
-template<typename T> class var {};
-
-template<> class var<int> : public AVar {
-public:
-   typedef handle_ptr<var<int>> Ptr;
-   virtual Storage::Ptr getStore() = 0;
-   virtual CPSolver::Ptr getSolver() = 0;
-   virtual int min() const  = 0;
-   virtual int max() const  = 0;
-   virtual int size() const = 0;
-   virtual bool isBound() const = 0;
-   virtual bool contains(int v) const = 0;
-   
-   virtual void assign(int v) = 0;
-   virtual void remove(int v) = 0;
-   virtual void removeBelow(int newMin) = 0;
-   virtual void removeAbove(int newMax) = 0;
-   virtual void updateBounds(int newMin,int newMax) = 0;
-   
-   virtual TLCNode* whenBind(std::function<void(void)>&& f) = 0;
-   virtual TLCNode* whenBoundsChange(std::function<void(void)>&& f) = 0;
-   virtual TLCNode* whenDomainChange(std::function<void(void)>&& f) = 0;
-   virtual TLCNode* propagateOnBind(Constraint::Ptr c)          = 0;
-   virtual TLCNode* propagateOnBoundChange(Constraint::Ptr c)   = 0;
-   virtual TLCNode* propagateOnDomainChange(Constraint::Ptr c ) = 0;
-   virtual std::ostream& print(std::ostream& os) const = 0;
-   friend std::ostream& operator<<(std::ostream& os,const var<int>& x) { return x.print(os);}
-};
 
 class IntVarImpl :public var<int> { 
    CPSolver::Ptr           _solver;
@@ -166,7 +139,7 @@ protected:
    void setId(int id) override { _id = id;}
    int getId() const { return _id;}
 public:
-   IntVarViewMul(const var<int>::Ptr& x,int a) : _x(x),_a(a) { assert(a> 0);}
+   IntVarViewMul(const var<int>::Ptr& x,int a) : _a(a),_x(x) { assert(a> 0);}
    Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
    int min() const  override { return _a * _x->min();}
@@ -210,7 +183,7 @@ protected:
    void setId(int id) override { _id = id;}
    int getId() const { return _id;}
 public:
-    IntVarViewOffset(const var<int>::Ptr& x,int o) : _x(x),_o(o) {}
+   IntVarViewOffset(const var<int>::Ptr& x,int o) : _o(o),_x(x) {}
    Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
    int min() const  override { return _o + _x->min();}
@@ -247,10 +220,16 @@ public:
     var<bool>(CPSolver::Ptr& cps) : IntVarImpl(cps,0,1) {}
     bool isTrue() const { return min()==1;}
     bool isFalse() const { return max()==0;}
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
     void assign(bool b)  { IntVarImpl::assign(b);}
+#pragma clang diagnostic pop
 };
 
 inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
+    return xp->print(os);
+}
+inline std::ostream& operator<<(std::ostream& os,const var<bool>::Ptr& xp) {
     return xp->print(os);
 }
 
@@ -270,6 +249,7 @@ class EVec : public std::vector<T,A> {
    typedef std::vector<T,A> BVec;
 public:
    using BVec::BVec;
+   //EVec() = delete;
    var<int>::Ptr operator[](var<int>::Ptr i) {
       return Factory::elementVar(*this,i);
    }
@@ -282,7 +262,7 @@ namespace Factory {
    using allocb = stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>;
    //using Veci   = std::vector<var<int>::Ptr,alloci>;
    using Veci   = EVec<var<int>::Ptr,alloci>;
-   using Vecb   = std::vector<var<bool>::Ptr,allocb>;
+   using Vecb   = EVec<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);   
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
@@ -310,7 +290,7 @@ namespace Factory {
    Vecb boolVarArray(CPSolver::Ptr cps,int sz);
    template<typename Fun> Veci intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
-      for(int i=0;i < x.size();i++)
+      for(decltype(x)::size_type i=0;i < x.size();i++)
          x[i] = body(i);
       return x;
    }

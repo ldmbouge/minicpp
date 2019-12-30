@@ -88,13 +88,16 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
         stats.incrSolutions();
         notifySolution();
     } else {
-        for(auto& alt : branches) {
+       for(auto& alt : branches) {
             _sm->saveState();
             try {
                 stats.incrNodes();
                 alt();
                 dfs(stats,limit);         
             } catch(Status e) {
+                stats.incrFailures();
+                notifyFailure();
+            } catch(...) {
                 stats.incrFailures();
                 notifyFailure();
             }

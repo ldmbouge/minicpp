@@ -59,13 +59,13 @@ public:
     }
     void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}
     void notifyFixpoint();
-    void tighten();
+   //void tighten();
     void fixpoint(); 
-    void fixpointNT();
+   //void fixpointNT();
     void post(Constraint::Ptr c,bool enforceFixPoint=true);
     void incrNbChoices() { _nbc += 1;}
     void incrNbSol()     { _nbs += 1;}
-    void fail();
+   //void fail();
     friend void* operator new(std::size_t sz,CPSolver::Ptr e);
     friend void* operator new[](std::size_t sz,CPSolver::Ptr e);
     friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {

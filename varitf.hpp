@@ -1,0 +1,40 @@
+#ifndef __VARITF_H
+#define __VARITF_H
+
+#include "avar.hpp"
+#include "store.hpp"
+#include "solver.hpp"
+#include "trailList.hpp"
+
+template<typename T> class var {};
+
+template<> class var<int> : public AVar {
+   friend class Storage;
+public:
+   typedef handle_ptr<var<int>> Ptr;
+   virtual Storage::Ptr getStore() = 0;
+   virtual CPSolver::Ptr getSolver() = 0;
+   virtual int min() const  = 0;
+   virtual int max() const  = 0;
+   virtual int size() const = 0;
+   virtual bool isBound() const = 0;
+   virtual bool contains(int v) const = 0;
+   
+   virtual void assign(int v) = 0;
+   virtual void remove(int v) = 0;
+   virtual void removeBelow(int newMin) = 0;
+   virtual void removeAbove(int newMax) = 0;
+   virtual void updateBounds(int newMin,int newMax) = 0;
+   
+   virtual TLCNode* whenBind(std::function<void(void)>&& f) = 0;
+   virtual TLCNode* whenBoundsChange(std::function<void(void)>&& f) = 0;
+   virtual TLCNode* whenDomainChange(std::function<void(void)>&& f) = 0;
+   virtual TLCNode* propagateOnBind(Constraint::Ptr c)          = 0;
+   virtual TLCNode* propagateOnBoundChange(Constraint::Ptr c)   = 0;
+   virtual TLCNode* propagateOnDomainChange(Constraint::Ptr c ) = 0;
+   virtual std::ostream& print(std::ostream& os) const = 0;
+   friend std::ostream& operator<<(std::ostream& os,const var<int>& x) { return x.print(os);}
+};
+
+
+#endif
