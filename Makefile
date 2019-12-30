@@ -40,20 +40,12 @@ $(PYNAME): pybridge.cpp libcopl.dylib
 	-I/usr/local/Cellar/pybind11/2.4.3/include -L. `python3-config --ldflags` \
 	$< -lcopl -lc++ -o minicpp`python3-config --extension-suffix`
 
-# _minicpp.so : minicpp_wrap.o minicpp.i libcopl.dylib
-# 	$(CC) -dynamiclib `python3-config --cflags --libs` -L. \
-# 	-L/usr/local/Cellar/python/3.7.5/Frameworks/Python.framework/Versions/3.7/lib \
-# 	$(CXXFLAGS) $< -lcopl -lc++ -o$@
-
-# %.cxx : %.i
-# 	swig  -python -c++ $<
-
 %.o : %.cxx
 	@echo "Compiling (CXX)... " $<
 	$(CC) -c $(CXXFLAGS) `python3-config --cflags` $<
 
 clean:
-	rm -rf $(OFILES) cpptest *~ *.d *.o $(LIBNAME)
+	rm -rf $(OFILES) cpptest *~ *.d *.o $(LIBNAME) *.so *.dSYM
 	make -C examples clean
 
 # This imports the dependency header specs.

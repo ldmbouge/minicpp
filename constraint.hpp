@@ -121,15 +121,17 @@ class Sum : public Constraint { // s = Sum({x0,...,xk})
 public:
    template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
        : Constraint(s->getSolver()),
-         //_x(x.size() + 1),
          _x(x.size() + 1,Factory::alloci(s->getStore())), 
          _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
          _sumBounds(s->getSolver()->getStateManager(),0),
          _n((int)x.size() + 1),
          _unBounds(_n)
     {
-       for(decltype(_x)::size_type i=0;i < x.size();i++)
-          _x[i] = x[i];
+       //       for(decltype(_x)::size_type i=0;i < x.size();i++)
+       // _x[i] = x[i];
+       int i = 0;
+       for(auto& xi : x)
+          _x[i++] = xi;
        _x[_n-1] = Factory::minus(s);
        for(auto i=0; i < _n;i++)
           _unBounds[i] = i;
@@ -166,8 +168,9 @@ public:
       : Constraint(x[0]->getSolver()),
         _x(x.size(),Factory::alloci(x[0]->getStore()))
    {
-      for(auto i=0;i < x.size();i++)
-         _x[i] = x[i];
+      int i  = 0;
+      for(auto& xi : x)
+         _x[i++] = xi;
    }
    void post() override;
 };
@@ -202,13 +205,13 @@ class Circuit :public Constraint {
    void setup(CPSolver::Ptr cp);
 public:
    template <class Vec> Circuit(const Vec& x)
-      : Constraint(x[0]->getSolver()),
-        _x(x.size(),Factory::alloci(x[0]->getStore()))
+      : Constraint(x.front()->getSolver()),
+        _x(x.size(),Factory::alloci(x.front()->getStore()))
    {
-      auto cp = x[0]->getSolver();
-      for(auto i=0;i < x.size();i++)
-         _x[i] = x[i];
-      setup(cp);
+      int i = 0;
+      for(auto& xi : x)
+         _x[i++] = xi;
+      setup(x.front()->getSolver());
    }
    void post() override;
 };
@@ -350,7 +353,7 @@ namespace Factory {
     inline var<bool>::Ptr isLarger(var<int>::Ptr x,const int c) {
         return isLargerOrEqual(x , c + 1);
     }
-    template <class Vec> var<int>::Ptr sum(Vec& xs) {
+    template <class Vec> var<int>::Ptr sum(const Vec& xs) {
         int sumMin = 0,sumMax = 0;
         for(const auto& x : xs) {
             sumMin += x->min();
@@ -362,7 +365,7 @@ namespace Factory {
         return s;        
     }
     template <class Vec> Constraint::Ptr sum(const Vec& xs,var<int>::Ptr s) {
-        return new (xs[0]->getSolver()) Sum(xs,s);
+        return new (s->getSolver()) Sum(xs,s);
     }
     template <class Vec> Constraint::Ptr sum(const Vec& xs,int s) {
         auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
@@ -387,6 +390,18 @@ namespace Factory {
    template <class Vec>  Constraint::Ptr circuit(const Vec& xs) {
       return new (xs[0]->getSolver()) Circuit(xs);
    }
+   template <class Vec> Constraint::Ptr element(const Vec& array,var<int>::Ptr y,var<int>::Ptr z) {
+      std::vector<int> flat(array.size());
+      for(int i=0;i < (int)array.size();i++) 
+         flat[i] = array[i];
+      return new (y->getSolver()) Element1D(flat,y,z);
+   }
+   template <class Vec> Constraint::Ptr elementVar(const Vec& xs,var<int>::Ptr y,var<int>::Ptr z) {
+       std::vector<var<int>::Ptr> flat(xs.size());
+       for(int i=0;i<xs.size();i++)
+           flat[i] = xs[i];
+       return new (y->getSolver()) Element1DVar(flat,y,z);
+   }
    inline var<int>::Ptr element(matrix<int,2>& d,var<int>::Ptr x,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       for(int i=0;i<d.size(0);i++)
@@ -398,12 +413,6 @@ namespace Factory {
       x->getSolver()->post(new (x->getSolver()) Element2D(d,x,y,z));
       return z;
     }
-   inline Constraint::Ptr element(const MSlice<int,2,1>& array,var<int>::Ptr y,var<int>::Ptr z) {
-      std::vector<int> flat(array.size());
-      for(int i=0;i < array.size();i++) 
-         flat[i] = array[i];
-      return new (y->getSolver()) Element1D(flat,y,z);
-   }
    template <class Vec> inline var<int>::Ptr element(const Vec& array,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       std::vector<int> flat(array.size());
@@ -415,12 +424,6 @@ namespace Factory {
       auto z = makeIntVar(y->getSolver(),min,max);
       y->getSolver()->post(new (y->getSolver()) Element1D(flat,y,z));
       return z;
-   }
-   template <class Vec> Constraint::Ptr elementVar(const Vec& xs,var<int>::Ptr y,var<int>::Ptr z) {
-       std::vector<var<int>::Ptr> flat(xs.size());
-       for(int i=0;i<xs.size();i++)
-           flat[i] = xs[i];
-       return new (y->getSolver()) Element1DVar(flat,y,z);
    }
    template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;

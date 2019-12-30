@@ -125,7 +125,7 @@ inline typename Container::value_type selectMin(Container& c,Predicate test,Fun 
 
 template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,Container& c) {
     using namespace Factory;
-    return [&]() {
+    return [=]() {
                auto sx = selectMin(c,
                                    [](const auto& x) { return x->size() > 1;},
                                    [](const auto& x) { return x->size();});

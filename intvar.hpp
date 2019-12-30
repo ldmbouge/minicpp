@@ -290,7 +290,7 @@ namespace Factory {
    Vecb boolVarArray(CPSolver::Ptr cps,int sz);
    template<typename Fun> Veci intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
-      for(decltype(x)::size_type i=0;i < x.size();i++)
+      for(int i=0;i < (int)x.size();i++)
          x[i] = body(i);
       return x;
    }

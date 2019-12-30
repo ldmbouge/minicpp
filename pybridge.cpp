@@ -1,6 +1,8 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/operators.h>
 #include <pybind11/functional.h>
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
 
 #include <sstream>
 #include "store.hpp"
@@ -15,9 +17,12 @@ namespace py = pybind11;
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, handle_ptr<T>,true);
 PYBIND11_MAKE_OPAQUE(Factory::Veci);
+//PYBIND11_MAKE_OPAQUE(std::vector<var<int>::Ptr>);
                      
 PYBIND11_MODULE(minicpp,m) {
    m.doc() = "MiniCPP Plugin for Python";
+
+   //py::bind_vector<std::vector<var<int>::Ptr>>(m, "VectorVarInt");
 
    py::register_exception_translator([](std::exception_ptr p) {
                                         try {
@@ -26,8 +31,6 @@ PYBIND11_MODULE(minicpp,m) {
                                            PyErr_SetString(PyExc_RuntimeError, "FAIL");
                                         }
                                      });
-
-   //py::register_exception<Status>(m, "PyStatus");
    
    py::class_<Branches>(m,"Branches")
       .def(py::init<>())
@@ -74,6 +77,10 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__eq__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::equal(a,b,0);},py::is_operator())
       .def("__ne__",[](const var<int>::Ptr& a,int b) { return Factory::operator!=(a,b);},py::is_operator())
       .def("__eq__",[](const var<int>::Ptr& a,int b) { return Factory::operator==(a,b);},py::is_operator())
+      .def("__le__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::operator<=(a,b);},py::is_operator())
+      .def("__ge__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::operator>=(a,b);},py::is_operator())
+      .def("__le__",[](const var<int>::Ptr& a,int b) { return Factory::operator<=(a,b);},py::is_operator())
+      .def("__ge__",[](const var<int>::Ptr& a,int b) { return Factory::operator>=(a,b);},py::is_operator())
       .def("__repr__",[](const var<int>& s) {
                          std::ostringstream str;
                          s.print(str);
@@ -167,7 +174,21 @@ PYBIND11_MODULE(minicpp,m) {
 
    m.def("equal",&Factory::equal);
    m.def("notEqual",&Factory::notEqual);
-
+   m.def("isEqual",&Factory::isEqual);
+   m.def("sum",py::overload_cast<const Factory::Veci&,var<int>::Ptr>(&Factory::sum<Factory::Veci>));
+   m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&,var<int>::Ptr>(&Factory::sum<std::vector<var<int>::Ptr>>));
+   m.def("sum",py::overload_cast<const std::vector<var<bool>::Ptr>&,var<int>::Ptr>(&Factory::sum<std::vector<var<bool>::Ptr>>));
+   m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&,int>(&Factory::sum<std::vector<var<int>::Ptr>>));
+   m.def("sum",py::overload_cast<const std::vector<var<bool>::Ptr>&,int>(&Factory::sum<std::vector<var<bool>::Ptr>>));
+   m.def("sum",py::overload_cast<const Factory::Veci&>(&Factory::sum<Factory::Veci>));
+   
+   m.def("allDifferent",&Factory::allDifferent<std::vector<var<int>::Ptr>>);
+   m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
+   m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
+   m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
+   m.def("minimize",&Factory::minimize);
+   
    m.def("firstFail",&firstFail<Factory::Veci>);
+   m.def("firstFail",&firstFail<std::vector<var<int>::Ptr>>);
    m.def("selectMin",&selectMin<Factory::Veci,std::function<bool(var<int>::Ptr)>,std::function<int(var<int>::Ptr)>>);
 }
