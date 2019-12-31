@@ -25,8 +25,7 @@
 class Branches {
    std::vector<std::function<void(void)>> _alts;
 public:
-   Branches(const Branches& b) : _alts(b._alts) {}
-   Branches(Branches&& b) : _alts(std::move(b._alts)) {}
+   Branches(const Branches& b) : _alts(std::move(b._alts)) {}
    Branches(std::vector<std::function<void(void)>> alts) : _alts(alts) {}
    Branches(std::initializer_list<std::function<void(void)>> alts) { _alts.insert(_alts.begin(),alts.begin(),alts.end());}
    ~Branches() {}
@@ -35,13 +34,14 @@ public:
    size_t size() const { return _alts.size();}
 };
 
-
+/*
 class Chooser {
    std::function<Branches(void)> _sel;
 public:
    Chooser(std::function<Branches(void)> sel) : _sel(sel) {}
    Branches operator()() { return _sel();}
 };
+*/
 
 class SearchStatistics {
     int _nFailures;

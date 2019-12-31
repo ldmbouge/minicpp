@@ -36,7 +36,7 @@ PYBIND11_MODULE(minicpp,m) {
       .def(py::init<>())
       .def(py::init<std::function<void(void)>,std::function<void(void)>>(),py::keep_alive<1,2>());
    
-   py::class_<Chooser>(m,"Chooser");
+   //py::class_<Chooser>(m,"Chooser");
    py::class_<AVar,AVar::Ptr>(m,"AVar");
    py::class_<Constraint,Constraint::Ptr>(m,"Constraint")
       .def("post",&Constraint::post)
@@ -186,15 +186,27 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&,int>(&Factory::sum<std::vector<var<int>::Ptr>>));
    m.def("sum",py::overload_cast<const std::vector<var<bool>::Ptr>&,int>(&Factory::sum<std::vector<var<bool>::Ptr>>));
    m.def("sum",py::overload_cast<const Factory::Veci&>(&Factory::sum<Factory::Veci>));
+   m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&>(&Factory::sum<std::vector<var<int>::Ptr>>));
    
    m.def("allDifferent",&Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
    m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
    m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
+   m.def("element",[](const std::vector<std::vector<int>>& mat,var<int>::Ptr x,var<int>::Ptr y) {
+                      matrix<int,2> d({(int) mat.size(),(int) mat.front().size()});
+                      for(auto i = 0 ; i < mat.size();i++)
+                         for(auto j = 0; j < mat[i].size();j++)
+                            d[i][j] = mat[i][j];
+                      return Factory::element(d,x,y);
+                   });
    m.def("minimize",&Factory::minimize);
    
    m.def("firstFail",&firstFail<Factory::Veci>);
    m.def("firstFail",&firstFail<std::vector<var<int>::Ptr>>);
+   m.def("DFFFail",[](CPSolver::Ptr cp,const Factory::Veci& vars) {
+                      DFSearch search(cp,firstFail(cp,vars));
+                      return search;
+                   });
    m.def("selectMin",&selectMin<Factory::Veci,std::function<bool(var<int>::Ptr)>,std::function<int(var<int>::Ptr)>>);
 }

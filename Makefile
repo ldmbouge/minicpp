@@ -36,7 +36,7 @@ $(LIBNAME): $(OFILES)
 
 
 $(PYNAME): pybridge.cpp libcopl.dylib
-	$(CC) $(CXXFLAGS) -dynamiclib -std=c++14 -I`python3-config --cflags` \
+	$(CC) $(CXXFLAGS) -dynamiclib -std=c++14 -I`python3-config --includes` \
 	-I/usr/local/Cellar/pybind11/2.4.3/include -L. `python3-config --ldflags` \
 	$< -lcopl -lc++ -o minicpp`python3-config --extension-suffix`
 
