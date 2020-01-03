@@ -22,7 +22,6 @@ MDD::MDD(CPSolver::Ptr cp, Factory::Veci iv, bool reduced)
 */
 void MDD::post()
 {
-   this->queue = new std::deque<MDDNode*>;
    this->x = _mddspec.getVars();
    this->numVariables = x.size();
    this->layers = std::vector< std::vector<MDDNode*> > (numVariables+1, std::vector<MDDNode*>(0));
@@ -49,8 +48,8 @@ struct MDDStateHash {
 */
 void MDD::buildDiagram(){
    // Generate Root and Sink Nodes for MDD
-   this->sink = new MDDNode(this->cp, this->trail, this, (int) numVariables, 0);
-   this->root = new MDDNode(this->cp, this->trail, x[0], _mddspec.baseState, this, 0, 0);
+   this->sink = new MDDNode(cp, trail, this, (int) numVariables, 0);
+   this->root = new MDDNode(cp, trail, x[0], _mddspec.baseState, this, 0, 0);
 
    sink->setIsSink(true);
    root->setIsSource(true);
@@ -66,8 +65,8 @@ void MDD::buildDiagram(){
    for(int i = 0; i < numVariables; i++){
       //std::cout << "x[" << i << "] " << x[i] << std::endl;
       //std::cout << "layersize" << layers[i].size() << std::endl;
-      x[i]->propagateOnDomainChange(new MDDRemoval(cp, x[i], this));
-      x[i]->propagateOnDomainChange(new MDDTrim(cp, x[i], this, i));
+      x[i]->propagateOnDomainChange(new (cp) MDDRemoval(cp, x[i], this));
+      x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, x[i], this, i));
       std::unordered_map<MDDState::Ptr,MDDNode*,MDDStateHash> umap(101);
       int lsize = 0;
       for(int v = x[i]->min(); v <= x[i]->max(); v++){
@@ -81,13 +80,7 @@ void MDD::buildDiagram(){
                   auto found = umap.find(state);
                   if (found != umap.end()) {
                      child = found->second;
-                  } /*
-                  for(auto curKid : layers[i+1]) {
-                     if (*state == *curKid->getState()) {
-                        child = curKid;
-                        break;
-                     }
-                     } */
+                  } 
                   if(child == nullptr){
                      child = new MDDNode(this->cp, this->trail, x[i+1], state, this, i+1, lsize);
                      umap.insert({state,child});
@@ -121,7 +114,7 @@ void MDD::buildDiagram(){
 void MDD::trimLayer(int layer){
    for(int i = layerSize[layer].value() - 1; i >= 0; i--){
       if(layers[layer][i]->isActive())
-         layers[layer][i]->trim();
+         layers[layer][i]->trim(x[layer]);
    }
 }
 
@@ -129,22 +122,25 @@ void MDD::trimLayer(int layer){
   MDD::scheduleRemoval(MDDNode*) adds node to removal queue.
 */
 
-void MDD::scheduleRemoval(MDDNode* node){
-   queue->emplace_front(node);
+void MDD::scheduleRemoval(MDDNode* node)
+{
+   queue.push_front(node);
 }
 
 /*
   MDD::startRemoval() removes all nodes waiting in queue.
 */
-void MDD::startRemoval(){
-   while (!queue->empty()) {
-      auto node = queue->front();
-      queue->pop_front();
-      this->removeNode(node);
+void MDD::startRemoval()
+{
+   while (!queue.empty()) {
+      auto node = queue.front();
+      queue.pop_front();
+      removeNode(node);
    }
 }
 
-void MDD::removeNode(MDDNode* node){
+void MDD::removeNode(MDDNode* node)
+{
    node->remove();
    //swap nodes in layer and decrement size of layer
    int l = node->getLayer();

@@ -34,7 +34,7 @@ private:
     std::vector<var<int>::Ptr> x;
     std::vector<std::vector<MDDNode*>> layers;
     std::vector<::trail<int>> layerSize;
-    std::deque<MDDNode*>* queue;
+    std::deque<MDDNode*> queue;
     std::vector<std::vector<::trail<int>>> supports;
     std::vector<int> oft;
     bool reduced = false;
@@ -51,18 +51,18 @@ class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
     MDD* _mdd;
     int _layer;
 public:
-    MDDTrim(CPSolver::Ptr cp, var<int>::Ptr var, MDD* mdd, int layer): Constraint(cp), _var(var), _mdd(mdd), _layer(layer){};
-    void post() override {};
-    void propagate() override { _mdd->trimLayer(_layer);};
+    MDDTrim(CPSolver::Ptr cp, var<int>::Ptr var, MDD* mdd, int layer): Constraint(cp), _var(var), _mdd(mdd), _layer(layer){}
+    void post() override {}
+    void propagate() override { _mdd->trimLayer(_layer);}
 };
 
 class MDDRemoval : public Constraint { //Removes nodes in queue.
     var<int>::Ptr _var;
     MDD* _mdd;
 public:
-    MDDRemoval(CPSolver::Ptr cp, var<int>::Ptr var, MDD* mdd): Constraint(cp), _var(var), _mdd(mdd){};
-    void post() override {};
-    void propagate() override { _mdd->startRemoval();};
+    MDDRemoval(CPSolver::Ptr cp, var<int>::Ptr var, MDD* mdd): Constraint(cp), _var(var), _mdd(mdd){}
+    void post() override {}
+    void propagate() override { _mdd->startRemoval();}
 };
 
 

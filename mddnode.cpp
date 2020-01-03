@@ -15,15 +15,15 @@ MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t, MDD* mdd, int layer, int id)
     isSource = false;
 }
 MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t, ::var<int>::Ptr var, MDDState::Ptr state, MDD* mdd, int layer, int id)
-   : numChildren(t,0), numParents(t,0), var(var), state(state), _active(t, true), mdd(mdd), layer(layer), pos(id)
+   : numChildren(t,0), numParents(t,0), state(state), _active(t, true), mdd(mdd), layer(layer), pos(id)
 {
     isSink = false;
     isSource = false;
 }
 
 //void MDDNode::setNumChildren(int numChildren){ this->numChildren = numChildren; }
-std::vector<MDDEdge*> MDDNode::getChildren(){ return children; }
-std::vector<MDDEdge*> MDDNode::getParents(){ return parents; }
+std::vector<MDDEdge::Ptr> MDDNode::getChildren()  { return children; }
+std::vector<MDDEdge::Ptr> MDDNode::getParents()   { return parents; }
 
 /*
  MDDNode::remove() removes all edges connected to MDDNode and de-activates node.
@@ -44,7 +44,7 @@ void MDDNode::removeChild(int arc){
     mdd->removeSupport(this->layer, children[arc]->getValue());
     
     int lastpos = numChildren - 1;
-    MDDEdge* temp = children[lastpos];
+    MDDEdge::Ptr temp = children[lastpos];
     children[arc]->setChildPosition(lastpos);
     temp->setChildPosition(arc);
     children[lastpos] = children[arc];
@@ -54,7 +54,7 @@ void MDDNode::removeChild(int arc){
     if(numChildren < 1 && isSource)
        failNow();
         
-    if(numChildren < 1 && isActive())
+    if(numChildren < 1 && _active)
         mdd->scheduleRemoval(this);
 }
 
@@ -64,7 +64,7 @@ void MDDNode::removeChild(int arc){
 void MDDNode::removeParent(int arc){
     
     int lastpos = numParents - 1;
-    MDDEdge* temp = parents[lastpos];
+    MDDEdge::Ptr temp = parents[lastpos];
     parents[arc]->setParentPosition(lastpos);
     temp->setParentPosition(arc);
     parents[lastpos] = parents[arc];
@@ -75,7 +75,7 @@ void MDDNode::removeParent(int arc){
     
     if(numParents < 1 && isSink) failNow();
     
-    if(numParents < 1 && isActive())
+    if(numParents < 1 && _active)
         mdd->scheduleRemoval(this);
 }
 
@@ -85,7 +85,7 @@ void MDDNode::removeParent(int arc){
 
 void MDDNode::addArc(MDDNode* child, int v)
 {
-   MDDEdge* e = new MDDEdge(this, child, v, this->numChildren, child->numParents);
+   auto e = std::make_shared<MDDEdge>(this, child, v, this->numChildren, child->numParents);
    this->children.push_back(e);
    this->numChildren = this->numChildren + 1;   
    child->parents.push_back(e);
@@ -106,12 +106,17 @@ bool MDDNode::contains(int v)
 /*
  MDDNode::trim() removes all arcs with values not in the domain of var.
  */
-void MDDNode::trim()
+void MDDNode::trim(var<int>::Ptr x)
 {
    for(int i = this->numChildren - 1; i >= 0 ; i--){
-      if(!var->contains(children[i]->getValue())){
+      if(!x->contains(children[i]->getValue())){
          children[i]->remove();
       }
    }
 }
 
+void MDDEdge::remove()
+{
+   parent->removeChild(childPosition);
+   child->removeParent(parentPosition);
+}

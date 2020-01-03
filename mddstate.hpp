@@ -88,6 +88,10 @@ public:
 };
 
 inline bool operator==(const MDDState& s1,const MDDState& s2) { return s1.operator==(s2);}
+inline bool operator!=(const MDDState& s1,const MDDState& s2) { return s1.operator!=(s2);}
+
+inline bool operator==(const MDDState::Ptr& s1,const MDDState::Ptr& s2) { return s1->operator==(*s2);}
+inline bool operator!=(const MDDState::Ptr& s1,const MDDState::Ptr& s2) { return s1->operator!=(*s2);}
 
 class MDDSpec {
 public:
