@@ -30,17 +30,17 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
     CPSolver::Ptr cp  = Factory::makeSolver();
-   auto v = Factory::intVarArray(cp, 20, 1, 9);
+   auto v = Factory::intVarArray(cp, 50, 1, 9);
    std::set<int> values_1 = {2};
    std::set<int> values_2 = {3};
    std::set<int> values_3 = {4};
    std::set<int> values_4 = {5};
    long start = RuntimeMonitor::cputime();
-   MDDState state;
+   MDDSpec state;
    Factory::amongMDD(state,v, 2, 5, values_1);
    Factory::amongMDD(state,v, 2, 5, values_2);
    Factory::amongMDD(state,v, 3, 5, values_3);
-   Factory::amongMDD(state,v, 3, 5, values_3);
+   Factory::amongMDD(state,v, 3, 5, values_4);
    auto mdd = new MDD(cp, v, false);
    mdd->setState(state);
    mdd->post();
@@ -73,7 +73,7 @@ int main(int argc,char* argv[])
       
       
        auto stat = search.solve([](const SearchStatistics& stats) {
-             return stats.numberOfSolutions() > 1;
+             return stats.numberOfSolutions() > 0;
          });
       cout << stat << endl;
    }

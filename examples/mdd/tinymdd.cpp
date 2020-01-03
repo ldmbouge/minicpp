@@ -33,7 +33,7 @@ int main(int argc,char* argv[])
    std::set<int> values_1 = {2};
    std::set<int> values_2 = {3};
    long start = RuntimeMonitor::cputime();
-   MDDState state;
+   MDDSpec state;
    Factory::amongMDD(state,v, 2, 2, values_1);
    Factory::amongMDD(state,v, 2, 2, values_2);
    auto mdd = new MDD(cp, v, false);

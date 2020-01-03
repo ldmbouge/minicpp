@@ -18,8 +18,8 @@ public:
     MDD(CPSolver::Ptr cp, Factory::Veci intVarArray, bool reduced);
     void saveGraph();
     void post();
-    MDDState getState() { return _mddspec; }
-    void setState(MDDState s){ _mddspec = s; }
+    MDDSpec getState() { return _mddspec; }
+    void setState(MDDSpec s){ _mddspec = s; }
     void trimLayer(int layer);
     void scheduleRemoval(MDDNode*);
     void startRemoval();
@@ -43,7 +43,7 @@ private:
     MDDNode* root = nullptr;
     MDDNode* sink = nullptr;
     var<int>::Ptr objective = nullptr;
-    MDDState _mddspec;
+    MDDSpec _mddspec;
 };
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.

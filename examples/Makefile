@@ -30,7 +30,7 @@ test0: mainCont.o
 	@echo "Linking... " $@
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS)  -o $@
 
-% : %.cpp
+% : %.cpp 
 	@echo "Compile(C++) & Link... " $@
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
 

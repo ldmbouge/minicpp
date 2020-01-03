@@ -36,7 +36,7 @@ int main(int argc,char* argv[])
   std::set<int> values_2 = {2};
   std::set<int> values_rem = {1,3,4};
      
-  MDDState state;
+  MDDSpec state;
   Factory::amongMDD(state, iv, 1, 2, values_5);
   Factory::amongMDD(state, iv, 1, 2, values_2);
   MDD* mdd = new MDD(cp, iv, false);
