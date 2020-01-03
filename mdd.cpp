@@ -7,6 +7,7 @@
 //
 
 #include "mdd.hpp"
+#include <unordered_map>
 
 MDD::MDD(CPSolver::Ptr cp): cp(cp), trail(cp->getStateManager()){}
 
@@ -39,6 +40,10 @@ void MDD::post()
    this->buildDiagram();
 }
 
+struct MDDStateHash {
+   std::size_t operator()(MDDState::Ptr s)  const noexcept { return s->getHash();}
+};
+
 /*
   MDD::buildDiagram builds the diagram with the MDD-based constraints specified in the root state.
 */
@@ -63,24 +68,29 @@ void MDD::buildDiagram(){
       //std::cout << "layersize" << layers[i].size() << std::endl;
       x[i]->propagateOnDomainChange(new MDDRemoval(cp, x[i], this));
       x[i]->propagateOnDomainChange(new MDDTrim(cp, x[i], this, i));
-
+      std::unordered_map<MDDState::Ptr,MDDNode*,MDDStateHash> umap(101);
       int lsize = 0;
       for(int v = x[i]->min(); v <= x[i]->max(); v++){
          if(!x[i]->contains(v)) continue;
          for(int pidx = 0; pidx < layers[i].size(); pidx++){
             MDDNode* parent = layers[i][pidx];
-            auto state = _mddspec.createState(parent->getState(), x[i], v);
+            auto state = _mddspec.createState(parent->getState(), x[i], v);            
             if(state != nullptr){                   
                if(i < numVariables - 1){
                   MDDNode* child = nullptr;
+                  auto found = umap.find(state);
+                  if (found != umap.end()) {
+                     child = found->second;
+                  } /*
                   for(auto curKid : layers[i+1]) {
                      if (*state == *curKid->getState()) {
                         child = curKid;
                         break;
                      }
-                  }
+                     } */
                   if(child == nullptr){
                      child = new MDDNode(this->cp, this->trail, x[i+1], state, this, i+1, lsize);
+                     umap.insert({state,child});
                      layers[i+1].push_back(child);
                      lsize++;
                   }                        

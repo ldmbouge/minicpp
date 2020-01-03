@@ -68,12 +68,14 @@ public:
    int at(int i) const { return _state[i];}
    int operator[](int i) const { return _state[i];}  // to _read_ a state property
    void set(int i,int val) { _state[i] = val;}       // sets a state property 
-   void hash() { 
+   long hash() { 
       long ttl = 0;
       for(auto v : _state)
          ttl = (ttl << 8) + (ttl >> (64 - 8)) + v;
       _hash = ttl;
+      return _hash;
    }
+   long getHash() const noexcept { return _hash;}
    bool operator==(const MDDState& s) const {    // equality test likely O(1) when different. 
       if (_hash == s._hash) {
          bool eq = true;
@@ -84,6 +86,8 @@ public:
    }
    bool operator!=(const MDDState& s) const { return !this->operator==(s);}
 };
+
+inline bool operator==(const MDDState& s1,const MDDState& s2) { return s1.operator==(s2);}
 
 class MDDSpec {
 public:
