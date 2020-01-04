@@ -192,9 +192,14 @@ void MDD::saveGraph()
          auto ch = layers[l][i]->getChildren();
          for(int j = 0; j < nc; j++){
             int count = ch[j]->getChild()->getPosition();
-
-            std::cout << "Layer_" << l << "_" << i << " ->" << "Layer_" << l+1 << "_"
-                      << count << " [ label=\"" << ch[j]->getValue() << "\" ];" << std::endl;
+            if(ch[j]->getParent()->getIsSource())
+               std::cout << "src" << " ->" << "Layer_" << l+1 << "_"
+               << count;
+            else if(ch[j]->getChild()->getIsSink())
+            std::cout << "Layer_" << l << "_" << i << " ->" << "sink";
+            else
+            std::cout << "Layer_" << l << "_" << i << " ->" << "Layer_" << l+1 << "_" << count;
+            std::cout << " [ label=\"" << ch[j]->getValue() << "\" ];" << std::endl;
 
          }
       }
