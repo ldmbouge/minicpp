@@ -42,9 +42,10 @@ int main(int argc,char* argv[])
    mdd->setState(state);
    mdd->post();
    long end = RuntimeMonitor::cputime();
-//   mdd->saveGraph();
+   mdd->saveGraph();
+    std::cout << "VARS: " << v << std::endl;
    std::cout << "Time : " << (end-start) << std::endl;
-
+   
    if(useSearch){
       DFSearch search(cp,[=]() {
           auto x = selectMin(v,

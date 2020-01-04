@@ -101,9 +101,11 @@ void MDD::buildDiagram(){
                   parent->addArc(child, v);
                } else
                   parent->addArc(sink, v);                
-               this->addSupport(i, v);
+               addSupport(i, v);
             }
          }
+         if (getSupport(i,v) == 0)
+             x[i]->remove(v);   
       }
       if(i < numVariables - 1){
          this->layerSize[i+1] = lsize;
@@ -156,6 +158,10 @@ void MDD::removeNode(MDDNode* node)
    layers[l][nodeID]->setPosition(nodeID);
 }
 
+int MDD::getSupport(int layer,int value) const
+{
+    return supports[layer][value - oft[layer]];
+}
 /*
   MDD::addSupport(int layer, int value) increments support for value at specific layer.
 */
@@ -193,12 +199,12 @@ void MDD::saveGraph()
          for(int j = 0; j < nc; j++){
             int count = ch[j]->getChild()->getPosition();
             if(ch[j]->getParent()->getIsSource())
-               std::cout << "src" << " ->" << "Layer_" << l+1 << "_"
-               << count;
+               std::cout << "src" << " ->" << "\"L[" << l+1 << "," << count << "] " << *layers[l+1][count]->getState() <<"\"";
             else if(ch[j]->getChild()->getIsSink())
-            std::cout << "Layer_" << l << "_" << i << " ->" << "sink";
+               std::cout << "\"L[" << l << "," << i << "] " << *layers[l][i]->getState() << "\" ->" << "sink";
             else
-            std::cout << "Layer_" << l << "_" << i << " ->" << "Layer_" << l+1 << "_" << count;
+               std::cout << "\"L[" << l << "," << i << "] " << *layers[l][i]->getState() << "\" ->"
+                         << "\"L[" << l+1 << "," << count << "] " << *layers[l+1][count]->getState() << "\"";
             std::cout << " [ label=\"" << ch[j]->getValue() << "\" ];" << std::endl;
 
          }

@@ -22,6 +22,7 @@ public:
    void setState(MDDSpec s){ _mddspec = s; }
    void trimLayer(int layer);
    void scheduleRemoval(MDDNode*);
+   int getSupport(int layer,int value) const;
    void addSupport(int layer, int value);
    void removeSupport(int layer, int value);
    void removeNode(MDDNode* node);

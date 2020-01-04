@@ -85,6 +85,12 @@ public:
       } else return false;
    }
    bool operator!=(const MDDState& s) const { return !this->operator==(s);}
+   friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
+      os << '[';
+      for(auto v : s._state)
+         os << v << " ";
+      return os << ']';
+   }
 };
 
 inline bool operator==(const MDDState& s1,const MDDState& s2) { return s1.operator==(s2);}
