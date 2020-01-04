@@ -39,6 +39,7 @@ public:
    ~Trailer();
    void trail(Entry* e) { _trail.push(e);}
    typedef handle_ptr<Trailer> Ptr;
+   void resize();
    int magic() const { return _magic;}
    void incMagic() { _magic++;}
    long push();
@@ -56,6 +57,12 @@ public:
 inline void* operator new(std::size_t sz,Trailer::Ptr& e) {
    char* ptr = e->_block + e->_btop;
    e->_btop += sz;
+   if (e->_btop >= e->_bsz) {
+      e->_btop -= sz;
+      e->resize();
+      ptr = e->_block + e->_btop;
+      e->_btop += sz;
+   }
    return ptr;
 }
 

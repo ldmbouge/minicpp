@@ -44,7 +44,9 @@ int main(int argc,char* argv[])
    Factory::amongMDD(state,v, 3, 5, values_4);
    auto mdd = new MDD(cp, v, false);
    mdd->setState(state);
-   mdd->post();
+
+   cp->post(mdd);
+
    long end = RuntimeMonitor::cputime();
 //   mdd->saveGraph();
    std::cout << "Time : " << (end-start) << std::endl;

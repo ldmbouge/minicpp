@@ -29,6 +29,24 @@ Trailer::~Trailer()
    free(_block);
 }
 
+void Trailer::resize()
+{
+   char* nb = (char*)realloc(_block,_bsz << 1);
+   if (nb != _block) {
+      std::stack<Entry*> ns;
+      while(!_trail.empty()) {
+         ns.push((Entry*)(((char*)_trail.top()) - _block + nb));
+         _trail.pop();
+      }
+      while(!ns.empty()) {
+         _trail.push(ns.top());
+         ns.pop();
+      }
+   }
+   _bsz <<= 1;
+   _block = nb;
+}
+
 long Trailer::push()
 {
     ++_magic;
