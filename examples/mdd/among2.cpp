@@ -40,7 +40,9 @@ int main(int argc,char* argv[])
    Factory::amongMDD(state,v, 1, 1, values_2);
    auto mdd = new MDD(cp, v, false);
    mdd->setState(state);
-   mdd->post();
+
+   cp->post(mdd);
+   
    long end = RuntimeMonitor::cputime();
    mdd->saveGraph();
     std::cout << "VARS: " << v << std::endl;
@@ -58,12 +60,17 @@ int main(int argc,char* argv[])
               int c = x->min();
 
               return  [=] {
-                 std::cout << "choice  <" << x << "," << c << ">" << std::endl;
-                  cp->post(x == c);
-                 mdd->saveGraph();
-              }
-              | [=] {
-                  cp->post(x != c);};
+                         std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
+                         cp->post(x == c);
+                         mdd->saveGraph();
+                         std::cout << "VARS: " << v << std::endl;
+                      }
+                 | [=] {
+                      std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
+                      cp->post(x != c);
+                      mdd->saveGraph();                  
+                      std::cout << "VARS: " << v << std::endl;
+                   };
           } else return Branches({});
       });
       

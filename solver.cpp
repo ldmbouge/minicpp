@@ -62,8 +62,7 @@ void CPSolver::fixpoint()
    try {
       notifyFixpoint();
       while (!_queue.empty()) {
-         auto c = _queue.front();
-         _queue.pop_front();
+         auto c = _queue.deQueue();
          c->setScheduled(false);
          if (c->isActive())
             c->propagate();
@@ -71,8 +70,7 @@ void CPSolver::fixpoint()
       assert(_queue.size() == 0);
    } catch(Status x) {
       while (!_queue.empty()) {
-         _queue.front()->setScheduled(false);
-         _queue.pop_front();
+         _queue.deQueue()->setScheduled(false);
       }
       //_queue.clear();
       assert(_queue.size() == 0);

@@ -13,7 +13,9 @@ MDD::MDD(CPSolver::Ptr cp)
    : Constraint(cp),
      cp(cp),
      trail(cp->getStateManager())
-{}
+{
+   setPriority(Constraint::CLOW);
+}
 
 MDD::MDD(CPSolver::Ptr cp, Factory::Veci iv, bool reduced)
    : Constraint(cp),
@@ -21,6 +23,7 @@ MDD::MDD(CPSolver::Ptr cp, Factory::Veci iv, bool reduced)
      reduced(reduced),
      trail(cp->getStateManager())
 {
+   setPriority(Constraint::CLOW);
    for(int i = 0; i < iv.size(); i++)
       x.push_back(iv[i]);   
 }
@@ -120,9 +123,8 @@ void MDD::buildDiagram(){
    propagate();
    for(int i = 0; i < numVariables; i++){
       if (!x[i]->isBound()) {
-         x[i]->propagateOnDomainChange(this);
-         //x[i]->propagateOnDomainChange(new (cp) MDDRemoval(cp,this));
          x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, this,i));
+         x[i]->propagateOnDomainChange(this);
       }
    }
 }
