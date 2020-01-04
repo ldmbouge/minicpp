@@ -47,20 +47,18 @@ private:
 };
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
-    var<int>::Ptr _var;
     MDD* _mdd;
     int _layer;
 public:
-    MDDTrim(CPSolver::Ptr cp, var<int>::Ptr var, MDD* mdd, int layer): Constraint(cp), _var(var), _mdd(mdd), _layer(layer){}
+    MDDTrim(CPSolver::Ptr cp, MDD* mdd, int layer): Constraint(cp), _mdd(mdd), _layer(layer){}
     void post() override {}
     void propagate() override { _mdd->trimLayer(_layer);}
 };
 
 class MDDRemoval : public Constraint { //Removes nodes in queue.
-    var<int>::Ptr _var;
     MDD* _mdd;
 public:
-    MDDRemoval(CPSolver::Ptr cp, var<int>::Ptr var, MDD* mdd): Constraint(cp), _var(var), _mdd(mdd){}
+    MDDRemoval(CPSolver::Ptr cp, MDD* mdd): Constraint(cp), _mdd(mdd) {}
     void post() override {}
     void propagate() override { _mdd->startRemoval();}
 };

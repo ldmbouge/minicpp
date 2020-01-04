@@ -49,7 +49,7 @@ struct MDDStateHash {
 void MDD::buildDiagram(){
    // Generate Root and Sink Nodes for MDD
    this->sink = new MDDNode(cp, trail, this, (int) numVariables, 0);
-   this->root = new MDDNode(cp, trail, x[0], _mddspec.baseState, this, 0, 0);
+   this->root = new MDDNode(cp, trail, _mddspec.baseState, this, 0, 0);
 
    sink->setIsSink(true);
    root->setIsSource(true);
@@ -65,8 +65,8 @@ void MDD::buildDiagram(){
    for(int i = 0; i < numVariables; i++){
       //std::cout << "x[" << i << "] " << x[i] << std::endl;
       //std::cout << "layersize" << layers[i].size() << std::endl;
-      x[i]->propagateOnDomainChange(new (cp) MDDRemoval(cp, x[i], this));
-      x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, x[i], this, i));
+      x[i]->propagateOnDomainChange(new (cp) MDDRemoval(cp, this));
+      x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, this, i));
       std::unordered_map<MDDState::Ptr,MDDNode*,MDDStateHash> umap(101);
       int lsize = 0;
       for(int v = x[i]->min(); v <= x[i]->max(); v++){
@@ -82,7 +82,7 @@ void MDD::buildDiagram(){
                      child = found->second;
                   } 
                   if(child == nullptr){
-                     child = new MDDNode(this->cp, this->trail, x[i+1], state, this, i+1, lsize);
+                     child = new MDDNode(this->cp, this->trail, state, this, i+1, lsize);
                      umap.insert({state,child});
                      layers[i+1].push_back(child);
                      lsize++;

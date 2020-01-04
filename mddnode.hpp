@@ -42,8 +42,8 @@ private:
 class MDDNode {    
 public:
    MDDNode();
-   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t, MDD* mdd, int layer, int id);
-   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t, var<int>::Ptr var, MDDState::Ptr state, MDD* mdd, int layer, int id);
+   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDD* mdd, int layer, int id);
+   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state, MDD* mdd, int layer, int id);
 
    void setIsSink(bool isSink)     { this->isSink = isSink;}
    bool getIsSink() const          { return isSink;}
@@ -70,7 +70,6 @@ public:
 private:
    void setActive(bool b) { _active = b;}
    trail<bool> _active;
-   //var<int>::Ptr var;
    MDD*          mdd;
    bool isSink;
    bool isSource;

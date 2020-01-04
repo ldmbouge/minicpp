@@ -14,7 +14,7 @@ MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t, MDD* mdd, int layer, int id)
     isSink = false;
     isSource = false;
 }
-MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t, ::var<int>::Ptr var, MDDState::Ptr state, MDD* mdd, int layer, int id)
+MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state, MDD* mdd, int layer, int id)
    : numChildren(t,0), numParents(t,0), state(state), _active(t, true), mdd(mdd), layer(layer), pos(id)
 {
     isSink = false;
@@ -86,8 +86,8 @@ void MDDNode::removeParent(int arc){
 void MDDNode::addArc(MDDNode* child, int v)
 {
    auto e = std::make_shared<MDDEdge>(this, child, v, this->numChildren, child->numParents);
-   this->children.push_back(e);
-   this->numChildren = this->numChildren + 1;   
+   children.push_back(e);
+   numChildren = numChildren + 1;   
    child->parents.push_back(e);
    child->numParents = child->numParents + 1;    
 }
