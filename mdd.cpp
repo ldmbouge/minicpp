@@ -9,10 +9,16 @@
 #include "mdd.hpp"
 #include <unordered_map>
 
-MDD::MDD(CPSolver::Ptr cp): cp(cp), trail(cp->getStateManager()){}
+MDD::MDD(CPSolver::Ptr cp)
+   : Constraint(cp),cp(cp),
+     trail(cp->getStateManager())
+{}
 
 MDD::MDD(CPSolver::Ptr cp, Factory::Veci iv, bool reduced)
-   : cp(cp), reduced(reduced), trail(cp->getStateManager())
+   : Constraint(cp),
+     cp(cp),
+     reduced(reduced),
+     trail(cp->getStateManager())
 {
    for(int i = 0; i < iv.size(); i++)
       x.push_back(iv[i]);   
@@ -34,9 +40,17 @@ void MDD::post()
       for(int v = x[i]->min(); v <= x[i]->max(); v++)
          supports[i].emplace_back(trail,0);      
       oft.push_back(x[i]->min());
-   }
-    
+   }    
    this->buildDiagram();
+}
+
+void MDD::propagate() 
+{
+   while (!queue.empty()) {
+      auto node = queue.front();
+      queue.pop_front();
+      removeNode(node);
+   }
 }
 
 struct MDDStateHash {
@@ -59,14 +73,10 @@ void MDD::buildDiagram(){
 
    this->layerSize[0] = 1;
    this->layerSize[numVariables] = 1;
-
    //std::cout << "Num Vars:" << numVariables << std::endl;
-
    for(int i = 0; i < numVariables; i++){
       //std::cout << "x[" << i << "] " << x[i] << std::endl;
       //std::cout << "layersize" << layers[i].size() << std::endl;
-      x[i]->propagateOnDomainChange(new (cp) MDDRemoval(cp, this));
-      x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, this, i));
       std::unordered_map<MDDState::Ptr,MDDNode*,MDDStateHash> umap(101);
       int lsize = 0;
       for(int v = x[i]->min(); v <= x[i]->max(); v++){
@@ -104,39 +114,30 @@ void MDD::buildDiagram(){
          if(!node->getIsSource() && node->getNumParents() < 1) node->remove();
       }
    }
-   this->startRemoval();
+   propagate();
+   for(int i = 0; i < numVariables; i++){
+      if (!x[i]->isBound()) {
+         x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, this,i));
+         x[i]->propagateOnDomainChange(this);
+      }
+   }
 }
 
 /*
   MDD::trimLayer(int layer) trims the nodes to remove arcs that are no longer consistent.
 */
-
-void MDD::trimLayer(int layer){
-   for(int i = layerSize[layer].value() - 1; i >= 0; i--){
-      if(layers[layer][i]->isActive())
-         layers[layer][i]->trim(x[layer]);
-   }
+void MDD::trimLayer(int layer)
+{
+   for(int i = layerSize[layer] - 1; i >= 0; i--) 
+      layers[layer][i]->trim(x[layer]);   
 }
 
 /*
   MDD::scheduleRemoval(MDDNode*) adds node to removal queue.
 */
-
 void MDD::scheduleRemoval(MDDNode* node)
 {
    queue.push_front(node);
-}
-
-/*
-  MDD::startRemoval() removes all nodes waiting in queue.
-*/
-void MDD::startRemoval()
-{
-   while (!queue.empty()) {
-      auto node = queue.front();
-      queue.pop_front();
-      removeNode(node);
-   }
 }
 
 void MDD::removeNode(MDDNode* node)
@@ -144,22 +145,22 @@ void MDD::removeNode(MDDNode* node)
    node->remove();
    //swap nodes in layer and decrement size of layer
    int l = node->getLayer();
-   int lsize = this->layerSize[l].value();
+   int lsize = layerSize[l].value();
    int nodeID = node->getPosition();
-   this->layers[l][nodeID] = this->layers[l][lsize - 1];
-   this->layers[l][lsize - 1] = node;
-   this->layerSize[l] = lsize - 1;
-        
-   this->layers[l][lsize - 1]->setPosition(lsize - 1);
-   this->layers[l][nodeID]->setPosition(nodeID);
+   layers[l][nodeID] = layers[l][lsize - 1];
+   layers[l][lsize - 1] = node;
+   layerSize[l] = lsize - 1;        
+   layers[l][lsize - 1]->setPosition(lsize - 1);
+   layers[l][nodeID]->setPosition(nodeID);
 }
 
 /*
   MDD::addSupport(int layer, int value) increments support for value at specific layer.
 */
 
-void MDD::addSupport(int layer, int value){
-   supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]].value() + 1;
+void MDD::addSupport(int layer, int value)
+{
+   supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]] + 1;
 }
 
 /*
@@ -167,20 +168,20 @@ void MDD::addSupport(int layer, int value){
   If support for a value reaches 0, then value is removed from the domain.
 */
 
-void MDD::removeSupport(int layer, int value){
-   //assert(supports[layer][value - oft[layer]].value() > 0);
-    
-   supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]].value() - 1;
-   if(supports[layer][value - oft[layer]].value() < 1){
-      x[layer]->remove(value);
-   }
+void MDD::removeSupport(int layer, int value)
+{
+   //assert(supports[layer][value - oft[layer]].value() > 0);    
+   supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]] - 1;
+   if(supports[layer][value - oft[layer]] < 1)
+      x[layer]->remove(value);   
 }
 
 /*
   MDD::saveGraph() prints the current state of the MDD to stdout in dot format. 
   Use a graphviz dot graph visualizer to create a graphical view of the diagram.
 */
-void MDD::saveGraph(){    
+void MDD::saveGraph()
+{    
    std::cout << "digraph MDD {" << std::endl;
    for(int l = 0; l < numVariables; l++){
       for(int i = 0; i < layers[l].size(); i++){
@@ -196,6 +197,5 @@ void MDD::saveGraph(){
          }
       }
    }
-   std::cout << "}" << std::endl;
-    
+   std::cout << "}" << std::endl;    
 }

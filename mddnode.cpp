@@ -108,9 +108,11 @@ bool MDDNode::contains(int v)
  */
 void MDDNode::trim(var<int>::Ptr x)
 {
-   for(int i = this->numChildren - 1; i >= 0 ; i--){
-      if(!x->contains(children[i]->getValue())){
-         children[i]->remove();
+   if (_active) {
+      for(int i = this->numChildren - 1; i >= 0 ; i--){
+         if(!x->contains(children[i]->getValue())){
+            children[i]->remove();
+         }
       }
    }
 }
