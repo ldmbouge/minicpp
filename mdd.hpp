@@ -55,4 +55,12 @@ public:
    void propagate() override { _mdd->trimLayer(_layer);}
 };
 
+class MDDRemoval : public Constraint { //Removes nodes in queue.
+   MDD* _mdd;
+public:
+   MDDRemoval(CPSolver::Ptr cp, MDD* mdd): Constraint(cp), _mdd(mdd) {}
+   void post() override {}
+   void propagate() override { _mdd->propagate();}
+};
+
 #endif /* mdd_hpp */
