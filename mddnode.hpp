@@ -18,7 +18,7 @@ class MDD;
 
 class MDDEdge {
 public:
-   typedef std::shared_ptr<MDDEdge> Ptr;
+   typedef handle_ptr<MDDEdge> Ptr;
    MDDEdge(MDDNode* parent, MDDNode* child, int value, int childPosition, int parentPosition)
       : value(value), parent(parent), child(child), childPosition(childPosition), parentPosition(parentPosition)
    {}
@@ -56,7 +56,7 @@ public:
    int getNumParents() const  { return numParents;}
 
    void remove();
-   void addArc(MDDNode* child, int v);
+   void addArc(Storage::Ptr& mem,MDDNode* child, int v);
    void removeParent(int parent);
    void removeChild(int child);
    void trim(var<int>::Ptr x);

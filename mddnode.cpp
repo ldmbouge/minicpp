@@ -83,9 +83,9 @@ void MDDNode::removeParent(int arc){
  MDDNode::addArc(MDDNode* child, MDDNode* parent, int v){}
 */
 
-void MDDNode::addArc(MDDNode* child, int v)
+void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
 {
-   auto e = std::make_shared<MDDEdge>(this, child, v, this->numChildren, child->numParents);
+   MDDEdge::Ptr e = new (mem) MDDEdge(this, child, v, numChildren, child->numParents);
    children.push_back(e);
    numChildren = numChildren + 1;   
    child->parents.push_back(e);

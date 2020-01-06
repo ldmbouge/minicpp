@@ -14,6 +14,7 @@ MDD::MDD(CPSolver::Ptr cp)
      cp(cp),
      trail(cp->getStateManager())
 {
+   mem = new Storage(trail);
    setPriority(Constraint::CLOW);
 }
 
@@ -23,6 +24,7 @@ MDD::MDD(CPSolver::Ptr cp, Factory::Veci iv, bool reduced)
      reduced(reduced),
      trail(cp->getStateManager())
 {
+   mem = new Storage(trail);
    setPriority(Constraint::CLOW);
    for(int i = 0; i < iv.size(); i++)
       x.push_back(iv[i]);   
@@ -66,8 +68,8 @@ struct MDDStateHash {
 */
 void MDD::buildDiagram(){
    // Generate Root and Sink Nodes for MDD
-   this->sink = new MDDNode(cp, trail, this, (int) numVariables, 0);
-   this->root = new MDDNode(cp, trail, _mddspec.baseState, this, 0, 0);
+   this->sink = new (mem) MDDNode(cp, trail, this, (int) numVariables, 0);
+   this->root = new (mem) MDDNode(cp, trail, _mddspec.baseState, this, 0, 0);
 
    sink->setIsSink(true);
    root->setIsSource(true);
@@ -96,14 +98,14 @@ void MDD::buildDiagram(){
                      child = found->second;
                   } 
                   if(child == nullptr){
-                     child = new MDDNode(this->cp, this->trail, state, this, i+1, lsize);
+                     child = new (mem) MDDNode(cp, trail, state, this, i+1, lsize);
                      umap.insert({state,child});
                      layers[i+1].push_back(child);
                      lsize++;
                   }                        
-                  parent->addArc(child, v);
+                  parent->addArc(mem,child, v);
                } else
-                  parent->addArc(sink, v);                
+                  parent->addArc(mem,sink, v);                
                addSupport(i, v);
             }
          }

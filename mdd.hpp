@@ -29,9 +29,9 @@ public:
    void propagate() override;
 private:
    void buildDiagram();
-   Trailer::Ptr trail = nullptr;
-   CPSolver::Ptr cp = nullptr;
-
+   Trailer::Ptr trail;
+   CPSolver::Ptr cp;
+   Storage::Ptr mem;
    std::vector<var<int>::Ptr> x;
    std::vector<std::vector<MDDNode*>> layers;
    std::vector<::trail<int>> layerSize;
