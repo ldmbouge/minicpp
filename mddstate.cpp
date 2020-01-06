@@ -46,12 +46,23 @@ void MDDSpec::addSimilarity(std::function<double(MDDState::Ptr,MDDState::Ptr)> s
 MDDState::Ptr MDDSpec::createState(const MDDState::Ptr& parent, var<int>::Ptr var, int v){
     if(arcLambda(parent, var, v)){
        auto size = parent->size();
-       auto result = std::make_shared<MDDState>(size); 
+       auto result = std::make_shared<MDDState>(size);
        for(int i = 0; i < size; i++) 
-          result->set(i,transistionLambdas[i](parent,var,v));                 
+          result->set(i,transistionLambdas[i](parent,var,v));
        result->hash();
        return result;
     }
     return nullptr;
 }
 
+std::pair<int,int> domRange(Factory::Veci& vars)
+{
+   std::pair<int,int> udom;
+   udom.first = INT_MAX;
+   udom.second = -INT_MAX;
+   for(auto& x : vars){
+      udom.first = (udom.first > x->min()) ? x->min() : udom.first;
+      udom.second = (udom.second < x->max()) ? x->max() : udom.second;
+   }
+   return udom;
+}

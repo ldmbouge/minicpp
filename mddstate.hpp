@@ -151,13 +151,14 @@ public:
    }
 };
 
+std::pair<int,int> domRange(Factory::Veci& vars);
+
 namespace Factory {
 
    inline void amongMDD(MDDSpec& mdd, Factory::Veci x, int lb, int ub, std::set<int> rawValues){
       int stateSize = (int) mdd.baseState->size();
       mdd.append(x);
       ValueSet values(rawValues);
-      std::set<var<int>::Ptr> vars; for(auto e : x) vars.insert(e);
 
       int minC = 0 + stateSize, maxC = 1 + stateSize, rem = 2 + stateSize; //state idx
         
@@ -183,6 +184,29 @@ namespace Factory {
       mdd.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return abs(l->at(maxC) - r->at(maxC)); });
       mdd.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return 0; });
    }
+
+ inline void allDiffMDD(MDDSpec& mdd, Factory::Veci vars){
+    int offset = (int) mdd.baseState->size();
+    mdd.append(vars);
+    auto udom = domRange(vars);
+    int minDom = udom.first, maxDom = udom.second;
+    for(int i = minDom; i <= maxDom; i++)
+       mdd.addState(1);
+      
+    mdd.addArc([=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
+       return p->at(offset+val-minDom);
+    });
+    
+    for(int i = minDom; i <= maxDom; i++){
+       mdd.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
+          return  p->at(offset+i-minDom) && i != val;
+       });
+       mdd.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return l->at(offset+i-minDom) || r->at(offset+i-minDom);});
+       mdd.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return abs(l->at(offset+i-minDom)- r->at(offset+i-minDom)); });
+    }
+ }
 }
+
+
 
 #endif /* mddstate_hpp */
