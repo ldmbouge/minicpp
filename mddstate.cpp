@@ -7,6 +7,7 @@
 //
 
 #include "mddstate.hpp"
+#include <algorithm>
 
 void MDDSpec::append(Factory::Veci y){
     int size = (int) x.size();
