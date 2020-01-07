@@ -13,6 +13,7 @@
 #include "intvar.hpp"
 #include <set>
 #include <cstring>
+#include <map>
 
 
 /*
@@ -126,8 +127,9 @@ private:
    std::vector<std::function<double(MDDState::Ptr, MDDState::Ptr)>> similarityLambdas;
 };
 
+template <typename T>
 class ValueSet {
-   char* _data;
+   T* _data;
    int  _min,_max;
    int  _sz;
 public:
@@ -139,26 +141,41 @@ public:
          _max = _max > v ? _max : v;
       }
       _sz = _max - _min + 1;
-      _data = new char[_sz];
-      memset(_data,0,sizeof(char)*_sz);
+      _data = new T[_sz];
+      memset(_data,0,sizeof(T)*_sz);
       for(auto v : s)
-         _data[v - _min] = 1;
+         _data[v - _min] = (T) 1;
    }
-   bool member(int v) const {
+   ValueSet(int min, int max, T defaut, const std::map<int,T>& s) {
+      _min = min;
+      _max = max;
+      _sz = _max - _min + 1;
+      _data = new T[_sz];
+      memset(_data,defaut,sizeof(T)*_sz);
+      for(auto kv : s)
+         _data[kv.first - min] = kv.second;
+   }
+   bool member(T v) const {
       if (_min <= v && v <= _max)
          return _data[v - _min];
       else return false;
    }
+   const T& operator[](int idx) const{
+      return _data[idx - _min];
+   }
 };
+
+
 
 std::pair<int,int> domRange(const Factory::Veci& vars);
 
 namespace Factory {
 
-   inline void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues){
+   inline void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues)
+{
       int stateSize = (int) mdd.baseState->size();
       mdd.append(x);
-      ValueSet values(rawValues);
+      ValueSet<char> values(rawValues);
 
       int minC = 0 + stateSize, maxC = 1 + stateSize, rem = 2 + stateSize; //state idx
       
@@ -183,7 +200,8 @@ namespace Factory {
       mdd.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return 0; });
    }
 
- inline void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars){
+ inline void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
+{
     int offset = (int) mdd.baseState->size();
     mdd.append(vars);
     auto udom = domRange(vars);
@@ -204,12 +222,13 @@ namespace Factory {
     }
  }
 
-inline void  seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues){
+inline void  seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
+{
    int minFIdx = 0,minLIdx = len-1;
    int maxFIdx = len,maxLIdx = len*2-1;
    int offset = (int) spec.baseState->size();
    spec.append(vars);
-   ValueSet values(rawValues);
+   ValueSet<char> values(rawValues);
    
    spec.addStates(minFIdx,minLIdx,[=] (int i) -> int { return (i - minLIdx); });
    spec.addStates(maxFIdx,maxLIdx,[=] (int i) -> int { return (i - maxLIdx); });
@@ -250,6 +269,46 @@ inline void  seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, in
    for(int i = minFIdx; i <= maxLIdx; i++)
       spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return abs(l->at(i)- r->at(i)); });
 }
+
+
+inline void  gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
+{
+   int offset = (int) spec.baseState->size();
+   spec.append(vars);
+   auto udom = domRange(vars);
+   int domSize = udom.second - udom.first + 1;
+   int minFDom = offset, minLDom = offset + domSize-1;
+   int maxFDom = offset + domSize,maxLDom = offset + domSize*2-1;
+   int minDom = udom.first;
+   ValueSet<int> values(udom.first, udom.second,0,ub);
+   
+   spec.addStates(minFDom, maxLDom, [=] (int i) -> int { return 0; });
+   
+   spec.addArc([=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
+      return p->at(offset + val - minDom) < values[val];
+   });
+
+   for(ORInt i = minFDom; i <= minLDom; i++)
+      spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
+         return  p->at(i) + ((val - minDom) == i);
+      });
+   
+   for(ORInt i = maxFDom; i <= maxLDom; i++)
+   spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
+      return  p->at(i) + ((val - minDom) == (i - domSize));
+   });
+   
+   for(ORInt i = minFDom; i <= minLDom; i++){
+      spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::min(l->at(i),r->at(i));});
+      spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return std::min(l->at(i),r->at(i));});
+   }
+   
+   for(ORInt i = maxFDom; i <= maxLDom; i++){
+      spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::max(l->at(i),r->at(i));});
+      spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return std::max(l->at(i),r->at(i));});
+   }
+}
+
 }
 
 

@@ -1,4 +1,3 @@
-
 /*
  * mini-cp is free software: you can redistribute it and/or modify
  * it under the terms of the GNU Lesser General Public License  v3
@@ -33,18 +32,17 @@ int main(int argc,char* argv[])
     using namespace Factory;
     CPSolver::Ptr cp  = Factory::makeSolver();
 
-    auto v = Factory::intVarArray(cp, 200, 1, 20);
-    std::set<int> values_1 = {2,3,4,5,6};
+    auto v = Factory::intVarArray(cp, 100, 1, 5);
    long start = RuntimeMonitor::cputime();
    MDDSpec state;
-   Factory::seqMDD(state,v,3,2,2,values_1);
+   Factory::gccMDD(state,v, { {5,50} , {4,30}, {2, 20}});
    auto mdd = new MDD(cp, v, false);
    mdd->setState(state);
 
    cp->post(mdd);
    
    long end = RuntimeMonitor::cputime();
-   mdd->saveGraph();
+//   mdd->saveGraph();
     std::cout << "VARS: " << v << std::endl;
    std::cout << "Time : " << (end-start) << std::endl;
    
