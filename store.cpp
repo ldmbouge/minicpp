@@ -44,6 +44,11 @@ std::size_t Storage::capacity() const
    return SEGSIZE;
 }
 
+std::size_t Storage::usage() const
+{
+   return _store.size() * SEGSIZE;
+}
+
 Storage::~Storage()
 {
    _store.clear();

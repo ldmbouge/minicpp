@@ -27,6 +27,7 @@ public:
    void removeSupport(int layer, int value);
    void removeNode(MDDNode* node);
    void propagate() override;
+   std::size_t usage() const { return mem->usage();}
 private:
    void buildDiagram();
    Trailer::Ptr trail;

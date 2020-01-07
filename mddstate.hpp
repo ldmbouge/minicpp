@@ -172,23 +172,22 @@ std::pair<int,int> domRange(const Factory::Veci& vars);
 namespace Factory {
 
    inline void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues)
-{
+   {
       int stateSize = (int) mdd.baseState->size();
       mdd.append(x);
       ValueSet<char> values(rawValues);
-
-      int minC = 0 + stateSize, maxC = 1 + stateSize, rem = 2 + stateSize; //state idx
-      
+      int minC = 0 + stateSize, maxC = 1 + stateSize, rem = 2 + stateSize; //state idx      
       mdd.addStates({0,0,(int) x.size()});
         
       auto a = [=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
-                  return (p->at(minC) + values.member(val) <= ub) && ((p->at(maxC) + values.member(val) +  p->at(rem) - 1) >= lb);
+                  return (p->at(minC) + values.member(val) <= ub) &&
+                     ((p->at(maxC) + values.member(val) +  p->at(rem) - 1) >= lb);
                };
         
       mdd.addArc(a);
         
-      mdd.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int { return p->at(minC) + values.member(val);});
-      mdd.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int { return p->at(maxC) + values.member(val);});
+      mdd.addTransistion([=] (const auto& p,auto var, int val) -> int { return p->at(minC) + values.member(val);});
+      mdd.addTransistion([=] (const auto& p,auto var, int val) -> int { return p->at(maxC) + values.member(val);});
       mdd.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int { return p->at(rem) - 1;});
         
       mdd.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::min(l->at(minC), r->at(minC));});
@@ -200,115 +199,109 @@ namespace Factory {
       mdd.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return 0; });
    }
 
- inline void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
-{
-    int offset = (int) mdd.baseState->size();
-    mdd.append(vars);
-    auto udom = domRange(vars);
-    int minDom = udom.first, maxDom = udom.second;
+   inline void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
+   {
+      int offset = (int) mdd.baseState->size();
+      mdd.append(vars);
+      auto udom = domRange(vars);
+      int minDom = udom.first, maxDom = udom.second;
     
-    mdd.addStates(minDom,maxDom,[=] (int i) -> int { return 1; });
-      
-    mdd.addArc([=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
-       return p->at(offset+val-minDom);
-    });
+      mdd.addStates(minDom,maxDom,[=] (int i) -> int   { return 1; });      
+      mdd.addArc([=] (auto p,auto var,int val) -> bool { return p->at(offset+val-minDom);});
     
-    for(int i = minDom; i <= maxDom; i++){
-       mdd.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
-          return  p->at(offset+i-minDom) && i != val;
-       });
-       mdd.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return l->at(offset+i-minDom) || r->at(offset+i-minDom);});
-       mdd.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return abs(l->at(offset+i-minDom)- r->at(offset+i-minDom)); });
-    }
- }
-
-inline void  seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
-{
-   int minFIdx = 0,minLIdx = len-1;
-   int maxFIdx = len,maxLIdx = len*2-1;
-   int offset = (int) spec.baseState->size();
-   spec.append(vars);
-   ValueSet<char> values(rawValues);
-   
-   spec.addStates(minFIdx,minLIdx,[=] (int i) -> int { return (i - minLIdx); });
-   spec.addStates(maxFIdx,maxLIdx,[=] (int i) -> int { return (i - maxLIdx); });
-   
-   minLIdx += offset; minFIdx+=offset;
-   maxLIdx += offset; maxFIdx+=offset;
-   
-   spec.addArc([=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
-      bool inS = values.member(val);
-      int minv = p->at(maxLIdx) - p->at(minFIdx) + inS;
-         return (p->at(offset) < 0 && minv >= lb && p->at(minLIdx) + inS <= ub) ||  (minv >= lb && p->at(minLIdx) - p->at(maxFIdx) + inS <= ub);
-      });
-   
-   for(int i = minFIdx; i < minLIdx; i++)
-        spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
-            return  p->at(i+1);
-         });
-   
-   spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
-      return  p->at(minLIdx)+values.member(val);
-   });
-   
-   for(int i = maxFIdx; i < maxLIdx; i++)
-      spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
-          return  p->at(i+1);
-       });
-   
-   spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
-      return  p->at(maxLIdx)+values.member(val);
-   });
-   
-   for(int i = minFIdx; i <= minLIdx; i++)
-      spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::min(l->at(i),r->at(i));});
-   
-    for(int i = maxFIdx; i <= maxLIdx; i++)
-       spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::max(l->at(i),r->at(i));});
-   
-   for(int i = minFIdx; i <= maxLIdx; i++)
-      spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return abs(l->at(i)- r->at(i)); });
-}
-
-
-inline void  gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
-{
-   int offset = (int) spec.baseState->size();
-   spec.append(vars);
-   auto udom = domRange(vars);
-   int domSize = udom.second - udom.first + 1;
-   int minFDom = offset, minLDom = offset + domSize-1;
-   int maxFDom = offset + domSize,maxLDom = offset + domSize*2-1;
-   int minDom = udom.first;
-   ValueSet<int> values(udom.first, udom.second,0,ub);
-   
-   spec.addStates(minFDom, maxLDom, [=] (int i) -> int { return 0; });
-   
-   spec.addArc([=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
-      return p->at(offset + val - minDom) < values[val];
-   });
-
-   for(ORInt i = minFDom; i <= minLDom; i++)
-      spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
-         return  p->at(i) + ((val - minDom) == i);
-      });
-   
-   for(ORInt i = maxFDom; i <= maxLDom; i++)
-   spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
-      return  p->at(i) + ((val - minDom) == (i - domSize));
-   });
-   
-   for(ORInt i = minFDom; i <= minLDom; i++){
-      spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::min(l->at(i),r->at(i));});
-      spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return std::min(l->at(i),r->at(i));});
+      for(int i = minDom; i <= maxDom; i++){
+         int idx = offset+i-minDom;
+         mdd.addTransistion([idx,i](const auto& p,auto var, int val) -> int { return  p->at(idx) && i != val;});
+         mdd.addRelaxation([idx](auto l,auto r) -> int { return l->at(idx) || r->at(idx);});
+         mdd.addSimilarity([idx](auto l,auto r) -> double { return abs(l->at(idx)- r->at(idx));});
+      }
    }
-   
-   for(ORInt i = maxFDom; i <= maxLDom; i++){
-      spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::max(l->at(i),r->at(i));});
-      spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return std::max(l->at(i),r->at(i));});
-   }
-}
 
+   inline void  seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
+   {
+      int minFIdx = 0,minLIdx = len-1;
+      int maxFIdx = len,maxLIdx = len*2-1;
+      int offset = (int) spec.baseState->size();
+      spec.append(vars);
+      ValueSet<char> values(rawValues);
+   
+      spec.addStates(minFIdx,minLIdx,[=] (int i) -> int { return (i - minLIdx); });
+      spec.addStates(maxFIdx,maxLIdx,[=] (int i) -> int { return (i - maxLIdx); });
+   
+      minLIdx += offset; minFIdx+=offset;
+      maxLIdx += offset; maxFIdx+=offset;
+   
+      spec.addArc([=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
+                     bool inS = values.member(val);
+                     int minv = p->at(maxLIdx) - p->at(minFIdx) + inS;
+                     return (p->at(offset) < 0 && minv >= lb && p->at(minLIdx) + inS <= ub) ||
+                        (minv >= lb && p->at(minLIdx) - p->at(maxFIdx) + inS <= ub);
+                  });
+   
+      for(int i = minFIdx; i < minLIdx; i++)
+         spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
+                                return  p->at(i+1);
+                             });
+   
+      spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
+                             return  p->at(minLIdx)+values.member(val);
+                          });
+   
+      for(int i = maxFIdx; i < maxLIdx; i++)
+         spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
+                                return  p->at(i+1);
+                             });
+   
+      spec.addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
+                             return  p->at(maxLIdx)+values.member(val);
+                          });
+   
+      for(int i = minFIdx; i <= minLIdx; i++)
+         spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::min(l->at(i),r->at(i));});
+   
+      for(int i = maxFIdx; i <= maxLIdx; i++)
+         spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::max(l->at(i),r->at(i));});
+   
+      for(int i = minFIdx; i <= maxLIdx; i++)
+         spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return abs(l->at(i)- r->at(i)); });
+   }
+
+
+   inline void  gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
+   {
+      int offset = (int) spec.baseState->size();
+      spec.append(vars);
+      auto udom = domRange(vars);
+      int domSize = udom.second - udom.first + 1;
+      int minFDom = offset, minLDom = offset + domSize-1;
+      int maxFDom = offset + domSize,maxLDom = offset + domSize*2-1;
+      int minDom = udom.first;
+      ValueSet<int> values(udom.first, udom.second,0,ub);
+   
+      spec.addStates(minFDom, maxLDom, [=] (int i) -> int { return 0; });
+   
+      spec.addArc([=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
+                     return p->at(offset + val - minDom) < values[val];
+                  });
+
+      for(ORInt i = minFDom; i <= minLDom; i++)
+         spec.addTransistion([=](const auto& p,auto var,int val) -> int { return  p->at(i) + ((val - minDom) == i);});
+   
+      for(ORInt i = maxFDom; i <= maxLDom; i++)
+         spec.addTransistion([=](const auto& p,auto var,int val) -> int {
+                                return  p->at(i) + ((val - minDom) == (i - domSize));
+                             });
+   
+      for(ORInt i = minFDom; i <= minLDom; i++){
+         spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::min(l->at(i),r->at(i));});
+         spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return std::min(l->at(i),r->at(i));});
+      }
+   
+      for(ORInt i = maxFDom; i <= maxLDom; i++){
+         spec.addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return std::max(l->at(i),r->at(i));});
+         spec.addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return std::max(l->at(i),r->at(i));});
+      }
+   }
 }
 
 

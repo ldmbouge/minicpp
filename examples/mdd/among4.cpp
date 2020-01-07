@@ -31,7 +31,7 @@ int main(int argc,char* argv[])
     using namespace Factory;
     CPSolver::Ptr cp  = Factory::makeSolver();
 
-    auto v = Factory::intVarArray(cp, 100, 1, 9);
+    auto v = Factory::intVarArray(cp, 200, 1, 9);
    std::set<int> values_1 = {2};
    std::set<int> values_2 = {3};
    std::set<int> values_3 = {4};
@@ -47,6 +47,7 @@ int main(int argc,char* argv[])
 
    cp->post(mdd);
 
+   std::cout << "MDD Usage: " << mdd->usage() << std::endl;
    long end = RuntimeMonitor::cputime();
 //   mdd->saveGraph();
    std::cout << "Time : " << (end-start) << std::endl;

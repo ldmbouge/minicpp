@@ -41,6 +41,7 @@ public:
    void* allocate(std::size_t sz);
    void free(void* ptr) {}
    std::size_t capacity() const;
+   std::size_t usage() const;
 };
 
 inline void* operator new(std::size_t sz,Storage::Ptr store)
