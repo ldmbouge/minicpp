@@ -9,13 +9,11 @@
 #include "mddstate.hpp"
 #include <algorithm>
 
-void MDDSpec::append(Factory::Veci y){
+void MDDSpec::append(const Factory::Veci& y) {
     int size = (int) x.size();
     for(int i = 0; i < y.size(); i++){
-       if(size < 1 || std::find(x.begin(), x.end(), y[i]) == x.end()){
-          var<int>::Ptr temp = y[i];
-          x.push_back(temp);
-       }
+       if(size < 1 || std::find(x.cbegin(), x.cend(), y[i]) == x.cend())
+          x.push_back(y[i]);       
     }
     std::cout << "size of x: " << x.size() << std::endl;
 }
@@ -43,10 +41,10 @@ void MDDSpec::addSimilarity(std::function<double(MDDState::Ptr,MDDState::Ptr)> s
 
 }
 
-MDDState::Ptr MDDSpec::createState(const MDDState::Ptr& parent, var<int>::Ptr var, int v){
+MDDState::Ptr MDDSpec::createState(Storage::Ptr& mem,const MDDState::Ptr& parent, var<int>::Ptr var, int v){
     if(arcLambda(parent, var, v)){
        auto size = parent->size();
-       auto result = std::make_shared<MDDState>(size);
+       MDDState::Ptr result = new (mem) MDDState(size);
        for(int i = 0; i < size; i++) 
           result->set(i,transistionLambdas[i](parent,var,v));
        result->hash();

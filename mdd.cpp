@@ -89,8 +89,8 @@ void MDD::buildDiagram(){
          if(!x[i]->contains(v)) continue;
          for(int pidx = 0; pidx < layers[i].size(); pidx++){
             MDDNode* parent = layers[i][pidx];
-            auto state = _mddspec.createState(parent->getState(), x[i], v);            
-            if(state != nullptr){                   
+            auto state = _mddspec.createState(mem,parent->getState(), x[i], v);            
+            if(state) {                   
                if(i < numVariables - 1){
                   MDDNode* child = nullptr;
                   auto found = umap.find(state);

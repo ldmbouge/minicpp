@@ -71,8 +71,7 @@ void MDDNode::removeParent(int arc){
     parents[arc] = temp;
     
     numParents = numParents - 1;
-    
-    
+        
     if(numParents < 1 && isSink) failNow();
     
     if(numParents < 1 && _active)

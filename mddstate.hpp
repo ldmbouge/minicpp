@@ -9,6 +9,7 @@
 #ifndef mddstate_hpp
 #define mddstate_hpp
 
+#include "handle.hpp"
 #include "intvar.hpp"
 #include <set>
 #include <cstring>
@@ -57,7 +58,7 @@ class MDDState {  // An actual state of an MDDNode.
    std::vector<int> _state;  // the state per. se
    long              _hash;  // a hash value of the state to speed up equality testing. 
 public:
-   typedef std::shared_ptr<MDDState> Ptr;
+   typedef handle_ptr<MDDState> Ptr;
    MDDState() : _state(),_hash(0) {}
    MDDState(size_t sz) : _state(sz),_hash(0) {}
    MDDState(const MDDState& s) : _state(s._state),_hash(s._hash) {}
@@ -85,37 +86,31 @@ public:
          return eq;
       } else return false;
    }
-   bool operator!=(const MDDState& s) const { return !this->operator==(s);}
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << '[';
       for(auto v : s._state)
          os << v << " ";
       return os << ']';
    }
+   friend bool operator==(const MDDState::Ptr& s1,const MDDState::Ptr& s2) { return s1->operator==(*s2);}
 };
-
-inline bool operator==(const MDDState& s1,const MDDState& s2) { return s1.operator==(s2);}
-inline bool operator!=(const MDDState& s1,const MDDState& s2) { return s1.operator!=(s2);}
-
-inline bool operator==(const MDDState::Ptr& s1,const MDDState::Ptr& s2) { return s1->operator==(*s2);}
-inline bool operator!=(const MDDState::Ptr& s1,const MDDState::Ptr& s2) { return s1->operator!=(*s2);}
 
 class MDDSpec {
 public:
-   MDDSpec():arcLambda(nullptr){ this->baseState = std::make_shared<MDDState>();};
+   MDDSpec():arcLambda(nullptr){ this->baseState = new MDDState();};
    void addState(int s) { baseState->addState(s); };
    void addArc(std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> a);
    void addTransistion(std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)> t);
    void addRelaxation(std::function<int(MDDState::Ptr, MDDState::Ptr)>);
    void addSimilarity(std::function<double(MDDState::Ptr, MDDState::Ptr)>);
    
-   MDDState::Ptr createState(const MDDState::Ptr& state, var<int>::Ptr var, int v);
+   MDDState::Ptr createState(Storage::Ptr& mem,const MDDState::Ptr& state, var<int>::Ptr var, int v);
    
    auto getArcs()         { return arcLambda;}
    auto getRelaxations()  { return relaxationLambdas;}
    auto getSimilarities() { return similarityLambdas;}
     
-   void append(Factory::Veci x);
+   void append(const Factory::Veci& x);
    std::vector<var<int>::Ptr> getVars(){ return x; }
    MDDState::Ptr baseState;
 private:

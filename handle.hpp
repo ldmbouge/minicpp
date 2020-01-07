@@ -35,7 +35,7 @@ public:
    template <typename DT> handle_ptr(handle_ptr<DT>&& ptr) noexcept : _ptr(std::move(ptr._ptr)) {}
    handle_ptr& operator=(const handle_ptr<T>& ptr) { _ptr = ptr._ptr;return *this;}
    handle_ptr& operator=(handle_ptr<T>&& ptr)      { _ptr = std::move(ptr._ptr);return *this;}
-   handle_ptr& operator=(T* ptr)                   { _ptr = ptr;return *this;}
+   handle_ptr& operator=(T* ptr)                   { _ptr = ptr;return *this;}   
    element_type* get() const noexcept { return _ptr;}
    element_type* operator->() const noexcept { return _ptr;}
    element_type& operator*() const noexcept  { return *_ptr;}
