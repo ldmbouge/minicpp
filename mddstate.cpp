@@ -46,22 +46,6 @@ void MDDSpec::addRelaxation(std::function<int(MDDState::Ptr,MDDState::Ptr)> r){
 void MDDSpec::addSimilarity(std::function<double(MDDState::Ptr,MDDState::Ptr)> s){
     similarityLambdas.push_back(s);
 }
-void MDDSpec::addTransistions(int from, int to,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int, int)> t){
-   for(int i = from; i <= to; i++)
-      addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
-          return t(p,var,val,i);
-       });
-}
-void MDDSpec::addRelaxations(int from, int to, std::function<int(MDDState::Ptr, MDDState::Ptr, int)> t)
-{
-   for(int i = from; i <= to; i++)
-      addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return t(l,r,i);});
-}
-void MDDSpec::addSimilarities(int from, int to, std::function<double(MDDState::Ptr, MDDState::Ptr,int)> t)
-{
-   for(int i = from; i <= to; i++)
-      addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return t(l,r,i); });
-}
 MDDState::Ptr MDDSpec::createState(Storage::Ptr& mem,const MDDState::Ptr& parent, var<int>::Ptr var, int v){
     if(arcLambda(parent, var, v)){
        auto size = parent->size();
