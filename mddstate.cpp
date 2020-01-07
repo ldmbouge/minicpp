@@ -17,7 +17,16 @@ void MDDSpec::append(const Factory::Veci& y) {
     }
     std::cout << "size of x: " << x.size() << std::endl;
 }
-
+void MDDSpec::addStates(int from, int to, std::function<int(int)> clo)
+{
+   for(int i = from; i <= to; i++)
+      addState(clo(i));
+}
+void MDDSpec::addStates(std::initializer_list<int> inputs)
+{
+   for(auto& v : inputs)
+      addState(v);
+}
 void MDDSpec::addArc(std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> a){
     auto b = arcLambda;
     if(arcLambda == nullptr) {
@@ -30,17 +39,29 @@ void MDDSpec::addArc(std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int
 }
 void MDDSpec::addTransistion(std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)> t){
     transistionLambdas.push_back(t);
-
 }
 void MDDSpec::addRelaxation(std::function<int(MDDState::Ptr,MDDState::Ptr)> r){
     relaxationLambdas.push_back(r);
-
 }
 void MDDSpec::addSimilarity(std::function<double(MDDState::Ptr,MDDState::Ptr)> s){
     similarityLambdas.push_back(s);
-
 }
-
+void MDDSpec::addTransistions(int from, int to,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int, int)> t){
+   for(int i = from; i <= to; i++)
+      addTransistion([=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> int {
+          return t(p,var,val,i);
+       });
+}
+void MDDSpec::addRelaxations(int from, int to, std::function<int(MDDState::Ptr, MDDState::Ptr, int)> t)
+{
+   for(int i = from; i <= to; i++)
+      addRelaxation([=] (MDDState::Ptr l, MDDState::Ptr r) -> int { return t(l,r,i);});
+}
+void MDDSpec::addSimilarities(int from, int to, std::function<double(MDDState::Ptr, MDDState::Ptr,int)> t)
+{
+   for(int i = from; i <= to; i++)
+      addSimilarity([=] (MDDState::Ptr l, MDDState::Ptr r) -> double { return t(l,r,i); });
+}
 MDDState::Ptr MDDSpec::createState(Storage::Ptr& mem,const MDDState::Ptr& parent, var<int>::Ptr var, int v){
     if(arcLambda(parent, var, v)){
        auto size = parent->size();
@@ -53,7 +74,7 @@ MDDState::Ptr MDDSpec::createState(Storage::Ptr& mem,const MDDState::Ptr& parent
     return nullptr;
 }
 
-std::pair<int,int> domRange(Factory::Veci& vars)
+std::pair<int,int> domRange(const Factory::Veci& vars)
 {
    std::pair<int,int> udom;
    udom.first = INT_MAX;
