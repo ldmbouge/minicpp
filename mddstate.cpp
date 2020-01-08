@@ -17,6 +17,13 @@ void MDDSpec::append(const Factory::Veci& y) {
     }
     std::cout << "size of x: " << x.size() << std::endl;
 }
+void MDDSpec::addState(int s)
+{
+   baseState->addState(s);
+   transistionLambdas.push_back(nullptr);
+   relaxationLambdas.push_back(nullptr);
+   similarityLambdas.push_back(nullptr);
+}
 void MDDSpec::addStates(int from, int to, std::function<int(int)> clo)
 {
    for(int i = from; i <= to; i++)
@@ -34,17 +41,25 @@ void MDDSpec::addArc(std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int
     } else {
        arcLambda = [=] (const MDDState::Ptr& p, var<int>::Ptr var, int val) -> bool {
                       return a(p, var, val) && b(p, var, val);
-                   };
+      };
     }
 }
-void MDDSpec::addTransistion(std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)> t){
-    transistionLambdas.push_back(t);
+void MDDSpec::addTransition(int p,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)> t)
+{
+    transistionLambdas[p] = t;
 }
-void MDDSpec::addRelaxation(std::function<int(MDDState::Ptr,MDDState::Ptr)> r){
-    relaxationLambdas.push_back(r);
+void MDDSpec::addRelaxation(int p,std::function<int(MDDState::Ptr,MDDState::Ptr)> r)
+{
+    relaxationLambdas[p] = r;
 }
-void MDDSpec::addSimilarity(std::function<double(MDDState::Ptr,MDDState::Ptr)> s){
-    similarityLambdas.push_back(s);
+void MDDSpec::addSimilarity(int p,std::function<double(MDDState::Ptr,MDDState::Ptr)> s)
+{
+    similarityLambdas[p] = s;
+}
+void MDDSpec::addTransitions(lambdaMap& map)
+{
+     for(auto& kv : map)
+        transistionLambdas[kv.first] = kv.second;
 }
 MDDState::Ptr MDDSpec::createState(Storage::Ptr& mem,const MDDState::Ptr& parent, var<int>::Ptr var, int v){
     if(arcLambda(parent, var, v)){
