@@ -256,8 +256,11 @@ inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
 
 template <class T,class A> inline std::ostream& operator<<(std::ostream& os,const std::vector<T,A>& v) {
    os << '[';
-   for(auto& e : v)
-      os << e << ',';
+   for (int i = 0; i < v.size(); ++i) {
+      os << v[i];
+      if (i != v.size() - 1)
+            os << ", ";
+   }
    return os << '\b' << ']';
 }
 
