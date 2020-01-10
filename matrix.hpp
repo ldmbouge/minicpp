@@ -19,27 +19,37 @@
 #include <vector>
 #include <array>
 #include <functional>
+#include "intvar.hpp"
 
-template <class T,int a> class matrix;
 
-template <class T,int a,int d> class MSlice {
-   matrix<T,a>* _mtx;
+template<class Container,class T,int a> class matrix ;
+template <class Container,class T,int a,int d> class MSlice;
+
+template<class T, int a>
+using
+Matrix  = matrix<std::vector<T>,T,a>;
+
+template<class T, int a, int d>
+using VMSlice = MSlice<std::vector<T>,T,a,d>;
+
+template <class Container,class T,int a,int d> class MSlice {
+   matrix<Container,T,a>* _mtx;
    int         _flat;      
-   MSlice(matrix<T,a>* m,int idx) : _mtx(m),_flat(idx) {}      
+   MSlice(matrix<Container,T,a>* m,int idx) : _mtx(m),_flat(idx) {}
 public:
-   friend class matrix<T,a>;
-   friend class MSlice<T,a,d+1>;
-   MSlice<T,a,d-1> operator[](int i);
-   const MSlice<T,a,d-1> operator[](int i) const;
+   friend class matrix<Container,T,a>;
+   friend class MSlice<Container,T,a,d+1>;
+   MSlice<Container,T,a,d-1> operator[](int i);
+   const MSlice<Container,T,a,d-1> operator[](int i) const;
    int size() const { return _mtx->_dim[a-d];}
 };
-template<class T,int a> class MSlice<T,a,1> { 
-   matrix<T,a>* _mtx;
+template<class Container,class T,int a> class MSlice<Container,T,a,1> {
+   matrix<Container,T,a>* _mtx;
    int        _flat;      
-   friend class MSlice<T,a,2>;
-   MSlice(matrix<T,a>* m,int idx) : _mtx(m),_flat(idx) {}
+   friend class MSlice<Container,T,a,2>;
+   MSlice(matrix<Container,T,a>* m,int idx) : _mtx(m),_flat(idx) {}
 public:        
-   friend class matrix<T,a>;
+   friend class matrix<Container,T,a>;
    T& operator[](int i);
    const T& operator[](int i) const;
    int size() const { return _mtx->_dim[a-1];}
@@ -48,11 +58,22 @@ public:
 // ======================================================================
 // Matrix definition
 
-template<class T,int a> class matrix {
-   std::vector<T>    _data;
+template <typename T>
+using alloct = stl::StackAdapter<T,Storage::Ptr>;
+
+inline int computeSize(int a,std::initializer_list<int> li)
+{
+   int ttl = 1;
+   for(auto e : li)
+      ttl *= e;
+   return ttl;
+}
+
+template<class Container,class T,int a> class matrix {
+   Container    _data;
    std::array<int,a>  _dim;
 public:
-   friend class MSlice<T,a,a-1>;
+   friend class MSlice<Container,T,a,a-1>;
    matrix(std::initializer_list<int> li) {
       std::copy(li.begin(),li.end(),_dim.begin());
       int ttl = 1;
@@ -60,25 +81,29 @@ public:
          ttl *= _dim[i];      
       _data.resize(ttl);
    }
-   const std::vector<T>& flat() const { return _data;}
+   matrix(Storage::Ptr store,std::initializer_list<int> li)
+   : _data(computeSize(a,li) , alloct<T>(store)) {
+      std::copy(li.begin(),li.end(),_dim.begin());
+   }
+   const Container& flat() const { return _data;}
    const int size(int d) const { return _dim[d];}
-   MSlice<T,a,a-1> operator[](int i) { return MSlice<T,a,a-1>(this,i);}
+   MSlice<Container,T,a,a-1> operator[](int i) { return MSlice<Container,T,a,a-1>(this,i);}
 };
 
-template <class T,int a,int d>
-MSlice<T,a,d-1> MSlice<T,a,d>::operator[](int i) {
-   return MSlice<T,a,d-1>(_mtx,_flat * _mtx->_dim[a - d] + i);
+template <class Container,class T,int a,int d>
+MSlice<Container,T,a,d-1> MSlice<Container,T,a,d>::operator[](int i) {
+   return MSlice<Container,T,a,d-1>(_mtx,_flat * _mtx->_dim[a - d] + i);
 }
-template<class T,int a>
-T& MSlice<T,a,1>::operator[](int i) {
+template<class Container,class T,int a>
+T& MSlice<Container,T,a,1>::operator[](int i) {
    return _mtx->_data[_flat * _mtx->_dim[a - 1] + i];
 }
-template <class T,int a,int d>
-const MSlice<T,a,d-1> MSlice<T,a,d>::operator[](int i) const {
-   return MSlice<T,a,d-1>(_mtx,_flat * _mtx->_dim[a - d] + i);
+template <class Container,class T,int a,int d>
+const MSlice<Container,T,a,d-1> MSlice<Container,T,a,d>::operator[](int i) const {
+   return MSlice<Container,T,a,d-1>(_mtx,_flat * _mtx->_dim[a - d] + i);
 }
-template<class T,int a>
-const T& MSlice<T,a,1>::operator[](int i) const {
+template<class Container,class T,int a>
+const T& MSlice<Container,T,a,1>::operator[](int i) const {
    return _mtx->_data[_flat * _mtx->_dim[a - 1] + i];
 }
 

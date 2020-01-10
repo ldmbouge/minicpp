@@ -30,7 +30,7 @@ int main(int argc,char* argv[])
     ifstream data("data/tsp.txt");
     int n;
     data >> n;
-    matrix<int,2> distanceMatrix({n,n});
+    Matrix<int,2> distanceMatrix({n,n});
     for(int i =0;i < n;i++)
        for(int j=0;j < n;j++)
           data >> distanceMatrix[i][j];
