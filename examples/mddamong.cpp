@@ -40,7 +40,7 @@ int main(int argc,char* argv[])
   Factory::amongMDD(state, iv, 1, 2, values_5);
   Factory::amongMDD(state, iv, 1, 2, values_2);
   MDD* mdd = new MDD(cp, iv, false);
-  mdd->setState(state);
+  mdd->setSpec(state);
   mdd->post();
   mdd->saveGraph();
     

@@ -37,7 +37,7 @@ int main(int argc,char* argv[])
    Factory::amongMDD(state,v, 2, 2, values_1);
    Factory::amongMDD(state,v, 2, 2, values_2);
    auto mdd = new MDD(cp, v, false);
-   mdd->setState(state);
+   mdd->setSpec(state);
    mdd->post();
    long end = RuntimeMonitor::cputime();
    std::cout << "Time : " << (end-start) << std::endl;

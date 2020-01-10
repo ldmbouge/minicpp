@@ -37,7 +37,7 @@ int main(int argc,char* argv[])
    Factory::amongMDD(state,v, 2, 2, values_1);
    Factory::amongMDD(state,v, 2, 2, values_2);
    auto mdd = new MDD(cp, v, false);
-   mdd->setState(state);
+   mdd->setSpec(state);
    mdd->post();
    auto sv = Factory::intVarArray(cp,2);
    sv[0] = v[0];

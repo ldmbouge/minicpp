@@ -39,7 +39,7 @@ int main(int argc,char* argv[])
    MDDSpec state;
    Factory::seqMDD(state,v,3,2,2,values_1);
    auto mdd = new MDD(cp, v, false);
-   mdd->setState(state);
+   mdd->setSpec(state);
 
    cp->post(mdd);
    

@@ -9,6 +9,12 @@
 #include "mddstate.hpp"
 #include <algorithm>
 
+MDDSpec::MDDSpec()
+   :arcLambda(nullptr)
+{   
+   baseState = new MDDState();
+};
+
 void MDDSpec::append(const Factory::Veci& y) {
     int size = (int) x.size();
     for(int i = 0; i < y.size(); i++){
@@ -17,13 +23,18 @@ void MDDSpec::append(const Factory::Veci& y) {
     }
     std::cout << "size of x: " << x.size() << std::endl;
 }
-void MDDSpec::addState(int s)
+
+int MDDSpec::addState(int init,int max)
 {
-   baseState->addState(s);
+   int aid = (int)_attrs.size();
+   _attrs.push_back(new MDDPInt(aid,0,init,max));
+   baseState->addState(init);
    transistionLambdas.push_back(nullptr);
    relaxationLambdas.push_back(nullptr);
    similarityLambdas.push_back(nullptr);
+   return aid;
 }
+
 void MDDSpec::addStates(int from, int to, std::function<int(int)> clo)
 {
    for(int i = from; i <= to; i++)
@@ -61,16 +72,38 @@ void MDDSpec::addTransitions(lambdaMap& map)
      for(auto& kv : map)
         transistionLambdas[kv.first] = kv.second;
 }
-MDDState::Ptr MDDSpec::createState(Storage::Ptr& mem,const MDDState::Ptr& parent, var<int>::Ptr var, int v){
+
+MDDState::Ptr MDDSpec::rootState(Storage::Ptr& mem)
+{
+   auto rootState = new (mem) MDDState(size());
+   for(int k=0;k < size();k++) {
+      rootState->set(k,(*baseState)[k]);
+   }
+   std::cout << "ROOT:" << *rootState << std::endl;
+   std::cout << "BASE:" << *baseState << std::endl;
+   return rootState;
+}
+
+MDDState::Ptr MDDSpec::createState(Storage::Ptr& mem,const MDDState::Ptr& parent, var<int>::Ptr var, int v)
+{
     if(arcLambda(parent, var, v)){
        auto size = parent->size();
-       MDDState::Ptr result = new (mem) MDDState(size);
+       MDDState::Ptr result = new (mem) MDDState(_attrs.size());
        for(int i = 0; i < size; i++) 
           result->set(i,transistionLambdas[i](parent,var,v));
        result->hash();
        return result;
     }
     return nullptr;
+}
+
+void MDDSpec::layout()
+{
+   _lsz = 0;
+   for(auto a : _attrs) {
+      a->_ofs = _lsz;
+      _lsz += a->storageSize();
+   }
 }
 
 std::pair<int,int> domRange(const Factory::Veci& vars)

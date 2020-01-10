@@ -68,8 +68,12 @@ struct MDDStateHash {
 */
 void MDD::buildDiagram(){
    // Generate Root and Sink Nodes for MDD
+   _mddspec.layout();
+   std::cout << _mddspec << std::endl;
+   auto rootState = _mddspec.rootState(mem);   
+   
    this->sink = new (mem) MDDNode(cp, trail, this, (int) numVariables, 0);
-   this->root = new (mem) MDDNode(cp, trail, _mddspec.baseState, this, 0, 0);
+   this->root = new (mem) MDDNode(cp, trail, rootState, this, 0, 0);
 
    sink->setIsSink(true);
    root->setIsSource(true);

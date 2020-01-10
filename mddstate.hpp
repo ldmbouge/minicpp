@@ -15,45 +15,45 @@
 #include <cstring>
 #include <map>
 
+class MDDSpec;
 
-/*
-  enum Prop { vec_int , state_int };
+class MDDProperty {
+protected:
+   short _id;
+   unsigned short _ofs;
+   virtual size_t storageSize() const = 0;
+public:
+   typedef handle_ptr<MDDProperty> Ptr;
+   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs) {}
+   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs) {}
+   MDDProperty(short id,unsigned short ofs) : _id(id),_ofs(ofs) {}
+   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; return *this;}
+   virtual int get(char* buf) const = 0;
+   virtual void setInt(char* buf,int v) = 0;
+   virtual void print(std::ostream& os) const  {}
+   friend class MDDSpec;
+};
 
+class MDDPInt :public MDDProperty {
+   int _init;
+   int _max;
+   size_t storageSize() const override     { return sizeof(int);}
+public:
+   typedef handle_ptr<MDDProperty> Ptr;
+   MDDPInt(short id,unsigned short ofs,int init,int max=0x7fffffff)
+      : MDDProperty(id,ofs),_init(init),_max(max) {}
+   int get(char* buf) const override       { return *reinterpret_cast<int*>(buf+_ofs);}
+   void setInt(char* buf,int v) override   { *reinterpret_cast<int*>(buf+_ofs) = v;}  
+   void print(std::ostream& os) const override  {
+      os << "PInt(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
+   }
+   friend class MDDSpec;
+};
 
-  union RType {
-  void* vp;
-  int i;
-  };
-
-  class MDDPropetry {
-  public:
-  MDDPropetry() {}
-  MDDPropetry(int v){ this->value.i = v; type = state_int;}
-  MDDPropetry(std::vector<int> vp){
-  std::vector<int>* v = new std::vector<int>(vp);
-  this->value.vp = v;
-  type = vec_int;
-  }
-  MDDPropetry(const MDDPropetry& p){
-  if(p.type == vec_int){
-  auto vp = static_cast<std::vector<int>*>(p.value.vp);
-  std::vector<int>* v = new std::vector<int>(*vp);
-  this->value.vp = v;
-  this->type = vec_int;
-  }
-  if(p.type == state_int){
-  this->value.i = p.value.i;
-  this->type = state_int;
-  }
-  }
-
-  RType getValue() { return value; }
-  void setValue(int v) { this->value.i = v; }
-  private:
-  RType value;
-  Prop type;
-  };
-*/
+inline std::ostream& operator<<(std::ostream& os,MDDProperty::Ptr p)
+{
+   p->print(os);return os;
+}
 
 class ValueSet {
    char* _data;
@@ -150,11 +150,16 @@ public:
 };
 
 class MDDSpec {
+   std::vector<MDDProperty::Ptr> _attrs;
+   size_t _lsz;
 public:
-   MDDSpec():arcLambda(nullptr){this->baseState = new MDDState();};
-   void addState(int s);
+   MDDSpec();
+   void layout();
+   int addState(int init,int max=0x7fffffff);
    void addStates(int from, int to, std::function<int(int)> clo);
    void addStates(std::initializer_list<int> inputs);
+   auto size() const { return baseState->size();} // should be _attrs
+   
    void addArc(std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> a);
    void addTransition(int,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>);
    void addRelaxation(int,std::function<int(MDDState::Ptr, MDDState::Ptr)>);
@@ -162,6 +167,7 @@ public:
    void addTransitions(std::map<int,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>>& map);
    
    MDDState::Ptr createState(Storage::Ptr& mem,const MDDState::Ptr& state, var<int>::Ptr var, int v);
+   MDDState::Ptr rootState(Storage::Ptr& mem);
    
    auto getArcs()         { return arcLambda;}
    auto getRelaxations()  { return relaxationLambdas;}
@@ -169,8 +175,15 @@ public:
     
    void append(const Factory::Veci& x);
    std::vector<var<int>::Ptr>& getVars(){ return x; }
-   MDDState::Ptr baseState;
+   friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
+      os << "Spec(";
+      for(auto a : s._attrs)
+         os << a << ' ';
+      os << ')';
+      return os;
+   }
 private:
+   MDDState::Ptr baseState;
    std::vector<var<int>::Ptr> x;
    std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> arcLambda;
    std::vector<std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>> transistionLambdas;
@@ -187,11 +200,12 @@ namespace Factory {
 
    inline void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues)
    {
-      int sz = (int) mdd.baseState->size();
+      //int sz = (int) mdd.size();
       mdd.append(x);
       ValueSet values(rawValues);
-      int minC = 0 + sz, maxC = 1 + sz, rem = 2 + sz; //state idx
-      mdd.addStates({0,0,(int) x.size()});
+      const int minC = mdd.addState(0);
+      const int maxC = mdd.addState(0);
+      const int rem  = mdd.addState((int)x.size());
         
       auto a = [=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
                   return (p->at(minC) + values.member(val) <= ub) &&
@@ -200,17 +214,17 @@ namespace Factory {
         
       mdd.addArc(a);
         
-      mdd.addTransition(sz,[=] (const auto& p,auto x, int val) -> int { return p->at(minC) + values.member(val);});
-      mdd.addTransition(sz+1,[=] (const auto& p,auto x, int val) -> int { return p->at(maxC) + values.member(val);});
-      mdd.addTransition(sz+2,[=] (const auto& p,auto x,int val) -> int { return p->at(rem) - 1;});
+      mdd.addTransition(minC,[=] (const auto& p,auto x, int val) -> int { return p->at(minC) + values.member(val);});
+      mdd.addTransition(maxC,[=] (const auto& p,auto x, int val) -> int { return p->at(maxC) + values.member(val);});
+      mdd.addTransition(rem,[=] (const auto& p,auto x,int val) -> int { return p->at(rem) - 1;});
         
-      mdd.addRelaxation(sz,[=](auto l,auto r) -> int { return std::min(l->at(minC), r->at(minC));});
-      mdd.addRelaxation(sz+1,[=](auto l,auto r) -> int { return std::max(l->at(maxC), r->at(maxC));});
-      mdd.addRelaxation(sz+2,[=](auto l,auto r) -> int { return l->at(rem);});
+      mdd.addRelaxation(minC,[=](auto l,auto r) -> int { return std::min(l->at(minC), r->at(minC));});
+      mdd.addRelaxation(maxC,[=](auto l,auto r) -> int { return std::max(l->at(maxC), r->at(maxC));});
+      mdd.addRelaxation(rem ,[=](auto l,auto r) -> int { return l->at(rem);});
 
-      mdd.addSimilarity(sz,[=](auto l,auto r) -> double { return abs(l->at(minC) - r->at(minC)); });
-      mdd.addSimilarity(sz+1,[=](auto l,auto r) -> double { return abs(l->at(maxC) - r->at(maxC)); });
-      mdd.addSimilarity(sz+2,[=] (auto l,auto r) -> double { return 0; });
+      mdd.addSimilarity(minC,[=](auto l,auto r) -> double { return abs(l->at(minC) - r->at(minC)); });
+      mdd.addSimilarity(maxC,[=](auto l,auto r) -> double { return abs(l->at(maxC) - r->at(maxC)); });
+      mdd.addSimilarity(rem ,[=] (auto l,auto r) -> double { return 0; });
    }
 
    inline lambdaMap toDict(int min, int max, std::function<std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>(int)> clo)
@@ -224,7 +238,7 @@ namespace Factory {
 
    inline void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
    {
-      int os = (int) mdd.baseState->size();
+      int os = (int) mdd.size();
       mdd.append(vars);
       auto udom = domRange(vars);
       int minDom = udom.first, maxDom = udom.second;
@@ -245,7 +259,7 @@ namespace Factory {
       
       int minFIdx = 0,minLIdx = len-1;
       int maxFIdx = len,maxLIdx = len*2-1;
-      int os = (int) spec.baseState->size();
+      int os = (int) spec.size();
       spec.append(vars);
       ValueSet values(rawValues);
    
@@ -281,7 +295,7 @@ namespace Factory {
 
    inline void  gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
-      int os = (int) spec.baseState->size();
+      int os = (int) spec.size();
       spec.append(vars);
       auto udom = domRange(vars);
       int domSize = udom.second - udom.first + 1;

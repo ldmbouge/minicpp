@@ -37,7 +37,7 @@ int main(int argc,char* argv[])
    MDDSpec state;
    Factory::allDiffMDD(state,v);
    auto mdd = new MDD(cp, v, false);
-   mdd->setState(state);
+   mdd->setSpec(state);
 
    cp->post(mdd);
    

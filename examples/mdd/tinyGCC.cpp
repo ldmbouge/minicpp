@@ -37,7 +37,7 @@ int main(int argc,char* argv[])
    MDDSpec state;
    Factory::gccMDD(state,v, { {5,50} , {4,30}, {2, 20}});
    auto mdd = new MDD(cp, v, false);
-   mdd->setState(state);
+   mdd->setSpec(state);
 
    cp->post(mdd);
    
