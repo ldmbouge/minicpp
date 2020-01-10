@@ -15,7 +15,7 @@
 #include <cstring>
 #include <map>
 
-class MDDSpec;
+class MDDStateSpec;
 
 class MDDProperty {
 protected:
@@ -28,10 +28,11 @@ public:
    MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs) {}
    MDDProperty(short id,unsigned short ofs) : _id(id),_ofs(ofs) {}
    MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; return *this;}
+   virtual void init(char* buf) const = 0;
    virtual int get(char* buf) const = 0;
    virtual void setInt(char* buf,int v) = 0;
    virtual void print(std::ostream& os) const  {}
-   friend class MDDSpec;
+   friend class MDDStateSpec;
 };
 
 class MDDPInt :public MDDProperty {
@@ -42,12 +43,28 @@ public:
    typedef handle_ptr<MDDProperty> Ptr;
    MDDPInt(short id,unsigned short ofs,int init,int max=0x7fffffff)
       : MDDProperty(id,ofs),_init(init),_max(max) {}
+   void init(char* buf) const override     { *reinterpret_cast<int*>(buf+_ofs) = _init;}
    int get(char* buf) const override       { return *reinterpret_cast<int*>(buf+_ofs);}
    void setInt(char* buf,int v) override   { *reinterpret_cast<int*>(buf+_ofs) = v;}  
    void print(std::ostream& os) const override  {
       os << "PInt(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
    }
-   friend class MDDSpec;
+   friend class MDDStateSpec;
+};
+
+class MDDStateSpec {
+protected:
+   std::vector<MDDProperty::Ptr> _attrs;
+   size_t _lsz;
+public:
+   MDDStateSpec() {}   
+   auto layoutSize() const { return _lsz;}
+   void layout();
+   auto size() const { return _attrs.size();} 
+   virtual int addState(int init,int max=0x7fffffff);
+   void addStates(int from, int to, std::function<int(int)> clo);
+   void addStates(std::initializer_list<int> inputs);
+   friend class MDDState;
 };
 
 inline std::ostream& operator<<(std::ostream& os,MDDProperty::Ptr p)
@@ -108,58 +125,57 @@ public:
    }
 };
 
-class MDDState {  // An actual state of an MDDNode. 
-   std::vector<int> _state;  // the state per. se
+class MDDState {  // An actual state of an MDDNode.
+   MDDStateSpec*     _spec;
+   char*              _mem;
    long              _hash;  // a hash value of the state to speed up equality testing. 
 public:
    typedef handle_ptr<MDDState> Ptr;
-   MDDState() : _state(),_hash(0) {}
-   MDDState(size_t sz) : _state(sz),_hash(0) {}
-   MDDState(const MDDState& s) : _state(s._state),_hash(s._hash) {}
-   MDDState(MDDState&& s) : _state(std::move(s._state)),_hash(s._hash) {}
-   void addState(int s) { _state.push_back(s);}
-   auto size()  const { return _state.size();}
-   auto begin() { return _state.begin();}   // to iterate
-   auto end()   { return _state.end();}
-   int at(int i) const { return _state[i];}
-   int operator[](int i) const { return _state[i];}  // to _read_ a state property
-   void set(int i,int val) { _state[i] = val;}       // sets a state property 
-   long long hash() { 
+   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0) {}
+   MDDState(MDDStateSpec* s,char* b) : _spec(s),_mem(b),_hash(0) {}
+   MDDState(const MDDState& s) : _spec(s._spec),_mem(s._mem),_hash(s._hash) {}
+   void init(int i) const      { _spec->_attrs[i]->init(_mem);}
+   int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
+   int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
+   void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}        // to set a state property 
+   long long hash() {
+      const int nbw = (int)_spec->layoutSize() / 4;
+      int* b = reinterpret_cast<int*>(_mem);
       long long ttl = 0;
-      for(auto v : _state)
-         ttl = (ttl << 8) + (ttl >> (64 - 8)) + v;
+      for(size_t s = 0;s <nbw;s++)
+         ttl = (ttl << 32) + b[s];
       _hash = ttl;
       return _hash;
+      // for(auto v : _state)
+      //    ttl = (ttl << 8) + (ttl >> (64 - 8)) + v;
+      // _hash = ttl;
+      // return _hash;
    }
    long long getHash() const noexcept { return _hash;}
    bool operator==(const MDDState& s) const {    // equality test likely O(1) when different. 
       if (_hash == s._hash) {
-         bool eq = true;
-         for(std::vector<int>::size_type i=0;eq && i < _state.size();i++) 
-            eq = _state[i] == s._state[i];         
-         return eq;
+         return memcmp(_mem,s._mem,_spec->layoutSize())!=0;
+         // bool eq = true;
+         // for(std::vector<int>::size_type i=0;eq && i < _state.size();i++) 
+         //    eq = _state[i] == s._state[i];         
+         // return eq;
       } else return false;
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << '[';
-      for(auto v : s._state)
-         os << v << " ";
+      for(auto atr : s._spec->_attrs)
+         os << atr->get(s._mem) << " ";
       return os << ']';
    }
    friend bool operator==(const MDDState::Ptr& s1,const MDDState::Ptr& s2) { return s1->operator==(*s2);}
 };
 
-class MDDSpec {
-   std::vector<MDDProperty::Ptr> _attrs;
-   size_t _lsz;
+
+
+class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
-   void layout();
-   int addState(int init,int max=0x7fffffff);
-   void addStates(int from, int to, std::function<int(int)> clo);
-   void addStates(std::initializer_list<int> inputs);
-   auto size() const { return baseState->size();} // should be _attrs
-   
+   int addState(int init,int max=0x7fffffff) override;
    void addArc(std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> a);
    void addTransition(int,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>);
    void addRelaxation(int,std::function<int(MDDState::Ptr, MDDState::Ptr)>);
@@ -183,7 +199,6 @@ public:
       return os;
    }
 private:
-   MDDState::Ptr baseState;
    std::vector<var<int>::Ptr> x;
    std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> arcLambda;
    std::vector<std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>> transistionLambdas;
