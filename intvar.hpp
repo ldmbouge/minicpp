@@ -250,7 +250,7 @@ template <class T,class A> inline std::ostream& operator<<(std::ostream& os,cons
       if (i != v.size() - 1)
             os << ", ";
    }
-   return os << '\b' << ']';
+   return os << ']';
 }
 
 namespace Factory {

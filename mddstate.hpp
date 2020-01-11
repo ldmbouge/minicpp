@@ -66,7 +66,7 @@ public:
    void setInt(char* buf,int v) override   { buf[_ofs] = v;}  
    void setByte(char* buf,unsigned char v) override { buf[_ofs] = v;}  
    void print(std::ostream& os) const override  {
-      os << "PByte(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
+      os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
    friend class MDDStateSpec;
 };
