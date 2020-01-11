@@ -31,7 +31,7 @@ int main(int argc,char* argv[])
     const int sumResult = n * (n * n + 1) / 2;
     
     CPSolver::Ptr cp  = Factory::makeSolver();
-    matrix<var<int>::Ptr,2> x({n,n});
+    Matrix<var<int>::Ptr,2> x({n,n});
     for(int i=0;i < n;i++)
        for(int j=0;j < n;j++)
           x[i][j] = Factory::makeIntVar(cp,1,n*n);

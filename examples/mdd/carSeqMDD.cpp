@@ -30,6 +30,10 @@
 #include "mdd.hpp"
 #include "RuntimeMonitor.hpp"
 
+
+using namespace std;
+using namespace Factory;
+
 class Instance
 {
 private :
@@ -43,6 +47,9 @@ private :
    
 public:
    Instance(int nc, int no, int ncof, std::vector<int>& lb, std::vector<int>& ub,  std::vector<int>& demand,  std::vector<std::vector<int>>& require) : _nbCars(nc), _nbOpts(no), _nbConf(ncof), _lb(lb), _ub(ub), _demand(demand), _require(require) {}
+   inline int nbCars() const { return _nbCars;}
+   inline int nbOpts() const { return _nbOpts;}
+   inline int nbConf() const { return _nbConf;}
    std::set<int> options()
    {
       std::set<int> opts;
@@ -60,6 +67,7 @@ public:
             ca.push_back(c);
       return ca;
    }
+   int demand(int i) {return _demand[i];}
     friend std::ostream &operator<<(std::ostream &output, const Instance& i)
    {
       output << "{" << std::endl;
@@ -136,10 +144,59 @@ Instance Instance::readData(const char* filename)
    }else
       throw;
 }
+std::map<int,int> tomap(int min, int max,std::function<int(int)> clo)
+{
+   std::map<int,int> r;
+   for(int i = min; i <= max; i++)
+      r[i] = clo(i);
+   return r;
+}
+void buildModel(CPSolver::Ptr cp, Instance& in)
+{
+   auto cars = in.cars();
+   auto options = in.options();
+   auto vars = Factory::intVarArray(cp, in.nbConf(), 0, (int) cars.size()-1);
+   auto setup = Factory::boolVarArray(cp,(int)(cars.size()*options.size()));
+   for(int i = 0; i < setup.size(); i++)
+      setup[i] = makeBoolVar(cp);
+   MDDSpec spec;
+   gccMDD(spec, vars, tomap(0, (int)(vars.size()-1),[&in] (int i) -> int {return in.demand(i);}));
+   
+   DFSearch search(cp,[=]() {
+       auto x = selectMin(vars,
+                          [](const auto& x) { return x->size() > 1;},
+                          [](const auto& x) { return x->size();});
+       if (x) {
+           int c = x->min();
+
+           return  [=] {
+               cp->post(x == c);}
+           | [=] {
+               cp->post(x != c);};
+       } else return Branches({});
+   });
+   
+   search.onSolution([&vars]() {
+       std::cout << "Assignment:" << std::endl;
+      std::cout << vars << std::endl;
+   });
+   
+   auto stat = search.solve();
+   cout << stat << endl;
+}
+
 
 int main(int argc,char* argv[])
 {
    const char* filename = "/Users/zitoun/Desktop/datao";
-   std::cout << Instance::readData(filename);
+   try {
+      Instance in = Instance::readData(filename);
+      std::cout << in << std::endl;
+      CPSolver::Ptr cp  = Factory::makeSolver();
+      buildModel(cp,in);
+   } catch (std::exception e) {
+      std::cerr << "Unable to find the file" << std::endl;
+   }
+   
     return 0;
 }

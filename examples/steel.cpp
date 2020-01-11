@@ -58,7 +58,7 @@ int main(int argc,char* argv[])
     auto x = Factory::intVarArray(cp,nOrder,nSlab);
     auto l = Factory::intVarArray(cp,nSlab,maxCapa + 1);
 
-    matrix<var<bool>::Ptr,2> inSlab({nSlab,nOrder});
+    Matrix<var<bool>::Ptr,2> inSlab({nSlab,nOrder});
     for(int j=0;j < nSlab;j++)
        for(int i=0;i < nOrder;i++)
           inSlab[j][i] = isEqual(x[i],j);

@@ -9,10 +9,11 @@
 #include "mddstate.hpp"
 #include <algorithm>
 
-void MDDSpec::append(const Factory::Veci& y) {
-    int size = (int) x.size();
+
+void MDDSpec::append(const Factory::Veci& y)
+{
     for(int i = 0; i < y.size(); i++){
-       if(size < 1 || std::find(x.cbegin(), x.cend(), y[i]) == x.cend())
+       if(std::find(x.cbegin(), x.cend(), y[i]) == x.cend())
           x.push_back(y[i]);       
     }
     std::cout << "size of x: " << x.size() << std::endl;
