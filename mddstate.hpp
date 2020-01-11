@@ -11,6 +11,7 @@
 
 #include "handle.hpp"
 #include "intvar.hpp"
+#include "utilities.hpp"
 #include <set>
 #include <cstring>
 #include <map>
@@ -35,6 +36,10 @@ public:
    virtual void print(std::ostream& os) const  {}
    friend class MDDStateSpec;
 };
+
+namespace Factory {
+   inline MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max=0x7fffffff);
+}
 
 class MDDPInt :public MDDProperty {
    int _init;
@@ -79,7 +84,7 @@ public:
    MDDStateSpec() {}   
    auto layoutSize() const { return _lsz;}
    void layout();
-   auto size() const { return _attrs.size();} 
+   auto size() const { return _attrs.size();}
    virtual int addState(int init,int max=0x7fffffff);
    void addStates(int from, int to, std::function<int(int)> clo);
    void addStates(std::initializer_list<int> inputs);
@@ -90,72 +95,6 @@ inline std::ostream& operator<<(std::ostream& os,MDDProperty::Ptr p)
 {
    p->print(os);return os;
 }
-
-class ValueSet {
-   char* _data;
-   int  _min,_max;
-   int  _sz;
-public:
-ValueSet(const std::set<int>& s) {
-   _min = *s.begin();
-   _max = *s.begin();
-   for(auto v : s) {
-      _min = _min < v ? _min : v;
-      _max = _max > v ? _max : v;
-   }
-   _sz = _max - _min + 1;
-   _data = new char[_sz];
-   memset(_data,0,sizeof(char)*_sz);
-   for(auto v : s)
-      _data[v - _min] = 1;
-}
-   ValueSet(const Factory::Veci& s) {
-   _min = s[0]->getId();
-   _max = s[0]->getId();
-   for(auto v : s) {
-      _min = _min < v->getId() ? _min : v->getId();
-      _max = _max > v->getId() ? _max : v->getId();
-   }
-   _sz = _max - _min + 1;
-   _data = new char[_sz];
-   memset(_data,0,sizeof(char)*_sz);
-   for(auto v : s)
-      _data[v->getId() - _min] = 1;
-}
-   bool member(int v) const {
-      if (_min <= v && v <= _max)
-         return _data[v - _min];
-      else return false;
-   }
-};
-
-template <typename T>
-class ValueMap {
-   T* _data;
-   int  _min,_max;
-   int  _sz;
-public:
-   ValueMap(int min, int max, T defaut, const std::map<int,T>& s) {
-      _min = min;
-      _max = max;
-      _sz = _max - _min + 1;
-      _data = new T[_sz];
-      memset(_data,defaut,sizeof(T)*_sz);
-      for(auto kv : s)
-         _data[kv.first - min] = kv.second;
-   }
-   ValueMap(int min, int max, std::function<T(int)>& clo){
-      _min = min;
-      _max = max;
-      _sz = _max - _min + 1;
-      _data = new T[_sz];
-      for(int i = min; i <= max; i++)
-         _data[i-_min] = clo(i);
-   }
-   const T& operator[](int idx) const{
-      return _data[idx - _min];
-   }
-};
 
 class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
@@ -200,6 +139,7 @@ class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
    int addState(int init,int max=0x7fffffff) override;
+   int addState(int init,size_t max) {return addState(init,(int)max);}
    void addArc(std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> a);
    void addTransition(int,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>);
    void addRelaxation(int,std::function<int(MDDState::Ptr, MDDState::Ptr)>);

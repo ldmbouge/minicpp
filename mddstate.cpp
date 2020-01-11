@@ -9,16 +9,27 @@
 #include "mddstate.hpp"
 #include <algorithm>
 
+namespace Factory {
+   MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max)
+   {
+      MDDProperty::Ptr rv;
+      if (max <= 255)
+         rv = new MDDPByte(id,ofs,init,max);
+      else
+         rv = new MDDPInt(id,ofs,init,max);
+      return rv;
+   }
+}
+
 MDDSpec::MDDSpec()
    :arcLambda(nullptr)
 {}
 
 void MDDSpec::append(const Factory::Veci& y)
 {
-    for(int i = 0; i < y.size(); i++){
-       if(std::find(x.cbegin(), x.cend(), y[i]) == x.cend())
-          x.push_back(y[i]);       
-    }
+    for(auto e : y)
+       if(std::find(x.cbegin(),x.cend(),e) == x.cend())
+          x.push_back(e);
     std::cout << "size of x: " << x.size() << std::endl;
 }
 
@@ -34,10 +45,7 @@ void MDDStateSpec::layout()
 int MDDStateSpec::addState(int init,int max)
 {
    int aid = (int)_attrs.size();
-   if (max <= 255)
-      _attrs.push_back(new MDDPByte(aid,0,init,max));
-   else
-      _attrs.push_back(new MDDPInt(aid,0,init,max));
+   _attrs.push_back(Factory::makeProperty(aid, 0, init, max));
    return aid;
 } 
 
@@ -128,9 +136,9 @@ namespace Factory {
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
       mdd.append(x);
       ValueSet values(rawValues);
-      const int minC = mdd.addState(0,(int)x.size());
-      const int maxC = mdd.addState(0,(int)x.size());
-      const int rem  = mdd.addState((int)x.size(),(int)x.size());
+      const int minC = mdd.addState(0,x.size());
+      const int maxC = mdd.addState(0,x.size());
+      const int rem  = mdd.addState((int)x.size(),x.size());
         
       auto a = [=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
                   return (p->at(minC) + values.member(val) <= ub) &&
@@ -139,17 +147,17 @@ namespace Factory {
         
       mdd.addArc(a);
         
-      mdd.addTransition(minC,[=] (const auto& p,auto x, int val) -> int { return p->at(minC) + values.member(val);});
-      mdd.addTransition(maxC,[=] (const auto& p,auto x, int val) -> int { return p->at(maxC) + values.member(val);});
-      mdd.addTransition(rem,[=] (const auto& p,auto x,int val) -> int { return p->at(rem) - 1;});
+      mdd.addTransition(minC,[minC,values] (const auto& p,auto x, int v) -> int { return p->at(minC) + values.member(v);});
+      mdd.addTransition(maxC,[maxC,values] (const auto& p,auto x, int v) -> int { return p->at(maxC) + values.member(v);});
+      mdd.addTransition(rem,[rem] (const auto& p,auto x,int v) -> int { return p->at(rem) - 1;});
       
-      mdd.addRelaxation(minC,[=](auto l,auto r) -> int { return std::min(l->at(minC), r->at(minC));});
-      mdd.addRelaxation(maxC,[=](auto l,auto r) -> int { return std::max(l->at(maxC), r->at(maxC));});
-      mdd.addRelaxation(rem ,[=](auto l,auto r) -> int { return l->at(rem);});
+      mdd.addRelaxation(minC,[minC](auto l,auto r) -> int { return std::min(l->at(minC), r->at(minC));});
+      mdd.addRelaxation(maxC,[maxC](auto l,auto r) -> int { return std::max(l->at(maxC), r->at(maxC));});
+      mdd.addRelaxation(rem ,[rem](auto l,auto r) -> int { return l->at(rem);});
       
-      mdd.addSimilarity(minC,[=](auto l,auto r) -> double { return abs(l->at(minC) - r->at(minC)); });
-      mdd.addSimilarity(maxC,[=](auto l,auto r) -> double { return abs(l->at(maxC) - r->at(maxC)); });
-      mdd.addSimilarity(rem ,[=] (auto l,auto r) -> double { return 0; });
+      mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l->at(minC) - r->at(minC)); });
+      mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l->at(maxC) - r->at(maxC)); });
+      mdd.addSimilarity(rem ,[rem] (auto l,auto r) -> double { return 0; });
    }
 
    void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
@@ -159,7 +167,7 @@ namespace Factory {
       auto udom = domRange(vars);
       int minDom = udom.first, maxDom = udom.second;
     
-      mdd.addStates(minDom,maxDom,[=] (int i) -> int   { return 1; });      
+      mdd.addStates(minDom,maxDom,[] (int i) -> int   { return 1;});
       mdd.addArc([=] (auto p,auto var,int val) -> bool { return p->at(os+val-minDom);});
       
       for(int i = minDom; i <= maxDom; i++){
