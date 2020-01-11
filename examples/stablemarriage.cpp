@@ -30,8 +30,8 @@ int main(int argc,char* argv[])
     ifstream data("data/stable_marriage.txt");
     int n;
     data >> n;
-    matrix<int,2> rankWomen({n,n}); 
-    matrix<int,2> rankMen({n,n});
+    Matrix<int,2> rankWomen({n,n});
+    Matrix<int,2> rankMen({n,n});
     for(int i =0;i < n;i++)
        for(int j=0;j < n;j++)
           data >> rankWomen[i][j];
@@ -39,7 +39,7 @@ int main(int argc,char* argv[])
        for(int j=0;j < n;j++)
           data >> rankMen[i][j];
 
-    CPSolver::Ptr cp  = Factory::makeSolver();
+   CPSolver::Ptr cp  = Factory::makeSolver();
     auto wife    = Factory::intVarArray(cp,n,n);
     auto husband = Factory::intVarArray(cp,n,n);
     auto wifePref = Factory::intVarArray(cp,n,n+1); 

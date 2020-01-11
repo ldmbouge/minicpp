@@ -29,7 +29,12 @@
 template<typename T> class var {};
 
 template<> class var<int> : public AVar {
+private:
+   int _id;
+protected:
+    void setId(int id) override { _id = id;}
 public:
+   int getId() const { return _id;}
    typedef handle_ptr<var<int>> Ptr;
    virtual Storage::Ptr getStore() = 0;
    virtual CPSolver::Ptr getSolver() = 0;
@@ -59,7 +64,6 @@ class IntVarImpl :public var<int> {
    CPSolver::Ptr           _solver;
    BitDomain::Ptr             _dom;
    //SparseSetDomain::Ptr       _dom;  // used to be BitDomain::Ptr
-   int                         _id;
    trailList<Constraint::Ptr> _onBindList;
    trailList<Constraint::Ptr> _onBoundsList;
    trailList<Constraint::Ptr> _onDomList;
@@ -73,9 +77,6 @@ class IntVarImpl :public var<int> {
       void changeMax() override;      
    };
    DomainListener*       _domListener;
-protected:
-    void setId(int id) override { _id = id;}
-    int getId() const { return _id;}
 public:
     IntVarImpl(CPSolver::Ptr& cps,int min,int max);
     IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
@@ -113,11 +114,7 @@ public:
 };
 
 class IntVarViewOpposite :public var<int> {
-   int _id;
    var<int>::Ptr _x;
-protected:
-   void setId(int id) override { _id = id;}
-   int getId() const { return _id;}
 public:
    IntVarViewOpposite(const var<int>::Ptr& x) : _x(x) {}
    Storage::Ptr getStore() override   { return _x->getStore();}
@@ -159,12 +156,8 @@ static inline int ceilDiv(int a,int b) {
 }
 
 class IntVarViewMul :public var<int> {
-   int _id;
    int _a;
    var<int>::Ptr _x;
-protected:
-   void setId(int id) override { _id = id;}
-   int getId() const { return _id;}
 public:
    IntVarViewMul(const var<int>::Ptr& x,int a) : _x(x),_a(a) { assert(a> 0);}
    Storage::Ptr getStore() override   { return _x->getStore();}
@@ -203,12 +196,8 @@ public:
 };
 
 class IntVarViewOffset :public var<int> {
-   int _id;
    int _o;
    var<int>::Ptr _x;
-protected:
-   void setId(int id) override { _id = id;}
-   int getId() const { return _id;}
 public:
     IntVarViewOffset(const var<int>::Ptr& x,int o) : _x(x),_o(o) {}
    Storage::Ptr getStore() override   { return _x->getStore();}

@@ -28,6 +28,7 @@ public:
    void removeNode(MDDNode* node);
    void propagate() override;
    std::size_t usage() const { return mem->usage();}
+   unsigned long nbLayers() const { return numVariables;}
 private:
    void buildDiagram();
    Trailer::Ptr trail;

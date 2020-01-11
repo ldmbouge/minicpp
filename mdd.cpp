@@ -75,9 +75,6 @@ void MDD::buildDiagram(){
    this->sink = new (mem) MDDNode(cp, trail, this, (int) numVariables, 0);
    this->root = new (mem) MDDNode(cp, trail, rootState, this, 0, 0);
 
-   sink->setIsSink(true);
-   root->setIsSource(true);
-
    layers[0].push_back(this->root);
    layers[numVariables].push_back(sink);
 
@@ -116,14 +113,18 @@ void MDD::buildDiagram(){
          if (getSupport(i,v) == 0)
              x[i]->remove(v);   
       }
+      //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
       if(i < numVariables - 1){
          this->layerSize[i+1] = lsize;
       }
    }
-   for(auto &layer : layers){
-      for(auto node : layer){
-         if(!node->getIsSink() && node->getNumChildren() < 1) node->remove();
-         if(!node->getIsSource() && node->getNumParents() < 1) node->remove();
+   for(auto i = 0; i < layers.size();i++) {
+      auto& layer = layers[i];
+      for(auto node : layer) {
+         if(i != numVariables && node->getNumChildren() < 1)
+            removeNode(node);
+         else if(i != 0 && node->getNumParents() < 1)
+            removeNode(node);
       }
    }
    propagate();
@@ -154,16 +155,18 @@ void MDD::scheduleRemoval(MDDNode* node)
 
 void MDD::removeNode(MDDNode* node)
 {
-   node->remove();
-   //swap nodes in layer and decrement size of layer
-   int l = node->getLayer();
-   int lsize = layerSize[l].value();
-   int nodeID = node->getPosition();
-   layers[l][nodeID] = layers[l][lsize - 1];
-   layers[l][lsize - 1] = node;
-   layerSize[l] = lsize - 1;        
-   layers[l][lsize - 1]->setPosition(lsize - 1);
-   layers[l][nodeID]->setPosition(nodeID);
+   if(node->isActive()){
+      node->remove();
+      //swap nodes in layer and decrement size of layer
+      int l = node->getLayer();
+      int lsize = layerSize[l].value();
+      int nodeID = node->getPosition();
+      layers[l][nodeID] = layers[l][lsize - 1];
+      layers[l][lsize - 1] = node;
+      layerSize[l] = lsize - 1;
+      layers[l][lsize - 1]->setPosition(lsize - 1);
+      layers[l][nodeID]->setPosition(nodeID);
+   }
 }
 
 int MDD::getSupport(int layer,int value) const
@@ -203,12 +206,13 @@ void MDD::saveGraph()
       for(int i = 0; i < layers[l].size(); i++){
          if(!layers[l][i]->isActive()) continue;
          int nc = layers[l][i]->getNumChildren();
-         auto ch = layers[l][i]->getChildren();
+         const auto& ch = layers[l][i]->getChildren();
          for(int j = 0; j < nc; j++){
             int count = ch[j]->getChild()->getPosition();
-            if(ch[j]->getParent()->getIsSource())
+            assert(ch[j]->getParent() == layers[l][i]);
+            if (l == 0)
                std::cout << "src" << " ->" << "\"L[" << l+1 << "," << count << "] " << *layers[l+1][count]->getState() <<"\"";
-            else if(ch[j]->getChild()->getIsSink())
+            else if(l+1 == numVariables) 
                std::cout << "\"L[" << l << "," << i << "] " << *layers[l][i]->getState() << "\" ->" << "sink";
             else
                std::cout << "\"L[" << l << "," << i << "] " << *layers[l][i]->getState() << "\" ->"

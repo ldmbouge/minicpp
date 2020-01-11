@@ -452,7 +452,7 @@ void Circuit::bind(int i)
       _x[destj]->remove(origi);                     
 }
 
-Element2D::Element2D(const matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z)
+Element2D::Element2D(const Matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z)
     : Constraint(x->getSolver()),
       _matrix(mat),
       _x(x),_y(y),_z(z),
@@ -526,7 +526,7 @@ Element1D::Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr
 
 void Element1D::post()
 {
-   matrix<int,2> t2({1,(int)_t.size()});
+   Matrix<int,2> t2({1,(int)_t.size()});
    for(int j=0;j< _t.size();j++)
       t2[0][j] = _t[j];
    auto x = Factory::makeIntVar(_y->getSolver(),0,0);

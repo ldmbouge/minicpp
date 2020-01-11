@@ -43,6 +43,10 @@ public:
    operator bool() const noexcept { return _ptr != nullptr;}
    void dealloc() { delete _ptr;_ptr = nullptr;}
    void free()    { delete _ptr;_ptr = nullptr;}
+   template<class X> friend bool operator==(const handle_ptr<X>& p1,const handle_ptr<X>& p2)
+   {
+      return p1._ptr == p2._ptr;
+   }
 };
 
 template <class T,class... Args>

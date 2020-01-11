@@ -96,19 +96,32 @@ class ValueSet {
    int  _min,_max;
    int  _sz;
 public:
-   ValueSet(const std::set<int>& s) {
-      _min = *s.begin();
-      _max = *s.begin();
-      for(auto v : s) {
-         _min = _min < v ? _min : v;
-         _max = _max > v ? _max : v;
-      }
-      _sz = _max - _min + 1;
-      _data = new char[_sz];
-      memset(_data,0,sizeof(char)*_sz);
-      for(auto v : s)
-         _data[v - _min] = 1;
+ValueSet(const std::set<int>& s) {
+   _min = *s.begin();
+   _max = *s.begin();
+   for(auto v : s) {
+      _min = _min < v ? _min : v;
+      _max = _max > v ? _max : v;
    }
+   _sz = _max - _min + 1;
+   _data = new char[_sz];
+   memset(_data,0,sizeof(char)*_sz);
+   for(auto v : s)
+      _data[v - _min] = 1;
+}
+   ValueSet(const Factory::Veci& s) {
+   _min = s[0]->getId();
+   _max = s[0]->getId();
+   for(auto v : s) {
+      _min = _min < v->getId() ? _min : v->getId();
+      _max = _max > v->getId() ? _max : v->getId();
+   }
+   _sz = _max - _min + 1;
+   _data = new char[_sz];
+   memset(_data,0,sizeof(char)*_sz);
+   for(auto v : s)
+      _data[v->getId() - _min] = 1;
+}
    bool member(int v) const {
       if (_min <= v && v <= _max)
          return _data[v - _min];
@@ -147,7 +160,7 @@ public:
 class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
-   long long         _hash;  // a hash value of the state to speed up equality testing. 
+   int               _hash;  // a hash value of the state to speed up equality testing. 
 public:
    typedef handle_ptr<MDDState> Ptr;
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0) {}
@@ -157,16 +170,16 @@ public:
    int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}        // to set a state property 
-   long long hash() {
+   int hash() {
       const int nbw = (int)_spec->layoutSize() / 4;
       int* b = reinterpret_cast<int*>(_mem);
-      long long ttl = 0;
+      int ttl = 0;
       for(size_t s = 0;s <nbw;s++)
-         ttl = (ttl << 8) + (ttl >> (64-8)) + b[s];
+         ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
       _hash = ttl;
       return _hash;
    }
-   long long getHash() const noexcept { return _hash;}
+   int getHash() const noexcept { return _hash;}
    bool operator==(const MDDState& s) const {    // equality test likely O(1) when different. 
       if (_hash == s._hash) 
          return memcmp(_mem,s._mem,_spec->layoutSize())==0;

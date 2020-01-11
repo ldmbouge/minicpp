@@ -231,7 +231,7 @@ class Element2D : public Constraint {
         Triplet(const Triplet& t) : x(t.x),y(t.y),z(t.z) {}
     };
         
-    matrix<int,2> _matrix;
+    Matrix<int,2> _matrix;
     var<int>::Ptr _x,_y,_z;
     int _n,_m;
     trail<int>* _nRowsSup;
@@ -240,7 +240,7 @@ class Element2D : public Constraint {
     std::vector<Triplet> _xyz;
     void updateSupport(int lostPos);
 public:
-    Element2D(const matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z);
+    Element2D(const Matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z);
     void post() override;;
     void propagate() override;
     void print(std::ostream& os) const override;
@@ -387,7 +387,7 @@ namespace Factory {
    template <class Vec>  Constraint::Ptr circuit(const Vec& xs) {
       return new (xs[0]->getSolver()) Circuit(xs);
    }
-   inline var<int>::Ptr element(matrix<int,2>& d,var<int>::Ptr x,var<int>::Ptr y) {
+   inline var<int>::Ptr element(Matrix<int,2>& d,var<int>::Ptr x,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       for(int i=0;i<d.size(0);i++)
           for(int j=0;j < d.size(1);j++) {
@@ -398,7 +398,7 @@ namespace Factory {
       x->getSolver()->post(new (x->getSolver()) Element2D(d,x,y,z));
       return z;
     }
-   inline Constraint::Ptr element(const MSlice<int,2,1>& array,var<int>::Ptr y,var<int>::Ptr z) {
+   inline Constraint::Ptr element(const VMSlice<int,2,1>& array,var<int>::Ptr y,var<int>::Ptr z) {
       std::vector<int> flat(array.size());
       for(int i=0;i < array.size();i++) 
          flat[i] = array[i];

@@ -13,10 +13,10 @@ MDDSpec::MDDSpec()
    :arcLambda(nullptr)
 {}
 
-void MDDSpec::append(const Factory::Veci& y) {
-    int size = (int) x.size();
+void MDDSpec::append(const Factory::Veci& y)
+{
     for(int i = 0; i < y.size(); i++){
-       if(size < 1 || std::find(x.cbegin(), x.cend(), y[i]) == x.cend())
+       if(std::find(x.cbegin(), x.cend(), y[i]) == x.cend())
           x.push_back(y[i]);       
     }
     std::cout << "size of x: " << x.size() << std::endl;
@@ -125,9 +125,7 @@ std::pair<int,int> domRange(const Factory::Veci& vars)
 }
 
 namespace Factory {
-    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues)
-   {
-      //int sz = (int) mdd.size();
+   void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
       mdd.append(x);
       ValueSet values(rawValues);
       const int minC = mdd.addState(0,(int)x.size());
@@ -144,17 +142,17 @@ namespace Factory {
       mdd.addTransition(minC,[=] (const auto& p,auto x, int val) -> int { return p->at(minC) + values.member(val);});
       mdd.addTransition(maxC,[=] (const auto& p,auto x, int val) -> int { return p->at(maxC) + values.member(val);});
       mdd.addTransition(rem,[=] (const auto& p,auto x,int val) -> int { return p->at(rem) - 1;});
-        
+      
       mdd.addRelaxation(minC,[=](auto l,auto r) -> int { return std::min(l->at(minC), r->at(minC));});
       mdd.addRelaxation(maxC,[=](auto l,auto r) -> int { return std::max(l->at(maxC), r->at(maxC));});
       mdd.addRelaxation(rem ,[=](auto l,auto r) -> int { return l->at(rem);});
-
+      
       mdd.addSimilarity(minC,[=](auto l,auto r) -> double { return abs(l->at(minC) - r->at(minC)); });
       mdd.addSimilarity(maxC,[=](auto l,auto r) -> double { return abs(l->at(maxC) - r->at(maxC)); });
       mdd.addSimilarity(rem ,[=] (auto l,auto r) -> double { return 0; });
    }
 
-    void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
+   void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
    {
       int os = (int) mdd.size();
       mdd.append(vars);

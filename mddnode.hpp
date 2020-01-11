@@ -44,14 +44,7 @@ public:
    MDDNode();
    MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDD* mdd, int layer, int id);
    MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state, MDD* mdd, int layer, int id);
-
-   void setIsSink(bool isSink)     { this->isSink = isSink;}
-   bool getIsSink() const          { return isSink;}
-   void setIsSource(bool isSource) { this->isSource = isSource;}
-   bool getIsSource() const        { return isSource;}
-   //void setNumChildren(int numChildren);
-   std::vector<MDDEdge::Ptr> getChildren();
-   std::vector<MDDEdge::Ptr> getParents();
+   const std::vector<MDDEdge::Ptr>& getChildren();
    int getNumChildren() const { return numChildren;}
    int getNumParents() const  { return numParents;}
 
@@ -71,8 +64,6 @@ private:
    void setActive(bool b) { _active = b;}
    trail<bool> _active;
    MDD*          mdd;
-   bool isSink;
-   bool isSource;
    int pos;
    const int layer;
    trail<int> numChildren;

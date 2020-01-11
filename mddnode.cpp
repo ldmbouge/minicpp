@@ -9,21 +9,16 @@
 #include "mddnode.hpp"
 
 MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t, MDD* mdd, int layer, int id)
-   : numChildren(t,0), numParents(t,0), _active(t, true), mdd(mdd), layer(layer), pos(id)
-{
-    isSink = false;
-    isSource = false;
-}
-MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state, MDD* mdd, int layer, int id)
-   : numChildren(t,0), numParents(t,0), state(state), _active(t, true), mdd(mdd), layer(layer), pos(id)
-{
-    isSink = false;
-    isSource = false;
-}
+   : numChildren(t,0), numParents(t,0),
+     _active(t, true), mdd(mdd), layer(layer), pos(id)
+{}
 
-//void MDDNode::setNumChildren(int numChildren){ this->numChildren = numChildren; }
-std::vector<MDDEdge::Ptr> MDDNode::getChildren()  { return children; }
-std::vector<MDDEdge::Ptr> MDDNode::getParents()   { return parents; }
+MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state, MDD* mdd, int layer, int id)
+   : numChildren(t,0), numParents(t,0), state(state),
+     _active(t, true), mdd(mdd), layer(layer), pos(id)
+{}
+
+const std::vector<MDDEdge::Ptr>& MDDNode::getChildren()  { return children; }
 
 /*
  MDDNode::remove() removes all edges connected to MDDNode and de-activates node.
@@ -51,7 +46,7 @@ void MDDNode::removeChild(int arc){
     children[arc] = temp;
     numChildren = numChildren - 1;
 
-    if(numChildren < 1 && isSource)
+    if(numChildren < 1 && layer == 0)
        failNow();
         
     if(numChildren < 1 && _active)
@@ -72,8 +67,8 @@ void MDDNode::removeParent(int arc){
     
     numParents = numParents - 1;
         
-    if(numParents < 1 && isSink) failNow();
-    
+    if(numParents < 1 && layer==mdd->nbLayers())
+       failNow();    
     if(numParents < 1 && _active)
         mdd->scheduleRemoval(this);
 }
