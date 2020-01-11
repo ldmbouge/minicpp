@@ -60,19 +60,32 @@ class ValueSet {
    int  _min,_max;
    int  _sz;
 public:
-   ValueSet(const std::set<int>& s) {
-      _min = *s.begin();
-      _max = *s.begin();
-      for(auto v : s) {
-         _min = _min < v ? _min : v;
-         _max = _max > v ? _max : v;
-      }
-      _sz = _max - _min + 1;
-      _data = new char[_sz];
-      memset(_data,0,sizeof(char)*_sz);
-      for(auto v : s)
-         _data[v - _min] = 1;
+ValueSet(const std::set<int>& s) {
+   _min = *s.begin();
+   _max = *s.begin();
+   for(auto v : s) {
+      _min = _min < v ? _min : v;
+      _max = _max > v ? _max : v;
    }
+   _sz = _max - _min + 1;
+   _data = new char[_sz];
+   memset(_data,0,sizeof(char)*_sz);
+   for(auto v : s)
+      _data[v - _min] = 1;
+}
+   ValueSet(const Factory::Veci& s) {
+   _min = s[0]->getId();
+   _max = s[0]->getId();
+   for(auto v : s) {
+      _min = _min < v->getId() ? _min : v->getId();
+      _max = _max > v->getId() ? _max : v->getId();
+   }
+   _sz = _max - _min + 1;
+   _data = new char[_sz];
+   memset(_data,0,sizeof(char)*_sz);
+   for(auto v : s)
+      _data[v->getId() - _min] = 1;
+}
    bool member(int v) const {
       if (_min <= v && v <= _max)
          return _data[v - _min];
@@ -185,24 +198,28 @@ std::pair<int,int> domRange(const Factory::Veci& vars);
 
 namespace Factory {
 
-   inline void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues)
+   inline void amongMDD(MDDSpec& mdd, const Factory::Veci& vars, int lb, int ub, std::set<int> rawValues)
    {
       int sz = (int) mdd.baseState->size();
-      mdd.append(x);
+      mdd.append(vars);
       ValueSet values(rawValues);
+      ValueSet variable(vars);
       int minC = 0 + sz, maxC = 1 + sz, rem = 2 + sz; //state idx
-      mdd.addStates({0,0,(int) x.size()});
+      mdd.addStates({0,0,(int) vars.size()});
         
-      auto a = [=] (MDDState::Ptr p, var<int>::Ptr var, int val) -> bool {
-                  return (p->at(minC) + values.member(val) <= ub) &&
-                     ((p->at(maxC) + values.member(val) +  p->at(rem) - 1) >= lb);
-               };
+      auto a = [=] (MDDState::Ptr p, var<int>::Ptr x, int val) -> bool {
+         return ((p->at(minC) + values.member(val) <= ub) &&
+            ((p->at(maxC) + values.member(val) +  p->at(rem) - 1) >= lb)) || !variable.member(x->getId());
+         };
         
       mdd.addArc(a);
         
-      mdd.addTransition(sz,[=] (const auto& p,auto x, int val) -> int { return p->at(minC) + values.member(val);});
-      mdd.addTransition(sz+1,[=] (const auto& p,auto x, int val) -> int { return p->at(maxC) + values.member(val);});
-      mdd.addTransition(sz+2,[=] (const auto& p,auto x,int val) -> int { return p->at(rem) - 1;});
+      mdd.addTransition(sz,[=] (const auto& p,auto x, int val) -> int {
+         return p->at(minC) + (values.member(val) && variable.member(x->getId()));});
+      mdd.addTransition(sz+1,[=] (const auto& p,auto x, int val) -> int {
+         return p->at(maxC) + (values.member(val) && variable.member(x->getId())) ;});
+      mdd.addTransition(sz+2,[=] (const auto& p,auto x,int val) -> int {
+         return p->at(rem) - (1 && variable.member(x->getId()));});
         
       mdd.addRelaxation(sz,[=](auto l,auto r) -> int { return std::min(l->at(minC), r->at(minC));});
       mdd.addRelaxation(sz+1,[=](auto l,auto r) -> int { return std::max(l->at(maxC), r->at(maxC));});

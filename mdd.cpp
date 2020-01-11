@@ -118,8 +118,8 @@ void MDD::buildDiagram(){
    }
    for(auto &layer : layers){
       for(auto node : layer){
-         if(!node->getIsSink() && node->getNumChildren() < 1) node->remove();
-         if(!node->getIsSource() && node->getNumParents() < 1) node->remove();
+         if(!node->getIsSink() && node->getNumChildren() < 1) removeNode(node);
+         else if(!node->getIsSource() && node->getNumParents() < 1) removeNode(node);
       }
    }
    propagate();
@@ -150,16 +150,18 @@ void MDD::scheduleRemoval(MDDNode* node)
 
 void MDD::removeNode(MDDNode* node)
 {
-   node->remove();
-   //swap nodes in layer and decrement size of layer
-   int l = node->getLayer();
-   int lsize = layerSize[l].value();
-   int nodeID = node->getPosition();
-   layers[l][nodeID] = layers[l][lsize - 1];
-   layers[l][lsize - 1] = node;
-   layerSize[l] = lsize - 1;        
-   layers[l][lsize - 1]->setPosition(lsize - 1);
-   layers[l][nodeID]->setPosition(nodeID);
+   if(node->isActive()){
+      node->remove();
+      //swap nodes in layer and decrement size of layer
+      int l = node->getLayer();
+      int lsize = layerSize[l].value();
+      int nodeID = node->getPosition();
+      layers[l][nodeID] = layers[l][lsize - 1];
+      layers[l][lsize - 1] = node;
+      layerSize[l] = lsize - 1;
+      layers[l][lsize - 1]->setPosition(lsize - 1);
+      layers[l][nodeID]->setPosition(nodeID);
+   }
 }
 
 int MDD::getSupport(int layer,int value) const

@@ -50,7 +50,7 @@ int main(int argc,char* argv[])
    long start = RuntimeMonitor::cputime();
    MDDSpec state;
    Factory::amongMDD(state,v, 2, 2, values_1);
-   Factory::amongMDD(state,v2, 1, 1, values_1);
+   Factory::amongMDD(state,v2, 1, 1, values_2);
    auto mdd = new MDD(cp);
    mdd->setState(state);
 
