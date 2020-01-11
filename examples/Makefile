@@ -34,7 +34,7 @@ test0: mainCont.o
 
 % : %.cpp 
 	@echo "Compile(C++) & Link... " $@
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
+	@$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
 
 %.o : %.cpp
 	@echo "Compiling (C++)... " $<
@@ -42,7 +42,7 @@ test0: mainCont.o
 
 %.d: %.cpp
 	@set -e; rm -f $@; \
-	$(CC) -M $(CXXFLAGS) $< > $@.$$$$; \
+	@$(CC) -M $(CXXFLAGS) $< > $@.$$$$; \
 	sed 's,\($*\)\.o[ :]*,\1.o $@ : ,g' < $@.$$$$ > $@; \
 	rm -f $@.$$$$
 

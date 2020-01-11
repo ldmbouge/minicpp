@@ -9,7 +9,7 @@ OFILES = mallocWatch.o store.o trail.o \
 
 # context.o cont.o controller.o
 
-all: $(LIBNAME) examples
+all: $(LIBNAME) test
 
 test:
 	make -C examples
@@ -23,7 +23,7 @@ $(LIBNAME): $(OFILES)
 
 %.o : %.cpp
 	@echo "Compiling (C++)... " $<
-	$(CC) -c $(CXXFLAGS) $<
+	@$(CC) -c $(CXXFLAGS) $<
 
 %.d: %.cpp
 	@set -e; rm -f $@; \

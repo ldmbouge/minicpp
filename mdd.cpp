@@ -116,10 +116,13 @@ void MDD::buildDiagram(){
          this->layerSize[i+1] = lsize;
       }
    }
-   for(auto &layer : layers){
-      for(auto node : layer){
-         if(!node->getIsSink() && node->getNumChildren() < 1) removeNode(node);
-         else if(!node->getIsSource() && node->getNumParents() < 1) removeNode(node);
+   for(auto i = 0; i < layers.size();i++) {
+      auto& layer = layers[i];
+      for(auto node : layer) {
+         if(i != numVariables && node->getNumChildren() < 1)
+            removeNode(node);
+         else if(i != 0 && node->getNumParents() < 1)
+            removeNode(node);
       }
    }
    propagate();
