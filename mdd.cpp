@@ -84,7 +84,7 @@ void MDD::buildDiagram(){
    for(int i = 0; i < numVariables; i++){
       //std::cout << "x[" << i << "] " << x[i] << std::endl;
       //std::cout << "layersize" << layers[i].size() << std::endl;
-      std::unordered_map<MDDState::Ptr,MDDNode*,MDDStateHash> umap(101);
+      std::unordered_map<MDDState::Ptr,MDDNode*,MDDStateHash> umap(2999);
       int lsize = 0;
       for(int v = x[i]->min(); v <= x[i]->max(); v++){
          if(!x[i]->contains(v)) continue;
