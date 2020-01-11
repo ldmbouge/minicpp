@@ -22,7 +22,7 @@ public:
    MDDEdge(MDDNode* parent, MDDNode* child, int value, int childPosition, int parentPosition)
       : value(value), parent(parent), child(child), childPosition(childPosition), parentPosition(parentPosition)
    {}
-   void remove();
+   void remove(MDD* mdd);
    int getValue() const            { return value; }
    int getParentPosition() const   { return parentPosition;}
    int getChildPosition() const    { return childPosition;}
@@ -42,17 +42,17 @@ private:
 class MDDNode {    
 public:
    MDDNode();
-   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDD* mdd, int layer, int id);
-   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state, MDD* mdd, int layer, int id);
+   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,int layer, int id);
+   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state,int layer, int id);
    const std::vector<MDDEdge::Ptr>& getChildren();
    int getNumChildren() const { return numChildren;}
    int getNumParents() const  { return numParents;}
 
-   void remove();
+   void remove(MDD* mdd);
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
-   void removeParent(int parent);
-   void removeChild(int child);
-   void trim(var<int>::Ptr x);
+   void removeParent(MDD* mdd,int parent);
+   void removeChild(MDD* mdd,int child);
+   void trim(MDD* mdd,var<int>::Ptr x);
 
    const MDDState::Ptr& getState() { return state;}
    bool contains(int v);
@@ -63,7 +63,6 @@ public:
 private:
    void setActive(bool b) { _active = b;}
    trail<bool> _active;
-   MDD*          mdd;
    int pos;
    const int layer;
    trail<int> numChildren;

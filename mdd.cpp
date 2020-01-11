@@ -72,8 +72,8 @@ void MDD::buildDiagram(){
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);   
    
-   this->sink = new (mem) MDDNode(cp, trail, this, (int) numVariables, 0);
-   this->root = new (mem) MDDNode(cp, trail, rootState, this, 0, 0);
+   this->sink = new (mem) MDDNode(cp, trail, (int) numVariables, 0);
+   this->root = new (mem) MDDNode(cp, trail, rootState, 0, 0);
 
    layers[0].push_back(this->root);
    layers[numVariables].push_back(sink);
@@ -99,7 +99,7 @@ void MDD::buildDiagram(){
                      child = found->second;
                   } 
                   if(child == nullptr){
-                     child = new (mem) MDDNode(cp, trail, state, this, i+1, lsize);
+                     child = new (mem) MDDNode(cp, trail, state, i+1, lsize);
                      umap.insert({state,child});
                      layers[i+1].push_back(child);
                      lsize++;
@@ -143,7 +143,7 @@ void MDD::buildDiagram(){
 void MDD::trimLayer(int layer)
 {
    for(int i = layerSize[layer] - 1; i >= 0; i--) 
-      layers[layer][i]->trim(x[layer]);   
+      layers[layer][i]->trim(this,x[layer]);   
 }
 
 /*
@@ -157,7 +157,7 @@ void MDD::scheduleRemoval(MDDNode* node)
 void MDD::removeNode(MDDNode* node)
 {
    if(node->isActive()){
-      node->remove();
+      node->remove(this);
       //swap nodes in layer and decrement size of layer
       int l = node->getLayer();
       int lsize = layerSize[l].value();

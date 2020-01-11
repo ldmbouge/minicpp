@@ -8,14 +8,16 @@
 
 #include "mddnode.hpp"
 
-MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t, MDD* mdd, int layer, int id)
+MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,int layer, int id)
    : numChildren(t,0), numParents(t,0),
-     _active(t, true), mdd(mdd), layer(layer), pos(id)
+     _active(t, true),
+     layer(layer), pos(id)
 {}
 
-MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state, MDD* mdd, int layer, int id)
+MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state,int layer, int id)
    : numChildren(t,0), numParents(t,0), state(state),
-     _active(t, true), mdd(mdd), layer(layer), pos(id)
+     _active(t, true),
+     layer(layer), pos(id)
 {}
 
 const std::vector<MDDEdge::Ptr>& MDDNode::getChildren()  { return children; }
@@ -23,19 +25,20 @@ const std::vector<MDDEdge::Ptr>& MDDNode::getChildren()  { return children; }
 /*
  MDDNode::remove() removes all edges connected to MDDNode and de-activates node.
 */
-void MDDNode::remove()
+void MDDNode::remove(MDD* mdd)
 {
     this->setActive(false);
     for(int i = numChildren - 1; i >= 0 ; i--)
-        children[i]->remove();        
+        children[i]->remove(mdd);        
     for(int i = numParents - 1; i >=0 ; i--)
-        parents[i]->remove();       
+        parents[i]->remove(mdd);       
 }
 
 /*
  MDDNode::removeChild(int child) removes child arc by index.
  */
-void MDDNode::removeChild(int arc){
+void MDDNode::removeChild(MDD* mdd,int arc)
+{
     mdd->removeSupport(this->layer, children[arc]->getValue());
     
     int lastpos = numChildren - 1;
@@ -56,7 +59,7 @@ void MDDNode::removeChild(int arc){
 /*
  MDDNode::removeParent(int parent) removes parent arc by index.
  */
-void MDDNode::removeParent(int arc){
+void MDDNode::removeParent(MDD* mdd,int arc){
     
     int lastpos = numParents - 1;
     MDDEdge::Ptr temp = parents[lastpos];
@@ -100,19 +103,19 @@ bool MDDNode::contains(int v)
 /*
  MDDNode::trim() removes all arcs with values not in the domain of var.
  */
-void MDDNode::trim(var<int>::Ptr x)
+void MDDNode::trim(MDD* mdd,var<int>::Ptr x)
 {
    if (_active) {
       for(int i = this->numChildren - 1; i >= 0 ; i--){
          if(!x->contains(children[i]->getValue())){
-            children[i]->remove();
+            children[i]->remove(mdd);
          }
       }
    }
 }
 
-void MDDEdge::remove()
+void MDDEdge::remove(MDD* mdd)
 {
-   parent->removeChild(childPosition);
-   child->removeParent(parentPosition);
+   parent->removeChild(mdd,childPosition);
+   child->removeParent(mdd,parentPosition);
 }
