@@ -16,6 +16,10 @@
 #include <cstring>
 #include <map>
 
+class MDDState;
+typedef std::function<int(const MDDState&, var<int>::Ptr, int)> lambdaTrans;
+typedef std::map<int,lambdaTrans> lambdaMap;
+
 class MDDStateSpec;
 
 class MDDProperty {
@@ -51,7 +55,7 @@ public:
       : MDDProperty(id,ofs),_init(init),_max(max) {}
    void init(char* buf) const override     { *reinterpret_cast<int*>(buf+_ofs) = _init;}
    int get(char* buf) const override       { return *reinterpret_cast<int*>(buf+_ofs);}
-   void setInt(char* buf,int v) override   { *reinterpret_cast<int*>(buf+_ofs) = v;}  
+   void setInt(char* buf,int v) override   { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void print(std::ostream& os) const override  {
       os << "PInt(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
    }
@@ -68,8 +72,8 @@ public:
       : MDDProperty(id,ofs),_init(init),_max(max) {}
    void init(char* buf) const override     { buf[_ofs] = _init;}
    int get(char* buf) const override       { return (unsigned char)buf[_ofs];}
-   void setInt(char* buf,int v) override   { buf[_ofs] = v;}  
-   void setByte(char* buf,unsigned char v) override { buf[_ofs] = v;}  
+   void setInt(char* buf,int v) override   { buf[_ofs] = v;}
+   void setByte(char* buf,unsigned char v) override { buf[_ofs] = v;}
    void print(std::ostream& os) const override  {
       os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
@@ -81,7 +85,7 @@ protected:
    std::vector<MDDProperty::Ptr> _attrs;
    size_t _lsz;
 public:
-   MDDStateSpec() {}   
+   MDDStateSpec() {}
    auto layoutSize() const { return _lsz;}
    void layout();
    auto size() const { return _attrs.size();}
@@ -99,7 +103,7 @@ inline std::ostream& operator<<(std::ostream& os,MDDProperty::Ptr p)
 class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
-   int               _hash;  // a hash value of the state to speed up equality testing. 
+   int               _hash;  // a hash value of the state to speed up equality testing.
 public:
    typedef handle_ptr<MDDState> Ptr;
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0) {}
@@ -108,7 +112,7 @@ public:
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
    int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
-   void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}        // to set a state property 
+   void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}        // to set a state property
    int hash() {
       const int nbw = (int)_spec->layoutSize() / 4;
       int* b = reinterpret_cast<int*>(_mem);
@@ -119,8 +123,8 @@ public:
       return _hash;
    }
    int getHash() const noexcept { return _hash;}
-   bool operator==(const MDDState& s) const {    // equality test likely O(1) when different. 
-      if (_hash == s._hash) 
+   bool operator==(const MDDState& s) const {    // equality test likely O(1) when different.
+      if (_hash == s._hash)
          return memcmp(_mem,s._mem,_spec->layoutSize())==0;
       else return false;
    }
@@ -133,26 +137,24 @@ public:
    friend bool operator==(const MDDState::Ptr& s1,const MDDState::Ptr& s2) { return s1->operator==(*s2);}
 };
 
-
-
 class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
    int addState(int init,int max=0x7fffffff) override;
    int addState(int init,size_t max) {return addState(init,(int)max);}
-   void addArc(std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> a);
-   void addTransition(int,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>);
-   void addRelaxation(int,std::function<int(MDDState::Ptr, MDDState::Ptr)>);
-   void addSimilarity(int,std::function<double(MDDState::Ptr, MDDState::Ptr)>);
-   void addTransitions(std::map<int,std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>>& map);
-   
-   MDDState::Ptr createState(Storage::Ptr& mem,const MDDState::Ptr& state, var<int>::Ptr var, int v);
-   MDDState::Ptr rootState(Storage::Ptr& mem);
-   
+   void addArc(std::function<bool(const MDDState&, var<int>::Ptr, int)> a);
+   void addTransition(int,std::function<int(const MDDState&, var<int>::Ptr, int)>);
+   void addRelaxation(int,std::function<int(const MDDState&,const MDDState&)>);
+   void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
+   void addTransitions(lambdaMap& map);
+
+  std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,var<int>::Ptr var, int v);
+   MDDState rootState(Storage::Ptr& mem);
+
    auto getArcs()         { return arcLambda;}
    auto getRelaxations()  { return relaxationLambdas;}
    auto getSimilarities() { return similarityLambdas;}
-    
+
    void append(const Factory::Veci& x);
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
@@ -164,15 +166,13 @@ public:
    }
 private:
    std::vector<var<int>::Ptr> x;
-   std::function<bool(const MDDState::Ptr&, var<int>::Ptr, int)> arcLambda;
-   std::vector<std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)>> transistionLambdas;
-   std::vector<std::function<int(MDDState::Ptr, MDDState::Ptr)>> relaxationLambdas;
-   std::vector<std::function<double(MDDState::Ptr, MDDState::Ptr)>> similarityLambdas;
+   std::function<bool(const MDDState&, var<int>::Ptr, int)> arcLambda;
+   std::vector<std::function<int(const MDDState&, var<int>::Ptr, int)>> transistionLambdas;
+   std::vector<std::function<int(const MDDState&,const MDDState&)>> relaxationLambdas;
+   std::vector<std::function<double(const MDDState&,const MDDState&)>> similarityLambdas;
 };
 
 
-typedef std::function<int(const MDDState::Ptr&, var<int>::Ptr, int)> lambdaTrans;
-typedef std::map<int,lambdaTrans> lambdaMap;
 std::pair<int,int> domRange(const Factory::Veci& vars);
 
 namespace Factory {

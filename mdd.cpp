@@ -27,7 +27,7 @@ MDD::MDD(CPSolver::Ptr cp, Factory::Veci iv, bool reduced)
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
    for(int i = 0; i < iv.size(); i++)
-      x.push_back(iv[i]);   
+      x.push_back(iv[i]);
 }
 /*
   MDD::post() initializes the MDD and starts the build process of the diagram.
@@ -38,19 +38,19 @@ void MDD::post()
    this->numVariables = x.size();
    this->layers = std::vector< std::vector<MDDNode*> > (numVariables+1, std::vector<MDDNode*>(0));
    for(int i = 0; i < numVariables+1; i++)
-      layerSize.emplace_back(trail,0);  
+      layerSize.emplace_back(trail,0);
    this->supports = std::vector< std::vector<::trail<int>> >(numVariables, std::vector<::trail<int>>(0));
-    
+
    //Create Supports for all values for each variable
    for(int i = 0; i < numVariables; i++){
       for(int v = x[i]->min(); v <= x[i]->max(); v++)
-         supports[i].emplace_back(trail,0);      
+         supports[i].emplace_back(trail,0);
       oft.push_back(x[i]->min());
-   }    
+   }
    this->buildDiagram();
 }
 
-void MDD::propagate() 
+void MDD::propagate()
 {
    while (!queue.empty()) {
       auto node = queue.front();
@@ -70,8 +70,8 @@ void MDD::buildDiagram(){
    // Generate Root and Sink Nodes for MDD
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
-   auto rootState = _mddspec.rootState(mem);   
-   
+   auto rootState = _mddspec.rootState(mem);
+
    this->sink = new (mem) MDDNode(cp, trail, (int) numVariables, 0);
    this->root = new (mem) MDDNode(cp, trail, rootState, 0, 0);
 
@@ -90,28 +90,30 @@ void MDD::buildDiagram(){
          if(!x[i]->contains(v)) continue;
          for(int pidx = 0; pidx < layers[i].size(); pidx++){
             MDDNode* parent = layers[i][pidx];
-            auto state = _mddspec.createState(mem,parent->getState(), x[i], v);            
-            if(state) {                   
+            MDDState state;
+            bool     ok;
+            std::tie(state,ok) = _mddspec.createState(mem,parent->getState(), x[i], v);
+            if(ok) {
                if(i < numVariables - 1){
                   MDDNode* child = nullptr;
-                  auto found = umap.find(state);
+                  auto found = umap.find(&state);
                   if (found != umap.end()) {
                      child = found->second;
-                  } 
+                  }
                   if(child == nullptr){
                      child = new (mem) MDDNode(cp, trail, state, i+1, lsize);
-                     umap.insert({state,child});
+                     umap.insert({child->key(),child});
                      layers[i+1].push_back(child);
                      lsize++;
-                  }                        
+                  }
                   parent->addArc(mem,child, v);
                } else
-                  parent->addArc(mem,sink, v);                
+                  parent->addArc(mem,sink, v);
                addSupport(i, v);
             }
          }
          if (getSupport(i,v) == 0)
-             x[i]->remove(v);   
+             x[i]->remove(v);
       }
       //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
       umap.clear();
@@ -142,8 +144,8 @@ void MDD::buildDiagram(){
 */
 void MDD::trimLayer(int layer)
 {
-   for(int i = layerSize[layer] - 1; i >= 0; i--) 
-      layers[layer][i]->trim(this,x[layer]);   
+   for(int i = layerSize[layer] - 1; i >= 0; i--)
+      layers[layer][i]->trim(this,x[layer]);
 }
 
 /*
@@ -184,24 +186,24 @@ void MDD::addSupport(int layer, int value)
 }
 
 /*
-  MDD::removeSupport(int layer, int value) decrements support for value at specific layer. 
+  MDD::removeSupport(int layer, int value) decrements support for value at specific layer.
   If support for a value reaches 0, then value is removed from the domain.
 */
 
 void MDD::removeSupport(int layer, int value)
 {
-   //assert(supports[layer][value - oft[layer]].value() > 0);    
+   //assert(supports[layer][value - oft[layer]].value() > 0);
    supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]] - 1;
    if(supports[layer][value - oft[layer]] < 1)
-      x[layer]->remove(value);   
+      x[layer]->remove(value);
 }
 
 /*
-  MDD::saveGraph() prints the current state of the MDD to stdout in dot format. 
+  MDD::saveGraph() prints the current state of the MDD to stdout in dot format.
   Use a graphviz dot graph visualizer to create a graphical view of the diagram.
 */
 void MDD::saveGraph()
-{    
+{
    std::cout << "digraph MDD {" << std::endl;
    for(int l = 0; l < numVariables; l++){
       for(int i = 0; i < layers[l].size(); i++){
@@ -212,16 +214,19 @@ void MDD::saveGraph()
             int count = ch[j]->getChild()->getPosition();
             assert(ch[j]->getParent() == layers[l][i]);
             if (l == 0)
-               std::cout << "src" << " ->" << "\"L[" << l+1 << "," << count << "] " << *layers[l+1][count]->getState() <<"\"";
-            else if(l+1 == numVariables) 
-               std::cout << "\"L[" << l << "," << i << "] " << *layers[l][i]->getState() << "\" ->" << "sink";
+               std::cout << "src" << " ->" << "\"L[" << l+1 << "," << count << "] "
+                         << layers[l+1][count]->getState() <<"\"";
+            else if(l+1 == numVariables)
+               std::cout << "\"L[" << l << "," << i << "] "
+                         << layers[l][i]->getState() << "\" ->" << "sink";
             else
-               std::cout << "\"L[" << l << "," << i << "] " << *layers[l][i]->getState() << "\" ->"
-                         << "\"L[" << l+1 << "," << count << "] " << *layers[l+1][count]->getState() << "\"";
+               std::cout << "\"L[" << l << "," << i << "] " << layers[l][i]->getState() << "\" ->"
+                         << "\"L[" << l+1 << "," << count << "] " << layers[l+1][count]->getState()
+                         << "\"";
             std::cout << " [ label=\"" << ch[j]->getValue() << "\" ];" << std::endl;
 
          }
       }
    }
-   std::cout << "}" << std::endl;    
+   std::cout << "}" << std::endl;
 }

@@ -14,12 +14,11 @@ MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,int layer, int id)
      layer(layer), pos(id)
 {}
 
-MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state,int layer, int id)
+MDDNode::MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,const MDDState& state,int layer, int id)
    : numChildren(t,0), numParents(t,0), state(state),
      _active(t, true),
      layer(layer), pos(id)
 {}
-
 const std::vector<MDDEdge::Ptr>& MDDNode::getChildren()  { return children; }
 
 /*
@@ -29,9 +28,9 @@ void MDDNode::remove(MDD* mdd)
 {
     this->setActive(false);
     for(int i = numChildren - 1; i >= 0 ; i--)
-        children[i]->remove(mdd);        
+        children[i]->remove(mdd);
     for(int i = numParents - 1; i >=0 ; i--)
-        parents[i]->remove(mdd);       
+        parents[i]->remove(mdd);
 }
 
 /*
@@ -40,7 +39,7 @@ void MDDNode::remove(MDD* mdd)
 void MDDNode::removeChild(MDD* mdd,int arc)
 {
     mdd->removeSupport(this->layer, children[arc]->getValue());
-    
+
     int lastpos = numChildren - 1;
     MDDEdge::Ptr temp = children[lastpos];
     children[arc]->setChildPosition(lastpos);
@@ -51,7 +50,7 @@ void MDDNode::removeChild(MDD* mdd,int arc)
 
     if(numChildren < 1 && layer == 0)
        failNow();
-        
+
     if(numChildren < 1 && _active)
         mdd->scheduleRemoval(this);
 }
@@ -60,18 +59,18 @@ void MDDNode::removeChild(MDD* mdd,int arc)
  MDDNode::removeParent(int parent) removes parent arc by index.
  */
 void MDDNode::removeParent(MDD* mdd,int arc){
-    
+
     int lastpos = numParents - 1;
     MDDEdge::Ptr temp = parents[lastpos];
     parents[arc]->setParentPosition(lastpos);
     temp->setParentPosition(arc);
     parents[lastpos] = parents[arc];
     parents[arc] = temp;
-    
+
     numParents = numParents - 1;
-        
+
     if(numParents < 1 && layer==mdd->nbLayers())
-       failNow();    
+       failNow();
     if(numParents < 1 && _active)
         mdd->scheduleRemoval(this);
 }
@@ -84,9 +83,9 @@ void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
 {
    MDDEdge::Ptr e = new (mem) MDDEdge(this, child, v, numChildren, child->numParents);
    children.push_back(e);
-   numChildren = numChildren + 1;   
+   numChildren = numChildren + 1;
    child->parents.push_back(e);
-   child->numParents = child->numParents + 1;    
+   child->numParents = child->numParents + 1;
 }
 
 /*

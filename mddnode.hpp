@@ -39,11 +39,11 @@ private:
 };
 
 
-class MDDNode {    
+class MDDNode {
 public:
    MDDNode();
    MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,int layer, int id);
-   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,MDDState::Ptr state,int layer, int id);
+   MDDNode(CPSolver::Ptr cp, Trailer::Ptr t,const MDDState& state,int layer, int id);
    const std::vector<MDDEdge::Ptr>& getChildren();
    int getNumChildren() const { return numChildren;}
    int getNumParents() const  { return numParents;}
@@ -54,9 +54,10 @@ public:
    void removeChild(MDD* mdd,int child);
    void trim(MDD* mdd,var<int>::Ptr x);
 
-   const MDDState::Ptr& getState() { return state;}
+   MDDState::Ptr key()        { return &state;}
+   const MDDState& getState() { return state;}
    bool contains(int v);
-   int getLayer() const      {return layer;}
+   int getLayer() const      { return layer;}
    int getPosition() const   { return pos;}
    void setPosition(int pos) { this->pos = pos;}
    bool isActive() const     { return _active;}
@@ -68,9 +69,8 @@ private:
    trail<int> numChildren;
    trail<int> numParents;
    std::vector<MDDEdge::Ptr> children;
-   std::vector<MDDEdge::Ptr> parents;   
-   MDDState::Ptr state;
+   std::vector<MDDEdge::Ptr> parents;
+   MDDState state;                     // Direct state embedding
 };
 
 #endif /* MDDSTATE_HPP_ */
-
