@@ -18,7 +18,8 @@ public:
    MDD(CPSolver::Ptr cp, Factory::Veci intVarArray, bool reduced);
    void saveGraph();
    void post() override;
-   MDDSpec getSpec()       { return _mddspec; }
+   MDDSpec&
+   getSpec()       { return _mddspec; }
    void setSpec(MDDSpec s) { _mddspec = s; }
    void trimLayer(int layer);
    void scheduleRemoval(MDDNode*);

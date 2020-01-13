@@ -10,7 +10,8 @@ BENCHSRCS = main.cpp main2.cpp main3.cpp nqperf.cpp \
 	magicserie.cpp qap.cpp tsp.cpp  magicsquare.cpp msperf.cpp \
 	stablemarriage.cpp steel.cpp qaplns.cpp nqueensAC.cpp adac.cpp \
 	mddamong.cpp mdd/among2.cpp mdd/among4.cpp mdd/amongsum.cpp mdd/tinymdd.cpp \
-	mdd/tinyAllDiff.cpp mdd/tinySeq.cpp  mdd/tinyGCC.cpp mdd/multipletTinyAmong.cpp
+	mdd/tinyAllDiff.cpp mdd/tinySeq.cpp  mdd/tinyGCC.cpp mdd/multipletTinyAmong.cpp \
+	mdd/amongSeqGcc.cpp
 
 BENCHS =
 
@@ -19,7 +20,7 @@ BENCHS =
 AT = main main2 main3 adac nqperf magicserie qap tsp magicsquare \
 	msperf stablemarriage  steel qaplns nqueensAC mddamong \
 	mdd/among2 mdd/among4 mdd/amongsum mdd/tinymdd mdd/tinyAllDiff \
-	mdd/tinySeq mdd/tinyGCC mdd/multipletTinyAmong
+	mdd/tinySeq mdd/tinyGCC mdd/multipletTinyAmong mdd/amongSeqGcc
 
 all: cpptests 
 

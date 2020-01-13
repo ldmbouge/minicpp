@@ -114,8 +114,8 @@ public:
    void layout();
    auto size() const { return _attrs.size();}
    virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
-   void addStates(MDDConstraintDescriptor&d,int from, int to, std::function<int(int)> clo);
-   void addStates(MDDConstraintDescriptor&d,std::initializer_list<int> inputs);
+   std::vector<int> addStates(MDDConstraintDescriptor&d,int from, int to, int max,std::function<int(int)> clo);
+   std::vector<int> addStates(MDDConstraintDescriptor&d,int max,std::initializer_list<int> inputs);
    friend class MDDState;
 };
 
@@ -208,11 +208,11 @@ private:
 std::pair<int,int> domRange(const Factory::Veci& vars);
 
 namespace Factory {
-   inline lambdaMap toDict(int min, int max,std::function<lambdaTrans(int)> clo)
+   inline lambdaMap toDict(int min, int max,std::vector<int>& p,std::function<lambdaTrans(int,int)> clo)
    {
       lambdaMap r;
       for(int i = min; i <= max; i++)
-         r[i] = clo(i);
+         r[p[i]] = clo(i,p[i]);
       return r;
    }
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);
