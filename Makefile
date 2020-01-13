@@ -11,7 +11,7 @@ OFILES = mallocWatch.o store.o trail.o \
 
 all: $(LIBNAME) test
 
-test:
+test: $(LIBNAME)
 	make -C examples
 
 $(LIBNAME): $(OFILES)
