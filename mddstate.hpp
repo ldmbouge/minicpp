@@ -50,7 +50,8 @@ class MDDProperty {
 protected:
    short _id;
    unsigned short _ofs;
-   virtual size_t storageSize() const = 0;
+   virtual size_t storageSize() const = 0;  // given in _bits_
+   virtual size_t setOffset(size_t bitOffset) = 0;
 public:
    typedef handle_ptr<MDDProperty> Ptr;
    MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs) {}
@@ -72,7 +73,14 @@ namespace Factory {
 class MDDPInt :public MDDProperty {
    int _init;
    int _max;
-   size_t storageSize() const override     { return sizeof(int);}
+   size_t storageSize() const override     { return 32;}
+   size_t setOffset(size_t bitOffset) override {
+      size_t boW = bitOffset & 0x1F;
+      if (boW != 0) 
+         bitOffset = (bitOffset | 0x1F) + 1;
+      _ofs = bitOffset >> 5;
+      return bitOffset + storageSize();
+   }
 public:
    typedef handle_ptr<MDDPInt> Ptr;
    MDDPInt(short id,unsigned short ofs,int init,int max=0x7fffffff)
@@ -89,7 +97,14 @@ public:
 class MDDPByte :public MDDProperty {
    unsigned char _init;
    unsigned char  _max;
-   size_t storageSize() const override     { return sizeof(unsigned char);}
+   size_t storageSize() const override     { return 8;}
+   size_t setOffset(size_t bitOffset) override {
+      size_t boW = bitOffset & 0x7;
+      if (boW != 0) 
+         bitOffset = (bitOffset | 0x7) + 1;
+      _ofs = bitOffset >> 3;
+      return bitOffset + storageSize();
+   }
 public:
    typedef handle_ptr<MDDPByte> Ptr;
    MDDPByte(short id,unsigned short ofs,unsigned char init,unsigned char max=255)
@@ -102,6 +117,27 @@ public:
       os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
    friend class MDDStateSpec;
+};
+
+class MDDPBit : public MDDProperty {   // the offset is a byte offset.
+   unsigned char _init;        // in {0,1}
+   const unsigned char _bmask; // mask with 1 at correct bit position
+   size_t storageSize() const override     { return 1;}
+   size_t setOffset(size_t bitOffset) override {
+      _ofs = bitOffset >> 3;
+      return bitOffset + storageSize();
+   }
+public:
+   MDDPBit(short id,unsigned short ofs,unsigned char init)
+      : MDDProperty(id,ofs),_init(init),_bmask(0x1 << (id & 0x7)) {}
+   void init(char* buf) const override     { buf[_ofs] = _init ? (buf[_ofs] | _bmask) : (buf[_ofs] & ~_bmask);}
+   int get(char* buf) const override       { return ((unsigned char)buf[_ofs] & _bmask) == _bmask;}
+   void setInt(char* buf,int v) override   { if (v) buf[_ofs] |= _bmask; else buf[_ofs] &= ~_bmask;}
+   void setByte(char* buf,unsigned char v) override { buf[_ofs] = v ? (buf[_ofs] | _bmask) : (buf[_ofs] & ~_bmask);}
+   void print(std::ostream& os) const override  {
+      os << "PBit(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_bmask << ')';
+   }
+   friend class MDDStateSpec;   
 };
 
 class MDDStateSpec {

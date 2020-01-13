@@ -13,7 +13,9 @@ namespace Factory {
    MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max)
    {
       MDDProperty::Ptr rv;
-      if (max <= 255)
+      if (max <= 1)
+         rv = new MDDPBit(id,ofs,init);
+      else if (max <= 255)
          rv = new MDDPByte(id,ofs,init,max);
       else
          rv = new MDDPInt(id,ofs,init,max);
@@ -42,11 +44,15 @@ void MDDSpec::append(const Factory::Veci& y)
 
 void MDDStateSpec::layout()
 {
-   _lsz = 0;
+   size_t lszBit = 0;
    for(auto a : _attrs) {
-      a->_ofs = _lsz;
-      _lsz += a->storageSize();
+      lszBit = a->setOffset(lszBit);
    }
+   size_t boB = lszBit & 0x7;
+   if (boB != 0) 
+      lszBit = (lszBit | 0x7) + 1;
+   _lsz = lszBit >> 3;
+   std::cout << "State requires:" << _lsz << " bytes" << std::endl;
 }
 
 MDDConstraintDescriptor& MDDSpec::makeConstraintDescriptor(const Factory::Veci& v,const char* n)
@@ -186,8 +192,7 @@ namespace Factory {
       mdd.addSimilarity(rem ,[rem] (auto l,auto r) -> double { return 0; });
    }
 
-   void
-allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
+   void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
    {
       mdd.append(vars);
       auto& d = mdd.makeConstraintDescriptor(vars,"allDiffMdd");

@@ -60,7 +60,11 @@ void MDD::propagate()
 }
 
 struct MDDStateHash {
-   std::size_t operator()(MDDState::Ptr s)  const noexcept { return s->getHash();}
+   std::size_t operator()(MDDState* s)  const noexcept { return s->getHash();}
+};
+
+struct MDDStateEqual {
+   bool operator()(const MDDState* s1,const MDDState* s2) const { return *s1 == *s2;}
 };
 
 /*
@@ -72,16 +76,16 @@ void MDD::buildDiagram(){
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
 
-   this->sink = new (mem) MDDNode(cp, trail, (int) numVariables, 0);
-   this->root = new (mem) MDDNode(cp, trail, rootState, 0, 0);
+   sink = new (mem) MDDNode(cp, trail, (int) numVariables, 0);
+   root = new (mem) MDDNode(cp, trail, rootState, 0, 0);
 
-   layers[0].push_back(this->root);
+   layers[0].push_back(root);
    layers[numVariables].push_back(sink);
 
    this->layerSize[0] = 1;
    this->layerSize[numVariables] = 1;
    //std::cout << "Num Vars:" << numVariables << std::endl;
-   std::unordered_map<MDDState::Ptr,MDDNode*,MDDStateHash> umap(2999);
+   std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    for(int i = 0; i < numVariables; i++){
       //std::cout << "x[" << i << "] " << x[i] << std::endl;
       //std::cout << "layersize" << layers[i].size() << std::endl;
@@ -102,7 +106,7 @@ void MDD::buildDiagram(){
                   }
                   if(child == nullptr){
                      child = new (mem) MDDNode(cp, trail, state, i+1, lsize);
-                     umap.insert({child->key(),child});
+                     umap.insert({child->key().get(),child});
                      layers[i+1].push_back(child);
                      lsize++;
                   }
@@ -117,9 +121,8 @@ void MDD::buildDiagram(){
       }
       //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
       umap.clear();
-      if(i < numVariables - 1){
-         this->layerSize[i+1] = lsize;
-      }
+      if(i < numVariables - 1)
+         layerSize[i+1] = lsize;
    }
    for(auto i = 0; i < layers.size();i++) {
       auto& layer = layers[i];

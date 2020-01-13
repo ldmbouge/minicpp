@@ -31,7 +31,7 @@ int main(int argc,char* argv[])
    using namespace std;
    using namespace Factory;
    CPSolver::Ptr cp  = Factory::makeSolver();
-   const int nb = 17;
+   const int nb = 20;
    auto v = Factory::intVarArray(cp, nb, 1, nb);
    long start = RuntimeMonitor::cputime();
    MDDSpec state;
