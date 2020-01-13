@@ -144,10 +144,14 @@ public:
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}        // to set a state property
    int hash() {
       const int nbw = (int)_spec->layoutSize() / 4;
+      int nlb = _spec->layoutSize() & 0x3;
+      char* sfx = _mem + (nbw << 2);
       int* b = reinterpret_cast<int*>(_mem);
       int ttl = 0;
       for(size_t s = 0;s <nbw;s++)
          ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
+      while(nlb-- > 0)
+         ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
       _hash = ttl;
       return _hash;
    }
