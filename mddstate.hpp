@@ -22,6 +22,30 @@ typedef std::map<int,lambdaTrans> lambdaMap;
 
 class MDDStateSpec;
 
+class MDDConstraintDescriptor
+{
+private :
+   std::vector<int> _properties;
+   ValueSet               _vset;
+   const Factory::Veci&   _vars;
+   const char*            _name;
+public :
+   MDDConstraintDescriptor(const Factory::Veci& vars, const char* name);
+   MDDConstraintDescriptor(const MDDConstraintDescriptor&);
+   void addProperty(int p) {_properties.push_back(p);}
+   bool member(var<int>::Ptr x) const { return _vset.member(x->getId());}
+   const Factory::Veci& vars() const { return _vars;}
+   std::vector<int>& properties() { return _properties;}
+   void print (std::ostream& os) const
+   {
+      os << _name << "(" << _vars << ")" << std::endl;
+   }
+   MDDConstraintDescriptor operator=(const MDDConstraintDescriptor& d)
+   {
+      return MDDConstraintDescriptor(d);
+   }
+};
+
 class MDDProperty {
 protected:
    short _id;
@@ -89,15 +113,20 @@ public:
    auto layoutSize() const { return _lsz;}
    void layout();
    auto size() const { return _attrs.size();}
-   virtual int addState(int init,int max=0x7fffffff);
-   void addStates(int from, int to, std::function<int(int)> clo);
-   void addStates(std::initializer_list<int> inputs);
+   virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
+   void addStates(MDDConstraintDescriptor&d,int from, int to, std::function<int(int)> clo);
+   void addStates(MDDConstraintDescriptor&d,std::initializer_list<int> inputs);
    friend class MDDState;
 };
 
 inline std::ostream& operator<<(std::ostream& os,MDDProperty::Ptr p)
 {
    p->print(os);return os;
+}
+
+inline std::ostream& operator<<(std::ostream& os,MDDConstraintDescriptor& p)
+{
+   p.print(os);return os;
 }
 
 class MDDState {  // An actual state of an MDDNode.
@@ -140,9 +169,10 @@ public:
 class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
-   int addState(int init,int max=0x7fffffff) override;
-   int addState(int init,size_t max) {return addState(init,(int)max);}
-   void addArc(std::function<bool(const MDDState&, var<int>::Ptr, int)> a);
+   MDDConstraintDescriptor& makeConstraintDescriptor(const Factory::Veci&, const char*);
+   int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
+   int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
+   void addArc(const MDDConstraintDescriptor& d,std::function<bool(const MDDState&, var<int>::Ptr, int)> a);
    void addTransition(int,std::function<int(const MDDState&, var<int>::Ptr, int)>);
    void addRelaxation(int,std::function<int(const MDDState&,const MDDState&)>);
    void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
@@ -165,6 +195,8 @@ public:
       return os;
    }
 private:
+   void init();
+   std::vector<MDDConstraintDescriptor> constraints;
    std::vector<var<int>::Ptr> x;
    std::function<bool(const MDDState&, var<int>::Ptr, int)> arcLambda;
    std::vector<std::function<int(const MDDState&, var<int>::Ptr, int)>> transistionLambdas;
@@ -189,3 +221,4 @@ namespace Factory {
    void gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub);
 }
 #endif /* mddstate_hpp */
+

@@ -21,6 +21,13 @@ namespace Factory {
    }
 }
 
+
+MDDConstraintDescriptor::MDDConstraintDescriptor(const Factory::Veci& vars, const char* name)
+: _vars(vars), _vset(vars), _name(name){}
+
+MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& d)
+: _vars(d._vars), _vset(d._vset), _properties(d._properties), _name(d._name) {}
+
 MDDSpec::MDDSpec()
    :arcLambda(nullptr)
 {}
@@ -42,42 +49,51 @@ void MDDStateSpec::layout()
    }
 }
 
-int MDDStateSpec::addState(int init,int max)
+MDDConstraintDescriptor& MDDSpec::makeConstraintDescriptor(const Factory::Veci& v,const char* n)
+{
+   MDDConstraintDescriptor d(v,n);
+   constraints.push_back(d);
+   return constraints[constraints.size()-1];
+}
+
+int MDDStateSpec::addState(MDDConstraintDescriptor& d, int init,int max)
 {
    int aid = (int)_attrs.size();
    _attrs.push_back(Factory::makeProperty(aid, 0, init, max));
+   d.addProperty(aid);
    return aid;
 }
 
-void MDDStateSpec::addStates(int from, int to, std::function<int(int)> clo)
+void MDDStateSpec::addStates(MDDConstraintDescriptor& d,int from, int to, std::function<int(int)> clo)
 {
    for(int i = from; i <= to; i++)
-      addState(clo(i));
+      addState(d,clo(i));
 }
-void MDDStateSpec::addStates(std::initializer_list<int> inputs)
+void MDDStateSpec::addStates(MDDConstraintDescriptor& d,std::initializer_list<int> inputs)
 {
    for(auto& v : inputs)
-      addState(v);
+      addState(d,v);
 }
 
-int MDDSpec::addState(int init,int max)
+int MDDSpec::addState(MDDConstraintDescriptor& d,int init,int max)
 {
-   auto rv = MDDStateSpec::addState(init,max);
+   auto rv = MDDStateSpec::addState(d,init,max);
    transistionLambdas.push_back(nullptr);
    relaxationLambdas.push_back(nullptr);
    similarityLambdas.push_back(nullptr);
    return rv;
 }
 
-void MDDSpec::addArc(std::function<bool(const MDDState&, var<int>::Ptr, int)> a){
-    auto b = arcLambda;
-    if(arcLambda == nullptr) {
-       arcLambda = a;
-    } else {
+void MDDSpec::addArc(const MDDConstraintDescriptor& d,std::function<bool(const MDDState&, var<int>::Ptr, int)> a){
+    auto& b = arcLambda;
+    if(arcLambda == nullptr)
        arcLambda = [=] (const MDDState& p, var<int>::Ptr var, int val) -> bool {
-                     return a(p, var, val) && b(p, var, val);
+                           return (a(p, var, val) || !d.member(var));
+                         };
+   else
+       arcLambda = [=] (const MDDState& p, var<int>::Ptr var, int val) -> bool {
+                     return (a(p, var, val) || !d.member(var)) && b(p, var, val);
                    };
-    }
 }
 void MDDSpec::addTransition(int p,std::function<int(const MDDState&, var<int>::Ptr, int)> t)
 {
@@ -96,7 +112,6 @@ void MDDSpec::addTransitions(lambdaMap& map)
      for(auto& kv : map)
         transistionLambdas[kv.first] = kv.second;
 }
-
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
 {
    MDDState rootState(this,(char*)mem->allocate(layoutSize()));
@@ -107,14 +122,21 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
    return rootState;
 }
 
-std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,
+std::pair<MDDState,bool> MDDSpec::
+createState(Storage::Ptr& mem,const MDDState& parent,
                                               var<int>::Ptr var, int v)
 {
   if(arcLambda(parent, var, v)){
-       const auto sz = size();
        MDDState result(this,(char*)mem->allocate(layoutSize()));
-       for(int i = 0; i < sz; i++)
-         result.set(i,transistionLambdas[i](parent,var,v));
+       for(auto& c :constraints){
+          auto& p = c.properties();
+          for(auto i : p){
+             if(c.member(var))
+                result.set(i,transistionLambdas[i](parent,var,v));
+            else
+               result.set(i, parent.at(i));
+          }
+      }
        result.hash();
        return std::pair<MDDState,bool>(result,true);
     }
@@ -137,16 +159,15 @@ namespace Factory {
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
       mdd.append(x);
       ValueSet values(rawValues);
-      const int minC = mdd.addState(0,x.size());
-      const int maxC = mdd.addState(0,x.size());
-      const int rem  = mdd.addState((int)x.size(),x.size());
+      auto& d = mdd.makeConstraintDescriptor(x,"amongMDD");
+      const int minC = mdd.addState(d,0,x.size());
+      const int maxC = mdd.addState(d,0,x.size());
+      const int rem  = mdd.addState(d,(int)x.size(),x.size());
 
-      auto a = [=] (const MDDState& p,var<int>::Ptr var, int val) -> bool {
-                  return (p.at(minC) + values.member(val) <= ub) &&
-                         ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
-               };
-
-      mdd.addArc(a);
+      mdd.addArc(d,[=] (const MDDState& p,var<int>::Ptr var, int val) -> bool {
+         return (p.at(minC) + values.member(val) <= ub) &&
+                ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
+      });
 
       mdd.addTransition(minC,[minC,values] (const auto& p,auto x, int v) -> int { return p.at(minC) + values.member(v);});
       mdd.addTransition(maxC,[maxC,values] (const auto& p,auto x, int v) -> int { return p.at(maxC) + values.member(v);});
@@ -165,11 +186,12 @@ namespace Factory {
    {
       int os = (int) mdd.size();
       mdd.append(vars);
+      MDDConstraintDescriptor d(vars,"allDiffMDD");
       auto udom = domRange(vars);
       int minDom = udom.first, maxDom = udom.second;
 
-      mdd.addStates(minDom,maxDom,[] (int i) -> int   { return 1;});
-      mdd.addArc([=] (auto p,auto var,int val) -> bool { return p.at(os+val-minDom);});
+      mdd.addStates(d,minDom,maxDom,[] (int i) -> int   { return 1;});
+      mdd.addArc(d,[=] (auto p,auto var,int val) -> bool { return p.at(os+val-minDom);});
 
       for(int i = minDom; i <= maxDom; i++){
          int idx = os+i-minDom;
@@ -187,14 +209,15 @@ namespace Factory {
       int os = (int) spec.size();
       spec.append(vars);
       ValueSet values(rawValues);
+      MDDConstraintDescriptor desc(vars,"seqMDD");
 
-      spec.addStates(minFIdx,minLIdx,[=] (int i) -> int { return (i - minLIdx); });
-      spec.addStates(maxFIdx,maxLIdx,[=] (int i) -> int { return (i - maxLIdx); });
+      spec.addStates(desc,minFIdx,minLIdx,[=] (int i) -> int { return (i - minLIdx); });
+      spec.addStates(desc,maxFIdx,maxLIdx,[=] (int i) -> int { return (i - maxLIdx); });
 
       minLIdx += os; minFIdx+=os;
       maxLIdx += os; maxFIdx+=os;
 
-      spec.addArc([=] (auto p,auto x,int v) -> bool {
+      spec.addArc(desc,[=] (auto p,auto x,int v) -> bool {
                      bool inS = values.member(v);
                      int minv = p.at(maxLIdx) - p.at(minFIdx) + inS;
                      return (p.at(os) < 0 && minv >= lb && p.at(minLIdx) + inS <= ub)
@@ -228,10 +251,11 @@ namespace Factory {
       int maxFDom = os + domSize,maxLDom = os + domSize*2-1;
       int minDom = udom.first;
       ValueMap<int> values(udom.first, udom.second,0,ub);
+      MDDConstraintDescriptor desc(vars,"gccMDD");
 
-      spec.addStates(minFDom, maxLDom, [] (int i) -> int { return 0; });
+      spec.addStates(desc,minFDom, maxLDom, [] (int i) -> int { return 0; });
 
-      spec.addArc([=](auto p,auto x,int v)->bool{return p.at(os+v-minDom) < values[v];});
+      spec.addArc(desc,[=](auto p,auto x,int v)->bool{return p.at(os+v-minDom) < values[v];});
 
       lambdaMap d = toDict(minFDom,maxLDom,[=] (int i) -> lambdaTrans {
               if (i <= minLDom)
