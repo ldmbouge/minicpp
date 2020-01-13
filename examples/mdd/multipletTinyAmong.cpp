@@ -23,19 +23,6 @@
 #include "mdd.hpp"
 #include "RuntimeMonitor.hpp"
 
-//temporary we should get variable from solver
-auto merge(CPSolver::Ptr cp, const Factory::Veci& v1,const Factory::Veci& v2)
-{
-   int sz = (int)(v1.size() + v2.size());
-   auto r = Factory::intVarArray(cp, sz);
-   int  i  =  0;
-   for(auto e : v1)
-      r[i++] = e;
-   for(auto e : v2)
-      r[i++] = e;
-   return r;
-}
-
 int main(int argc,char* argv[])
 {
    int useSearch = 1;
@@ -45,20 +32,16 @@ int main(int argc,char* argv[])
 
    auto v = Factory::intVarArray(cp, 2, 1, 3);
    auto v2 = Factory::intVarArray(cp, 2, 1, 3);
-   std::set<int> values_1 = {2};
-   std::set<int> values_2 = {3};
    long start = RuntimeMonitor::cputime();
-   MDDSpec state;
-   Factory::amongMDD(state,v, 2, 2, values_1);
-   Factory::amongMDD(state,v2, 1, 1, values_2);
    auto mdd = new MDD(cp);
-   mdd->setSpec(state);
-
+   auto spec = mdd->getSpec();
+   Factory::amongMDD(spec,v, 2, 2, {2});
+   Factory::amongMDD(spec,v2, 1, 1, {3});
    cp->post(mdd);
    
    long end = RuntimeMonitor::cputime();
    mdd->saveGraph();
-   auto vars = merge(cp,v,v2);
+   auto vars = cp->intVars();
    std::cout << "VARS: " << vars << std::endl;
    std::cout << "Time : " << (end-start) << std::endl;
    
@@ -71,16 +54,10 @@ int main(int argc,char* argv[])
           if (x) {
               int c = x->min();
               return  [=] {
-                         std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
                          cp->post(x == c);
-//                         mdd->saveGraph();
-                         std::cout << "VARS: " << v << std::endl;
                       }
                  | [=] {
-                      std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
                       cp->post(x != c);
-//                      mdd->saveGraph();
-                      std::cout << "VARS: " << v << std::endl;
                    };
           } else return Branches({});
       });

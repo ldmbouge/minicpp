@@ -26,8 +26,6 @@
 #include "trailList.hpp"
 #include "matrix.hpp"
 
-template<typename T> class var {};
-
 template<> class var<int> : public AVar {
 private:
    int _id;
