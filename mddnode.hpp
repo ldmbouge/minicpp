@@ -60,14 +60,14 @@ public:
    MDDNode();
    MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id);
    MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id);
-   const TVec<MDDEdge::Ptr>& getChildren();
-   std::size_t getNumChildren() const { return children.size();}
-   std::size_t getNumParents() const  { return parents.size();}
+   const TVec<MDDEdge::Ptr>& getChildren() { return children;}
+   std::size_t getNumChildren() const      { return children.size();}
+   std::size_t getNumParents() const       { return parents.size();}
 
    void remove(MDD* mdd);
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
-   void removeParent(MDD* mdd,int parent);
-   void removeChild(MDD* mdd,int child);
+   void removeParent(MDD* mdd,int value,int pos);
+   void removeChild(MDD* mdd,int value,int pos);
    void trim(MDD* mdd,var<int>::Ptr x);
 
    MDDState::Ptr key()        { return &state;}

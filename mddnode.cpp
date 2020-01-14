@@ -25,8 +25,6 @@ MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,
      state(state)
 {}
 
-const TVec<MDDEdge::Ptr>& MDDNode::getChildren()  { return children; }
-
 /*
   MDDNode::remove() removes all edges connected to MDDNode and de-activates node.
 */
@@ -42,9 +40,9 @@ void MDDNode::remove(MDD* mdd)
 /*
   MDDNode::removeChild(int child) removes child arc by index.
 */
-void MDDNode::removeChild(MDD* mdd,int arc)
+void MDDNode::removeChild(MDD* mdd,int value,int arc)
 {
-   mdd->removeSupport(this->layer, children.get(arc)->getValue());
+   mdd->removeSupport(layer,value);
 
    auto sz = children.remove(arc);
    if (sz) children.get(arc)->setChildPosition(children.getTrail(),arc);
@@ -58,7 +56,7 @@ void MDDNode::removeChild(MDD* mdd,int arc)
 /*
   MDDNode::removeParent(int parent) removes parent arc by index.
 */
-void MDDNode::removeParent(MDD* mdd,int arc)
+void MDDNode::removeParent(MDD* mdd,int value,int arc)
 {
    auto sz = parents.remove(arc);
    if (sz) parents.get(arc)->setParentPosition(parents.getTrail(),arc);
@@ -109,6 +107,6 @@ void MDDNode::trim(MDD* mdd,var<int>::Ptr x)
 
 void MDDEdge::remove(MDD* mdd)
 {
-   parent->removeChild(mdd,childPosition);
-   child->removeParent(mdd,parentPosition);
+   parent->removeChild(mdd,value,childPosition);
+   child->removeParent(mdd,value,parentPosition);
 }

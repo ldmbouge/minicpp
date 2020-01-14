@@ -78,7 +78,7 @@ class MDDPInt :public MDDProperty {
       size_t boW = bitOffset & 0x1F;
       if (boW != 0) 
          bitOffset = (bitOffset | 0x1F) + 1;
-      _ofs = bitOffset >> 5;
+      _ofs = bitOffset >> 3;
       return bitOffset + storageSize();
    }
 public:

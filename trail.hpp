@@ -37,7 +37,7 @@ class Trailer :public StateManager {
 public:
    Trailer();
    ~Trailer();
-   void trail(Entry* e) { _trail.push(e);}
+   void trail(Entry* e) { if (e) _trail.push(e);}
    typedef handle_ptr<Trailer> Ptr;
    void resize();
    int magic() const { return _magic;}
