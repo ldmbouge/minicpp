@@ -29,4 +29,7 @@ public:
     virtual ~AVar() {}
 };
 
+
+template<typename T> class var {};
+
 #endif
