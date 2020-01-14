@@ -203,8 +203,8 @@ void MDD::addSupport(int layer, int value)
 void MDD::removeSupport(int layer, int value)
 {
    //assert(supports[layer][value - oft[layer]].value() > 0);
-   supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]] - 1;
-   if(supports[layer][value - oft[layer]] < 1)
+   int s = supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]] - 1;
+   if(s < 1)
       x[layer]->remove(value);
 }
 
