@@ -22,6 +22,7 @@ Trailer::Trailer()
    _bsz = (1 << 24);
    _btop = 0;
    _lastNode = 0;
+   _enabled  = false;
 }
 
 Trailer::~Trailer()

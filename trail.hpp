@@ -34,9 +34,11 @@ class Trailer :public StateManager {
    char* _block;
    std::size_t  _bsz;
    std::size_t  _btop;
+   bool      _enabled;
 public:
    Trailer();
    ~Trailer();
+   void enable()  override { _enabled = true;}
    void trail(Entry* e) { if (e) _trail.push(e);}
    typedef handle_ptr<Trailer> Ptr;
    void resize();
@@ -51,19 +53,21 @@ public:
    void restoreState() override;
    void withNewState(const std::function<void(void)>& body) override;
 
-   friend void* operator new(std::size_t sz,Trailer::Ptr& e);
+   friend void* operator new(std::size_t sz,Trailer::Ptr& e) noexcept;
 };
 
-inline void* operator new(std::size_t sz,Trailer::Ptr& e) {
-   char* ptr = e->_block + e->_btop;
-   e->_btop += sz;
-   if (e->_btop >= e->_bsz) {
-      e->_btop -= sz;
-      e->resize();
-      ptr = e->_block + e->_btop;
+inline void* operator new(std::size_t sz,Trailer::Ptr& e) noexcept {
+   if (e->_enabled) {
+      char* ptr = e->_block + e->_btop;
       e->_btop += sz;
-   }
-   return ptr;
+      if (e->_btop >= e->_bsz) {
+         e->_btop -= sz;
+         e->resize();
+         ptr = e->_block + e->_btop;
+         e->_btop += sz;
+      }
+      return ptr;
+   } else return nullptr;
 }
 
 

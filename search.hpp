@@ -75,8 +75,14 @@ class DFSearch {
     std::vector<std::function<void(void)>>    _failureListeners;
     void dfs(SearchStatistics& stats,const Limit& limit);
 public:
-   DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b) : _sm(cp->getStateManager()),_branching(std::move(b)) {}
-   DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b) : _sm(sm),_branching(std::move(b)) {}
+   DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b)
+      : _sm(cp->getStateManager()),_branching(std::move(b)) {
+      _sm->enable();
+   }
+   DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b)
+      : _sm(sm),_branching(std::move(b)) {
+      _sm->enable();
+   }
    template <class B> void onSolution(B c) { _solutionListeners.emplace_back(std::move(c));}
    template <class B> void onFailure(B c)  { _failureListeners.emplace_back(std::move(c));}
    void notifySolution() { for_each(_solutionListeners.begin(),_solutionListeners.end(),[](std::function<void(void)>& c) { c();});}
