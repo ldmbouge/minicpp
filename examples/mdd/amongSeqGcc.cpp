@@ -35,7 +35,7 @@ int main(int argc,char* argv[])
 
     auto v = Factory::intVarArray(cp,5, 1, 3);
    long start = RuntimeMonitor::cputime();
-   auto mdd = new MDD(cp, v, false);
+   auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v,2,2,{3});
    Factory::seqMDD(mdd->getSpec(),v,3,2,2,{2,3});
    Factory::gccMDD(mdd->getSpec(),v,{{2,1},{1,2}, {3, 2}});

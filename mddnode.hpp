@@ -55,6 +55,13 @@ private:
 };
 
 class MDDNode {
+   template <class U> class TrailEntry : public Entry {
+      U* _at;
+      U  _old;
+   public:
+      TrailEntry(U* ptr) : _at(ptr),_old(*ptr) {}
+      void restore() { *_at = _old;}
+   };
 public:
    MDDNode();
    MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id);
@@ -74,7 +81,12 @@ public:
    bool contains(int v);
    int getLayer() const      { return layer;}
    int getPosition() const   { return pos;}
-   void setPosition(int pos) { this->pos = pos;}
+   void setPosition(int p,Storage::Ptr mem) {
+      auto t = children.getTrail();
+      t->trail(new (t) TrailEntry<int>(&pos));
+      pos = p;
+      //this->pos = pos;
+   }
    bool isActive() const     { return _active;}
 private:
    void setActive(bool b) { _active = b;}

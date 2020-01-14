@@ -33,12 +33,11 @@ int main(int argc,char* argv[])
    std::set<int> values_1 = {2};
    std::set<int> values_2 = {3};
    long start = RuntimeMonitor::cputime();
-   MDDSpec state;
-   Factory::amongMDD(state,v, 2, 2, values_1);
-   Factory::amongMDD(state,v, 2, 2, values_2);
-   auto mdd = new MDD(cp, v, false);
-   mdd->setSpec(state);
-   mdd->post();
+   auto mdd = new MDD(cp);
+   Factory::amongMDD(mdd->getSpec(),v, 2, 2, values_1);
+   Factory::amongMDD(mdd->getSpec(),v, 2, 2, values_2);
+   cp->post(mdd);
+   
    auto sv = Factory::intVarArray(cp,2);
    sv[0] = v[0];
    sv[1] = v[1];

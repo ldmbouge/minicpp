@@ -34,10 +34,8 @@ int main(int argc,char* argv[])
 
     auto v = Factory::intVarArray(cp, 100, 1, 5);
    long start = RuntimeMonitor::cputime();
-   MDDSpec state;
-   Factory::gccMDD(state,v, { {5,50} , {4,30}, {2, 20}});
-   auto mdd = new MDD(cp, v, false);
-   mdd->setSpec(state);
+   auto mdd = new MDD(cp);
+   Factory::gccMDD(mdd->getSpec(),v, { {5,50} , {4,30}, {2, 20}});
 
    cp->post(mdd);
    

@@ -36,12 +36,10 @@ int main(int argc,char* argv[])
   std::set<int> values_2 = {2};
   std::set<int> values_rem = {1,3,4};
      
-  MDDSpec state;
-  Factory::amongMDD(state, iv, 1, 2, values_5);
-  Factory::amongMDD(state, iv, 1, 2, values_2);
-  MDD* mdd = new MDD(cp, iv, false);
-  mdd->setSpec(state);
-  mdd->post();
+  MDD* mdd = new MDD(cp);
+  Factory::amongMDD(mdd->getSpec(), iv, 1, 2, values_5);
+  Factory::amongMDD(mdd->getSpec(), iv, 1, 2, values_2);
+  cp->post(mdd);
   mdd->saveGraph();
     
   DFSearch search(cp,[=]() {

@@ -34,10 +34,8 @@ int main(int argc,char* argv[])
    const int nb = 20;
    auto v = Factory::intVarArray(cp, nb, 1, nb);
    long start = RuntimeMonitor::cputime();
-   MDDSpec state;
-   Factory::allDiffMDD(state,v);
-   auto mdd = new MDD(cp, v, false);
-   mdd->setSpec(state);
+   auto mdd = new MDD(cp);
+   Factory::allDiffMDD(mdd->getSpec(),v);
 
    cp->post(mdd);
    

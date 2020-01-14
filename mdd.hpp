@@ -38,7 +38,6 @@ private:
    Storage::Ptr mem;
    std::vector<var<int>::Ptr> x;
    std::vector<TVec<MDDNode*>> layers;
-   std::vector<::trail<int>> layerSize;
    std::deque<MDDNode*> queue;
    std::vector<std::vector<::trail<int>>> supports;
    std::vector<int> oft;

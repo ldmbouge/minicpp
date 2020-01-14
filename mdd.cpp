@@ -34,13 +34,6 @@ void MDD::post()
    for(int i = 0; i < numVariables+1; i++)
       layers[i] = TVec<MDDNode*>(trail,mem,32);
 
-   layerSize = std::vector<::trail<int>>(numVariables+1);   
-   for(int i = 0; i < numVariables+1; i++)
-      layerSize[i] = ::trail<int>(trail,0);
-   //layers = std::vector< std::vector<MDDNode*> > (numVariables+1, std::vector<MDDNode*>(0));
-   //for(int i = 0; i < numVariables+1; i++)
-   //layerSize.emplace_back(trail,0);
-
    supports = std::vector< std::vector<::trail<int>> >(numVariables, std::vector<::trail<int>>(0));
 
    //Create Supports for all values for each variable
@@ -83,16 +76,13 @@ void MDD::buildDiagram(){
 
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
-
-   layerSize[0] = 1;
-   layerSize[numVariables] = 1;
-   
+  
    //std::cout << "Num Vars:" << numVariables << std::endl;
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    for(int i = 0; i < numVariables; i++){
       //std::cout << "x[" << i << "] " << x[i] << std::endl;
       //std::cout << "layersize" << layers[i].size() << std::endl;
-      int lsize = layers[i+1].size();
+      int lsize = (int) layers[i+1].size();
       for(int v = x[i]->min(); v <= x[i]->max(); v++){
          if(!x[i]->contains(v)) continue;
          for(int pidx = 0; pidx < layers[i].size(); pidx++){
@@ -124,19 +114,11 @@ void MDD::buildDiagram(){
       }
       //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
       umap.clear();
-      if(i < numVariables - 1) {
-         assert(layers[i+1].size() == lsize);
-         layerSize[i+1] = lsize;
-      } else {
-         assert( i == numVariables - 1);
-         std::cout << "lsize: " << lsize << std::endl;
-         std::cout << "layer: " << layers[i+1].size() << std::endl;
-      }
    }
    for(auto i = 0; i < layers.size();i++) {
       auto& layer = layers[i];
       //for(auto node : layer) {
-      for(auto j = layerSize[i] - 1;j >= 0;j--) {
+      for(int j = (int)layer.size() - 1;j >= 0;j--) {
          auto node = layer[j];
          if(i != numVariables && node->getNumChildren() < 1)
             removeNode(node);
@@ -158,7 +140,7 @@ void MDD::buildDiagram(){
 */
 void MDD::trimLayer(int layer)
 {
-   for(int i = layerSize[layer] - 1; i >= 0; i--)
+   for(int i = (int) layers[layer].size() - 1; i >= 0; i--)
       layers[layer][i]->trim(this,x[layer]);
 }
 
@@ -175,14 +157,10 @@ void MDD::removeNode(MDDNode* node)
    if(node->isActive()){
       node->remove(this);
       //swap nodes in layer and decrement size of layer
-      int l = node->getLayer();
-      int lsize = layerSize[l].value();
-      int nodeID = node->getPosition();
-      layers[l][nodeID] = layers[l][lsize - 1];
-      layers[l][lsize - 1] = node;
-      layerSize[l] = lsize - 1;
-      layers[l][lsize - 1]->setPosition(lsize - 1);
-      layers[l][nodeID]->setPosition(nodeID);
+      const int l      = node->getLayer();
+      const int nodeID = node->getPosition();
+      layers[l].remove(nodeID);
+      layers[l][nodeID]->setPosition(nodeID,mem);
    }
 }
 

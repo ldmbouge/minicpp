@@ -14,12 +14,15 @@
  */
 
 #include "trail.hpp"
+#include <assert.h>
+
+#define TSIZE (1 << 20)
 
 Trailer::Trailer()
     : _magic(-1)
 {
-   _block = (char*)malloc(1<<24);
-   _bsz = (1 << 24);
+   _block = (char*)malloc(TSIZE);
+   _bsz = TSIZE;
    _btop = 0;
    _lastNode = 0;
    _enabled  = false;
@@ -36,11 +39,14 @@ void Trailer::resize()
    if (nb != _block) {
       std::stack<Entry*> ns;
       while(!_trail.empty()) {
-         ns.push((Entry*)(((char*)_trail.top()) - _block + nb));
+         Entry* e = _trail.top();
+         Entry* ne = (Entry*)((char*)e - _block + nb);
+         ns.push(ne);
          _trail.pop();
       }
       while(!ns.empty()) {
-         _trail.push(ns.top());
+         Entry* e = ns.top();
+         _trail.push(e);
          ns.pop();
       }
    }
