@@ -11,11 +11,12 @@
 
 
 #include "mddnode.hpp"
+#include "trailVec.hpp"
+
 class MDDNode;
 class MDD  : public Constraint{
 public:
    MDD(CPSolver::Ptr cp);
-   MDD(CPSolver::Ptr cp, Factory::Veci intVarArray, bool reduced);
    void saveGraph();
    void post() override;
    MDDSpec&
@@ -36,7 +37,7 @@ private:
    CPSolver::Ptr cp;
    Storage::Ptr mem;
    std::vector<var<int>::Ptr> x;
-   std::vector<std::vector<MDDNode*>> layers;
+   std::vector<TVec<MDDNode*>> layers;
    std::vector<::trail<int>> layerSize;
    std::deque<MDDNode*> queue;
    std::vector<std::vector<::trail<int>>> supports;

@@ -23,17 +23,6 @@ MDD::MDD(CPSolver::Ptr cp)
    setPriority(Constraint::CLOW);
 }
 
-MDD::MDD(CPSolver::Ptr cp, Factory::Veci iv, bool reduced)
-   : Constraint(cp),
-     cp(cp),
-     reduced(reduced),
-     trail(cp->getStateManager())
-{
-   mem = new Storage(trail);
-   setPriority(Constraint::CLOW);
-   for(int i = 0; i < iv.size(); i++)
-      x.push_back(iv[i]);
-}
 /*
   MDD::post() initializes the MDD and starts the build process of the diagram.
 */
@@ -41,9 +30,17 @@ void MDD::post()
 {
    x = _mddspec.getVars();
    numVariables = x.size();
-   layers = std::vector< std::vector<MDDNode*> > (numVariables+1, std::vector<MDDNode*>(0));
+   layers = std::vector<TVec<MDDNode*>>(numVariables+1);
    for(int i = 0; i < numVariables+1; i++)
-      layerSize.emplace_back(trail,0);
+      layers[i] = TVec<MDDNode*>(trail,mem,32);
+
+   layerSize = std::vector<::trail<int>>(numVariables+1);   
+   for(int i = 0; i < numVariables+1; i++)
+      layerSize[i] = ::trail<int>(trail,0);
+   //layers = std::vector< std::vector<MDDNode*> > (numVariables+1, std::vector<MDDNode*>(0));
+   //for(int i = 0; i < numVariables+1; i++)
+   //layerSize.emplace_back(trail,0);
+
    supports = std::vector< std::vector<::trail<int>> >(numVariables, std::vector<::trail<int>>(0));
 
    //Create Supports for all values for each variable
@@ -84,17 +81,18 @@ void MDD::buildDiagram(){
    sink = new (mem) MDDNode(mem, trail, (int) numVariables, 0);
    root = new (mem) MDDNode(mem, trail, rootState, x[0]->size(),0, 0);
 
-   layers[0].push_back(root);
-   layers[numVariables].push_back(sink);
+   layers[0].push_back(root,mem);
+   layers[numVariables].push_back(sink,mem);
 
-   this->layerSize[0] = 1;
-   this->layerSize[numVariables] = 1;
+   layerSize[0] = 1;
+   layerSize[numVariables] = 1;
+   
    //std::cout << "Num Vars:" << numVariables << std::endl;
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    for(int i = 0; i < numVariables; i++){
       //std::cout << "x[" << i << "] " << x[i] << std::endl;
       //std::cout << "layersize" << layers[i].size() << std::endl;
-      int lsize = 0;
+      int lsize = layers[i+1].size();
       for(int v = x[i]->min(); v <= x[i]->max(); v++){
          if(!x[i]->contains(v)) continue;
          for(int pidx = 0; pidx < layers[i].size(); pidx++){
@@ -112,7 +110,7 @@ void MDD::buildDiagram(){
                   if(child == nullptr){
                      child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, lsize);
                      umap.insert({child->key(),child});
-                     layers[i+1].push_back(child);
+                     layers[i+1].push_back(child,mem);
                      lsize++;
                   }
                   parent->addArc(mem,child, v);
@@ -126,8 +124,14 @@ void MDD::buildDiagram(){
       }
       //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
       umap.clear();
-      if(i < numVariables - 1)
+      if(i < numVariables - 1) {
+         assert(layers[i+1].size() == lsize);
          layerSize[i+1] = lsize;
+      } else {
+         assert( i == numVariables - 1);
+         std::cout << "lsize: " << lsize << std::endl;
+         std::cout << "layer: " << layers[i+1].size() << std::endl;
+      }
    }
    for(auto i = 0; i < layers.size();i++) {
       auto& layer = layers[i];
