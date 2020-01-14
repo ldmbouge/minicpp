@@ -32,15 +32,10 @@ int main(int argc,char* argv[])
     CPSolver::Ptr cp  = Factory::makeSolver();
 
     auto v = Factory::intVarArray(cp, 3, 1, 3);
-   std::set<int> values_1 = {2};
-   std::set<int> values_2 = {3};
    long start = RuntimeMonitor::cputime();
-   MDDSpec state;
-   Factory::amongMDD(state,v, 2, 2, values_1);
-   Factory::amongMDD(state,v, 1, 1, values_2);
-   auto mdd = new MDD(cp, v, false);
-   mdd->setSpec(state);
-
+   auto mdd = new MDD(cp);
+   Factory::amongMDD(mdd->getSpec(),v, 2, 2, {2});
+   Factory::amongMDD(mdd->getSpec(),v, 1, 1, {3});
    cp->post(mdd);
    
    long end = RuntimeMonitor::cputime();

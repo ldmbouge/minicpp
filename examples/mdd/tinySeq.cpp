@@ -33,14 +33,11 @@ int main(int argc,char* argv[])
     using namespace Factory;
     CPSolver::Ptr cp  = Factory::makeSolver();
 
-    auto v = Factory::intVarArray(cp, 200, 1, 20);
-    std::set<int> values_1 = {2,3,4,5,6};
+    auto v = Factory::intVarArray(cp, 5, 1, 5);
    long start = RuntimeMonitor::cputime();
-   MDDSpec state;
-   Factory::seqMDD(state,v,3,2,2,values_1);
-   auto mdd = new MDD(cp, v, false);
-   mdd->setSpec(state);
-
+   auto mdd = new MDD(cp);
+   Factory::seqMDD(mdd->getSpec(),v,3,2,2,{2});
+   
    cp->post(mdd);
    
    long end = RuntimeMonitor::cputime();
