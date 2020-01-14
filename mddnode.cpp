@@ -76,8 +76,8 @@ void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
    MDDEdge::Ptr e = new (mem) MDDEdge(this, child, v,
                                       (unsigned short)children.size(),
                                       (unsigned short)child->parents.size());
-   children.push_back(e);
-   child->parents.push_back(e);
+   children.push_back(e,mem);
+   child->parents.push_back(e,mem);
 }
 
 /*

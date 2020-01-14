@@ -60,9 +60,9 @@ public:
    MDDNode();
    MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id);
    MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id);
-   const TVec<MDDEdge::Ptr>& getChildren() { return children;}
-   std::size_t getNumChildren() const      { return children.size();}
-   std::size_t getNumParents() const       { return parents.size();}
+   const auto& getChildren()           { return children;}
+   std::size_t getNumChildren() const  { return children.size();}
+   std::size_t getNumParents() const   { return parents.size();}
 
    void remove(MDD* mdd);
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
@@ -70,7 +70,7 @@ public:
    void removeChild(MDD* mdd,int value,int pos);
    void trim(MDD* mdd,var<int>::Ptr x);
 
-   MDDState::Ptr key()        { return &state;}
+   MDDState* key()            { return &state;}
    const MDDState& getState() { return state;}
    bool contains(int v);
    int getLayer() const      { return layer;}
@@ -82,8 +82,8 @@ private:
    trail<bool> _active;
    int pos;
    const int layer;
-   TVec<MDDEdge::Ptr> children;
-   TVec<MDDEdge::Ptr> parents;
+   TVec<MDDEdge::Ptr,unsigned short> children;
+   TVec<MDDEdge::Ptr,unsigned short> parents;
    MDDState state;                     // Direct state embedding
 };
 

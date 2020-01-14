@@ -170,7 +170,6 @@ class MDDState {  // An actual state of an MDDNode.
    char*              _mem;
    int               _hash;  // a hash value of the state to speed up equality testing.
 public:
-   typedef handle_ptr<MDDState> Ptr;
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0) {}
    MDDState(MDDStateSpec* s,char* b) : _spec(s),_mem(b),_hash(0) {}
    MDDState(const MDDState& s) : _spec(s._spec),_mem(s._mem),_hash(s._hash) {}
@@ -203,7 +202,6 @@ public:
          os << atr->get(s._mem) << " ";
       return os << ']';
    }
-   friend bool operator==(const MDDState::Ptr& s1,const MDDState::Ptr& s2) { return s1->operator==(*s2);}
 };
 
 class MDDSpec: public MDDStateSpec {

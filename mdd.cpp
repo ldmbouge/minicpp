@@ -39,12 +39,12 @@ MDD::MDD(CPSolver::Ptr cp, Factory::Veci iv, bool reduced)
 */
 void MDD::post()
 {
-   this->x = _mddspec.getVars();
-   this->numVariables = x.size();
-   this->layers = std::vector< std::vector<MDDNode*> > (numVariables+1, std::vector<MDDNode*>(0));
+   x = _mddspec.getVars();
+   numVariables = x.size();
+   layers = std::vector< std::vector<MDDNode*> > (numVariables+1, std::vector<MDDNode*>(0));
    for(int i = 0; i < numVariables+1; i++)
       layerSize.emplace_back(trail,0);
-   this->supports = std::vector< std::vector<::trail<int>> >(numVariables, std::vector<::trail<int>>(0));
+   supports = std::vector< std::vector<::trail<int>> >(numVariables, std::vector<::trail<int>>(0));
 
    //Create Supports for all values for each variable
    for(int i = 0; i < numVariables; i++){
@@ -111,7 +111,7 @@ void MDD::buildDiagram(){
                   }
                   if(child == nullptr){
                      child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, lsize);
-                     umap.insert({child->key().get(),child});
+                     umap.insert({child->key(),child});
                      layers[i+1].push_back(child);
                      lsize++;
                   }

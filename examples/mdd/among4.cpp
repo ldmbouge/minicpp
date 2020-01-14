@@ -31,7 +31,7 @@ int main(int argc,char* argv[])
     using namespace Factory;
     CPSolver::Ptr cp  = Factory::makeSolver();
 
-    auto v = Factory::intVarArray(cp, 200, 1, 9);
+    auto v = Factory::intVarArray(cp, 400, 1, 9);
    long start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 5, {2});
