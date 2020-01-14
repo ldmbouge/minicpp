@@ -9,6 +9,11 @@
 #include "mdd.hpp"
 #include <unordered_map>
 
+void pN(MDDNode* n)
+{
+   std::cout << n->getState() << std::endl;
+}
+
 MDD::MDD(CPSolver::Ptr cp)
    : Constraint(cp),
      cp(cp),
@@ -76,8 +81,8 @@ void MDD::buildDiagram(){
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
 
-   sink = new (mem) MDDNode(cp, trail, (int) numVariables, 0);
-   root = new (mem) MDDNode(cp, trail, rootState, 0, 0);
+   sink = new (mem) MDDNode(mem, trail, (int) numVariables, 0);
+   root = new (mem) MDDNode(mem, trail, rootState, x[0]->size(),0, 0);
 
    layers[0].push_back(root);
    layers[numVariables].push_back(sink);
@@ -105,7 +110,7 @@ void MDD::buildDiagram(){
                      child = found->second;
                   }
                   if(child == nullptr){
-                     child = new (mem) MDDNode(cp, trail, state, i+1, lsize);
+                     child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, lsize);
                      umap.insert({child->key().get(),child});
                      layers[i+1].push_back(child);
                      lsize++;
@@ -126,7 +131,9 @@ void MDD::buildDiagram(){
    }
    for(auto i = 0; i < layers.size();i++) {
       auto& layer = layers[i];
-      for(auto node : layer) {
+      //for(auto node : layer) {
+      for(auto j = layerSize[i] - 1;j >= 0;j--) {
+         auto node = layer[j];
          if(i != numVariables && node->getNumChildren() < 1)
             removeNode(node);
          else if(i != 0 && node->getNumParents() < 1)
@@ -211,7 +218,7 @@ void MDD::saveGraph()
    for(int l = 0; l < numVariables; l++){
       for(int i = 0; i < layers[l].size(); i++){
          if(!layers[l][i]->isActive()) continue;
-         int nc = layers[l][i]->getNumChildren();
+         auto nc = layers[l][i]->getNumChildren();
          const auto& ch = layers[l][i]->getChildren();
          for(int j = 0; j < nc; j++){
             int count = ch[j]->getChild()->getPosition();

@@ -59,7 +59,7 @@ int main(int argc,char* argv[])
                              [](const auto& x) { return x->size();});
           
           if (x) {
-              //mddAppliance->saveGraph();
+             //mdd->saveGraph();
 
               int c = x->min();
 
