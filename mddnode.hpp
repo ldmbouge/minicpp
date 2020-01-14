@@ -54,7 +54,6 @@ private:
    MDDNode* child;
 };
 
-
 class MDDNode {
 public:
    MDDNode();
