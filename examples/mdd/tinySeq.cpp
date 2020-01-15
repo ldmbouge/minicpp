@@ -39,7 +39,7 @@ int main(int argc,char* argv[])
    Factory::seqMDD(mdd->getSpec(),v,10,2,5,{2,4,5,6});
    
    cp->post(mdd);
-   
+    std::cout << "MDD Usage:" << mdd->usage() << std::endl;
    long end = RuntimeMonitor::cputime();
     std::cout << "VARS: " << v << std::endl;
    std::cout << "Time : " << (end-start) << std::endl;
