@@ -94,7 +94,7 @@ private:
    int pos;
    const int layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
-   TVec<MDDEdge::Ptr,unsigned short> parents;
+   TVec<MDDEdge::Ptr,unsigned int>    parents;
    MDDState state;                     // Direct state embedding
 };
 

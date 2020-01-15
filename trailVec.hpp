@@ -75,15 +75,14 @@ public:
    SZT size() const { return _sz;}
    void push_back(const T& p,Storage::Ptr mem) {
       if (_sz >= _msz) {
-          int newSize = ((int)_msz)<< 1;
-          newSize = newSize >= 65536 ? 65535 : newSize;
+         SZT newSize = _msz << 1;
          T* nd = new (mem) T[newSize];
          for(int i=0;i< _msz;i++)
             nd[i] = _data[i];
          _t->trail(new (_t) TrailEntry<T*>(&_data));
          _t->trail(new (_t) TrailEntry<SZT>(&_msz));
          _data = nd;
-         _msz = (unsigned short)newSize;
+         _msz = newSize;
       }
       at(_sz,p);
       _t->trail(new (_t) TrailEntry<SZT>(&_sz));
