@@ -87,7 +87,11 @@ public:
       pos = p;
       //this->pos = pos;
    }
-   bool isActive() const     { return _active;}
+   bool isActive(MDD* mdd) const; 
+   void print(std::ostream& os)
+   {
+      os << "L[" << layer << "," << pos << "] " << state;
+   }
 private:
    void setActive(bool b) { _active = b;}
    trail<bool> _active;
@@ -97,5 +101,11 @@ private:
    TVec<MDDEdge::Ptr,unsigned int>    parents;
    MDDState state;                     // Direct state embedding
 };
+
+
+inline std::ostream& operator<<(std::ostream& os,MDDNode& p)
+{
+   p.print(os);return os;
+}
 
 #endif /* MDDSTATE_HPP_ */

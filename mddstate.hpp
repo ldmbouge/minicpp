@@ -198,8 +198,9 @@ public:
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << '[';
-      for(auto atr : s._spec->_attrs)
-         os << atr->get(s._mem) << " ";
+      if(s._spec != nullptr)
+         for(auto atr : s._spec->_attrs)
+            os << atr->get(s._mem) << " ";
       return os << ']';
    }
 };

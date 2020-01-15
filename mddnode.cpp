@@ -9,16 +9,14 @@
 #include "mddnode.hpp"
 
 MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id)
-   : _active(t, true),
-     pos(id),
+   : pos(id),
      layer(layer),
      children(t,mem,2),
      parents(t,mem,2)
 {}
 
 MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id)
-   : _active(t, true),
-     pos(id),
+   : pos(id),
      layer(layer),
      children(t,mem,dsz),
      parents(t,mem,dsz),
@@ -30,7 +28,6 @@ MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,
 */
 void MDDNode::remove(MDD* mdd)
 {
-   this->setActive(false);
    for(int i = (int)children.size() - 1; i >= 0 ; i--)
       children.get(i)->remove(mdd);
    for(int i = (int)parents.size() - 1; i >=0 ; i--)
@@ -49,7 +46,7 @@ void MDDNode::removeChild(MDD* mdd,int value,int arc)
    
    if(sz < 1 && layer == 0)
       failNow();
-   if(sz < 1 && _active)
+   if(sz < 1 && isActive(mdd))
       mdd->scheduleRemoval(this);
 }
 
@@ -63,7 +60,7 @@ void MDDNode::removeParent(MDD* mdd,int value,int arc)
    
    if(sz < 1 && layer==mdd->nbLayers())
       failNow();
-   if(sz < 1 && _active)
+   if(sz < 1 && isActive(mdd))
       mdd->scheduleRemoval(this);
 }
 
@@ -85,9 +82,8 @@ void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
 */
 bool MDDNode::contains(int v)
 {
-   for(int i = 0; i < this->children.size(); i++){
+   for(int i = 0; i < this->children.size(); i++)
       if(children.get(i)->getValue() == v) return true;
-   }
    return false;
 }
 
@@ -96,13 +92,17 @@ bool MDDNode::contains(int v)
 */
 void MDDNode::trim(MDD* mdd,var<int>::Ptr x)
 {
-   if (_active) {
+   if (isActive(mdd)) {
       for(int i = (int)children.size() - 1; i >= 0 ; i--){
-         if(!x->contains(children.get(i)->getValue())){
+         if(!x->contains(children.get(i)->getValue()))
             children.get(i)->remove(mdd);
-         }
       }
    }
+}
+
+bool MDDNode::isActive(MDD* mdd) const
+{
+   return pos < mdd->layerSize(layer);
 }
 
 void MDDEdge::remove(MDD* mdd)

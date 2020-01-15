@@ -154,12 +154,13 @@ void MDD::scheduleRemoval(MDDNode* node)
 
 void MDD::removeNode(MDDNode* node)
 {
-   if(node->isActive()){
+   if(node->isActive(this)){
       node->remove(this);
       //swap nodes in layer and decrement size of layer
       const int l      = node->getLayer();
       const int nodeID = node->getPosition();
       layers[l].remove(nodeID);
+      node->setPosition((int)layers[l].size(),mem);
       layers[l][nodeID]->setPosition(nodeID,mem);
    }
 }
@@ -199,22 +200,19 @@ void MDD::saveGraph()
    std::cout << "digraph MDD {" << std::endl;
    for(int l = 0; l < numVariables; l++){
       for(int i = 0; i < layers[l].size(); i++){
-         if(!layers[l][i]->isActive()) continue;
+         if(!layers[l][i]->isActive(this)) continue;
          auto nc = layers[l][i]->getNumChildren();
          const auto& ch = layers[l][i]->getChildren();
          for(int j = 0; j < nc; j++){
             int count = ch[j]->getChild()->getPosition();
             assert(ch[j]->getParent() == layers[l][i]);
             if (l == 0)
-               std::cout << "src" << " ->" << "\"L[" << l+1 << "," << count << "] "
-                         << layers[l+1][count]->getState() <<"\"";
+               std::cout << "src" << " ->" << "\"" << *(layers[l+1][count]) <<"\"";
             else if(l+1 == numVariables)
-               std::cout << "\"L[" << l << "," << i << "] "
-                         << layers[l][i]->getState() << "\" ->" << "sink";
+               std::cout << "\"" << *(layers[l][i]) << "\" ->" << "sink";
             else
-               std::cout << "\"L[" << l << "," << i << "] " << layers[l][i]->getState() << "\" ->"
-                         << "\"L[" << l+1 << "," << count << "] " << layers[l+1][count]->getState()
-                         << "\"";
+               std::cout << "\"" << *(layers[l][i]) << "\" ->"
+                         << "\"" << *(layers[l+1][count]) << "\"";
             std::cout << " [ label=\"" << ch[j]->getValue() << "\" ];" << std::endl;
 
          }
