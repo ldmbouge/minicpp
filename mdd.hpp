@@ -31,6 +31,7 @@ public:
    void propagate() override;
    std::size_t usage() const { return mem->usage();}
    unsigned long nbLayers() const { return numVariables;}
+   std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
 private:
    void buildDiagram();
    Trailer::Ptr trail;
@@ -57,6 +58,26 @@ public:
    MDDTrim(CPSolver::Ptr cp, MDD* mdd, int layer): Constraint(cp), _mdd(mdd), _layer(layer){}
    void post() override {}
    void propagate() override { _mdd->trimLayer(_layer);}
+};
+
+class MDDStats
+{
+private:
+   MDD* _mdd;
+   unsigned long _nbLayers;
+   std::pair<int,int> _width;
+   std::pair<std::size_t,std::size_t> _nbIEdges;
+   std::pair<std::size_t,std::size_t> _nbOEdges;
+public :
+   MDDStats(MDD* mdd);
+   friend inline std::ostream& operator<<(std::ostream& os,const MDDStats& s)
+   {
+      os << "#nbLayers:" << s._nbLayers << " ";
+      os << "#w:[" << s._width.first << "," << s._width.second << "] ";
+      os << "#in:[" << s._nbIEdges.first << "," << s._nbIEdges.second << "] ";
+      os << "#out:[" << s._nbOEdges.first << "," << s._nbOEdges.second << "] ";
+      return os << std::endl;
+   }
 };
 
 #endif /* mdd_hpp */

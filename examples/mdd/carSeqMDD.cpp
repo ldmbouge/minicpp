@@ -158,7 +158,7 @@ std::map<int,int> tomap(int min, int max,std::function<int(int)> clo)
    return r;
 }
 
-void solveModel(CPSolver::Ptr cp,const Factory::Veci& vars)
+void solveModel(CPSolver::Ptr cp)
 {
    auto vx = cp->intVars();
    DFSearch search(cp,[=]() {
@@ -175,9 +175,9 @@ void solveModel(CPSolver::Ptr cp,const Factory::Veci& vars)
       } else return Branches({});
    });
 
-   search.onSolution([&vars]() {
+   search.onSolution([&vx]() {
       std::cout << "Assignment:" << std::endl;
-      std::cout << vars << std::endl;
+      std::cout << vx << std::endl;
    });
 
    auto stat = search.solve([](const SearchStatistics& stats) {
@@ -207,7 +207,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in)
       seqMDD(mdd->getSpec(),opts, in.ub(o), 0, in.lb(o), {1});
    }
    cp->post(mdd);
-   solveModel(cp,vars);
+   solveModel(cp);
 }
 
 
