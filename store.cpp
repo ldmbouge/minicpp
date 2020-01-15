@@ -16,8 +16,6 @@
 #include "store.hpp"
 #include <assert.h>
 
-#define SEGSIZE (1 << 22)
-
 Storage::Segment::Segment(std::size_t tsz)
 {
    _sz = tsz;
@@ -30,23 +28,24 @@ Storage::Segment::~Segment()
    std::cout << "Segment(" << _sz << ") deallocated" <<  std::endl;
 }
 
-Storage::Storage(Trailer::Ptr ctx)
+Storage::Storage(Trailer::Ptr ctx,std::size_t defSize)
    : _ctx(ctx),
      _store(0),
+     _segSize(defSize),
      _top(ctx,0),
      _seg(ctx,0)
 {
-   _store.push_back(std::make_shared<Storage::Segment>(SEGSIZE));
+   _store.push_back(std::make_shared<Storage::Segment>(_segSize));
 }
 
 std::size_t Storage::capacity() const
 {
-   return SEGSIZE;
+   return _segSize;
 }
 
 std::size_t Storage::usage() const
 {
-   return _store.size() * SEGSIZE;
+   return _store.size() * _segSize;
 }
 
 Storage::~Storage()
@@ -61,8 +60,9 @@ void* Storage::allocate(std::size_t sz)
    assert((sz & 7) == 0 && sz != 0);           // check alignment
    auto s = _store[_seg];
    if (_top + sz >= s->_sz) {
-      if (_seg == _store.size() - 1)
-         _store.push_back(std::make_shared<Storage::Segment>(SEGSIZE));
+      while (_store.size() != _seg + 1)
+         _store.pop_back();                    // discard old segments
+      _store.push_back(std::make_shared<Storage::Segment>(std::max(_segSize,sz)));
       _seg = _seg + 1;
       _top = 0;
       s = _store[_seg];

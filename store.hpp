@@ -22,6 +22,8 @@
 #include "trailable.hpp"
 #include "stlAllocAdapter.hpp"
 
+#define SEGSIZE (1 << 22)
+
 class Storage {
    struct Segment {
       char*      _base;
@@ -32,10 +34,11 @@ class Storage {
    };
    Trailer::Ptr                         _ctx;
    std::vector<Storage::Segment::Ptr> _store;
-   trail<int>    _seg;
-   trail<size_t> _top;   
+   const std::size_t   _segSize;
+   trail<size_t>           _top;   
+   trail<int>              _seg;
 public:
-   Storage(Trailer::Ptr ctx); 
+   Storage(Trailer::Ptr ctx,std::size_t defSize = SEGSIZE); 
    ~Storage();
    typedef handle_ptr<Storage> Ptr;
    void* allocate(std::size_t sz);

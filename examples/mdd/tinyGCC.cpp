@@ -37,7 +37,7 @@ int main(int argc,char* argv[])
    using namespace std;
    using namespace Factory;
    CPSolver::Ptr cp  = Factory::makeSolver();
-   int min = 1; int max = 10; int nb = 50;
+   int min = 1; int max = 10; int nb = 30;
    auto v = Factory::intVarArray(cp, nb, min, max);
    long start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
