@@ -23,66 +23,73 @@
 #include "mdd.hpp"
 #include "RuntimeMonitor.hpp"
 
-
+template<typename K, typename V>
+void print_map(std::map<K,V> const &m)
+{
+   for (auto const& pair: m) {
+      std::cout << "{" << pair.first << ": " << pair.second << "}\n";
+   }
+}
 int main(int argc,char* argv[])
 {
    int useSearch = 1;
    int debug = 0;
-    using namespace std;
-    using namespace Factory;
-    CPSolver::Ptr cp  = Factory::makeSolver();
-
-    auto v = Factory::intVarArray(cp, 100, 1, 5);
+   using namespace std;
+   using namespace Factory;
+   CPSolver::Ptr cp  = Factory::makeSolver();
+   int min = 1; int max = 10; int nb = 50;
+   auto v = Factory::intVarArray(cp, nb, min, max);
    long start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
-   Factory::gccMDD(mdd->getSpec(),v, { {5,50} , {4,30}, {2, 20}});
-
+   std::map<int,int> bounds;
+   int n =  nb / (max - min + 1);
+   for(int i = min; i <= 10; i++)
+      bounds.insert(std::pair<int,int>(i,n));
+   print_map(bounds);
+   Factory::gccMDD(mdd->getSpec(),v,bounds);
+   
    cp->post(mdd);
    
    long end = RuntimeMonitor::cputime();
-//   mdd->saveGraph();
-    std::cout << "VARS: " << v << std::endl;
+   std::cout << "VARS: " << v << std::endl;
    std::cout << "Time : " << (end-start) << std::endl;
    
    if(useSearch){
       DFSearch search(cp,[=]() {
-          auto x = selectMin(v,
-                             [](const auto& x) { return x->size() > 1;},
-                             [](const auto& x) { return x->size();});
-          
-          if (x) {
-              //mddAppliance->saveGraph();
-
-              int c = x->min();
-
-              return  [=] {
-                 if(debug)
-                    std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
-                 cp->post(x == c);
-                 if (debug)
-                    std::cout << "VARS: " << v << std::endl;
-                      }
-                 | [=] {
-                    if(debug)
-                      std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
-                    cp->post(x != c);
-                    if(debug)
-                      std::cout << "VARS: " << v << std::endl;
-                   };
-          } else return Branches({});
+         auto x = selectMin(v,
+                            [](const auto& x) { return x->size() > 1;},
+                            [](const auto& x) { return x->size();});
+         
+         if (x) {
+            int c = x->min();
+            return  [=] {
+               if(debug)
+                  std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
+               cp->post(x == c);
+               if (debug)
+                  std::cout << "VARS: " << v << std::endl;
+            }
+            | [=] {
+               if(debug)
+                  std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
+               cp->post(x != c);
+               if(debug)
+                  std::cout << "VARS: " << v << std::endl;
+            };
+         } else return Branches({});
       });
       
       search.onSolution([&v, mdd]() {
-          std::cout << "Assignment:" << std::endl;
+         std::cout << "Assignment:" << std::endl;
          std::cout << v << std::endl;
       });
       
       
-       auto stat = search.solve([](const SearchStatistics& stats) {
-             return stats.numberOfSolutions() > 0;
-         });
+      auto stat = search.solve([](const SearchStatistics& stats) {
+         return stats.numberOfSolutions() > 0;
+      });
       cout << stat << endl;
    }
-    cp.dealloc();
-    return 0;
+   cp.dealloc();
+   return 0;
 }
