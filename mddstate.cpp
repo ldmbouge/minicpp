@@ -200,7 +200,7 @@ namespace Factory {
       int minDom = udom.first, maxDom = udom.second;
 
       std::vector<int> ps = mdd.addStates(d,minDom,maxDom,1,[] (int i) -> int   { return 1;});
-      mdd.addArc(d,[=] (auto p,auto var,int val) -> bool {return p.at(ps[val-minDom]);});
+      mdd.addArc(d,[=] (const auto& p,auto var,int val) -> bool {return p.at(ps[val-minDom]);});
 
       for(int i = minDom; i <= maxDom; i++){
          int idx = ps[i-minDom];
@@ -223,7 +223,7 @@ namespace Factory {
       });
       int p0 = ps[0]; int pminL = ps[minLIdx]; int pmaxF = ps[maxFIdx];
       int pmin = ps[min]; int pmax = ps[max];
-      spec.addArc(desc,[=] (auto p,auto x,int v) -> bool {
+      spec.addArc(desc,[=] (const auto& p,auto x,int v) -> bool {
                      bool inS = values.member(v);
                      int minv = p.at(pmax) - p.at(pmin) + inS;
                      return (p.at(p0) < 0 && minv >= lb && p.at(pminL) + inS <= ub)
@@ -268,7 +268,7 @@ gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
 
       std::vector<int> ps = spec.addStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
 
-      spec.addArc(desc,[=](auto p,auto x,int v)->bool{
+      spec.addArc(desc,[=](const auto& p,auto x,int v)->bool{
          return p.at(ps[v-min]) < values[v];});
 
       lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,ps] (int i,int pi) -> lambdaTrans {

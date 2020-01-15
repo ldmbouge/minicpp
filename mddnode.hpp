@@ -33,11 +33,11 @@ public:
         parentPosition(parentPosition)
    {}
    void remove(MDD* mdd);
-   int getValue() const            { return value; }
+   int getValue() const                        { return value; }
    unsigned short getParentPosition() const    { return parentPosition;}
-   unsigned short getChildPosition() const     { return childPosition;}
-   void setParentPosition(Trailer::Ptr t,unsigned short pos)  {
-      t->trail(new (t) TrailEntry<unsigned short>(&parentPosition));
+   unsigned int getChildPosition() const       { return childPosition;}
+   void setParentPosition(Trailer::Ptr t,unsigned int pos)  {
+      t->trail(new (t) TrailEntry<unsigned int>(&parentPosition));
       parentPosition = pos;
    }
    void setChildPosition(Trailer::Ptr t,unsigned short  pos)  {
@@ -49,7 +49,7 @@ public:
 private:
    int value;
    unsigned short childPosition;
-   unsigned short parentPosition;
+   unsigned int parentPosition;
    MDDNode* parent;
    MDDNode* child;
 };
