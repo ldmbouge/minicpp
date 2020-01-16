@@ -32,6 +32,7 @@ public:
    std::size_t usage() const { return mem->usage();}
    unsigned long nbLayers() const { return numVariables;}
    std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
+   unsigned long layerSize(const int layer) {return layers[layer].size();}
 private:
    void buildDiagram();
    Trailer::Ptr trail;
