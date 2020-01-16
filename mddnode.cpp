@@ -100,11 +100,6 @@ void MDDNode::trim(MDD* mdd,var<int>::Ptr x)
    }
 }
 
-bool MDDNode::isActive(MDD* mdd) const
-{
-   return pos < mdd->layerSize(layer);
-}
-
 void MDDEdge::remove(MDD* mdd)
 {
    parent->removeChild(mdd,value,childPosition);

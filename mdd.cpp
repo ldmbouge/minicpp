@@ -7,6 +7,7 @@
 //
 
 #include "mdd.hpp"
+#include "mddnode.hpp"
 #include <unordered_map>
 
 void pN(MDDNode* n)

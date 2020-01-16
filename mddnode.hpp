@@ -15,7 +15,6 @@
 #include "trailVec.hpp"
 
 class MDDNode;
-class MDD;
 
 class MDDEdge {
 public:
@@ -87,14 +86,12 @@ public:
       pos = p;
       //this->pos = pos;
    }
-   bool isActive(MDD* mdd) const; 
+   bool isActive(MDD* mdd) const { return pos < mdd->layerSize(layer);}
    void print(std::ostream& os)
    {
       os << "L[" << layer << "," << pos << "] " << state;
    }
 private:
-   void setActive(bool b) { _active = b;}
-   trail<bool> _active;
    int pos;
    const int layer;
    TVec<MDDEdge::Ptr,unsigned short> children;

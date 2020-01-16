@@ -9,18 +9,18 @@
 #ifndef mdd_hpp
 #define mdd_hpp
 
-
-#include "mddnode.hpp"
 #include "trailVec.hpp"
+#include "acstr.hpp"
+#include "solver.hpp"
+#include "mddstate.hpp"
 
 class MDDNode;
-class MDD  : public Constraint{
+class MDD  : public Constraint {
 public:
    MDD(CPSolver::Ptr cp);
    void saveGraph();
    void post() override;
-   MDDSpec&
-   getSpec()       { return _mddspec; }
+   MDDSpec& getSpec()      { return _mddspec; }
    void setSpec(MDDSpec s) { _mddspec = s; }
    void trimLayer(int layer);
    void scheduleRemoval(MDDNode*);
