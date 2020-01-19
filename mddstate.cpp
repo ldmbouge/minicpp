@@ -8,6 +8,7 @@
 
 #include "mddstate.hpp"
 #include <algorithm>
+#include <limits.h>
 
 namespace Factory {
    MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max)

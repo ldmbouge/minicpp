@@ -153,6 +153,7 @@ public:
    std::vector<int> addStates(MDDConstraintDescriptor&d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addStates(MDDConstraintDescriptor&d,int max,std::initializer_list<int> inputs);
    friend class MDDState;
+   friend std::ostream& operator<<(std::ostream& os,const MDDState& s);
 };
 
 inline std::ostream& operator<<(std::ostream& os,MDDProperty::Ptr p)

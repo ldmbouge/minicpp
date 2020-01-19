@@ -11,6 +11,7 @@
 
 #include <set>
 #include <map>
+#include <string.h>
 
 class ValueSet {
    char* _data;

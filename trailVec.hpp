@@ -19,6 +19,7 @@
 #include <memory>
 #include "trailable.hpp"
 #include "store.hpp"
+#include <assert.h>
 
 template <class T,typename SZT = std::size_t> class TVec {
    Trailer::Ptr   _t;
