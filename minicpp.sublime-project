@@ -1,0 +1,18 @@
+{
+	"folders":
+	[
+		{
+			"path": ".",
+			"folder_exclude_patterns": ["build"],
+			"file_exclude_patterns" : ["*.o","*.d","*~"]
+		}
+	],
+	 "build_systems":
+    [
+        {
+            "name": "CMake",
+            "shell_cmd": "make -C build -j8",
+            "file_regex": "/([^/:]+):(\\d+):(\\d+): "
+        }
+    ]
+}
