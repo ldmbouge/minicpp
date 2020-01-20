@@ -14,6 +14,7 @@
  */
 
 #include "store.hpp"
+#include <algorithm>
 #include <assert.h>
 
 Storage::Segment::Segment(std::size_t tsz)

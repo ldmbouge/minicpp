@@ -154,8 +154,8 @@ static inline int ceilDiv(int a,int b) {
 }
 
 class IntVarViewMul :public var<int> {
-   int _a;
-   var<int>::Ptr _x;
+    var<int>::Ptr _x;
+    int _a;
 public:
    IntVarViewMul(const var<int>::Ptr& x,int a) : _x(x),_a(a) { assert(a> 0);}
    Storage::Ptr getStore() override   { return _x->getStore();}
@@ -194,8 +194,8 @@ public:
 };
 
 class IntVarViewOffset :public var<int> {
-   int _o;
-   var<int>::Ptr _x;
+    var<int>::Ptr _x;
+    int _o;
 public:
     IntVarViewOffset(const var<int>::Ptr& x,int o) : _x(x),_o(o) {}
    Storage::Ptr getStore() override   { return _x->getStore();}
