@@ -17,6 +17,10 @@
 #include "fail.hpp"
 #include <iostream>
 
+#if defined(_WIN64)
+#include <intrin.h>
+#endif
+
 BitDomain::BitDomain(Trailer::Ptr eng,Storage::Ptr store,int min,int max)
     : _min(eng,min),
       _max(eng,max),
@@ -43,19 +47,31 @@ int BitDomain::count(int from,int to) const
     if (fw == tw) {
         const unsigned int wm = (0xFFFFFFFF << fb) & ~(0xFFFFFFFF << tb);
         const unsigned int bits = _dom[fw] & wm;
+#if defined(_WIN64)
+        nc = __popcnt(bits);
+#else
         nc = __builtin_popcount(bits);
+#endif
     } else {
       unsigned int wm = (0xFFFFFFFF << fb);
       unsigned int bits;
       while (fw < tw) {
           bits = _dom[fw] & wm;
+#if defined(_WIN64)
+          nc += __popcnt(bits);
+#else
           nc += __builtin_popcount(bits);
+#endif
           fw += 1;
           wm = 0xFFFFFFFF;
       }
       wm = ~(0xFFFFFFFF << tb);
       bits = _dom[fw] & wm;
+#if defined(_WIN64)
+      nc += __popcnt(bits);
+#else
       nc += __builtin_popcount(bits);
+#endif
     }
     return nc;
 }

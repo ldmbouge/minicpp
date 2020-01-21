@@ -18,8 +18,8 @@ void pN(MDDNode* n)
 
 MDD::MDD(CPSolver::Ptr cp)
    : Constraint(cp),
-     cp(cp),
-     trail(cp->getStateManager())
+     trail(cp->getStateManager()),
+    cp(cp)
 {
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
@@ -225,7 +225,7 @@ void MDD::saveGraph()
 
 
 
-MDDStats::MDDStats(MDD* mdd) : _mdd(mdd), _nbLayers(mdd->nbLayers()) {
+MDDStats::MDDStats(MDD* mdd) : _nbLayers(mdd->nbLayers()) {
    _width = std::make_pair (INT_MAX,0);
    _nbIEdges = std::make_pair (INT_MAX,0);
    _nbOEdges = std::make_pair (INT_MAX,0);

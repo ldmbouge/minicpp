@@ -29,7 +29,7 @@ MDDConstraintDescriptor::MDDConstraintDescriptor(const Factory::Veci& vars, cons
 : _vars(vars), _vset(vars), _name(name){}
 
 MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& d)
-: _vars(d._vars), _vset(d._vset), _properties(d._properties), _name(d._name) {}
+: _vars(d._vars), _vset(d._vset), _name(d._name), _properties(d._properties) {}
 
 MDDSpec::MDDSpec()
    :arcLambda(nullptr)
@@ -190,7 +190,7 @@ namespace Factory {
 
       mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l.at(minC) - r.at(minC)); });
       mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l.at(maxC) - r.at(maxC)); });
-      mdd.addSimilarity(rem ,[rem] (auto l,auto r) -> double { return 0; });
+      mdd.addSimilarity(rem ,[] (auto l,auto r) -> double { return 0; });
    }
 
    void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)

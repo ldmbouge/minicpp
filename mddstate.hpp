@@ -22,13 +22,11 @@ typedef std::map<int,lambdaTrans> lambdaMap;
 
 class MDDStateSpec;
 
-class MDDConstraintDescriptor
-{
-private :
-   std::vector<int> _properties;
-   ValueSet               _vset;
+class MDDConstraintDescriptor {
    const Factory::Veci&   _vars;
+   ValueSet               _vset;
    const char*            _name;
+   std::vector<int> _properties;
 public :
    MDDConstraintDescriptor(const Factory::Veci& vars, const char* name);
    MDDConstraintDescriptor(const MDDConstraintDescriptor&);

@@ -43,9 +43,9 @@ private:
    std::deque<MDDNode*> queue;
    std::vector<std::vector<::trail<int>>> supports;
    std::vector<int> oft;
-   bool reduced = false;
+   //bool reduced = false;
    unsigned long numVariables;
-   bool maximize;
+   //bool maximize;
    MDDNode* root = nullptr;
    MDDNode* sink = nullptr;
    var<int>::Ptr objective = nullptr;
@@ -61,10 +61,8 @@ public:
    void propagate() override { _mdd->trimLayer(_layer);}
 };
 
-class MDDStats
-{
-private:
-   MDD* _mdd;
+class MDDStats {
+   //MDD* _mdd;
    unsigned long _nbLayers;
    std::pair<int,int> _width;
    std::pair<std::size_t,std::size_t> _nbIEdges;

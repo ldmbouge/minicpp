@@ -17,6 +17,7 @@
 #define __INTVAR_H
 
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <assert.h>
 #include "avar.hpp"
@@ -226,6 +227,8 @@ public:
    }
 };
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
 
 template <>
 class var<bool> :public IntVarImpl {
@@ -236,6 +239,7 @@ public:
     bool isFalse() const { return max()==0;}
     void assign(bool b)  { IntVarImpl::assign(b);}
 };
+#pragma clang diagnostic pop
 
 inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
     return xp->print(os);

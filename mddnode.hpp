@@ -47,10 +47,10 @@ public:
    MDDNode* getParent() const      { return parent;}
 private:
    int value;
-   unsigned short childPosition;
-   unsigned int parentPosition;
    MDDNode* parent;
    MDDNode* child;
+   unsigned short childPosition;
+   unsigned int parentPosition;
 };
 
 class MDDNode {

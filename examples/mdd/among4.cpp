@@ -13,8 +13,6 @@
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  */
 
-#include <iostream>
-#include <iomanip>
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"
@@ -23,11 +21,12 @@
 #include "mdd.hpp"
 #include "RuntimeMonitor.hpp"
 
+#include <iostream>
+#include <iomanip>
 
 int main(int argc,char* argv[])
 {
    int useSearch = 1;
-    using namespace std;
     using namespace Factory;
     CPSolver::Ptr cp  = Factory::makeSolver();
 
@@ -64,7 +63,7 @@ int main(int argc,char* argv[])
           } else return Branches({});
       });
       
-      search.onSolution([&v, mdd]() {
+      search.onSolution([&v]() {
           std::cout << "Assignment:" << std::endl;
          std::cout << v << std::endl;
       });
@@ -73,7 +72,7 @@ int main(int argc,char* argv[])
        auto stat = search.solve([](const SearchStatistics& stats) {
              return stats.numberOfSolutions() > 0;
          });
-      cout << stat << endl;
+       std::cout << stat << std::endl;
    }
     cp.dealloc();
     return 0;

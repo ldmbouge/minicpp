@@ -69,7 +69,7 @@ int main(int argc,char* argv[])
           } else return Branches({});
       });
       
-      search.onSolution([&v, mdd]() {
+      search.onSolution([&v]() {
           std::cout << "Assignment:" << std::endl;
          std::cout << v << std::endl;
       });
