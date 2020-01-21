@@ -11,14 +11,15 @@
 
 #include <chrono>
 
-class RuntimeMonitor {
-public:
+namespace RuntimeMonitor {
    typedef  std::chrono::time_point<std::chrono::high_resolution_clock> HRClock;
-   static HRClock cputime();
-   static std::chrono::time_point<std::chrono::system_clock> wctime();
-   static HRClock now();
-   static double elapsedSince(HRClock then);
-   static long milli(HRClock s,HRClock e);
-};
+   typedef  std::chrono::time_point<std::chrono::system_clock> SYClock;
+   HRClock cputime();
+   SYClock wctime();
+   HRClock now();
+   double elapsedSince(HRClock then);
+   long milli(HRClock s,HRClock e);
+}
+
 #endif /* RuntimeMonitor_hpp */
 
