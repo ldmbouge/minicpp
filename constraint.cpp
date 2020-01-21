@@ -397,7 +397,7 @@ void AllDifferentAC::propagate()
    updateRange();
    updateGraph();
    int nc = 0;
-   int scc[_nNodes];
+   int* scc = (int*)alloca(sizeof(int)*_nNodes);
    _rg.SCC([&scc,&nc](int n,int nd[]) {
                for(int i=0;i < n;i++)
                    scc[nd[i]] = nc;
