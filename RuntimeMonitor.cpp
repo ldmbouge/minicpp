@@ -8,9 +8,6 @@
 
 #include "RuntimeMonitor.hpp"
 
-#include <sys/time.h>
-#include <sys/resource.h>
-
 std::chrono::time_point<std::chrono::high_resolution_clock> RuntimeMonitor::cputime()
 {
    return std::chrono::high_resolution_clock::now();
