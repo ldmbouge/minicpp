@@ -8,64 +8,29 @@
 
 #include "RuntimeMonitor.hpp"
 
-struct timeval timeval_subtract(struct timeval* x,struct timeval* y) 
-{
-   /* Perform the carry for the later subtraction by updating y. */
-   if (x->tv_usec < y->tv_usec) {
-      int nsec = (y->tv_usec - x->tv_usec) / 1000000 + 1;
-      y->tv_usec -= 1000000 * nsec;
-      y->tv_sec += nsec;
-   }
-   if (x->tv_usec - y->tv_usec > 1000000) {
-      int nsec = (x->tv_usec - y->tv_usec) / 1000000;
-      y->tv_usec += 1000000 * nsec;
-      y->tv_sec -= nsec;
-   }
-   
-   /* Compute the time remaining to wait.
-    tv_usec is certainly positive. */
-   struct timeval result;
-   result.tv_sec = x->tv_sec - y->tv_sec;
-   result.tv_usec = x->tv_usec - y->tv_usec;
-   return result;
-}
+#include <sys/time.h>
+#include <sys/resource.h>
 
-long RuntimeMonitor::cputime()
+std::chrono::time_point<std::chrono::high_resolution_clock> RuntimeMonitor::cputime()
 {
-   struct rusage r;
-   getrusage(RUSAGE_SELF,&r);
-   struct timeval t;
-   t = r.ru_utime;
-   return 1000 * t.tv_sec + t.tv_usec / 1000;
+   return std::chrono::high_resolution_clock::now();
 }
-long RuntimeMonitor::microseconds()
+std::chrono::time_point<std::chrono::system_clock> RuntimeMonitor::wctime()
 {
-   struct rusage r;
-   getrusage(RUSAGE_SELF,&r);
-   struct timeval t;
-   t = r.ru_utime;
-   return ((long)t.tv_usec) + (long)1000L * (long)t.tv_sec;
+   return std::chrono::system_clock::now();
 }
-long RuntimeMonitor::wctime()
+std::chrono::time_point<std::chrono::high_resolution_clock>  RuntimeMonitor::now()
 {
-   struct timeval now;
-   struct timezone tz;
-   int st = gettimeofday(&now,&tz);
-   if (st==0) {
-      now.tv_sec -= (0xfff << 20);
-      return 1000 * now.tv_sec + now.tv_usec/1000;
-   }
-   else return 0;
+   return std::chrono::high_resolution_clock::now();
 }
-timeval RuntimeMonitor::now()
+double RuntimeMonitor::elapsedSince(std::chrono::time_point<std::chrono::high_resolution_clock> then)
 {
-   struct rusage r;
-   getrusage(RUSAGE_SELF,&r);
-   return r.ru_utime;
+   auto now  = std::chrono::high_resolution_clock::now();   
+   auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - then);
+   return diff.count();
 }
-timeval  RuntimeMonitor::elapsedSince(timeval then)
+long RuntimeMonitor::milli(HRClock s,HRClock e)
 {
-   struct rusage r;
-   getrusage(RUSAGE_SELF,&r);
-   return timeval_subtract(&r.ru_utime,&then);
+   auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(e - s);
+   return diff.count();
 }

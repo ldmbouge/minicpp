@@ -32,7 +32,7 @@ int main(int argc,char* argv[])
    auto v = Factory::intVarArray(cp, 5, 1, 3);
    std::set<int> values_1 = {2};
    std::set<int> values_2 = {3};
-   long start = RuntimeMonitor::cputime();
+   auto start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, values_1);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, values_2);
@@ -42,8 +42,8 @@ int main(int argc,char* argv[])
    sv[0] = v[0];
    sv[1] = v[1];
    cp->post(sum(sv) <= v[4]);
-   long end = RuntimeMonitor::cputime();
-   std::cout << "Time : " << (end-start) << std::endl;
+   auto end = RuntimeMonitor::cputime();
+   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    mdd->saveGraph();
 
    if(useSearch){
@@ -71,8 +71,8 @@ int main(int argc,char* argv[])
       
       
       auto stat = search.solve();
-      end = RuntimeMonitor::cputime();
-      std::cout << "Time : " << (end-start) << std::endl;
+      auto end = RuntimeMonitor::cputime();
+      std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
       cout << stat << endl;
       
    }

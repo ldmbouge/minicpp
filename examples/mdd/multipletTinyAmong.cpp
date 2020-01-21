@@ -32,18 +32,18 @@ int main(int argc,char* argv[])
 
    auto v = Factory::intVarArray(cp, 2, 1, 3);
    auto v2 = Factory::intVarArray(cp, 2, 1, 3);
-   long start = RuntimeMonitor::cputime();
+   auto start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
    auto spec = mdd->getSpec();
    Factory::amongMDD(spec,v, 2, 2, {2});
    Factory::amongMDD(spec,v2, 1, 1, {3});
    cp->post(mdd);
    
-   long end = RuntimeMonitor::cputime();
+   auto end = RuntimeMonitor::cputime();
    mdd->saveGraph();
    auto vars = cp->intVars();
    std::cout << "VARS: " << vars << std::endl;
-   std::cout << "Time : " << (end-start) << std::endl;
+   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    
    if(useSearch){
       DFSearch search(cp,[=]() {

@@ -32,16 +32,16 @@ int main(int argc,char* argv[])
     CPSolver::Ptr cp  = Factory::makeSolver();
 
     auto v = Factory::intVarArray(cp, 3, 1, 3);
-   long start = RuntimeMonitor::cputime();
+   auto start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, {2});
    Factory::amongMDD(mdd->getSpec(),v, 1, 1, {3});
    cp->post(mdd);
    
-   long end = RuntimeMonitor::cputime();
+   auto end = RuntimeMonitor::cputime();
    mdd->saveGraph();
     std::cout << "VARS: " << v << std::endl;
-   std::cout << "Time : " << (end-start) << std::endl;
+   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    
    if(useSearch){
       DFSearch search(cp,[=]() {

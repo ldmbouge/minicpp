@@ -34,15 +34,15 @@ int main(int argc,char* argv[])
     CPSolver::Ptr cp  = Factory::makeSolver();
 
     auto v = Factory::intVarArray(cp, 50, 1, 9);
-   long start = RuntimeMonitor::cputime();
+   auto start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
    Factory::seqMDD(mdd->getSpec(),v,10,2,5,{2,4,5,6});
    
    cp->post(mdd);
     std::cout << "MDD Usage:" << mdd->usage() << std::endl;
-   long end = RuntimeMonitor::cputime();
+   auto end = RuntimeMonitor::cputime();
     std::cout << "VARS: " << v << std::endl;
-   std::cout << "Time : " << (end-start) << std::endl;
+   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    
    if(useSearch){
       DFSearch search(cp,[=]() {

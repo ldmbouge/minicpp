@@ -73,14 +73,14 @@ int main(int argc,char* argv[])
 {
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
-   long start = RuntimeMonitor::cputime();
+   auto start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
    Factory::seqMDD(mdd->getSpec(),v,LEN,LB,UB,{2,4,5,6});
    cp->post(mdd);
-   long end = RuntimeMonitor::cputime();
+   auto end = RuntimeMonitor::cputime();
    MDDStats stats(mdd);
    std::cout << "MDD Usage:" << mdd->usage() << std::endl;
-   std::cout << "Time : " << (end-start) << std::endl;
+   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    std::cout << stats << std::endl;
    solveModel(cp);
    cp.dealloc();

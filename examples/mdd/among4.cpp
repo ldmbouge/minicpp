@@ -32,7 +32,7 @@ int main(int argc,char* argv[])
     CPSolver::Ptr cp  = Factory::makeSolver();
 
     auto v = Factory::intVarArray(cp, 200, 1, 9);
-   long start = RuntimeMonitor::cputime();
+   auto start = RuntimeMonitor::now();
    auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 5, {2});
    Factory::amongMDD(mdd->getSpec(),v, 2, 5, {3});
@@ -42,9 +42,9 @@ int main(int argc,char* argv[])
    cp->post(mdd);
 
    std::cout << "MDD Usage: " << mdd->usage() << std::endl;
-   long end = RuntimeMonitor::cputime();
+   auto dur = RuntimeMonitor::elapsedSince(start);
 //   mdd->saveGraph();
-   std::cout << "Time : " << (end-start) << std::endl;
+   std::cout << "Time : " << dur << std::endl;
 
    if(useSearch){
       DFSearch search(cp,[=]() {

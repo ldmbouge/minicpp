@@ -33,16 +33,16 @@ int main(int argc,char* argv[])
    CPSolver::Ptr cp  = Factory::makeSolver();
    const int nb = 20;
    auto v = Factory::intVarArray(cp, nb, 1, nb);
-   long start = RuntimeMonitor::cputime();
+   auto start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
    Factory::allDiffMDD(mdd->getSpec(),v);
 
    cp->post(mdd);
    
-   long end = RuntimeMonitor::cputime();
+   auto end = RuntimeMonitor::cputime();
    //   mdd->saveGraph();
    std::cout << "VARS: " << v << std::endl;
-   std::cout << "Time : " << (end-start) << std::endl;
+   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    
    if(useSearch){
       DFSearch search(cp,[=]() {
