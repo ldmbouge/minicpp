@@ -65,7 +65,7 @@ int main(int argc,char* argv[])
        
     DFSearch search(cp,firstFail(cp,x));
 
-    search.onSolution([&x,&obj]() {
+    search.onSolution([&obj]() {
                          cout << "objective = " << obj->value() << endl;
                       });
 

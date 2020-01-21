@@ -62,7 +62,7 @@ int main(int argc,char* argv[])
           } else return Branches({});
       });
       
-      search.onSolution([&vars, mdd]() {
+      search.onSolution([&vars]() {
          std::cout << "Assignment:" << std::endl;
          std::cout << "v:" << vars  << std::endl;
       });
