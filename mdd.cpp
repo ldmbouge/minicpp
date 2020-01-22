@@ -17,9 +17,9 @@ void pN(MDDNode* n)
 }
 
 MDD::MDD(CPSolver::Ptr cp)
-   :  Constraint(cp),
-      trail(cp->getStateManager()),
-      cp(cp)
+:  Constraint(cp),
+trail(cp->getStateManager()),
+cp(cp)
 {
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
@@ -92,8 +92,8 @@ void MDD::buildNextLayer(int i)
          }
       }
       if (getSupport(i,v) == 0)
-       x[i]->remove(v);
- }
+         x[i]->remove(v);
+   }
    //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
 }
 
