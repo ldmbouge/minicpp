@@ -94,17 +94,14 @@ void MDD::buildDiagram(){
             std::tie(state,ok) = _mddspec.createState(mem,parent->getState(), x[i], v);
             if(ok) {
                if(i < numVariables - 1){
-                  MDDNode* child = nullptr;
                   auto found = umap.find(&state);
-                  if (found != umap.end()) {
-                     child = found->second;
-                  }
-                  if(child == nullptr){
+                  MDDNode* child = nullptr;
+                  if(found == umap.end()){
                      child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, lsize);
                      umap.insert({child->key(),child});
                      layers[i+1].push_back(child,mem);
                      lsize++;
-                  }
+                  }  else child = found->second;
                   parent->addArc(mem,child, v);
                } else
                   parent->addArc(mem,sink, v);
@@ -177,7 +174,7 @@ int MDD::getSupport(int layer,int value) const
 
 void MDD::addSupport(int layer, int value)
 {
-   supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]] + 1;
+   supports[layer][value - oft[layer]] += 1;
 }
 
 /*
@@ -187,8 +184,7 @@ void MDD::addSupport(int layer, int value)
 
 void MDD::removeSupport(int layer, int value)
 {
-   //assert(supports[layer][value - oft[layer]].value() > 0);
-   int s = supports[layer][value - oft[layer]] = supports[layer][value - oft[layer]] - 1;
+   int s = supports[layer][value - oft[layer]] -= 1;
    if(s < 1)
       x[layer]->remove(value);
 }

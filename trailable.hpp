@@ -33,6 +33,8 @@ public:
    operator T() const { return _value;}
    T value() const { return _value;}
    trail<T>& operator=(const T& v);
+   trail<T>& operator+=(const T& v);
+   trail<T>& operator-=(const T& v);
    class TrailEntry: public Entry {
       T*  _at;
       T  _old;
@@ -49,6 +51,24 @@ trail<T>& trail<T>::operator=(const T& v)
    if (_magic != cm)
       save(cm);    
    _value = v;
+   return *this;        
+}
+
+template<class T>
+trail<T>& trail<T>::operator+=(const T& v) {
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);    
+   _value += v;
+   return *this;           
+}
+
+template<class T>
+trail<T>& trail<T>::operator-=(const T& v) {
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);    
+   _value -= v;
    return *this;        
 }
 
