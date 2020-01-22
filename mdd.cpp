@@ -17,9 +17,9 @@ void pN(MDDNode* n)
 }
 
 MDD::MDD(CPSolver::Ptr cp)
-   : Constraint(cp),
-     trail(cp->getStateManager()),
-    cp(cp)
+   :  Constraint(cp),
+      trail(cp->getStateManager()),
+      cp(cp)
 {
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
@@ -64,10 +64,43 @@ struct MDDStateEqual {
    bool operator()(const MDDState* s1,const MDDState* s2) const { return *s1 == *s2;}
 };
 
+void MDD::buildLayer(int i)
+{
+   std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
+   int lsize = (int) layers[i+1].size();
+   for(int v = x[i]->min(); v <= x[i]->max(); v++) {
+      if(!x[i]->contains(v)) continue;
+      for(int pidx = 0; pidx < layers[i].size(); pidx++) {
+         MDDNode* parent = layers[i][pidx];
+         MDDState state;
+         bool     ok;
+         std::tie(state,ok) = _mddspec.createState(mem,parent->getState(), x[i], v);
+         if(ok) {
+            if(i < numVariables - 1){
+               auto found = umap.find(&state);
+               MDDNode* child = nullptr;
+               if(found == umap.end()){
+                  child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, lsize);
+                  umap.insert({child->key(),child});
+                  layers[i+1].push_back(child,mem);
+                  lsize++;
+               }  else child = found->second;
+               parent->addArc(mem,child, v);
+            } else
+            parent->addArc(mem,sink, v);
+            addSupport(i, v);
+         }
+      }
+      if (getSupport(i,v) == 0)
+       x[i]->remove(v);
+ }
+   //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
+}
 /*
   MDD::buildDiagram builds the diagram with the MDD-based constraints specified in the root state.
 */
-void MDD::buildDiagram(){
+void MDD::buildDiagram()
+{
    // Generate Root and Sink Nodes for MDD
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
@@ -78,51 +111,18 @@ void MDD::buildDiagram(){
 
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
-  
+
    //std::cout << "Num Vars:" << numVariables << std::endl;
-   std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    for(int i = 0; i < numVariables; i++){
       //std::cout << "x[" << i << "] " << x[i] << std::endl;
       //std::cout << "layersize" << layers[i].size() << std::endl;
-      int lsize = (int) layers[i+1].size();
-      for(int v = x[i]->min(); v <= x[i]->max(); v++){
-         if(!x[i]->contains(v)) continue;
-         for(int pidx = 0; pidx < layers[i].size(); pidx++){
-            MDDNode* parent = layers[i][pidx];
-            MDDState state;
-            bool     ok;
-            std::tie(state,ok) = _mddspec.createState(mem,parent->getState(), x[i], v);
-            if(ok) {
-               if(i < numVariables - 1){
-                  auto found = umap.find(&state);
-                  MDDNode* child = nullptr;
-                  if(found == umap.end()){
-                     child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, lsize);
-                     umap.insert({child->key(),child});
-                     layers[i+1].push_back(child,mem);
-                     lsize++;
-                  }  else child = found->second;
-                  parent->addArc(mem,child, v);
-               } else
-                  parent->addArc(mem,sink, v);
-               addSupport(i, v);
-            }
-         }
-         if (getSupport(i,v) == 0)
-             x[i]->remove(v);
-      }
-      //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
-      umap.clear();
+      buildLayer(i);
    }
-   for(auto i = 0; i < layers.size();i++) {
+   for(auto i = 1; i < numVariables;i++) {
       auto& layer = layers[i];
-      //for(auto node : layer) {
       for(int j = (int)layer.size() - 1;j >= 0;j--) {
-         auto node = layer[j];
-         if(i != numVariables && node->getNumChildren() < 1)
-            removeNode(node);
-         else if(i != 0 && node->getNumParents() < 1)
-            removeNode(node);
+         if(layer[j]->disconnected())
+            removeNode(layer[j]);
       }
    }
    propagate();
@@ -166,7 +166,7 @@ void MDD::removeNode(MDDNode* node)
 
 int MDD::getSupport(int layer,int value) const
 {
-    return supports[layer][value - oft[layer]];
+ return supports[layer][value - oft[layer]];
 }
 /*
   MDD::addSupport(int layer, int value) increments support for value at specific layer.
@@ -210,7 +210,7 @@ void MDD::saveGraph()
                std::cout << "\"" << *(layers[l][i]) << "\" ->" << "sink";
             else
                std::cout << "\"" << *(layers[l][i]) << "\" ->"
-                         << "\"" << *(layers[l+1][count]) << "\"";
+            << "\"" << *(layers[l+1][count]) << "\"";
             std::cout << " [ label=\"" << ch[j]->getValue() << "\" ];" << std::endl;
 
          }

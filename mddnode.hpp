@@ -68,7 +68,7 @@ public:
    const auto& getChildren()           { return children;}
    std::size_t getNumChildren() const  { return children.size();}
    std::size_t getNumParents() const   { return parents.size();}
-
+   bool disconnected() const           { return children.size() < 1 || parents.size() < 1;}
    void remove(MDD* mdd);
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
    void removeParent(MDD* mdd,int value,int pos);

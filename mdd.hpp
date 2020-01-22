@@ -34,6 +34,7 @@ public:
    std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
    unsigned long layerSize(const int layer) {return layers[layer].size();}
 private:
+   void buildLayer(int i);
    void buildDiagram();
    Trailer::Ptr trail;
    CPSolver::Ptr cp;
