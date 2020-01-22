@@ -2,3 +2,7 @@
 *.o
 *.d*
 **/*.dSYM
+build
+minicpp.xcodeproj
+minicpp.sublime-workspace
+copl/copl.xcodeproj
