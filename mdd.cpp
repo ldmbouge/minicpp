@@ -64,7 +64,7 @@ struct MDDStateEqual {
    bool operator()(const MDDState* s1,const MDDState* s2) const { return *s1 == *s2;}
 };
 
-void MDD::buildLayer(int i)
+void MDD::buildNextLayer(int i)
 {
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    int lsize = (int) layers[i+1].size();
@@ -96,42 +96,45 @@ void MDD::buildLayer(int i)
  }
    //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
 }
-/*
-  MDD::buildDiagram builds the diagram with the MDD-based constraints specified in the root state.
-*/
-void MDD::buildDiagram()
+
+void MDD::trimDomains()
 {
-   // Generate Root and Sink Nodes for MDD
-   _mddspec.layout();
-   std::cout << _mddspec << std::endl;
-   auto rootState = _mddspec.rootState(mem);
-
-   sink = new (mem) MDDNode(mem, trail, (int) numVariables, 0);
-   root = new (mem) MDDNode(mem, trail, rootState, x[0]->size(),0, 0);
-
-   layers[0].push_back(root,mem);
-   layers[numVariables].push_back(sink,mem);
-
-   //std::cout << "Num Vars:" << numVariables << std::endl;
-   for(int i = 0; i < numVariables; i++){
-      //std::cout << "x[" << i << "] " << x[i] << std::endl;
-      //std::cout << "layersize" << layers[i].size() << std::endl;
-      buildLayer(i);
-   }
    for(auto i = 1; i < numVariables;i++) {
       auto& layer = layers[i];
       for(int j = (int)layer.size() - 1;j >= 0;j--) {
          if(layer[j]->disconnected())
             removeNode(layer[j]);
       }
-   }
-   propagate();
+   }   
+}
+
+void MDD::hookupPropagators()
+{
    for(int i = 0; i < numVariables; i++){
       if (!x[i]->isBound()) {
          x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, this,i));
          x[i]->propagateOnDomainChange(this);
       }
-   }
+   }   
+}
+
+// Builds the diagram with the MDD-based constraints specified in the root state.
+void MDD::buildDiagram()
+{
+   // Generate Root and Sink Nodes for MDD
+   _mddspec.layout();
+   std::cout << _mddspec << std::endl;
+   auto rootState = _mddspec.rootState(mem);
+   sink = new (mem) MDDNode(mem, trail, (int) numVariables, 0);
+   root = new (mem) MDDNode(mem, trail, rootState, x[0]->size(),0, 0);
+   layers[0].push_back(root,mem);
+   layers[numVariables].push_back(sink,mem);
+
+   for(int i = 0; i < numVariables; i++)
+      buildNextLayer(i);   
+   trimDomains();
+   propagate();
+   hookupPropagators();
 }
 
 /*
