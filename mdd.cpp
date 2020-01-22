@@ -67,7 +67,6 @@ struct MDDStateEqual {
 void MDD::buildNextLayer(int i)
 {
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
-   int lsize = (int) layers[i+1].size();
    for(int v = x[i]->min(); v <= x[i]->max(); v++) {
       if(!x[i]->contains(v)) continue;
       for(int pidx = 0; pidx < layers[i].size(); pidx++) {
@@ -80,14 +79,13 @@ void MDD::buildNextLayer(int i)
                auto found = umap.find(&state);
                MDDNode* child = nullptr;
                if(found == umap.end()){
-                  child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, lsize);
+                  child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, layers[i+1].size());
                   umap.insert({child->key(),child});
                   layers[i+1].push_back(child,mem);
-                  lsize++;
                }  else child = found->second;
                parent->addArc(mem,child, v);
             } else
-            parent->addArc(mem,sink, v);
+               parent->addArc(mem,sink, v);
             addSupport(i, v);
          }
       }
