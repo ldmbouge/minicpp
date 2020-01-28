@@ -45,6 +45,7 @@ public:
    }
    MDDNode* getChild() const       { return child;}
    MDDNode* getParent() const      { return parent;}
+   void moveTo(MDDNode* n,Storage::Ptr mem);
 private:
    int value;
    MDDNode* parent;
@@ -65,6 +66,7 @@ public:
    MDDNode();
    MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id);
    MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id);
+   const auto& getParents()            { return parents;}
    const auto& getChildren()           { return children;}
    std::size_t getNumChildren() const  { return children.size();}
    std::size_t getNumParents() const   { return parents.size();}
@@ -73,12 +75,18 @@ public:
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
    void removeParent(MDD* mdd,int value,int pos);
    void removeChild(MDD* mdd,int value,int pos);
+   void unhookChild(MDDEdge::Ptr arc);
+   void hookChild(MDDEdge::Ptr arc,Storage::Ptr mem);
    void trim(MDD* mdd,var<int>::Ptr x);
 
    MDDState* key()            { return &state;}
+   void setState(const MDDState& s) { state = s;}
    const MDDState& getState() { return state;}
    bool contains(int v);
-   int getLayer() const      { return layer;}
+   short getLayer() const    { return layer;}
+   void merge() { merged = true;}
+   void clearMerge() { merged = false;}
+   bool isMerged() const { return merged;}
    int getPosition() const   { return pos;}
    void setPosition(int p,Storage::Ptr mem) {
       auto t = children.getTrail();
@@ -93,11 +101,20 @@ public:
    }
 private:
    int pos;
-   const int layer;
+   const short layer;
+   short merged;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;
    MDDState state;                     // Direct state embedding
 };
+
+
+inline void MDDEdge::moveTo(MDDNode* n,Storage::Ptr mem) 
+{
+   child->unhookChild(this);
+   child = n;
+   child->hookChild(this,mem);
+}
 
 
 inline std::ostream& operator<<(std::ostream& os,MDDNode& p)

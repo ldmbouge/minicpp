@@ -34,6 +34,8 @@ public :
    bool member(var<int>::Ptr x) const { return _vset.member(x->getId());}
    const Factory::Veci& vars() const { return _vars;}
    std::vector<int>& properties() { return _properties;}
+   auto begin() { return _properties.begin();}
+   auto end()   { return _properties.end();}
    void print (std::ostream& os) const
    {
       os << _name << "(" << _vars << ")" << std::endl;
@@ -172,6 +174,21 @@ public:
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0) {}
    MDDState(MDDStateSpec* s,char* b) : _spec(s),_mem(b),_hash(0) {}
    MDDState(const MDDState& s) : _spec(s._spec),_mem(s._mem),_hash(s._hash) {}
+   MDDState& operator=(const MDDState& s) { 
+      assert(_spec == s._spec || _spec == nullptr);
+      assert(_mem != nullptr);
+      _spec = s._spec;
+      memcpy(_mem,s._mem,_spec->layoutSize());
+      _hash = s._hash;
+      return *this;
+   }
+   MDDState& operator=(MDDState&& s) { 
+      assert(_spec == s._spec || _spec == nullptr);
+      _spec = std::move(s._spec);
+      _mem  = std::move(s._mem);      
+      _hash = std::move(s._hash);
+      return *this;
+   }
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
    int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
@@ -216,7 +233,9 @@ public:
    void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
    void addTransitions(lambdaMap& map);
 
-  std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,var<int>::Ptr var, int v);
+   double similarity(const MDDState& a,const MDDState& b);
+   std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,var<int>::Ptr var, int v);
+   MDDState relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b);
    MDDState rootState(Storage::Ptr& mem);
 
    auto getArcs()         { return arcLambda;}

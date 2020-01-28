@@ -133,8 +133,7 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
    return rootState;
 }
 
-std::pair<MDDState,bool> MDDSpec::
-createState(Storage::Ptr& mem,const MDDState& parent,
+std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,
                                               var<int>::Ptr var, int v)
 {
   if(arcLambda(parent, var, v)){
@@ -152,6 +151,30 @@ createState(Storage::Ptr& mem,const MDDState& parent,
        return std::pair<MDDState,bool>(result,true);
     }
     return std::pair<MDDState,bool>(MDDState(),false);
+}
+
+double MDDSpec::similarity(const MDDState& a,const MDDState& b) 
+{
+  double dist = 0;
+  for(auto& cstr : constraints) {
+    for(auto p : cstr) {
+      double abSim = similarityLambdas[p](a,b);
+      dist += abSim;
+    }
+  }
+  return dist;
+}
+
+MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b)
+{
+  MDDState result(this,(char*)mem->allocate(layoutSize()));
+  for(auto& cstr : constraints) {
+    for(auto p : cstr) {
+      result.set(p,relaxationLambdas[p](a,b));
+    }
+  }   
+  result.hash();
+  return result;
 }
 
 std::pair<int,int> domRange(const Factory::Veci& vars)

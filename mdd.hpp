@@ -33,11 +33,11 @@ public:
    unsigned long nbLayers() const { return numVariables;}
    std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
    unsigned long layerSize(const int layer) {return layers[layer].size();}
-private:
+protected:
    void trimDomains();
    void hookupPropagators();
    void buildNextLayer(int i);
-   void buildDiagram();
+   virtual void buildDiagram();
    Trailer::Ptr trail;
    CPSolver::Ptr cp;
    Storage::Ptr mem;

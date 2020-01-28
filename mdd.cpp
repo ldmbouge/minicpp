@@ -1,4 +1,4 @@
-//
+ //
 //  mdd.cpp
 //  minicpp
 //
@@ -13,7 +13,16 @@
 
 void pN(MDDNode* n)
 {
-   std::cout << n->getState() << std::endl;
+   std::cout << n->getState() << " [" << n->getNumChildren() << "]" << std::endl;
+   for(auto& arc : n->getChildren()) {
+      std::cout << '\t' << " - "  << arc->getValue() << " -> " 
+                << arc->getChild()->getState() << " P:" << arc->getChild() << std::endl;
+   }
+}
+
+void pS(const MDDState& s)
+{
+   std::cout << s << std::endl;
 }
 
 MDD::MDD(CPSolver::Ptr cp)
