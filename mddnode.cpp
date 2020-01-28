@@ -30,6 +30,7 @@ void MDDNode::unhookChild(MDDEdge::Ptr arc)
 {
    assert(arc->getChild() == this);
    int at = arc->getParentPosition();
+   assert(at >= 0 && at < parents.size());
    assert(parents.get(at) == arc);
    parents.remove(at);
 }
