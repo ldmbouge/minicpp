@@ -148,6 +148,7 @@ std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& 
           }
        }
        result.hash();
+       result.relax(parent.isRelaxed());
        return std::pair<MDDState,bool>(result,true);
     }
     return std::pair<MDDState,bool>(MDDState(),false);
@@ -174,6 +175,7 @@ MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState&
     }
   }   
   result.hash();
+  result.relax();
   return result;
 }
 

@@ -84,9 +84,7 @@ public:
    const MDDState& getState() { return state;}
    bool contains(int v);
    short getLayer() const    { return layer;}
-   void merge() { merged = true;}
-   void clearMerge() { merged = false;}
-   bool isMerged() const { return merged;}
+   bool isMerged() const     { return state.isRelaxed();}
    int getPosition() const   { return pos;}
    void setPosition(int p,Storage::Ptr mem) {
       auto t = children.getTrail();
@@ -102,7 +100,6 @@ public:
 private:
    int pos;
    const short layer;
-   short merged;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;
    MDDState state;                     // Direct state embedding

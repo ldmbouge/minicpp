@@ -24,7 +24,10 @@ void MDDRelax::buildDiagram()
 
 void MDDRelax::relaxLayer(int i)
 {
+	if (layers[i].size() <= _width)
+		return;
 	std::vector<std::tuple<int,int,double>> sims;
+	std::vector<bool> merged(layers[i].size(),false);
 
 	for(int j = 0;j < layers[i].size(); j++) {
 		for(int k=j+1;k < layers[i].size();k++) {
@@ -46,14 +49,15 @@ void MDDRelax::relaxLayer(int i)
 		std::tie(j,k,s) = sims[x++];
 		MDDNode* a = layers[i][j];
 		MDDNode* b = layers[i][k];
-		if (a->isMerged() || b->isMerged()) 
+		if (merged[j] || merged[k])
 			continue;
-		merge(nl,a,b);
+		merge(nl,a,b,true);
+		merged[j] = merged[k] = true;
 		nbNodes++;
 	}
 	for(int j = 0;j < layers[i].size(); j++) {
 		MDDNode* b = layers[i][j];
-		if (b->isMerged()) 
+		if (merged[j])
 			continue;
         if (nl.size() < _width) {
             nl.push_back(b);
@@ -67,7 +71,8 @@ void MDDRelax::relaxLayer(int i)
                 best = simAB < best ? simAB : best;
             }
             assert(sa != nullptr);
-            merge(nl,sa,b);
+            merge(nl,sa,b,false); // not first merge of sa
+            merged[j] = true;
         }
 	}
 	layers[i].clear();
@@ -78,17 +83,26 @@ void MDDRelax::relaxLayer(int i)
 	}
 }
 
-void MDDRelax::merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b)
+void MDDRelax::merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstMerge)
 {
 	MDDState ns = _mddspec.relaxation(mem,a->getState(),b->getState());
 	// Let's reuse 'a', move everyone pointing to 'b' to now point to 'a'
 	// Let's make the state of 'a' and b'  be the new state 'ns'
 	// And rebuild a new vector with only the merged nodes. 
-	for(MDDEdge::Ptr arc : b->getParents()) 
+	// loop backwards since this modifies b's parent container. 
+	auto end = b->getParents().rend();
+	for(auto i = b->getParents().rbegin(); i != end;i++) {
+		auto arc = *i;
 		arc->moveTo(a,mem);
+	}
+   if (firstMerge)
+      nl.push_back(a);
 	a->setState(ns);
 	b->setState(ns);
-	a->merge();
-	b->merge();
-	nl.push_back(a);
 }
+
+void MDDRelax::propagate() 
+{
+	MDD::propagate();
+}
+

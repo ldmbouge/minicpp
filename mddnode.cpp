@@ -11,7 +11,6 @@
 MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id)
    : pos(id),
      layer(layer),
-     merged(false),
      children(t,mem,2),
      parents(t,mem,2)
 {}
@@ -19,7 +18,6 @@ MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id)
 MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id)
    : pos(id),
      layer(layer),
-     merged(false),
      children(t,mem,dsz),
      parents(t,mem,dsz),
      state(state)
@@ -33,13 +31,15 @@ void MDDNode::unhookChild(MDDEdge::Ptr arc)
    assert(at >= 0 && at < parents.size());
    assert(parents.get(at) == arc);
    parents.remove(at);
+   if (parents.size() > 0)
+      parents.get(at)->setParentPosition(parents.getTrail(), at);  // whoever was moved needs to know their position.
 }
 
 void MDDNode::hookChild(MDDEdge::Ptr arc,Storage::Ptr mem)
 {
    auto at = parents.size();
    parents.push_back(arc,mem);
-   arc->setChildPosition(parents.getTrail(),at);
+   arc->setParentPosition(parents.getTrail(),at);  // arc needs to know where it is.
 }
 
 

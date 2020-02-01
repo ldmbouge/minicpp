@@ -170,16 +170,20 @@ class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
    int               _hash;  // a hash value of the state to speed up equality testing.
+   bool           _relaxed;
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0) {}
-   MDDState(MDDStateSpec* s,char* b) : _spec(s),_mem(b),_hash(0) {}
-   MDDState(const MDDState& s) : _spec(s._spec),_mem(s._mem),_hash(s._hash) {}
+   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_relaxed(false) {}
+   MDDState(MDDStateSpec* s,char* b,bool relax=false) 
+      : _spec(s),_mem(b),_hash(0),_relaxed(false) {}
+   MDDState(const MDDState& s) 
+      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_relaxed(s._relaxed) {}
    MDDState& operator=(const MDDState& s) { 
       assert(_spec == s._spec || _spec == nullptr);
       assert(_mem != nullptr);
       _spec = s._spec;
       memcpy(_mem,s._mem,_spec->layoutSize());
       _hash = s._hash;
+      _relaxed = s._relaxed;
       return *this;
    }
    MDDState& operator=(MDDState&& s) { 
@@ -187,12 +191,15 @@ public:
       _spec = std::move(s._spec);
       _mem  = std::move(s._mem);      
       _hash = std::move(s._hash);
+      _relaxed = std::move(s._relaxed);
       return *this;
    }
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
    int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}        // to set a state property
+   bool isRelaxed() const      { return _relaxed;}      
+   void relax(bool r = true)   { _relaxed = r;}
    int hash() {
       const int nbw = (int)_spec->layoutSize() / 4;
       int nlb = _spec->layoutSize() & 0x3;
@@ -213,7 +220,7 @@ public:
       else return false;
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
-      os << '[';
+      os << (s._relaxed ? 'T' : 'F') << '[';
       if(s._spec != nullptr)
          for(auto atr : s._spec->_attrs)
             os << atr->get(s._mem) << " ";

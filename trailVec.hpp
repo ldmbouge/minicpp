@@ -17,6 +17,7 @@
 #define __TRAILVEC_H
 
 #include <memory>
+#include <iterator>
 #include "trailable.hpp"
 #include "store.hpp"
 #include <assert.h>
@@ -105,20 +106,25 @@ public:
       _t->trail(new (_t) TrailEntry<T>(_data+i));
       _data[i] = nv;
    }
-   class iterator: public std::iterator<std::input_iterator_tag,T,long,const T*,T&> {
+   class iterator: public std::iterator<std::input_iterator_tag,T,long> {
       T*    _data;
       long   _num;
-      explicit iterator(T* d,long num = 0) : _data(d),_num(num) {}
+      iterator(T* d,long num = 0) : _data(d),_num(num) {}
    public:
       iterator& operator++()   { _num = _num + 1; return *this;}
       iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
+      iterator& operator--()   { _num = _num - 1; return *this;}
+      iterator operator--(int) { iterator retval = *this; --(*this); return retval;}
       bool operator==(iterator other) const {return _num == other._num;}
       bool operator!=(iterator other) const {return !(*this == other);}
       T& operator*() const {return _data[_num];}
       friend class TVec;
    };
+   using reverse_iterator = std::reverse_iterator<iterator>;
    iterator begin() const { return iterator(_data,0);}
    iterator end()   const { return iterator(_data,_sz);}
+   reverse_iterator rbegin() const { return reverse_iterator(end());}
+   reverse_iterator rend()   const { return reverse_iterator(begin());}
 };
 
 #endif
