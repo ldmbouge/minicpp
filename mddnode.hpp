@@ -84,7 +84,6 @@ public:
    const MDDState& getState() { return state;}
    bool contains(int v);
    short getLayer() const    { return layer;}
-   bool isMerged() const     { return state.isRelaxed();}
    int getPosition() const   { return pos;}
    void setPosition(int p,Storage::Ptr mem) {
       auto t = children.getTrail();
