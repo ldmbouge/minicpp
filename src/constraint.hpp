@@ -29,6 +29,7 @@
 #include "matching.hpp"
 #include "bitset.hpp"
 #include "literal.hpp"
+#include "explainer.hpp"
 
 class EQc : public Constraint { // x == c
     var<int>::Ptr _x;
@@ -204,6 +205,7 @@ class AllDifferentAC : public Constraint {
     Factory::Veci    _x;
     MaximumMatching _mm;
     Graph           _rg;
+    AllDiffExplainer _ex;
     int* _match;
     bool* _matched;
     int _minVal,_maxVal;
@@ -211,11 +213,12 @@ class AllDifferentAC : public Constraint {
     int updateRange();
     void updateGraph();
     int valNode(int vid) const { return vid - _minVal + _nVar;}
+    friend class AllDiffExplainer;
 public:
     template <class Vec> AllDifferentAC(const Vec& x)
         : Constraint(x[0]->getSolver()),
           _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore())),
-          _mm(_x,x[0]->getStore()) {}
+          _mm(_x,x[0]->getStore()), _ex(this) {}
     ~AllDifferentAC() {}
     void post() override;
     void propagate() override;

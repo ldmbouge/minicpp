@@ -92,12 +92,14 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
             _sm->saveState();
             try {
                 stats.incrNodes();
+                stats.incrDepth();
                 alt();
                 dfs(stats,limit);         
             } catch(Status e) {
                 stats.incrFailures();
                 notifyFailure();
             }
+            stats.decrDepth();
             _sm->restoreState();
         }
     }   

@@ -463,8 +463,11 @@ void AllDifferentAC::propagate()
            });
    for(int i=0;i < _nVar;i++) 
        for(int v = _minVal; v <= _maxVal;v++) 
-           if (_match[i] != v && scc[i] != scc[valNode(v)])
+           if (_match[i] != v && scc[i] != scc[valNode(v)]) {
+               if (_x[i]->size() > 1)
+                    _ex.explain(_x[i], v);
                _x[i]->remove(v);
+           }
 }
 
 void Circuit::setup(CPSolver::Ptr cp)

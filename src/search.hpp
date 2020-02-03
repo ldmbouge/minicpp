@@ -18,6 +18,7 @@
 
 #include "solver.hpp"
 #include "constraint.hpp"
+#include "trailable.hpp"
 #include <vector>
 #include <initializer_list>
 #include <functional>
@@ -44,12 +45,15 @@ public:
 };
 
 class SearchStatistics {
+    int _depth;
     int _nFailures;
     int _nNodes;
     int _nSolutions;
     bool _completed;
 public:
-   SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {}
+   SearchStatistics() : _depth(0),_nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {}
+   void incrDepth() { ++_depth; }
+   void decrDepth() { --_depth; }
    void incrFailures() { _nFailures++; }
    void incrNodes() { _nNodes++; }
    void incrSolutions() { _nSolutions++; }
