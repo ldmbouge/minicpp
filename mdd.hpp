@@ -21,11 +21,11 @@ public:
    void saveGraph();
    void post() override;
    MDDSpec& getSpec()      { return _mddspec; }
-   void setSpec(MDDSpec s) { _mddspec = s; }
-   void trimLayer(int layer);
+   virtual void trimLayer(int layer);
    void scheduleRemoval(MDDNode*);
    int getSupport(int layer,int value) const;
-   void addSupport(int layer, int value);
+   void addSupport(int layer, int value); 
+   void delSupport(int layer, int value);
    void removeSupport(int layer, int value);
    void removeNode(MDDNode* node);
    void propagate() override;

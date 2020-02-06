@@ -219,6 +219,11 @@ public:
          return memcmp(_mem,s._mem,_spec->layoutSize())==0;
       else return false;
    }
+   bool operator!=(const MDDState& s) const {
+      if (_hash == s._hash)
+         return memcmp(_mem,s._mem,_spec->layoutSize())!=0;
+      else return true;
+   }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << (s._relaxed ? 'T' : 'F') << '[';
       if(s._spec != nullptr)
@@ -239,7 +244,7 @@ public:
    void addRelaxation(int,std::function<int(const MDDState&,const MDDState&)>);
    void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
    void addTransitions(lambdaMap& map);
-
+   bool exist(const MDDState& a,var<int>::Ptr x,int v);
    double similarity(const MDDState& a,const MDDState& b);
    std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,var<int>::Ptr var, int v);
    MDDState relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b);

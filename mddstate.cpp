@@ -133,6 +133,11 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
    return rootState;
 }
 
+bool MDDSpec::exist(const MDDState& a,var<int>::Ptr x,int v)
+{
+  return arcLambda(a,x,v);
+}
+
 std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,
                                               var<int>::Ptr var, int v)
 {

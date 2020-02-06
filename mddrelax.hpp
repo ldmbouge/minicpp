@@ -2,15 +2,27 @@
 #define __MDDRELAX_H
 
 #include "mdd.hpp"
+#include "trailable.hpp"
+#include <set>
 
 class MDDRelax : public MDD {
-	const int _width;
-	void merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstMerge);
+   const int _width;
+   ::trail<int> _lowest;
+   void merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstMerge);
+   void rebuild();
+   bool refreshNode(MDDNode* n,int l);
+   std::set<MDDNode*> split(TVec<MDDNode*>& layer,int l);
+   void spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l);
+   MDDNode* findSimilar(TVec<MDDNode*>& layer,const MDDState& s);
+   MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);
 public:
-	MDDRelax(CPSolver::Ptr cp,int width = 32) : MDD(cp),_width(width) {}
-	void buildDiagram() override;
-	void relaxLayer(int i);
-	void propagate() override;
+   MDDRelax(CPSolver::Ptr cp,int width = 32)
+      : MDD(cp),_width(width),_lowest(cp->getStateManager(),0)
+   {}
+   void buildDiagram() override;
+   void relaxLayer(int i);
+   void propagate() override;
+   void trimLayer(int layer) override;
 };
 
 #endif

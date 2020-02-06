@@ -27,8 +27,8 @@ void pS(const MDDState& s)
 
 MDD::MDD(CPSolver::Ptr cp)
 :  Constraint(cp),
-trail(cp->getStateManager()),
-cp(cp)
+   trail(cp->getStateManager()),
+   cp(cp)
 {
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
@@ -88,7 +88,7 @@ void MDD::buildNextLayer(int i)
                auto found = umap.find(&state);
                MDDNode* child = nullptr;
                if(found == umap.end()){
-                  child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, layers[i+1].size());
+                  child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, (int)layers[i+1].size());
                   umap.insert({child->key(),child});
                   layers[i+1].push_back(child,mem);
                }  else child = found->second;
@@ -187,6 +187,11 @@ void MDD::addSupport(int layer, int value)
    supports[layer][value - oft[layer]] += 1;
 }
 
+void MDD::delSupport(int layer, int value)
+{
+   supports[layer][value - oft[layer]] -= 1;
+}
+
 /*
   MDD::removeSupport(int layer, int value) decrements support for value at specific layer.
   If support for a value reaches 0, then value is removed from the domain.
@@ -227,6 +232,12 @@ void MDD::saveGraph()
       }
    }
    std::cout << "}" << std::endl;
+   for(int l = 0; l < numVariables; l++) {
+      std::cout << "sup[" << l << "] = ";
+      for(int v = x[l]->min();v <= x[l]->max();v++)
+        std::cout << v << ":" << getSupport(l,v) << ',';
+      std::cout << '\b' << std::endl;
+   }
 }
 
 

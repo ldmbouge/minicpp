@@ -24,6 +24,19 @@ MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,
 {}
 
 
+void MDDNode::unhook(MDDEdge::Ptr arc)
+{
+   assert(this == arc->getParent());
+   int at = arc->getChildPosition();
+   assert(at >= 0 && at < children.size());
+   assert(children.get(at) == arc);
+   children.remove(at);
+   if (children.size() > 0)
+      children.get(at)->setChildPosition(parents.getTrail(), at); 
+   auto childNode = arc->getChild();   
+   childNode->unhookChild(arc);
+}
+
 void MDDNode::unhookChild(MDDEdge::Ptr arc)
 {
    assert(arc->getChild() == this);
