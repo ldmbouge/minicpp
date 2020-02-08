@@ -154,9 +154,10 @@ MDDNode* MDDRelax::findSimilar(TVec<MDDNode*>& layer,const MDDState& s)
 std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
 {
    std::set<MDDNode*> delta;
-   for(auto i = layer.rbegin();i != layer.rend() && layer.size() < _width;i++) {
+   bool xb = x[l-1]->isBound();
+   for(auto i = layer.rbegin();i != layer.rend() && (xb || layer.size() < _width);i++) {
       auto n = *i;
-      if (x[l-1]->isBound()) {
+      if (xb) {
          if (refreshNode(n,l))
             delta.insert(n);
       } else {
