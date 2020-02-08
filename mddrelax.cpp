@@ -95,7 +95,7 @@ void MDDRelax::merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstM
    auto end = b->getParents().rend();
    for(auto i = b->getParents().rbegin(); i != end;i++) {
       auto arc = *i;
-      arc->moveTo(a,mem);
+      arc->moveTo(a,trail,mem);
    }
    if (firstMerge)
       nl.push_back(a);
@@ -173,7 +173,7 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
             if (layer.size() < _width && ms != n->getState()) {
                MDDNode* nc = new (mem) MDDNode(mem,trail,ms,x[l-1]->size(),l,(int)layer.size());
                layer.push_back(nc,mem);
-               a->moveTo(nc,mem);
+               a->moveTo(nc,trail,mem);
                delta.insert(nc);
                nn.push_back(nc);
             } else {
@@ -185,7 +185,7 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
                   best = simAB < best ? simAB : best;
                }
                if (best == 0 && bj != n) {
-                  a->moveTo(bj,mem);
+                  a->moveTo(bj,trail,mem);
                   delta.insert(bj);
                }
             }

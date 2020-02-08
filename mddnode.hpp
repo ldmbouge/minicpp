@@ -45,7 +45,7 @@ public:
    }
    MDDNode* getChild() const       { return child;}
    MDDNode* getParent() const      { return parent;}
-   void moveTo(MDDNode* n,Storage::Ptr mem);
+   void moveTo(MDDNode* n,Trailer::Ptr t,Storage::Ptr mem);
 private:
    int value;
    MDDNode* parent;
@@ -81,7 +81,10 @@ public:
    void trim(MDD* mdd,var<int>::Ptr x);
 
    MDDState* key()            { return &state;}
-   void setState(const MDDState& s) { state = s;}
+   void setState(const MDDState& s) {
+      auto t = children.getTrail();
+      state.assign(s,t);
+   }
    const MDDState& getState() { return state;}
    bool contains(int v);
    short getLayer() const    { return layer;}
@@ -90,7 +93,6 @@ public:
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<int>(&pos));
       pos = p;
-      //this->pos = pos;
    }
    bool isActive(MDD* mdd) const { return pos < mdd->layerSize(layer);}
    void print(std::ostream& os)
@@ -106,9 +108,10 @@ private:
 };
 
 
-inline void MDDEdge::moveTo(MDDNode* n,Storage::Ptr mem) 
+inline void MDDEdge::moveTo(MDDNode* n,Trailer::Ptr t,Storage::Ptr mem) 
 {
    child->unhookChild(this);
+   t->trail(new (t) TrailEntry<MDDNode*>(&child));
    child = n;
    child->hookChild(this,mem);
 }

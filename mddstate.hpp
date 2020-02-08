@@ -171,17 +171,39 @@ class MDDState {  // An actual state of an MDDNode.
    char*              _mem;
    int               _hash;  // a hash value of the state to speed up equality testing.
    bool           _relaxed;
+   class TrailState : public Entry {
+      MDDState* _at;
+      char*   _from;
+      int       _sz;
+      int   _h;
+      bool  _r;
+   public:
+      TrailState(MDDState* at,char* from,int sz) : _at(at),_from(from),_sz(sz)
+      {
+         memcpy(_from,_at->_mem,_sz);
+         _h = _at->_hash;
+         _r = _at->_relaxed;
+      }
+      void restore() {
+         memcpy(_at->_mem,_from,_sz);
+         _at->_hash = _h;
+         _at->_relaxed = _r;
+      }
+   };
 public:
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_relaxed(false) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
       : _spec(s),_mem(b),_hash(0),_relaxed(false) {}
    MDDState(const MDDState& s) 
       : _spec(s._spec),_mem(s._mem),_hash(s._hash),_relaxed(s._relaxed) {}
-   MDDState& operator=(const MDDState& s) { 
+   MDDState& assign(const MDDState& s,Trailer::Ptr t) {
+      auto sz = _spec->layoutSize();
+      char* block = new (t) char[sz];
+      t->trail(new (t) TrailState(this,block,sz));      
       assert(_spec == s._spec || _spec == nullptr);
       assert(_mem != nullptr);
       _spec = s._spec;
-      memcpy(_mem,s._mem,_spec->layoutSize());
+      memcpy(_mem,s._mem,sz);
       _hash = s._hash;
       _relaxed = s._relaxed;
       return *this;
@@ -194,6 +216,7 @@ public:
       _relaxed = std::move(s._relaxed);
       return *this;
    }
+   auto layoutSize() const     { return _spec->layoutSize();}   
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
    int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property

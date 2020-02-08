@@ -223,9 +223,11 @@ void MDD::saveGraph()
                std::cout << "src" << " ->" << "\"" << *(layers[l+1][count]) <<"\"";
             else if(l+1 == numVariables)
                std::cout << "\"" << *(layers[l][i]) << "\" ->" << "sink";
-            else
+            else {
+               assert(layers[l+1][count] == ch[j]->getChild());
                std::cout << "\"" << *(layers[l][i]) << "\" ->"
-            << "\"" << *(layers[l+1][count]) << "\"";
+                         << "\"" << *(layers[l+1][count]) << "\"";
+            }
             std::cout << " [ label=\"" << ch[j]->getValue() << "\" ];" << std::endl;
 
          }
