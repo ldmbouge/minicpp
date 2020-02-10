@@ -33,7 +33,7 @@ int main(int argc,char* argv[])
 
    auto v = Factory::intVarArray(cp, 4, 1, 5);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDDRelax(cp,1);
+   auto mdd = new MDDRelax(cp,2);
    //auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, {2});
    Factory::amongMDD(mdd->getSpec(),v, 1, 1, {3});
@@ -46,12 +46,19 @@ int main(int argc,char* argv[])
 
    if(useSearch){
       DFSearch search(cp,[=]() {
+                           int i;
+                           for(i=0;i< v.size();i++)
+                             if (v[i]->size() > 1)
+                               break;
+                           auto x = v[i];
+                           /*
                             auto x = selectMin(v,
                                                [](const auto& x) { return x->size() > 1;},
                                                [](const auto& x) { return x->size();});
+                           */
                             if (x) {
-                               //mddAppliance->saveGraph();                               
-                               int c = x->min();                               
+                               //mddAppliance->saveGraph();
+                               int c = x->min();
                                return  [=] {
                                           std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
                                           cp->post(x == c);
@@ -66,7 +73,7 @@ int main(int argc,char* argv[])
                                     };
                             } else return Branches({});
                          });
-      
+
       search.onSolution([&v]() {
                            std::cout << "Assignment: " << v << std::endl;
                         });

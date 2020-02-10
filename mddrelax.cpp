@@ -4,7 +4,7 @@
 #include <unordered_map>
 #include <algorithm>
 
-void MDDRelax::buildDiagram() 
+void MDDRelax::buildDiagram()
 {
    std::cout << "MDDRelax::buildDiagram" << std::endl;
    _mddspec.layout();
@@ -16,7 +16,7 @@ void MDDRelax::buildDiagram()
    layers[numVariables].push_back(sink,mem);
 
    for(int i = 0; i < numVariables; i++) {
-      buildNextLayer(i);   
+      buildNextLayer(i);
       relaxLayer(i+1);
    }
    trimDomains();
@@ -90,8 +90,8 @@ void MDDRelax::merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstM
    MDDState ns = _mddspec.relaxation(mem,a->getState(),b->getState());
    // Let's reuse 'a', move everyone pointing to 'b' to now point to 'a'
    // Let's make the state of 'a' and b'  be the new state 'ns'
-   // And rebuild a new vector with only the merged nodes. 
-   // loop backwards since this modifies b's parent container. 
+   // And rebuild a new vector with only the merged nodes.
+   // loop backwards since this modifies b's parent container.
    auto end = b->getParents().rend();
    for(auto i = b->getParents().rbegin(); i != end;i++) {
       auto arc = *i;
@@ -103,7 +103,7 @@ void MDDRelax::merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstM
    b->setState(ns);
 }
 
-void MDDRelax::trimLayer(int layer) 
+void MDDRelax::trimLayer(int layer)
 {
    MDD::trimLayer(layer);
    if (_lowest.fresh())
@@ -123,8 +123,8 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       std::tie(cs,ok) = _mddspec.createState(mem,p->getState(),x[l-1],v);
       if (first)
          ms = std::move(cs);
-      else 
-         ms = _mddspec.relaxation(mem,ms,cs);			
+      else
+         ms = _mddspec.relaxation(mem,ms,cs);
       first = false;
    }
    bool changed = n->getState() != ms;
@@ -157,6 +157,10 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
    bool xb = x[l-1]->isBound();
    for(auto i = layer.rbegin();i != layer.rend() && (xb || layer.size() < _width);i++) {
       auto n = *i;
+      if (n->getNumParents() == 0) {
+        removeNode(n);
+        continue;
+      }
       if (xb) {
          if (refreshNode(n,l))
             delta.insert(n);
@@ -191,14 +195,12 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
                }
             }
          }
-         if (n->getNumParents()==0) 
+         if (n->getNumParents()==0)
             removeNode(n);
          else {
             if (refreshNode(n,l))
                delta.insert(n);
          }
-         if (layer.size() == _width) 
-            break;
       }
    }
    return delta;
@@ -247,7 +249,7 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
          assert(ok);
          auto found = umap.find(&psi);
          MDDNode* child = nullptr;
-         if(found != umap.end()) { 
+         if(found != umap.end()) {
             child = found->second;
             addSupport(l-1,v);
             n->addArc(mem,child,v);
@@ -279,7 +281,7 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
    }
    for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
       if (x[l-1]->contains(v) && getSupport(l-1,v)==0)
-         x[l-1]->remove(v);            
+         x[l-1]->remove(v);
    }
    delta = out;
 }
@@ -296,11 +298,10 @@ void MDDRelax::rebuild()
    }
 }
 
-void MDDRelax::propagate() 
+void MDDRelax::propagate()
 {
    MDD::propagate();
    rebuild();
    trimDomains();
    _lowest = (int)numVariables - 1;
 }
-
