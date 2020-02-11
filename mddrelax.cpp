@@ -115,6 +115,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
    MDDState ms;
    bool first = true;
+   assert(n->getNumParents() > 0);
    for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();
@@ -151,6 +152,20 @@ MDDNode* MDDRelax::findSimilar(TVec<MDDNode*>& layer,const MDDState& s)
    return layer[bj];
 }
 
+std::tuple<MDDNode*,double> MDDRelax::findSimilar(std::vector<MDDNode*>& list,const MDDState& s)
+{
+   double best = DBL_MAX;
+   int bj = -1;
+   for(int j = 0;j < list.size(); j++) {
+      MDDNode* a = list[j];
+      double simAB = _mddspec.similarity(s,a->getState());
+      bj   = simAB < best ? j : bj;
+      best = simAB < best ? simAB : best;
+   }
+   return std::make_tuple(list[bj],best);
+}
+
+
 std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
 {
    std::set<MDDNode*> delta;
@@ -175,28 +190,31 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
             bool ok;
             std::tie(ms,ok) = _mddspec.createState(mem,p->getState(),x[l-1],v);
             assert(ok);
-            if (layer.size() < _width && ms != n->getState()) {
-               MDDNode* nc = new (mem) MDDNode(mem,trail,ms,x[l-1]->size(),l,(int)layer.size());
-               layer.push_back(nc,mem);
-               a->moveTo(nc,trail,mem);
-               delta.insert(nc);
-               nn.push_back(nc);
-            } else {
-               double best =  DBL_MAX;
-               MDDNode* bj = nullptr;
-               for(auto sn : nn) {
-                  double simAB = _mddspec.similarity(ms,sn->getState());
-                  bj = simAB < best ? sn : bj;
-                  best = simAB < best ? simAB : best;
-               }
-               if (best == 0 && bj != n) {
+            MDDNode* bj = nullptr;
+            double best;
+            std::tie(bj,best) = findSimilar(nn,ms);
+            if (best == 0) { // there is a perfect match
+               if (bj != n) {
                   a->moveTo(bj,trail,mem);
                   delta.insert(bj);
+               }
+               // If we matched to n nothing to do. We already point to n.
+            } else { // There is an approximate match
+               // So, if there is room create a new node
+               if (layer.size()  < _width) {
+                  MDDNode* nc = new (mem) MDDNode(mem,trail,ms,x[l-1]->size(),l,(int)layer.size());
+                  layer.push_back(nc,mem);
+                  a->moveTo(nc,trail,mem);
+                  delta.insert(nc);
+                  nn.push_back(nc);
+               } else { // No room, and an approximate match.
+                  // Leave the node where it is.
+                  // The refresh(n) will compute a relaxation for it. 
                }
             }
          }
          if (n->getNumParents()==0)
-            removeNode(n);
+            delState(n,l);
          else {
             if (refreshNode(n,l))
                delta.insert(n);
@@ -226,6 +244,32 @@ MDDNode* MDDRelax::resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l)
    }
    return to;
 }
+
+void MDDRelax::delState(MDDNode* node,int l)
+{
+   assert(node->isActive(this));
+   assert(l == node->getLayer());
+   const int at = node->getPosition();
+   layers[l].remove(at);
+   node->setPosition((int)layers[l].size(),mem);
+   layers[l][at]->setPosition(at,mem);
+   if (node->getNumParents() > 0) {
+      for(auto i = node->getParents().rbegin();i != node->getParents().rend();i++) {
+         auto arc = *i;
+         MDDNode* parent = arc->getParent();
+         parent->unhook(arc);
+         delSupport(l-1,arc->getValue());         
+      }
+   }
+   if (node->getNumChildren() > 0) {
+      for(auto i = node->getChildren().rbegin();i != node->getChildren().rend();i++) {
+         auto arc = *i;
+         node->unhook(arc);
+         delSupport(l,arc->getValue());
+      }
+   }
+}
+
 
 void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
 {
@@ -277,7 +321,7 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
          }
       }
       if (n->getNumChildren() == 0)
-         removeNode(n);
+         delState(n,l-1);
    }
    for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
       if (x[l-1]->contains(v) && getSupport(l-1,v)==0)
@@ -300,8 +344,13 @@ void MDDRelax::rebuild()
 
 void MDDRelax::propagate()
 {
-   MDD::propagate();
-   rebuild();
-   trimDomains();
-   _lowest = (int)numVariables - 1;
+   try {
+      MDD::propagate();
+      rebuild();
+      trimDomains();
+      _lowest = (int)numVariables - 1;
+   } catch(Status s) {
+      queue.clear();
+      throw s;
+   }
 }
