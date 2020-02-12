@@ -241,7 +241,7 @@ namespace Factory {
       }
    }
 
-    void  seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
+   void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
       int min = 0,minLIdx = len-1;
       int maxFIdx = len,max = len*2-1;
@@ -283,9 +283,7 @@ namespace Factory {
          spec.addSimilarity(i,[i](auto l,auto r)->double{return abs(l.at(i)- r.at(i));});
    }
 
-   void
-
-gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
+   void gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       spec.append(vars);
       int sz = (int) vars.size();

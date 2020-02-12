@@ -23,9 +23,9 @@ public:
    MDDSpec& getSpec()      { return _mddspec; }
    virtual void trimLayer(int layer);
    void scheduleRemoval(MDDNode*);
-   int getSupport(int layer,int value) const;
-   void addSupport(int layer, int value); 
-   void delSupport(int layer, int value);
+   int getSupport(int layer,int value) const { return supports[layer][value - oft[layer]];}
+   void addSupport(int layer, int value)     { supports[layer][value - oft[layer]] += 1;} 
+   void delSupport(int layer, int value)     { supports[layer][value - oft[layer]] -= 1;} 
    void removeSupport(int layer, int value);
    void removeNode(MDDNode* node);
    void propagate() override;

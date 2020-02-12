@@ -101,7 +101,7 @@ void MDD::buildNextLayer(int i)
       if (getSupport(i,v) == 0)
          x[i]->remove(v);
    }
-   std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
+   //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
 }
 
 void MDD::trimDomains()
@@ -174,29 +174,10 @@ void MDD::removeNode(MDDNode* node)
    }
 }
 
-int MDD::getSupport(int layer,int value) const
-{
- return supports[layer][value - oft[layer]];
-}
-/*
-  MDD::addSupport(int layer, int value) increments support for value at specific layer.
-*/
-
-void MDD::addSupport(int layer, int value)
-{
-   supports[layer][value - oft[layer]] += 1;
-}
-
-void MDD::delSupport(int layer, int value)
-{
-   supports[layer][value - oft[layer]] -= 1;
-}
-
 /*
   MDD::removeSupport(int layer, int value) decrements support for value at specific layer.
   If support for a value reaches 0, then value is removed from the domain.
 */
-
 void MDD::removeSupport(int layer, int value)
 {
    int s = supports[layer][value - oft[layer]] -= 1;
