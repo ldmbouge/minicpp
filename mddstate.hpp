@@ -184,9 +184,9 @@ class MDDState {  // An actual state of an MDDNode.
          _h = _at->_hash;
          _r = _at->_relaxed;
       }
-      void relocate(int ofs) override {
+      /*      void relocate(int ofs) override {
          _from += ofs;
-      }
+         }*/
       void restore() override {
          memcpy(_at->_mem,_from,_sz);
          _at->_hash = _h;
@@ -199,9 +199,9 @@ public:
       : _spec(s),_mem(b),_hash(0),_relaxed(false) {}
    MDDState(const MDDState& s) 
       : _spec(s._spec),_mem(s._mem),_hash(s._hash),_relaxed(s._relaxed) {}
-   MDDState& assign(const MDDState& s,Trailer::Ptr t) {
+   MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
       auto sz = _spec->layoutSize();
-      char* block = new (t) char[sz];
+      char* block = (char*)mem->allocate(sizeof(char)* sz);//new (mem) char[sz];
       t->trail(new (t) TrailState(this,block,(int)sz));      
       assert(_spec == s._spec || _spec == nullptr);
       assert(_mem != nullptr);

@@ -3,6 +3,7 @@
 #include <float.h>
 #include <unordered_map>
 #include <algorithm>
+#include "RuntimeMonitor.hpp"
 
 void MDDRelax::buildDiagram()
 {
@@ -15,11 +16,16 @@ void MDDRelax::buildDiagram()
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
 
+   auto start = RuntimeMonitor::now();
+
    for(int i = 0; i < numVariables; i++) {
       buildNextLayer(i);
       relaxLayer(i+1);
    }
    trimDomains();
+   auto dur = RuntimeMonitor::elapsedSince(start);
+   std::cout << "build/Relax:" << dur << std::endl;
+
    propagate();
    hookupPropagators();
 }
@@ -100,8 +106,8 @@ void MDDRelax::merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstM
    }
    if (firstMerge)
       nl.push_back(a);
-   a->setState(ns);
-   b->setState(ns);
+   a->setState(ns,mem);
+   b->setState(ns,mem);
 }
 
 void MDDRelax::trimLayer(int layer)
@@ -135,7 +141,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
          n->unhook(*i);
          delSupport(l,(*i)->getValue());
       }
-      n->setState(ms);
+      n->setState(ms,mem);
    }
    return changed;
 }
@@ -235,7 +241,7 @@ struct MDDStateEqual {
 
 MDDNode* MDDRelax::resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l)
 {
-   to->setState(s);
+   to->setState(s,mem);
    addSupport(l-1,v);
    from->addArc(mem,to,v);
    for(auto i = to->getChildren().rbegin();i != to->getChildren().rend();i++) {

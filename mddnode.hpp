@@ -81,9 +81,9 @@ public:
    void trim(MDD* mdd,var<int>::Ptr x);
 
    MDDState* key()            { return &state;}
-   void setState(const MDDState& s) {
+   void setState(const MDDState& s,Storage::Ptr mem) {
       auto t = children.getTrail();
-      state.assign(s,t);
+      state.assign(s,t,mem);
    }
    const MDDState& getState() { return state;}
    bool contains(int v);
