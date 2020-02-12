@@ -101,7 +101,7 @@ void MDD::buildNextLayer(int i)
       if (getSupport(i,v) == 0)
          x[i]->remove(v);
    }
-   //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
+   std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
 }
 
 void MDD::trimDomains()

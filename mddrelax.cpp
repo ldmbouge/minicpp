@@ -83,6 +83,7 @@ void MDDRelax::relaxLayer(int i)
       layers[i].push_back(n,mem);
       n->setPosition(k++,mem);
    }
+   std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << std::endl;
 }
 
 void MDDRelax::merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstMerge)

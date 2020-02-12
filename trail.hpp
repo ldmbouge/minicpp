@@ -23,6 +23,7 @@
 
 class Entry {
 public:
+   virtual void relocate(int) {}
    virtual void restore() = 0;
 };
 
@@ -60,18 +61,6 @@ public:
 inline void* operator new[](std::size_t sz,Trailer::Ptr& e) noexcept 
 {
    return operator new(sz,e);
-   /*   if (e->_enabled) {
-      char* ptr = e->_block + e->_btop;
-      e->_btop += sz;
-      if (e->_btop >= e->_bsz) {
-         e->_btop -= sz;
-         e->resize();
-         ptr = e->_block + e->_btop;
-         e->_btop += sz;
-      }
-      return ptr;
-   } else return nullptr;
-   */
 }
 
 inline void* operator new(std::size_t sz,Trailer::Ptr& e) noexcept

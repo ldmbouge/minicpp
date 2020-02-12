@@ -41,6 +41,7 @@ void Trailer::resize()
       while(!_trail.empty()) {
          Entry* e = _trail.top();
          Entry* ne = (Entry*)((char*)e - _block + nb);
+         ne->relocate(nb - _block);
          ns.push(ne);
          _trail.pop();
       }

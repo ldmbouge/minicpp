@@ -46,31 +46,31 @@ int main(int argc,char* argv[])
 
    if(useSearch){
       DFSearch search(cp,[=]() {
-                           int i;
-                           for(i=0;i< v.size();i++)
-                             if (v[i]->size() > 1)
-                               break;
-                           auto x = v[i];
-                           /*
+                            int i;
+                            for(i=0;i< v.size();i++)
+                               if (v[i]->size() > 1)
+                                  break;
+                            auto x = v[i];
+                            /*
                             auto x = selectMin(v,
                                                [](const auto& x) { return x->size() > 1;},
                                                [](const auto& x) { return x->size();});
-                           */
+                            */
                             if (x) {
                                //mddAppliance->saveGraph();
                                int c = x->min();
                                return  [=] {
-                                          std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
-                                          mdd->saveGraph();
+                                          //std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
+                                          //mdd->saveGraph();
                                           cp->post(x == c);
-                                          mdd->saveGraph();
+                                          //mdd->saveGraph();
                                           //std::cout << "VARS: " << v << std::endl;
                                        }
                                   | [=] {
-                                       std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
-                                       mdd->saveGraph();
+                                       //std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
+                                       //mdd->saveGraph();
                                        cp->post(x != c);
-                                       mdd->saveGraph();
+                                       //mdd->saveGraph();
                                        //std::cout << "VARS: " << v << std::endl;
                                     };
                             } else return Branches({});

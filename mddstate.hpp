@@ -184,7 +184,10 @@ class MDDState {  // An actual state of an MDDNode.
          _h = _at->_hash;
          _r = _at->_relaxed;
       }
-      void restore() {
+      void relocate(int ofs) override {
+         _from += ofs;
+      }
+      void restore() override {
          memcpy(_at->_mem,_from,_sz);
          _at->_hash = _h;
          _at->_relaxed = _r;
@@ -199,7 +202,7 @@ public:
    MDDState& assign(const MDDState& s,Trailer::Ptr t) {
       auto sz = _spec->layoutSize();
       char* block = new (t) char[sz];
-      t->trail(new (t) TrailState(this,block,sz));      
+      t->trail(new (t) TrailState(this,block,(int)sz));      
       assert(_spec == s._spec || _spec == nullptr);
       assert(_mem != nullptr);
       _spec = s._spec;
@@ -239,12 +242,12 @@ public:
    int getHash() const noexcept { return _hash;}
    bool operator==(const MDDState& s) const {    // equality test likely O(1) when different.
       if (_hash == s._hash)
-         return memcmp(_mem,s._mem,_spec->layoutSize())==0;
+         return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _relaxed == s._relaxed;
       else return false;
    }
    bool operator!=(const MDDState& s) const {
       if (_hash == s._hash)
-         return memcmp(_mem,s._mem,_spec->layoutSize())!=0;
+         return memcmp(_mem,s._mem,_spec->layoutSize())!=0 || _relaxed != s._relaxed;
       else return true;
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
