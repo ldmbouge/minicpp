@@ -33,7 +33,7 @@ int main(int argc,char* argv[])
 
    auto v = Factory::intVarArray(cp, 4, 1, 5);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDDRelax(cp,4);
+   auto mdd = new MDDRelax(cp,2);
    //auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, {2});
    Factory::amongMDD(mdd->getSpec(),v, 1, 1, {3});
@@ -60,15 +60,15 @@ int main(int argc,char* argv[])
                                //mddAppliance->saveGraph();
                                int c = x->min();
                                return  [=] {
-                                          //std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
-                                          //mdd->saveGraph();
+                                          std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
+                                          mdd->saveGraph();
                                           cp->post(x == c);
                                           //mdd->saveGraph();
                                           //std::cout << "VARS: " << v << std::endl;
                                        }
                                   | [=] {
-                                       //std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
-                                       //mdd->saveGraph();
+                                       std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
+                                       mdd->saveGraph();
                                        cp->post(x != c);
                                        //mdd->saveGraph();
                                        //std::cout << "VARS: " << v << std::endl;

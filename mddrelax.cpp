@@ -3,6 +3,7 @@
 #include <float.h>
 #include <unordered_map>
 #include <algorithm>
+#include <random>
 #include "RuntimeMonitor.hpp"
 
 void MDDRelax::buildDiagram()
@@ -33,58 +34,65 @@ void MDDRelax::buildDiagram()
 void MDDRelax::relaxLayer(int i)
 {
    if (layers[i].size() <= _width)
-      return;
-   std::vector<std::tuple<int,int,double>> sims;
-   std::vector<bool> merged(layers[i].size(),false);
+      return;   
 
-   for(int j = 0;j < layers[i].size(); j++) {
-      for(int k=j+1;k < layers[i].size();k++) {
-         MDDNode* a = layers[i][j];
-         MDDNode* b = layers[i][k];
-         double simAB = _mddspec.similarity(a->getState(),b->getState());
-         sims.emplace_back(std::make_tuple(j,k,simAB));
-      }
-   }
-   std::sort(sims.begin(),sims.end(), [](const auto& a,const auto& b) {
-                                         return std::get<2>(a) < std::get<2>(b);
-                                      });
-   int nbNodes = 0;
-   int x = 0;
-   std::vector<MDDNode*> nl;
-   while (x < sims.size() && nbNodes < _width) {
-      int j,k;
-      double s;
-      std::tie(j,k,s) = sims[x++];
-      MDDNode* a = layers[i][j];
-      MDDNode* b = layers[i][k];
-      if (merged[j] || merged[k])
-         continue;
-      merge(nl,a,b,true);
-      merged[j] = merged[k] = true;
-      nbNodes++;
-   }
-   for(int j = 0;j < layers[i].size(); j++) {
-      MDDNode* b = layers[i][j];
-      if (merged[j])
-         continue;
-      if (nl.size() < _width) {
-         nl.push_back(b);
-      } else {
-         double best = DBL_MAX;
-         MDDNode* sa = nullptr;
-         for(int k=0;k < nl.size();k++) {
-            MDDNode* a = nl[k];
-            double simAB = _mddspec.similarity(a->getState(),b->getState());
-            sa   = simAB < best ? a : sa;
-            best = simAB < best ? simAB : best;
-         }
-         assert(sa != nullptr);
-         merge(nl,sa,b,false); // not first merge of sa
-         merged[j] = true;
-      }
-   }
-   layers[i].clear();
+   //static std::random_device seed;
+   std::mt19937 rNG(42);
+   std::vector<int>  cid(_width);
+   std::vector<MDDState> means(_width);
+   std::vector<bool> picked(layers[i].size(),false);
+   char* buf = new char[_mddspec.layoutSize() * _width];
+   std::vector<int> perm(layers[i].size());
+   std::iota(perm.begin(),perm.end(),0);
+   std::shuffle(perm.begin(),perm.end(),rNG);
    int k = 0;
+   for(auto& mk : means) {
+      mk = MDDState(&_mddspec,buf + k * _mddspec.layoutSize());
+      int nid = perm[k];
+      assert(picked[nid]==false);
+      picked[nid]=true;
+      cid[k] = nid;
+      k += 1;
+      mk.initState(layers[i][nid]->getState());
+   }
+   std::vector<int> asgn(layers[i].size());
+   const int nbIter = 1;
+   for(int ni=0;ni < nbIter;ni++) {
+      for(int j=0; j < layers[i].size();j++) {
+         double bestSim = std::numeric_limits<double>::max();
+         int    idx = -1;
+         const auto& ln = layers[i][j]->getState();
+         for(int c = 0;c < means.size();c++) {
+            double sim = _mddspec.similarity(ln,means[c]);
+            idx = bestSim < sim ? idx : c;
+            bestSim = bestSim < sim ? bestSim : sim;
+         }
+         assert(j >= 0 && j < layers[i].size());
+         asgn[j] = idx;
+      }      
+   }
+   for(int j=0;j < asgn.size();j++) {
+      MDDNode* target = layers[i][cid[asgn[j]]];
+      MDDNode* strip = layers[i][j];
+      if (target != strip) {
+         MDDState ns = _mddspec.relaxation(mem,means[asgn[j]],layers[i][j]->getState());
+         target->setState(ns,mem);
+         for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
+            auto arc = *i;
+            arc->moveTo(target,trail,mem);
+         }
+      }
+   }
+   std::vector<MDDNode*> nl(_width,nullptr);
+   std::vector<bool> vcid(layers[i].size(),false);
+   for(int j=0;j < means.size();j++) {
+      assert(vcid[cid[j]]==false);
+      vcid[cid[j]]=true;
+      nl[j] = layers[i][cid[j]];
+   }
+   
+   layers[i].clear();
+   k = 0;
    for(MDDNode* n : nl) {
       layers[i].push_back(n,mem);
       n->setPosition(k++,mem);
@@ -180,7 +188,7 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
    for(auto i = layer.rbegin();i != layer.rend() && (xb || layer.size() < _width);i++) {
       auto n = *i;
       if (n->getNumParents() == 0) {
-        removeNode(n);
+        delState(n,l);
         continue;
       }
       if (xb) {
@@ -257,6 +265,7 @@ void MDDRelax::delState(MDDNode* node,int l)
    assert(node->isActive(this));
    assert(l == node->getLayer());
    const int at = node->getPosition();
+   assert(node == layers[l][at]);
    layers[l].remove(at);
    node->setPosition((int)layers[l].size(),mem);
    layers[l][at]->setPosition(at,mem);
@@ -346,6 +355,11 @@ void MDDRelax::rebuild()
       for(auto n : splitNodes)
          delta.insert(n);
       spawn(delta,layers[l+1],l+1);
+   }
+   for(int l=0;l < numVariables;l++) {
+      for(int i=0;i < layers[l].size();i++) {
+         assert(layers[l][i]->getPosition() == i);
+      }
    }
 }
 
