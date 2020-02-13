@@ -351,11 +351,6 @@ void MDDRelax::rebuild()
          delta.insert(n);
       spawn(delta,layers[l+1],l+1);
    }
-   for(int l=0;l < numVariables;l++) {
-      for(int i=0;i < layers[l].size();i++) {
-         assert(layers[l][i]->getPosition() == i);
-      }
-   }
 }
 
 void MDDRelax::propagate()
