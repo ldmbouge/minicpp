@@ -35,12 +35,12 @@ void MDDRelax::relaxLayer(int i)
 {
    if (layers[i].size() <= _width)
       return;   
-
+   const int iSize = layers[i].size();
    //static std::random_device seed;
-   std::mt19937 rNG(42);
+   std::mt19937 rNG;
+   rNG.seed(42);
    std::vector<int>  cid(_width);
    std::vector<MDDState> means(_width);
-   std::vector<bool> picked(layers[i].size(),false);
    char* buf = new char[_mddspec.layoutSize() * _width];
    std::vector<int> perm(layers[i].size());
    std::iota(perm.begin(),perm.end(),0);
@@ -49,8 +49,6 @@ void MDDRelax::relaxLayer(int i)
    for(auto& mk : means) {
       mk = MDDState(&_mddspec,buf + k * _mddspec.layoutSize());
       int nid = perm[k];
-      assert(picked[nid]==false);
-      picked[nid]=true;
       cid[k] = nid;
       k += 1;
       mk.initState(layers[i][nid]->getState());
@@ -84,12 +82,8 @@ void MDDRelax::relaxLayer(int i)
       }
    }
    std::vector<MDDNode*> nl(_width,nullptr);
-   std::vector<bool> vcid(layers[i].size(),false);
-   for(int j=0;j < means.size();j++) {
-      assert(vcid[cid[j]]==false);
-      vcid[cid[j]]=true;
+   for(int j=0;j < means.size();j++)
       nl[j] = layers[i][cid[j]];
-   }
    
    layers[i].clear();
    k = 0;
@@ -97,7 +91,7 @@ void MDDRelax::relaxLayer(int i)
       layers[i].push_back(n,mem);
       n->setPosition(k++,mem);
    }
-   std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << std::endl;
+   std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
 }
 
 void MDDRelax::merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstMerge)
@@ -320,6 +314,7 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
                addSupport(l-1,v);
                n->addArc(mem,child,v);
                out.insert(child);
+               umap.insert({child->key(),child});
             } else {
                MDDNode* psiSim = findSimilar(layer,psi);
                if (psiSim->getNumParents() == 0) {

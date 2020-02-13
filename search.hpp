@@ -148,7 +148,7 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
                if (sx) {
                    int v = sx->min();
                    return [cp,sx,v] { return cp->post(sx == v);}
-  		       |  [cp,sx,v] { return cp->post(sx != v);};
+                       |  [cp,sx,v] { return cp->post(sx != v);};
                } else return Branches({});                   
            };
 }
