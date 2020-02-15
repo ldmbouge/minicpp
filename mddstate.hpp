@@ -229,6 +229,13 @@ public:
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}        // to set a state property
    bool isRelaxed() const      { return _relaxed;}      
    void relax(bool r = true)   { _relaxed = r;}
+   float inner(const MDDState& s) const {
+      float tot = 0;
+      if (_mem && s._mem)
+         for(int k=0;k < layoutSize();k++) 
+            tot += (float)(_mem[k]+1) * (s._mem[k]+1);
+      return tot;
+   }
    int hash() {
       const int nbw = (int)_spec->layoutSize() / 4;
       int nlb = _spec->layoutSize() & 0x3;

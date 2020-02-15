@@ -2,6 +2,7 @@
 #include "mddnode.hpp"
 #include <float.h>
 #include <unordered_map>
+#include <map>
 #include <algorithm>
 #include <random>
 #include "RuntimeMonitor.hpp"
@@ -148,17 +149,55 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    return changed;
 }
 
-MDDNode* MDDRelax::findSimilar(TVec<MDDNode*>& layer,const MDDState& s)
+MDDNode* MDDRelax::findSimilar(const std::map<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
 {
-   double best = DBL_MAX;
-   int bj = -1;
-   for(int j = 0;j < layer.size(); j++) {
-      MDDNode* a = layer[j];
+   /*
+   double best = std::numeric_limits<double>::max();
+   double worst = std::numeric_limits<double>::min();
+   double shd   = std::numeric_limits<double>::max();
+   float bj,wj,hj;
+   MDDNode* a;
+   float    h;
+   std::cout << "FS(";
+   for(const auto& p : layer) {
+      h = p.first;
+      a = p.second;
       double simAB = _mddspec.similarity(s,a->getState());
-      bj   = simAB < best ? j : bj;
+      bj   = simAB < best ? h : bj;
       best = simAB < best ? simAB : best;
+      wj    = simAB > worst ? h : wj;
+      worst = simAB > worst ? simAB : worst;
+      //assert(a->getState().inner(refDir) == h);
+      long long hd = abs(a->getState().getHash() - s.getHash());
+      hj  = hd < shd ? h : hj;
+      shd = hd < shd ? hd : shd;
+      std::cout << simAB << ":" << a->getState().getHash() << ":" << hd <<" , ";
    }
-   return layer[bj];
+   std::cout << "\b\b)" << std::endl;
+   long long bhd = abs(layer.at(bj)->getState().getHash() - s.getHash());
+   long long whd = abs(layer.at(wj)->getState().getHash() - s.getHash());
+   long long simhj = _mddspec.similarity(s,layer.at(hj)->getState());      
+   std::cout << "\tBEST:" << best << " -- " << bhd << " | " << __builtin_popcount(bhd) << std::endl;
+   std::cout << "\tWRST:" << worst << " -- " << whd <<" | " << __builtin_popcount(whd) << std::endl;
+   std::cout << "\tSHSH:" << simhj << " -- " << shd <<" | " << __builtin_popcount(shd) << std::endl;
+   */
+   auto nlt = layer.lower_bound(s.inner(refDir));
+   auto lt = nlt;
+   if (nlt == layer.end()) {
+      nlt--;
+      lt = nlt;
+      lt--;
+   } else if (nlt == layer.begin()) {
+      lt = nlt;
+      nlt++;
+   } else
+      lt--;
+   double simNLT = _mddspec.similarity(s,nlt->second->getState());
+   double simLT  = _mddspec.similarity(s,lt->second->getState());
+   double simB = std::min(simNLT,simLT);
+   //std::cout << "\tSIMB:" << simB << std::endl;
+   return simB==simLT ? lt->second : nlt->second;
+   //return layer.at(bj);
 }
 
 std::tuple<MDDNode*,double> MDDRelax::findSimilar(std::vector<MDDNode*>& list,const MDDState& s)
@@ -280,14 +319,24 @@ void MDDRelax::delState(MDDNode* node,int l)
    }
 }
 
-
 void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
 {
    if (delta.size() == 0) return;
    std::set<MDDNode*> out;
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
-   for(auto& n : layer)
+   std::map<float,MDDNode*,std::less<float> > cl;
+
+   static std::mt19937 rNG(42);
+   std::uniform_int_distribution<int> sampler(0,layer.size()-1);
+   int dirIdx = sampler(rNG);
+   const MDDState& refDir = layer[dirIdx]->getState();
+   for(auto& n : layer) {
       umap.insert({n->key(),n});
+      // float key = n->getState().getHash();
+      float key = n->getState().inner(refDir);
+      cl[key] = n;
+   }
+   
    for(auto n : delta) {
       for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
          if (!x[l-1]->contains(v)) continue;
@@ -315,14 +364,32 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
                n->addArc(mem,child,v);
                out.insert(child);
                umap.insert({child->key(),child});
+               //cl[psi.getHash()] = child;
+               cl[psi.inner(refDir)] = child;
             } else {
-               MDDNode* psiSim = findSimilar(layer,psi);
+               MDDNode* psiSim = findSimilar(cl,psi,refDir);
                if (psiSim->getNumParents() == 0) {
+                  auto nh = cl.extract(psiSim->getState().inner(refDir));                  
                   out.insert(resetState(n,psiSim,psi,v,l));
+                  //nh.key() = psiSim->getState().getHash();
+                  if (!nh.empty()) {
+                     nh.key() = psiSim->getState().inner(refDir);
+                     cl.insert(std::move(nh));
+                  } else {
+                     cl[psiSim->getState().inner(refDir)] = psiSim;
+                  }
                } else {
                   MDDState ns = _mddspec.relaxation(mem,psiSim->getState(),psi);
                   if (ns != psiSim->getState()) {
+                     auto nh = cl.extract(psiSim->getState().inner(refDir));
                      out.insert(resetState(n,psiSim,ns,v,l));
+                     //nh.key() = psiSim->getState().getHash();
+                     if (!nh.empty()) {
+                        nh.key() = psiSim->getState().inner(refDir);
+                        cl.insert(std::move(nh));
+                     } else {
+                        cl[psiSim->getState().inner(refDir)] = psiSim;
+                     }
                   } else {
                      addSupport(l-1,v);
                      n->addArc(mem,psiSim,v);
@@ -331,8 +398,11 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
             }
          }
       }
-      if (n->getNumChildren() == 0)
+      if (n->getNumChildren() == 0) {
+         // cl.erase(n->getState().getHash());
+         cl.erase(n->getState().inner(refDir));
          delState(n,l-1);
+      }
    }
    for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
       if (x[l-1]->contains(v) && getSupport(l-1,v)==0)

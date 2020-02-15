@@ -15,7 +15,7 @@ class MDDRelax : public MDD {
    std::set<MDDNode*> split(TVec<MDDNode*>& layer,int l);
    void spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l);
    std::tuple<MDDNode*,double> findSimilar(std::vector<MDDNode*>& list,const MDDState& s);
-   MDDNode* findSimilar(TVec<MDDNode*>& layer,const MDDState& s);
+   MDDNode* findSimilar(const std::map<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
    MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);
    void delState(MDDNode* state,int l);
 public:
