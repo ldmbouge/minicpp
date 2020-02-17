@@ -9,7 +9,6 @@
 class MDDRelax : public MDD {
    const int _width;
    ::trail<int> _lowest;
-   void merge(std::vector<MDDNode*>& nl,MDDNode* a,MDDNode* b,bool firstMerge);
    void rebuild();
    bool refreshNode(MDDNode* n,int l);
    std::set<MDDNode*> split(TVec<MDDNode*>& layer,int l);
