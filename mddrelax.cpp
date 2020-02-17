@@ -37,55 +37,42 @@ void MDDRelax::relaxLayer(int i)
    if (layers[i].size() <= _width)
       return;   
    const int iSize = layers[i].size();
-   //static std::random_device seed;
-   std::mt19937 rNG;
-   rNG.seed(42);
-   std::vector<int>  cid(_width);
-   std::vector<MDDState> means(_width);
-   char* buf = new char[_mddspec.layoutSize() * _width];
-   std::vector<int> perm(layers[i].size());
-   std::iota(perm.begin(),perm.end(),0);
-   std::shuffle(perm.begin(),perm.end(),rNG);
+
+   std::vector<std::tuple<float,MDDNode*>> cl(iSize);
+   static std::mt19937 rNG(42);
+   std::uniform_int_distribution<int> sampler(0,iSize-1);
+   int dirIdx = sampler(rNG);
+   const MDDState& refDir = layers[i][dirIdx]->getState();
    int k = 0;
-   for(auto& mk : means) {
-      mk = MDDState(&_mddspec,buf + k * _mddspec.layoutSize());
-      int nid = perm[k];
-      cid[k] = nid;
-      k += 1;
-      mk.initState(layers[i][nid]->getState());
-   }
-   std::vector<int> asgn(layers[i].size());
-   const int nbIter = 1;
-   for(int ni=0;ni < nbIter;ni++) {
-      for(int j=0; j < layers[i].size();j++) {
-         double bestSim = std::numeric_limits<double>::max();
-         int    idx = -1;
-         const auto& ln = layers[i][j]->getState();
-         for(int c = 0;c < means.size();c++) {
-            double sim = _mddspec.similarity(ln,means[c]);
-            idx = bestSim < sim ? idx : c;
-            bestSim = bestSim < sim ? bestSim : sim;
-         }
-         assert(j >= 0 && j < layers[i].size());
-         asgn[j] = idx;
-      }      
-   }
-   for(int j=0;j < asgn.size();j++) {
-      MDDNode* target = layers[i][cid[asgn[j]]];
-      MDDNode* strip = layers[i][j];
-      if (target != strip) {
-         MDDState ns = _mddspec.relaxation(mem,means[asgn[j]],layers[i][j]->getState());
-         target->setState(ns,mem);
+   for(auto& n : layers[i])
+      cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
+   std::sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
+                                    return std::get<0>(p1) < std::get<0>(p2);
+                                 });
+   const int bucketSize = iSize / _width;
+   int   rem = iSize % _width;
+   int   lim = bucketSize + ((rem > 0) ? 1 : 0);
+   rem = rem > 0 ? rem - 1 : 0;
+   int   from = 0;
+   char* buf = new char[_mddspec.layoutSize()]; 
+   std::vector<MDDNode*> nl(_width,nullptr);
+   for(k=0;k < _width;k++) { // k is the bucket id
+      MDDState acc(&_mddspec,buf);
+      acc.initState(layers[i][from]->getState());
+      MDDNode* target = layers[i][from];
+      for(from++; from < lim;from++) {
+         MDDNode* strip = layers[i][from];
+         acc = _mddspec.relaxation(mem,acc,strip->getState());
          for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
             auto arc = *i;
             arc->moveTo(target,trail,mem);
          }
       }
+      target->setState(acc,mem);
+      nl[k] = target;
+      lim += bucketSize + ((rem > 0) ? 1 : 0);
+      rem = rem > 0 ? rem - 1 : 0;
    }
-   std::vector<MDDNode*> nl(_width,nullptr);
-   for(int j=0;j < means.size();j++)
-      nl[j] = layers[i][cid[j]];
-   
    layers[i].clear();
    k = 0;
    for(MDDNode* n : nl) {
