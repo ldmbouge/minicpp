@@ -46,7 +46,7 @@ std::size_t Storage::capacity() const
 
 std::size_t Storage::usage() const
 {
-   return _store.size() * _segSize;
+   return (_store.size() - 1) * _segSize  + _top;
 }
 
 Storage::~Storage()
