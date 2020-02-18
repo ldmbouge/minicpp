@@ -3,12 +3,21 @@
 
 #include "mdd.hpp"
 #include "trailable.hpp"
+#include "mddnode.hpp"
 #include <set>
 #include <tuple>
+#include <random>
+
 
 class MDDRelax : public MDD {
    const int _width;
    ::trail<int> _lowest;
+   std::mt19937 _rnG;
+   const MDDState& pickReference(int layer,int layerSize) {
+      std::uniform_int_distribution<int> sampler(0,layerSize-1);
+      int dirIdx = sampler(_rnG);
+      return layers[layer][dirIdx]->getState();
+   }
    void rebuild();
    bool refreshNode(MDDNode* n,int l);
    std::set<MDDNode*> split(TVec<MDDNode*>& layer,int l);
@@ -19,7 +28,8 @@ class MDDRelax : public MDD {
    void delState(MDDNode* state,int l);
 public:
    MDDRelax(CPSolver::Ptr cp,int width = 32)
-      : MDD(cp),_width(width),_lowest(cp->getStateManager(),0)
+      : MDD(cp),_width(width),_lowest(cp->getStateManager(),0),
+        _rnG(42)
    {}
    void buildDiagram() override;
    void relaxLayer(int i);

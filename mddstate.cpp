@@ -138,19 +138,36 @@ bool MDDSpec::exist(const MDDState& a,var<int>::Ptr x,int v)
   return arcLambda(a,x,v);
 }
 
+bool MDDSpec::createState(MDDState& result,const MDDState& parent,var<int>::Ptr var,int v)
+{
+  if(arcLambda(parent, var, v)) {
+     for(auto& c :constraints) {
+        if(c.member(var))
+           for(auto i : c) 
+              result.set(i,transistionLambdas[i](parent,var,v));
+        else
+           for(auto i : c) 
+              result.set(i, parent.at(i));
+     }
+     result.hash();
+     result.relax(parent.isRelaxed());
+     return true;
+  }
+  return false;
+}
+
 std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,
                                               var<int>::Ptr var, int v)
 {
   if(arcLambda(parent, var, v)){
        MDDState result(this,(char*)mem->allocate(layoutSize()));
-       for(auto& c :constraints){
-          auto& p = c.properties();
-          for(auto i : p){
-             if(c.member(var))
+       for(auto& c :constraints) {
+          if(c.member(var))
+             for(auto i : c) 
                 result.set(i,transistionLambdas[i](parent,var,v));
-            else
-               result.set(i, parent.at(i));
-          }
+          else
+             for(auto i : c) 
+                result.set(i, parent.at(i));
        }
        result.hash();
        result.relax(parent.isRelaxed());
@@ -169,6 +186,13 @@ double MDDSpec::similarity(const MDDState& a,const MDDState& b)
     }
   }
   return dist;
+}
+
+void MDDSpec::relaxation(MDDState& a,const MDDState& b)
+{
+  for(auto& cstr : constraints)
+    for(auto p : cstr) 
+       a.set(p,relaxationLambdas[p](a,b));      
 }
 
 MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b)

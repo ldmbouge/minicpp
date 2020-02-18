@@ -26,7 +26,7 @@ public:
       void restore() { *_at = _old;}
    };
    typedef handle_ptr<MDDEdge> Ptr;
-   MDDEdge(MDDNode* parent, MDDNode* child, int value, unsigned short childPosition,unsigned short parentPosition)
+   MDDEdge(MDDNode* parent, MDDNode* child, int value, unsigned short childPosition,unsigned int parentPosition)
       : value(value), parent(parent), child(child),
         childPosition(childPosition),
         parentPosition(parentPosition)

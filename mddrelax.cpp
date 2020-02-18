@@ -1,10 +1,8 @@
 #include "mddrelax.hpp"
-#include "mddnode.hpp"
 #include <float.h>
 #include <unordered_map>
 #include <map>
 #include <algorithm>
-#include <random>
 #include "RuntimeMonitor.hpp"
 
 void MDDRelax::buildDiagram()
@@ -36,13 +34,10 @@ void MDDRelax::relaxLayer(int i)
 {
    if (layers[i].size() <= _width)
       return;   
-   const int iSize = layers[i].size();
+   const int iSize = (int)layers[i].size();
 
    std::vector<std::tuple<float,MDDNode*>> cl(iSize);
-   static std::mt19937 rNG(42);
-   std::uniform_int_distribution<int> sampler(0,iSize-1);
-   int dirIdx = sampler(rNG);
-   const MDDState& refDir = layers[i][dirIdx]->getState();
+   const MDDState& refDir = pickReference(i,iSize);
    int k = 0;
    for(auto& n : layers[i])
       cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
@@ -54,7 +49,7 @@ void MDDRelax::relaxLayer(int i)
    int   lim = bucketSize + ((rem > 0) ? 1 : 0);
    rem = rem > 0 ? rem - 1 : 0;
    int   from = 0;
-   char* buf = new char[_mddspec.layoutSize()]; 
+   char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize()); 
    std::vector<MDDNode*> nl(_width,nullptr);
    for(k=0;k < _width;k++) { // k is the bucket id
       MDDState acc(&_mddspec,buf);
@@ -62,12 +57,14 @@ void MDDRelax::relaxLayer(int i)
       MDDNode* target = layers[i][from];
       for(from++; from < lim;from++) {
          MDDNode* strip = layers[i][from];
-         acc = _mddspec.relaxation(mem,acc,strip->getState());
+         _mddspec.relaxation(acc,strip->getState());
          for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
             auto arc = *i;
             arc->moveTo(target,trail,mem);
          }
       }
+      acc.hash();
+      acc.relax();
       target->setState(acc,mem);
       nl[k] = target;
       lim += bucketSize + ((rem > 0) ? 1 : 0);
@@ -250,32 +247,28 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
 {
    if (delta.size() == 0) return;
    std::set<MDDNode*> out;
-   std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
+   std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2* _width);
    std::map<float,MDDNode*,std::less<float> > cl;
 
-   static std::mt19937 rNG(42);
-   std::uniform_int_distribution<int> sampler(0,layer.size()-1);
-   int dirIdx = sampler(rNG);
-   const MDDState& refDir = layer[dirIdx]->getState();
+   const MDDState& refDir = pickReference(l,layer.size());
    for(auto& n : layer) {
       umap.insert({n->key(),n});
       float key = n->getState().inner(refDir);
       cl[key] = n;
    }
-   
+   char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
    for(auto n : delta) {
+      const MDDState& state = n->getState();
+      MDDState psi(&_mddspec,buf);
       for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
          if (!x[l-1]->contains(v)) continue;
-         if (!_mddspec.exist(n->getState(),x[l-1],v)) continue;
+         if (!_mddspec.exist(state,x[l-1],v)) continue;
          if (l == numVariables) {
             addSupport(l-1,v);
             n->addArc(mem,sink,v);
             continue;
          }
-         MDDState psi;
-         bool ok;
-         std::tie(psi,ok) = _mddspec.createState(mem,n->getState(),x[l-1],v);
-         assert(ok);
+         _mddspec.createState(psi,state,x[l-1],v);
          auto found = umap.find(&psi);
          MDDNode* child = nullptr;
          if(found != umap.end()) {
@@ -284,7 +277,7 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
             n->addArc(mem,child,v);
          } else { // Never seen psi before.
             if (layer.size() < _width) { // there is room in this layer.
-               child = new (mem) MDDNode(mem,trail,psi,x[l-1]->size(),l,(int)layer.size());
+               child = new (mem) MDDNode(mem,trail,psi.clone(mem),x[l-1]->size(),l,(int)layer.size());
                layer.push_back(child,mem);
                addSupport(l-1,v);
                n->addArc(mem,child,v);
@@ -293,38 +286,29 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
                cl[psi.inner(refDir)] = child;
             } else {
                MDDNode* psiSim = findSimilar(cl,psi,refDir);
-               if (psiSim->getNumParents() == 0) {
-                  auto nh = cl.extract(psiSim->getState().inner(refDir));                  
-                  out.insert(resetState(n,psiSim,psi,v,l));
-                  if (!nh.empty()) {
-                     nh.key() = psiSim->getState().inner(refDir);
-                     cl.insert(std::move(nh));
-                  } else {
-                     cl[psiSim->getState().inner(refDir)] = psiSim;
-                  }
+               const MDDState& psiSimState = psiSim->getState();
+               MDDState ns;
+               if (psiSim->getNumParents() == 0)
+                  ns = std::move(psi);
+               else
+                  ns = _mddspec.relaxation(mem,psiSimState,psi);
+               if (ns == psiSimState) {
+                  addSupport(l-1,v);
+                  n->addArc(mem,psiSim,v);
                } else {
-                  MDDState ns = _mddspec.relaxation(mem,psiSim->getState(),psi);
-                  if (ns != psiSim->getState()) {
-                     auto nh = cl.extract(psiSim->getState().inner(refDir));
-                     out.insert(resetState(n,psiSim,ns,v,l));
-                     if (!nh.empty()) {
-                        nh.key() = psiSim->getState().inner(refDir);
-                        cl.insert(std::move(nh));
-                     } else {
-                        cl[psiSim->getState().inner(refDir)] = psiSim;
-                     }
-                  } else {
-                     addSupport(l-1,v);
-                     n->addArc(mem,psiSim,v);
-                  }
+                  auto nh = cl.extract(psiSimState.inner(refDir));                  
+                  out.insert(resetState(n,psiSim,ns,v,l));
+                  if (!nh.empty()) {
+                     nh.key() = psiSimState.inner(refDir);
+                     cl.insert(std::move(nh));
+                  } else 
+                     cl[psiSimState.inner(refDir)] = psiSim;                  
                }
             }
          }
       }
-      if (n->getNumChildren() == 0) {
-         cl.erase(n->getState().inner(refDir));
-         delState(n,l-1);
-      }
+      if (n->getNumChildren() == 0) 
+         delState(n,l-1);     
    }
    for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
       if (x[l-1]->contains(v) && getSupport(l-1,v)==0)

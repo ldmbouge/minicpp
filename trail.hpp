@@ -23,7 +23,7 @@
 
 class Entry {
 public:
-   virtual void relocate(int) {}
+   virtual void relocate(long) {}
    virtual void restore() = 0;
 };
 

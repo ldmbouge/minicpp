@@ -101,11 +101,11 @@ void MDDNode::removeParent(MDD* mdd,int value,int arc)
   MDDNode::addArc(MDDNode* child, MDDNode* parent, int v){}
 */
 
-void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
-{
+void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v){
+
    MDDEdge::Ptr e = new (mem) MDDEdge(this, child, v,
                                       (unsigned short)children.size(),
-                                      (unsigned short)child->parents.size());
+                                      (unsigned int)child->parents.size());
    children.push_back(e,mem);
    child->parents.push_back(e,mem);
 }

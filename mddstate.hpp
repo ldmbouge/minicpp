@@ -194,6 +194,8 @@ public:
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_relaxed(false) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
       : _spec(s),_mem(b),_hash(0),_relaxed(false) {}
+   MDDState(MDDStateSpec* s,char* b,int hash,bool relax) 
+      : _spec(s),_mem(b),_hash(hash),_relaxed(relax) {}
    MDDState(const MDDState& s) 
       : _spec(s._spec),_mem(s._mem),_hash(s._hash),_relaxed(s._relaxed) {}
    void initState(const MDDState& s) {
@@ -221,6 +223,11 @@ public:
       _hash = std::move(s._hash);
       _relaxed = std::move(s._relaxed);
       return *this;
+   }
+   MDDState clone(Storage::Ptr mem) const {
+      char* block = (char*)mem->allocate(sizeof(char)*_spec->layoutSize());
+      memcpy(block,_mem,_spec->layoutSize());
+      return MDDState(_spec,block,_hash,_relaxed);      
    }
    auto layoutSize() const     { return _spec->layoutSize();}   
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
@@ -282,7 +289,9 @@ public:
    void addTransitions(lambdaMap& map);
    bool exist(const MDDState& a,var<int>::Ptr x,int v);
    double similarity(const MDDState& a,const MDDState& b);
+   bool createState(MDDState& result,const MDDState& parent,var<int>::Ptr var,int v);
    std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,var<int>::Ptr var, int v);
+   void relaxation(MDDState& a,const MDDState& b);
    MDDState relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b);
    MDDState rootState(Storage::Ptr& mem);
 

@@ -26,7 +26,7 @@ Storage::Segment::Segment(std::size_t tsz)
 Storage::Segment::~Segment()
 {
    delete []_base;
-   std::cout << "Segment(" << _sz << ") deallocated" <<  std::endl;
+   //std::cout << "Segment(" << _sz << ") deallocated" <<  std::endl;
 }
 
 Storage::Storage(Trailer::Ptr ctx,std::size_t defSize)
