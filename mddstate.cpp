@@ -322,7 +322,8 @@ namespace Factory {
       std::vector<int> ps = spec.addStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
 
       spec.addArc(desc,[=](const auto& p,auto x,int v)->bool{
-         return p.at(ps[v-min]) < values[v];});
+                          return p.at(ps[v-min]) < values[v];
+                       });
 
       lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,ps] (int i,int pi) -> lambdaTrans {
               if (i <= minLDom)
