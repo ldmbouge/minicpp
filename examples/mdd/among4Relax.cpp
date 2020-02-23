@@ -33,7 +33,7 @@ int main(int argc,char* argv[])
       
    CPSolver::Ptr cp  = Factory::makeSolver();
 
-   auto v = Factory::intVarArray(cp, 200, 1, 9);
+   auto v = Factory::intVarArray(cp, 125, 1, 9);
    auto start = RuntimeMonitor::now();
    auto mdd = new MDDRelax(cp,width);
    //auto mdd = new MDD(cp);
@@ -62,12 +62,22 @@ int main(int argc,char* argv[])
                                                [](const auto& x) { return x->size();});
           */
                             if (x) {
-                               //mdd->saveGraph();
                                int c = x->min();
                                return  [=] {
-                                          cp->post(x == c);}
+                                          cp->post(x == c);
+                                          //std::cout << "branch==" << std::endl;
+                                          // mdd->debugGraph();
+                                       }
                                   | [=] {
-                                       cp->post(x != c);};
+                                          // if (i < 30) {
+                                          //    std::cout << "Branch (" << i << ") !=" << std::endl;
+                                          //    mdd->printRefs();
+                                          //    mdd->debugGraph();
+                                          // }
+                                       cp->post(x != c);
+                                       // std::cout << "branch!=" << std::endl;
+                                       // mdd->debugGraph();
+                                    };
                             } else return Branches({});
                          });
       

@@ -63,9 +63,8 @@ class MDDNode {
       void restore() { *_at = _old;}
    };
 public:
-   MDDNode();
-   MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id);
-   MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id);
+   MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,int layer, int id);
+   MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id);
    const auto& getParents()            { return parents;}
    const auto& getChildren()           { return children;}
    std::size_t getNumChildren() const  { return children.size();}
@@ -89,22 +88,31 @@ public:
    bool contains(int v);
    short getLayer() const    { return layer;}
    int getPosition() const   { return pos;}
+   int getId() const         { return _nid;}
    void setPosition(int p,Storage::Ptr mem) {
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<int>(&pos));
       pos = p;
    }
-   bool isActive(MDD* mdd) const { return pos < mdd->layerSize(layer);}
+   bool isActive() const { return _active;}
+   void deactivate() {
+      auto t = children.getTrail();
+      t->trail(new (t) TrailEntry<bool>(&_active));
+      _active = false;
+   }
    void print(std::ostream& os)
    {
       os << "L[" << layer << "," << pos << "] " << state;
    }
-private:
+private:   
    int pos;
+   int _nid;
+   bool _active;
    const short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;
    MDDState state;                     // Direct state embedding
+   friend class MDDEdge;
 };
 
 
@@ -114,6 +122,7 @@ inline void MDDEdge::moveTo(MDDNode* n,Trailer::Ptr t,Storage::Ptr mem)
    t->trail(new (t) TrailEntry<MDDNode*>(&child));
    child = n;
    child->hookChild(this,mem);
+   assert(n->isActive());
 }
 
 

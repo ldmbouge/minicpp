@@ -225,8 +225,8 @@ public:
       return *this;
    }
    MDDState clone(Storage::Ptr mem) const {
-      char* block = (char*)mem->allocate(sizeof(char)*_spec->layoutSize());
-      memcpy(block,_mem,_spec->layoutSize());
+      char* block = _spec ? (char*)mem->allocate(sizeof(char)*_spec->layoutSize()) : nullptr;
+      if (_spec)  memcpy(block,_mem,_spec->layoutSize());
       return MDDState(_spec,block,_hash,_relaxed);      
    }
    auto layoutSize() const     { return _spec->layoutSize();}   
@@ -239,8 +239,11 @@ public:
    float inner(const MDDState& s) const {
       float tot = 0;
       if (_mem && s._mem)
-         for(int k=0;k < layoutSize();k++) 
-            tot += (float)(_mem[k]+1) * (s._mem[k]+1);
+         for(int k=0;k < layoutSize();k++) {
+            tot *= 2;
+            float v0 = _mem[k],v1 = s._mem[k];
+            tot += (v0+1) * (v1+1);
+         }
       return tot;
    }
    int hash() {

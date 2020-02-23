@@ -27,6 +27,7 @@ void pS(const MDDState& s)
 
 MDD::MDD(CPSolver::Ptr cp)
 :  Constraint(cp),
+   _lastNid(0),
    trail(cp->getStateManager()),
    cp(cp)
 {
@@ -88,7 +89,7 @@ void MDD::buildNextLayer(int i)
                auto found = umap.find(&state);
                MDDNode* child = nullptr;
                if(found == umap.end()){
-                  child = new (mem) MDDNode(mem, trail, state, x[i]->size(),i+1, (int)layers[i+1].size());
+                  child = new (mem) MDDNode(_lastNid++,mem, trail, state, x[i]->size(),i+1, (int)layers[i+1].size());
                   umap.insert({child->key(),child});
                   layers[i+1].push_back(child,mem);
                }  else child = found->second;
@@ -132,8 +133,8 @@ void MDD::buildDiagram()
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
-   sink = new (mem) MDDNode(mem, trail, (int) numVariables, 0);
-   root = new (mem) MDDNode(mem, trail, rootState, x[0]->size(),0, 0);
+   sink = new (mem) MDDNode(_lastNid++,mem, trail, (int) numVariables, 0);
+   root = new (mem) MDDNode(_lastNid++,mem, trail, rootState, x[0]->size(),0, 0);
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
 
@@ -163,14 +164,17 @@ void MDD::scheduleRemoval(MDDNode* node)
 
 void MDD::removeNode(MDDNode* node)
 {
-   if(node->isActive(this)){
+   if(node->isActive()){
       node->remove(this);
+      node->deactivate();
       //swap nodes in layer and decrement size of layer
       const int l      = node->getLayer();
       const int nodeID = node->getPosition();
       layers[l].remove(nodeID);
       node->setPosition((int)layers[l].size(),mem);
       layers[l][nodeID]->setPosition(nodeID,mem);
+      assert(node->getNumParents()==0);
+      assert(node->getNumChildren()==0);
    }
 }
 
@@ -194,7 +198,7 @@ void MDD::saveGraph()
    std::cout << "digraph MDD {" << std::endl;
    for(int l = 0; l < numVariables; l++){
       for(int i = 0; i < layers[l].size(); i++){
-         if(!layers[l][i]->isActive(this)) continue;
+         if(!layers[l][i]->isActive()) continue;
          auto nc = layers[l][i]->getNumChildren();
          const auto& ch = layers[l][i]->getChildren();
          for(int j = 0; j < nc; j++){
@@ -222,8 +226,6 @@ void MDD::saveGraph()
       std::cout << '\b' << std::endl;
    }
 }
-
-
 
 MDDStats::MDDStats(MDD* mdd) : _nbLayers(mdd->nbLayers()) {
    _width = std::make_pair (INT_MAX,0);

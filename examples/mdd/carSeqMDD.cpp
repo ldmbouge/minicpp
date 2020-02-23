@@ -27,7 +27,7 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
+#include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
 
@@ -47,13 +47,15 @@ class Instance
    std::vector<std::vector<int>> _require;
    
 public:
-   Instance(int nc, int no, int ncof, std::vector<int>& lb, std::vector<int>& ub,  std::vector<int>& demand,  std::vector<std::vector<int>>& require) : _nbCars(nc), _nbOpts(no), _nbConf(ncof), _lb(lb), _ub(ub), _demand(demand), _require(require) {}
-   inline int nbCars() const { return _nbCars;}
-   inline int nbOpts() const { return _nbOpts;}
-   inline int nbConf() const { return _nbConf;}
-   std::vector<std::set<int>> options()
+   Instance(int nc,int no,int ncof,vector<int>& lb,vector<int>& ub,
+            vector<int>& demand,vector<vector<int>>& require)
+      : _nbCars(nc), _nbOpts(no), _nbConf(ncof), _lb(lb), _ub(ub), _demand(demand), _require(require) {}
+   int nbCars() const { return _nbCars;}
+   int nbOpts() const { return _nbOpts;}
+   int nbConf() const { return _nbConf;}
+   vector<std::set<int>> options()
    {
-      std::vector<std::set<int>> opts;
+      vector<std::set<int>> opts;
       for(int o = 0; o < _nbOpts; o++){
          std::set<int> vx;
          for(int c = 0; c < _nbConf; c++)
@@ -63,18 +65,18 @@ public:
       }
       return opts;
    }
-   std::vector<int> cars()
+   vector<int> cars()
    {
-      std::vector<int> ca;
+      vector<int> ca;
       for(int c = 0; c < _nbConf; c++)
          for(int d = 0; d < _demand[c]; d++)
             ca.push_back(c);
       return ca;
    }
-   int lb(int i) {return _lb[i];}
-   int ub(int i) {return _ub[i];}
-   int demand(int i) {return _demand[i];}
-   int requires(int i,int j) {return _require[i][j];}
+   int lb(int i) const { return _lb[i];}
+   int ub(int i) const { return _ub[i];}
+   int demand(int i) const { return _demand[i];}
+   int requires(int i,int j) const { return _require[i][j];}
    friend std::ostream &operator<<(std::ostream &output, const Instance& i)
    {
       output << "{" << std::endl;
@@ -96,10 +98,9 @@ void cleanRows(std::string& buf)
    buf = std::regex_replace(buf,std::regex("\n\n"),"\n");
 }
 
-template<typename T>
-std::vector<T> split(const std::string& str,char d, std::function<T(const std::string&)> clo)
+template<typename T> vector<T> split(const std::string& str,char d, std::function<T(const std::string&)> clo)
 {
-   auto result = std::vector<T>{};
+   auto result = vector<T>{};
    auto ss = std::stringstream{str};
    for (std::string line; std::getline(ss, line, d);)
       if(!line.empty())
@@ -108,12 +109,12 @@ std::vector<T> split(const std::string& str,char d, std::function<T(const std::s
    return result;
 }
 
-std::vector<std::string> split(const std::string& str,char d)
+vector<std::string> split(const std::string& str,char d)
 {
    return split<std::string>(str,d,[] (const auto& line) -> std::string {return line;});
 }
 
-std::vector<int> splitAsInt(const std::string& str,char d)
+vector<int> splitAsInt(const std::string& str,char d)
 {
    return split<int>(str,d,[] (const auto& s) -> int {return std::stoi(s);});
 }
@@ -136,8 +137,8 @@ Instance Instance::readData(const char* filename)
       int nbConf = stats[2];
       auto lb = splitAsInt(lines[1],' ');
       auto ub = splitAsInt(lines[2],' ');
-      std::vector<std::vector<int>> requires(nbConf);
-      std::vector<int> demands(nbConf);
+      vector<vector<int>> requires(nbConf);
+      vector<int> demands(nbConf);
       for(int cid = 0; cid < nbConf;  cid++)
          requires[cid].resize(nbOpts);
       for(int cid = 0; cid < nbConf;  cid++){
@@ -158,11 +159,18 @@ std::map<int,int> tomap(int min, int max,std::function<int(int)> clo)
    return r;
 }
 
-void solveModel(CPSolver::Ptr cp)
+template <typename Fun> vector<int> toVec(int min,int max,Fun f)
 {
-   auto vx = cp->intVars();
+   std::vector<int> v;
+   for(int i=min;i <= max;i++)
+      v.emplace_back(f(i));
+   return v;
+}
+
+void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
+{
    DFSearch search(cp,[=]() {
-      auto x = selectMin(vx,
+      auto x = selectMin(line,
                          [](const auto& x) { return x->size() > 1;},
                          [](const auto& x) { return x->size();});
       if (x) {
@@ -175,45 +183,67 @@ void solveModel(CPSolver::Ptr cp)
       } else return Branches({});
    });
 
-   search.onSolution([&vx]() {
-      std::cout << "Assignment:" << std::endl;
-      std::cout << vx << std::endl;
-   });
+   search.onSolution([&line,&in]() {
+                        for(int o=0;o < in.nbOpts();o++) {
+                           std::cout << in.lb(o) << '/' << in.ub(o);
+                           for(int c = 0;c < in.nbCars();c++) {
+                              if (in.requires(line[c]->min(),o))
+                                 std::cout << 'Y';
+                              else std::cout << ' ';
+                           }
+                           std::cout << std::endl;
+                        }                      
+                     });
 
    auto stat = search.solve([](const SearchStatistics& stats) {
                                return stats.numberOfSolutions() > 0;
                             });
    cout << stat << endl;
 }
+
+
 void buildModel(CPSolver::Ptr cp, Instance& in)
 {
    auto cars = in.cars();
    auto options = in.options();
    int mx = in.nbConf()-1;
-   auto vars = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
    int nbC = (int) cars.size();int nbO = (int) options.size();
-   matrix<Veci, var<int>::Ptr, 2> setup(cp->getStore(),{nbC, nbO});
-   auto mdd = new MDD(cp);
-   gccMDD(mdd->getSpec(), vars, tomap(0, mx,[&in] (int i) -> int {return in.demand(i);}));
+   auto line = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
+   matrix<Vecb, var<bool>::Ptr, 2> setup(cp->getStore(),{nbC, nbO});
+   
+   auto mdd = new MDDRelax(cp,64);
+   gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
    std::cout << mdd->getSpec() << std::endl;
    for(int o = 0; o < nbO; o++){
       auto opts = Factory::intVarArray(cp, nbC);
       for(int c = 0; c < nbC; c++){
-         setup[c][o] = makeIntVar(cp, 0, 1);
+         setup[c][o] = makeBoolVar(cp);
          opts[c] = setup[c][o];
       }
-//      amongMDD(mdd.getSpec(),opts, in.lb(o), in.ub(o), {1});
-//      if(in.ub(o) > 0)
       seqMDD(mdd->getSpec(),opts, in.ub(o), 0, in.lb(o), {1});
    }
    cp->post(mdd);
-   solveModel(cp);
+   for(int c = 0; c < nbC; c++) {
+      for(int o= 0;o < nbO ; o++) {
+         auto rl = toVec(0,mx,[in,o](int i) { return in.requires(i,o);});
+         cp->post(setup[o][c] == element(rl,line[c]));
+      }
+   }
+   for(int o=0;o < nbO;o++) {
+      for(int i=1;i < in.demand(o);i++) {
+         int rLow = 0;
+         int rUp = nbC - i * in.ub(o) - 1;
+         auto sl = slice<var<bool>::Ptr>(rLow,rUp,[&setup,o](int s) { return setup[o][s];});         
+         cp->post(sum(sl) >= in.demand(o) - i * in.lb(o));
+      }
+   }
+   solveModel(cp,line,in);
 }
 
 
 int main(int argc,char* argv[])
 {
-   const char* filename = "/Users/zitoun/Desktop/datao";
+   const char* filename = "data/datao";
    try {
       Instance in = Instance::readData(filename);
       std::cout << in << std::endl;

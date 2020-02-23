@@ -23,7 +23,7 @@
 #include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
 
-#define SZ_VAR 10
+#define SZ_VAR 20
 #define SZ_VAL 4
 
 
@@ -76,20 +76,24 @@ int main(int argc,char* argv[])
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDDRelax(cp,4);
-   //auto bounds = buildBounds(SZ_VAR, 1, SZ_VAL);
-   std::map<int,int> bounds = {{1,1},{2,2},{3,3}};
+   auto mdd = new MDDRelax(cp,256);
+   auto bounds = buildBounds(SZ_VAR, 1, SZ_VAL);
+   //std::map<int,int> bounds = {{1,3},{2,3},{3,4}}; // meant to test an over-constrained instance
    for(auto& b : bounds) {
       std::cout << b.first << " : " << b.second << std::endl;
    }
    Factory::gccMDD(mdd->getSpec(),v,bounds);
-   cp->post(mdd);
-   auto end = RuntimeMonitor::cputime();
-   MDDStats stats(mdd);
-   std::cout << "MDD Usage:" << mdd->usage() << std::endl;
-   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
-   std::cout << stats << std::endl;
-   solveModel(cp);
+   try {
+      cp->post(mdd);
+      auto end = RuntimeMonitor::cputime();
+      MDDStats stats(mdd);
+      std::cout << "MDD Usage:" << mdd->usage() << std::endl;
+      std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
+      std::cout << stats << std::endl;
+      solveModel(cp);
+   } catch(Status s) {
+      std::cout << "Failure during post..." << s << std::endl;
+   }
    cp.dealloc();
    return 0;
 }

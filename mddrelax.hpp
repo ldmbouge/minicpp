@@ -9,10 +9,17 @@
 #include <random>
 
 
+struct MDDNodePtrOrder {
+   bool operator()(const MDDNode* a,const MDDNode* b)  const noexcept {
+      return a->getId() < b->getId();
+   }
+};
+
 class MDDRelax : public MDD {
    const int _width;
    ::trail<int> _lowest;
    std::mt19937 _rnG;
+   std::vector<MDDState> _refs;
    const MDDState& pickReference(int layer,int layerSize) {
       std::uniform_int_distribution<int> sampler(0,layerSize-1);
       int dirIdx = sampler(_rnG);
@@ -20,10 +27,9 @@ class MDDRelax : public MDD {
    }
    void rebuild();
    bool refreshNode(MDDNode* n,int l);
-   std::set<MDDNode*> split(TVec<MDDNode*>& layer,int l);
-   void spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l);
-   std::tuple<MDDNode*,double> findSimilar(std::vector<MDDNode*>& list,const MDDState& s);
-   MDDNode* findSimilar(const std::map<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
+   std::set<MDDNode*,MDDNodePtrOrder> split(TVec<MDDNode*>& layer,int l);
+   void spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,int l);
+   MDDNode* findSimilar(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
    MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);
    void delState(MDDNode* state,int l);
 public:
@@ -31,10 +37,17 @@ public:
       : MDD(cp),_width(width),_lowest(cp->getStateManager(),0),
         _rnG(42)
    {}
+   void trimDomains() override;
    void buildDiagram() override;
    void relaxLayer(int i);
    void propagate() override;
    void trimLayer(int layer) override;
+   void debugGraph() override;
+   const MDDState& ref(int l) const { return _refs[l];}
+   void printRefs() {
+      for(int i=0;i < numVariables;i++)
+         std::cout << "R[" << i << "] = " << ref(i) << std::endl;
+   }
 };
 
 #endif

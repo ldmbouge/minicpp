@@ -276,7 +276,7 @@ namespace Factory {
    using allocb = stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>;
    //using Veci   = std::vector<var<int>::Ptr,alloci>;
    using Veci   = EVec<var<int>::Ptr,alloci>;
-   using Vecb   = std::vector<var<bool>::Ptr,allocb>;
+   using Vecb   = EVec<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);   
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);

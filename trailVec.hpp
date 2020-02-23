@@ -72,7 +72,7 @@ public:
    Trailer::Ptr getTrail() { return _t;}
    void clear() {
       _t->trail(new (_t) TrailEntry<SZT>(&_sz));
-      _sz = 0;      
+      _sz = 0;
    }
    SZT size() const { return _sz;}
    void push_back(const T& p,Storage::Ptr mem) {

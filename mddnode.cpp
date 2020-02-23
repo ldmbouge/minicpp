@@ -8,15 +8,19 @@
 
 #include "mddnode.hpp"
 
-MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,int layer, int id)
+MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,int layer, int id)
    : pos(id),
+     _nid(nid),
+     _active(true),
      layer(layer),
      children(t,mem,2),
      parents(t,mem,2)
 {}
 
-MDDNode::MDDNode(Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id)
+MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id)
    : pos(id),
+     _nid(nid),
+     _active(true),
      layer(layer),
      children(t,mem,dsz),
      parents(t,mem,dsz),
@@ -79,7 +83,7 @@ void MDDNode::removeChild(MDD* mdd,int value,int arc)
    
    if(sz < 1 && layer == 0)
       failNow();
-   if(sz < 1 && isActive(mdd))
+   if(sz < 1 && isActive())
       mdd->scheduleRemoval(this);
 }
 
@@ -93,7 +97,7 @@ void MDDNode::removeParent(MDD* mdd,int value,int arc)
    
    if(sz < 1 && layer==mdd->nbLayers())
       failNow();
-   if(sz < 1 && isActive(mdd))
+   if(sz < 1 && isActive())
       mdd->scheduleRemoval(this);
 }
 
@@ -101,8 +105,9 @@ void MDDNode::removeParent(MDD* mdd,int value,int arc)
   MDDNode::addArc(MDDNode* child, MDDNode* parent, int v){}
 */
 
-void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v){
-
+void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
+{
+   assert(isActive());
    MDDEdge::Ptr e = new (mem) MDDEdge(this, child, v,
                                       (unsigned short)children.size(),
                                       (unsigned int)child->parents.size());
@@ -125,7 +130,7 @@ bool MDDNode::contains(int v)
 */
 void MDDNode::trim(MDD* mdd,var<int>::Ptr x)
 {
-   if (isActive(mdd)) {
+   if (isActive()) {
       for(int i = (int)children.size() - 1; i >= 0 ; i--){
          if(!x->contains(children.get(i)->getValue()))
             children.get(i)->remove(mdd);

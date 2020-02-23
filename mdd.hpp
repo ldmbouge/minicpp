@@ -19,6 +19,7 @@ class MDD  : public Constraint {
 public:
    MDD(CPSolver::Ptr cp);
    void saveGraph();
+   virtual void debugGraph() {}
    void post() override;
    MDDSpec& getSpec()      { return _mddspec; }
    virtual void trimLayer(int layer);
@@ -34,10 +35,11 @@ public:
    std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
    unsigned long layerSize(const int layer) {return layers[layer].size();}
 protected:
-   void trimDomains();
+   virtual void trimDomains();
    void hookupPropagators();
    void buildNextLayer(int i);
    virtual void buildDiagram();
+   int _lastNid;
    Trailer::Ptr trail;
    CPSolver::Ptr cp;
    Storage::Ptr mem;

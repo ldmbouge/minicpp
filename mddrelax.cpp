@@ -11,13 +11,13 @@ void MDDRelax::buildDiagram()
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
-   sink = new (mem) MDDNode(mem, trail, (int) numVariables, 0);
-   root = new (mem) MDDNode(mem, trail, rootState, x[0]->size(),0, 0);
+   sink = new (mem) MDDNode(_lastNid++,mem, trail, (int) numVariables, 0);
+   root = new (mem) MDDNode(_lastNid++,mem, trail, rootState, x[0]->size(),0, 0);
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
 
    auto start = RuntimeMonitor::now();
-
+   _refs.emplace_back(rootState);
    for(int i = 0; i < numVariables; i++) {
       buildNextLayer(i);
       relaxLayer(i+1);
@@ -25,19 +25,19 @@ void MDDRelax::buildDiagram()
    trimDomains();
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "build/Relax:" << dur << std::endl;
-
    propagate();
    hookupPropagators();
 }
 
 void MDDRelax::relaxLayer(int i)
 {
+   _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
    if (layers[i].size() <= _width)
       return;   
-   const int iSize = (int)layers[i].size();
+   const int iSize = (int)layers[i].size();  
+   const MDDState& refDir = _refs[i];
 
    std::vector<std::tuple<float,MDDNode*>> cl(iSize);
-   const MDDState& refDir = pickReference(i,iSize);
    int k = 0;
    for(auto& n : layers[i])
       cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
@@ -110,42 +110,65 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
          n->unhook(*i);
          delSupport(l,(*i)->getValue());
       }
+      // std::cout << "refresh[" << l << "]@" << n->getPosition() << " : "
+      //           << n->getState() << " to " << ms << std::endl;
       n->setState(ms,mem);
    }
    return changed;
 }
 
-MDDNode* MDDRelax::findSimilar(const std::map<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
+MDDNode* MDDRelax::findSimilar(const std::multimap<float,MDDNode*>& layer,
+                               const MDDState& s,const MDDState& refDir)
 {
-   auto nlt = layer.lower_bound(s.inner(refDir));
+   float query = s.inner(refDir);
+   auto nlt = layer.lower_bound(query);
    if (nlt == layer.end()) {
-      nlt--;
+      nlt--;      
+      return nlt->second;
+   } else {
+      auto cur = nlt;
+      while(cur != layer.end() && cur->first == query) {
+         bool isEqual = cur->second->getState() == s;
+         if (cur->second->isActive() && isEqual)
+            return cur->second;
+         cur++;
+      }
+      return nlt->second;
    }
-   return nlt->second;
 }
 
-std::tuple<MDDNode*,double> MDDRelax::findSimilar(std::vector<MDDNode*>& list,const MDDState& s)
+void removeMatch(std::multimap<float,MDDNode*>& layer,float key,MDDNode* n)
 {
-   double best = DBL_MAX;
-   int bj = -1;
-   for(int j = 0;j < list.size(); j++) {
-      MDDNode* a = list[j];
-      double simAB = _mddspec.similarity(s,a->getState());
-      bj   = simAB < best ? j : bj;
-      best = simAB < best ? simAB : best;
+   auto i = layer.lower_bound(key);
+   while (i != layer.end() && i->first == key) {
+      if (i->second == n) {
+         layer.erase(i);
+         return;
+      }
+      i++;
    }
-   return std::make_tuple(list[bj],best);
+   assert(false);
 }
 
 
-std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
+std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
 {
-   std::set<MDDNode*> delta;
+   using namespace std;
+   std::multimap<float,MDDNode*,std::less<float> > cl;
+   const MDDState& refDir = _refs[l];
+   for(auto& n : layer) 
+      cl.insert({n->getState().inner(refDir),n});
+   
+   std::set<MDDNode*,MDDNodePtrOrder> delta;
    bool xb = x[l-1]->isBound();
+   // cout << "startSplit(" << l << ")" << (xb ? "T" : "F") << " " << layer.size() << endl;
    for(auto i = layer.rbegin();i != layer.rend() && (xb || layer.size() < _width);i++) {
       auto n = *i;
+      // cout << "split[" << l << "]@" << n->getPosition() << " : " << n->getState() << endl;
+         
       if (n->getNumParents() == 0) {
         delState(n,l);
+        removeMatch(cl,n->getState().inner(refDir),n);
         continue;
       }
       if (xb) {
@@ -153,8 +176,6 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
             delta.insert(n);
       } else {
          if (!n->getState().isRelaxed()) continue;
-         std::vector<MDDNode*> nn;
-         nn.push_back(n);
          for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
             auto p = a->getParent();      // p is the parent
             auto v = a->getValue();
@@ -162,10 +183,9 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
             bool ok;
             std::tie(ms,ok) = _mddspec.createState(mem,p->getState(),x[l-1],v);
             assert(ok);
-            MDDNode* bj = nullptr;
-            double best;
-            std::tie(bj,best) = findSimilar(nn,ms);
-            if (best == 0) { // there is a perfect match
+            MDDNode* bj = findSimilar(cl,ms,refDir);
+            // cout << "\tsimto:" << ms << " = " << bj->getState() << endl;
+            if (bj->getState() == ms) { // there is a perfect match
                if (bj != n) {
                   a->moveTo(bj,trail,mem);
                   delta.insert(bj);
@@ -174,20 +194,22 @@ std::set<MDDNode*> MDDRelax::split(TVec<MDDNode*>& layer,int l)
             } else { // There is an approximate match
                // So, if there is room create a new node
                if (layer.size()  < _width) {
-                  MDDNode* nc = new (mem) MDDNode(mem,trail,ms,x[l-1]->size(),l,(int)layer.size());
+                  MDDNode* nc = new (mem) MDDNode(_lastNid++,mem,trail,ms,x[l-1]->size(),l,(int)layer.size());
                   layer.push_back(nc,mem);
                   a->moveTo(nc,trail,mem);
                   delta.insert(nc);
-                  nn.push_back(nc);
+                  cl.insert({nc->getState().inner(refDir), nc});
                } else { // No room, and an approximate match.
-                  // Leave the node where it is.
-                  // The refresh(n) will compute a relaxation for it. 
+                  // a->moveTo(bj,trail,mem);
+                  // delta.insert(bj);
+                  // cout << "\tNR:" << ms << " ~ " << bj->getState() << endl;
                }
             }
          }
-         if (n->getNumParents()==0)
+         if (n->getNumParents()==0) {
             delState(n,l);
-         else {
+            removeMatch(cl,n->getState().inner(refDir),n);
+         } else {
             if (refreshNode(n,l))
                delta.insert(n);
          }
@@ -219,7 +241,8 @@ MDDNode* MDDRelax::resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l)
 
 void MDDRelax::delState(MDDNode* node,int l)
 {
-   assert(node->isActive(this));
+   assert(node->isActive());
+   node->deactivate();
    assert(l == node->getLayer());
    const int at = node->getPosition();
    assert(node == layers[l][at]);
@@ -241,20 +264,22 @@ void MDDRelax::delState(MDDNode* node,int l)
          delSupport(l,arc->getValue());
       }
    }
+   assert(node->getNumParents()==0);
+   assert(node->getNumChildren()==0);
 }
 
-void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
+void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,int l)
 {
    if (delta.size() == 0) return;
-   std::set<MDDNode*> out;
+   const MDDState& refDir = _refs[l];
+   std::set<MDDNode*,MDDNodePtrOrder> out;
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2* _width);
-   std::map<float,MDDNode*,std::less<float> > cl;
+   std::multimap<float,MDDNode*,std::less<float> > cl;
 
-   const MDDState& refDir = pickReference(l,layer.size());
    for(auto& n : layer) {
       umap.insert({n->key(),n});
       float key = n->getState().inner(refDir);
-      cl[key] = n;
+      cl.insert({key,n});
    }
    char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
    for(auto n : delta) {
@@ -277,13 +302,13 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
             n->addArc(mem,child,v);
          } else { // Never seen psi before.
             if (layer.size() < _width) { // there is room in this layer.
-               child = new (mem) MDDNode(mem,trail,psi.clone(mem),x[l-1]->size(),l,(int)layer.size());
+               child = new (mem) MDDNode(_lastNid++,mem,trail,psi.clone(mem),x[l-1]->size(),l,(int)layer.size());
                layer.push_back(child,mem);
                addSupport(l-1,v);
                n->addArc(mem,child,v);
-               out.insert(child);
+               auto ir = out.insert(child);
                umap.insert({child->key(),child});
-               cl[psi.inner(refDir)] = child;
+               cl.insert({psi.inner(refDir),child});
             } else {
                MDDNode* psiSim = findSimilar(cl,psi,refDir);
                const MDDState& psiSimState = psiSim->getState();
@@ -296,19 +321,20 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
                   addSupport(l-1,v);
                   n->addArc(mem,psiSim,v);
                } else {
-                  auto nh = cl.extract(psiSimState.inner(refDir));                  
-                  out.insert(resetState(n,psiSim,ns,v,l));
+                  auto nh = cl.extract(psiSimState.inner(refDir));
+                  auto ir = out.insert(resetState(n,psiSim,ns,v,l));
                   if (!nh.empty()) {
                      nh.key() = psiSimState.inner(refDir);
                      cl.insert(std::move(nh));
                   } else 
-                     cl[psiSimState.inner(refDir)] = psiSim;                  
+                     cl.insert({psiSimState.inner(refDir),psiSim});
                }
             }
          }
       }
-      if (n->getNumChildren() == 0) 
-         delState(n,l-1);     
+      if (n->getNumChildren() == 0) {         
+         delState(n,l-1); // delete is in the layer above. cl contain nodes from layer *l*
+      }
    }
    for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
       if (x[l-1]->contains(v) && getSupport(l-1,v)==0)
@@ -320,24 +346,48 @@ void MDDRelax::spawn(std::set<MDDNode*>& delta,TVec<MDDNode*>& layer,int l)
 void MDDRelax::rebuild()
 {
    //std::cout << "MDDRelax::rebuild(lowest=" << _lowest << ")" << std::endl;
-   std::set<MDDNode*> delta;
+   std::set<MDDNode*,MDDNodePtrOrder> delta;
    for(int l = _lowest + 1; l < numVariables;l++) {
-      std::set<MDDNode*> splitNodes = split(layers[l],l);
+      std::set<MDDNode*,MDDNodePtrOrder> splitNodes = split(layers[l],l);
       for(auto n : splitNodes)
          delta.insert(n);
       spawn(delta,layers[l+1],l+1);
    }
 }
 
+void MDDRelax::trimDomains()
+{
+   for(auto i = _lowest + 1; i < numVariables;i++) {
+      auto& layer = layers[i];
+      for(int j = (int)layer.size() - 1;j >= 0;j--) {
+         if(layer[j]->disconnected())
+            removeNode(layer[j]);
+      }
+   }   
+}
+
+
 void MDDRelax::propagate()
 {
-   try {
+   try {      
       MDD::propagate();
       rebuild();
       trimDomains();
-      _lowest = (int)numVariables - 1;
+      _lowest = (int)numVariables - 1;      
    } catch(Status s) {
       queue.clear();
       throw s;
+   }
+}
+
+void MDDRelax::debugGraph()
+{
+   using namespace std;
+   for(int l=0;l < numVariables;l++) {
+      cout << "L[" << l <<"] = ";
+      for(int i=0;i < layers[l].size();i++) {
+         cout << "\t" << layers[l][i]->getState() << " : "
+              << layers[l][i]->getState().inner(_refs[l]) << endl;
+      }
    }
 }

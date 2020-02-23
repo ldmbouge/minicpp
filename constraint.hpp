@@ -26,89 +26,89 @@
 #include "matching.hpp"
 
 class EQc : public Constraint { // x == c
-    var<int>::Ptr _x;
-    int           _c;
+   var<int>::Ptr _x;
+   int           _c;
 public:
    EQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
-    void post() override;
+   void post() override;
 };
 
 class NEQc : public Constraint { // x != c
-    var<int>::Ptr _x;
-    int           _c;
+   var<int>::Ptr _x;
+   int           _c;
 public:
    NEQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
    void post() override;
 };
 
 class EQBinBC : public Constraint { // x == y + c
-    var<int>::Ptr _x,_y;
-    int _c;
+   var<int>::Ptr _x,_y;
+   int _c;
 public:
-    EQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
-       : Constraint(x->getSolver()),_x(x),_y(y),_c(c) {}
-    void post() override;
+   EQBinBC(var<int>::Ptr x,var<int>::Ptr y,int c)
+      : Constraint(x->getSolver()),_x(x),_y(y),_c(c) {}
+   void post() override;
 };
 
 class NEQBinBC : public Constraint { // x != y + c
-    var<int>::Ptr _x,_y;
-    int _c;
-    trailList<Constraint::Ptr>::revNode* hdl[2];
-    void print(std::ostream& os) const override;
+   var<int>::Ptr _x,_y;
+   int _c;
+   trailList<Constraint::Ptr>::revNode* hdl[2];
+   void print(std::ostream& os) const override;
 public:
-    NEQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
-       : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
-    void post() override;
+   NEQBinBC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
+      : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
+   void post() override;
 };
 
 class NEQBinBCLight : public Constraint { // x != y + c
-    var<int>::Ptr _x,_y;
-    int _c;
-    void print(std::ostream& os) const override;
+   var<int>::Ptr _x,_y;
+   int _c;
+   void print(std::ostream& os) const override;
 public:
-    NEQBinBCLight(var<int>::Ptr& x,var<int>::Ptr& y,int c=0)
-       : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
-    void post() override;
-    void propagate() override;
+   NEQBinBCLight(var<int>::Ptr& x,var<int>::Ptr& y,int c=0)
+      : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
+   void post() override;
+   void propagate() override;
 };
 
 class EQBinDC : public Constraint { // x == y + c
-    var<int>::Ptr _x,_y;
-    int _c;
+   var<int>::Ptr _x,_y;
+   int _c;
 public:
-    EQBinDC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
-       : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
-    void post() override;
+   EQBinDC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
+      : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
+   void post() override;
 };
 
 class LessOrEqual :public Constraint { // x <= y
-    var<int>::Ptr _x,_y;
+   var<int>::Ptr _x,_y;
 public:
-    LessOrEqual(var<int>::Ptr x,var<int>::Ptr y)
-        : Constraint(x->getSolver()),_x(x),_y(y) {}
-    void post() override;
-    void propagate() override;
+   LessOrEqual(var<int>::Ptr x,var<int>::Ptr y)
+      : Constraint(x->getSolver()),_x(x),_y(y) {}
+   void post() override;
+   void propagate() override;
 };
 
 class IsEqual : public Constraint { // b <=> x == c
-    var<bool>::Ptr _b;
-    var<int>::Ptr _x;
-    int _c;
+   var<bool>::Ptr _b;
+   var<int>::Ptr _x;
+   int _c;
 public:
-    IsEqual(var<bool>::Ptr b,var<int>::Ptr x,int c)
-        : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
-    void post() override;
-    void propagate() override;
+   IsEqual(var<bool>::Ptr b,var<int>::Ptr x,int c)
+      : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
+   void post() override;
+   void propagate() override;
 };
 
 class IsLessOrEqual : public Constraint { // b <=> x <= c
-    var<bool>::Ptr _b;
-    var<int>::Ptr _x;
-    int _c;
+   var<bool>::Ptr _b;
+   var<int>::Ptr _x;
+   int _c;
 public:
-    IsLessOrEqual(var<bool>::Ptr b,var<int>::Ptr x,int c)
-        : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
-    void post() override;
+   IsLessOrEqual(var<bool>::Ptr b,var<int>::Ptr x,int c)
+      : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
+   void post() override;
 };
 
 class Sum : public Constraint { // s = Sum({x0,...,xk})
@@ -120,43 +120,43 @@ class Sum : public Constraint { // s = Sum({x0,...,xk})
    std::vector<int> _unBounds;
 public:
    template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
-       : Constraint(s->getSolver()),
-         //_x(x.size() + 1),
-         _x(x.size() + 1,Factory::alloci(s->getStore())), 
-         _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
-         _sumBounds(s->getSolver()->getStateManager(),0),
-         _n((int)x.size() + 1),
-         _unBounds(_n)
-    {
-       for(auto i=0;i < x.size();i++)
-          _x[i] = x[i];
-       _x[_n-1] = Factory::minus(s);
-       for(auto i=0; i < _n;i++)
-          _unBounds[i] = i;
-    }        
+      : Constraint(s->getSolver()),
+        //_x(x.size() + 1),
+        _x(x.size() + 1,Factory::alloci(s->getStore())), 
+        _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
+        _sumBounds(s->getSolver()->getStateManager(),0),
+        _n((int)x.size() + 1),
+        _unBounds(_n)
+   {
+      for(auto i=0;i < x.size();i++)
+         _x[i] = x[i];
+      _x[_n-1] = Factory::minus(s);
+      for(auto i=0; i < _n;i++)
+         _unBounds[i] = i;
+   }        
    void post() override;
    void propagate() override;
 };
 
 class Clause : public Constraint { // x0 OR x1 .... OR xn
-    std::vector<var<bool>::Ptr> _x;
-    trail<int> _wL,_wR;
+   std::vector<var<bool>::Ptr> _x;
+   trail<int> _wL,_wR;
 public:
-    Clause(const std::vector<var<bool>::Ptr>& x);
-    void post() override { propagate();}
-    void propagate() override;
+   Clause(const std::vector<var<bool>::Ptr>& x);
+   void post() override { propagate();}
+   void propagate() override;
 };
 
 class IsClause : public Constraint { // b <=> x0 OR .... OR xn
-    var<bool>::Ptr _b;
-    std::vector<var<bool>::Ptr> _x;
-    std::vector<int> _unBounds;
-    trail<int>      _nUnBounds;
-    Clause::Ptr        _clause;
+   var<bool>::Ptr _b;
+   std::vector<var<bool>::Ptr> _x;
+   std::vector<int> _unBounds;
+   trail<int>      _nUnBounds;
+   Clause::Ptr        _clause;
 public:
-    IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x);
-    void post() override;
-    void propagate() override;
+   IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x);
+   void post() override;
+   void propagate() override;
 };
 
 class AllDifferentBinary :public Constraint {
@@ -173,24 +173,24 @@ public:
 };
 
 class AllDifferentAC : public Constraint {
-    Factory::Veci    _x;
-    MaximumMatching _mm;
-    Graph           _rg;
-    int* _match;
-    bool* _matched;
-    int _minVal,_maxVal;
-    int _nVar,_nVal,_nNodes;
-    int updateRange();
-    void updateGraph();
-    int valNode(int vid) const { return vid - _minVal + _nVar;}
+   Factory::Veci    _x;
+   MaximumMatching _mm;
+   Graph           _rg;
+   int* _match;
+   bool* _matched;
+   int _minVal,_maxVal;
+   int _nVar,_nVal,_nNodes;
+   int updateRange();
+   void updateGraph();
+   int valNode(int vid) const { return vid - _minVal + _nVar;}
 public:
-    template <class Vec> AllDifferentAC(const Vec& x)
-        : Constraint(x[0]->getSolver()),
-          _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore())),
-          _mm(_x,x[0]->getStore()) {}
-    ~AllDifferentAC() {}
-    void post() override;
-    void propagate() override;
+   template <class Vec> AllDifferentAC(const Vec& x)
+      : Constraint(x[0]->getSolver()),
+        _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore())),
+        _mm(_x,x[0]->getStore()) {}
+   ~AllDifferentAC() {}
+   void post() override;
+   void propagate() override;
 };
 
 class Circuit :public Constraint {
@@ -214,36 +214,36 @@ public:
 };
 
 class Minimize : public Objective {
-    var<int>::Ptr _obj;
-    int        _primal;
-    void print(std::ostream& os) const;
+   var<int>::Ptr _obj;
+   int        _primal;
+   void print(std::ostream& os) const;
 public:
-    Minimize(var<int>::Ptr& x);
-    void tighten() override;
-    int value() const override { return _obj->min();}
+   Minimize(var<int>::Ptr& x);
+   void tighten() override;
+   int value() const override { return _obj->min();}
 };
 
 class Element2D : public Constraint {
-    struct Triplet {
-        int x,y,z;
-        Triplet() : x(0),y(0),z(0) {}
-        Triplet(int a,int b,int c) : x(a),y(b),z(c) {}
-        Triplet(const Triplet& t) : x(t.x),y(t.y),z(t.z) {}
-    };
+   struct Triplet {
+      int x,y,z;
+      Triplet() : x(0),y(0),z(0) {}
+      Triplet(int a,int b,int c) : x(a),y(b),z(c) {}
+      Triplet(const Triplet& t) : x(t.x),y(t.y),z(t.z) {}
+   };
         
-    Matrix<int,2> _matrix;
-    var<int>::Ptr _x,_y,_z;
-    int _n,_m;
-    trail<int>* _nRowsSup;
-    trail<int>* _nColsSup;
-    trail<int> _low,_up;
-    std::vector<Triplet> _xyz;
-    void updateSupport(int lostPos);
+   Matrix<int,2> _matrix;
+   var<int>::Ptr _x,_y,_z;
+   int _n,_m;
+   trail<int>* _nRowsSup;
+   trail<int>* _nColsSup;
+   trail<int> _low,_up;
+   std::vector<Triplet> _xyz;
+   void updateSupport(int lostPos);
 public:
-    Element2D(const Matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z);
-    void post() override;;
-    void propagate() override;
-    void print(std::ostream& os) const override;
+   Element2D(const Matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z);
+   void post() override;;
+   void propagate() override;
+   void print(std::ostream& os) const override;
 };
 
 class Element1D : public Constraint {
@@ -279,105 +279,109 @@ public:
 };
 
 namespace Factory {
-    inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
-        return new (x->getSolver()) EQBinBC(x,y,c);
-    }
-    inline Constraint::Ptr notEqual(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
-        return new (x->getSolver()) NEQBinBC(x,y,c);
-    }
-    inline Constraint::Ptr operator==(var<int>::Ptr x,int c) {
-       auto cp = x->getSolver();
-       x->assign(c);
-       cp->fixpoint();
-       return nullptr;
-       //return new (x->getSolver()) EQc(x,c);
-    }
-    inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
-       auto cp = x->getSolver();
-       x->remove(c);
-       cp->fixpoint();
-       return nullptr;
-       //return new (x->getSolver()) NEQc(x,c);
-    }
-    inline Constraint::Ptr operator==(var<bool>::Ptr x,bool c) {
-       return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
-    }
-    inline Constraint::Ptr operator!=(var<bool>::Ptr x,bool c) {
-        return new (x->getSolver()) NEQc((var<int>::Ptr)x,c);
-    }
-    inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y) {
-        return Factory::notEqual(x,y,0);
-    }
-    inline Constraint::Ptr operator<=(var<int>::Ptr x,var<int>::Ptr y) {
-        return new (x->getSolver()) LessOrEqual(x,y);
-    }
-    inline Constraint::Ptr operator>=(var<int>::Ptr x,var<int>::Ptr y) {
-        return new (x->getSolver()) LessOrEqual(y,x);
-    }
-    inline Constraint::Ptr operator<=(var<int>::Ptr x,const int c) {
-       x->removeAbove(c);
-       x->getSolver()->fixpoint();
-       return nullptr;
-    }
-    inline Constraint::Ptr operator>=(var<int>::Ptr x,const int c) {
-       x->removeBelow(c);
-       x->getSolver()->fixpoint();
-       return nullptr;
-    }
-    inline Objective::Ptr minimize(var<int>::Ptr x) {
-        return new Minimize(x);
-    }
-    inline var<bool>::Ptr isEqual(var<int>::Ptr x,const int c) {
-        var<bool>::Ptr b = makeBoolVar(x->getSolver());
-        try {
-            x->getSolver()->post(new (x->getSolver()) IsEqual(b,x,c));
-        } catch(Status s) {}
-        return b;
-    }
-    inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x,const int c) {
-        var<bool>::Ptr b = makeBoolVar(x->getSolver());
-        try {
-            x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b,x,c));
-        } catch(Status s) {}
-        return b;
-    }
-    inline var<bool>::Ptr isLess(var<int>::Ptr x,const int c) {
-        return isLessOrEqual(x,c - 1);
-    }
-    inline var<bool>::Ptr isLargerOrEqual(var<int>::Ptr x,const int c) {
-        return isLessOrEqual(- x,- c);        
-    }
-    inline var<bool>::Ptr isLarger(var<int>::Ptr x,const int c) {
-        return isLargerOrEqual(x , c + 1);
-    }
-    template <class Vec> var<int>::Ptr sum(Vec& xs) {
-        int sumMin = 0,sumMax = 0;
-        for(const auto& x : xs) {
-            sumMin += x->min();
-            sumMax += x->max();
-        }
-        auto cp = xs[0]->getSolver();
-        auto s = Factory::makeIntVar(cp,sumMin,sumMax);
-        cp->post(new (cp) Sum(xs,s));
-        return s;        
-    }
-    template <class Vec> Constraint::Ptr sum(const Vec& xs,var<int>::Ptr s) {
-        return new (xs[0]->getSolver()) Sum(xs,s);
-    }
-    template <class Vec> Constraint::Ptr sum(const Vec& xs,int s) {
-        auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
-        return new (xs[0]->getSolver()) Sum(xs,sv);
-    }
-    template <class Vec> Constraint::Ptr clause(const Vec& xs) {
-        return new (xs[0]->getSolver()) Clause(xs);
-    }
-    template <class Vec> Constraint::Ptr isClause(var<bool>::Ptr b,const Vec& xs) {
-        return new (b->getSolver()) IsClause(b,xs);
-    }
-    inline var<bool>::Ptr implies(var<bool>::Ptr a,var<bool>::Ptr b) { // a=>b is not(a) or b is (1-a)+b >= 1
-        std::vector<var<int>::Ptr> left = {1- (var<int>::Ptr)a,b};
-        return isLargerOrEqual(sum(left),1);
-    }
+   inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
+      return new (x->getSolver()) EQBinBC(x,y,c);
+   }
+   inline Constraint::Ptr notEqual(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
+      return new (x->getSolver()) NEQBinBC(x,y,c);
+   }
+   inline Constraint::Ptr operator==(var<int>::Ptr x,int c) {
+      auto cp = x->getSolver();
+      x->assign(c);
+      cp->fixpoint();
+      return nullptr;
+      //return new (x->getSolver()) EQc(x,c);
+   }
+   inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
+      auto cp = x->getSolver();
+      x->remove(c);
+      cp->fixpoint();
+      return nullptr;
+      //return new (x->getSolver()) NEQc(x,c);
+   }
+   
+   inline Constraint::Ptr operator==(var<bool>::Ptr x,bool c) {
+      return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
+   }
+   inline Constraint::Ptr operator==(var<bool>::Ptr x,var<int>::Ptr y) {
+      return new (x->getSolver()) EQBinBC(x,y,0);
+   }
+   inline Constraint::Ptr operator!=(var<bool>::Ptr x,bool c) {
+      return new (x->getSolver()) NEQc((var<int>::Ptr)x,c);
+   }
+   inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y) {
+      return Factory::notEqual(x,y,0);
+   }
+   inline Constraint::Ptr operator<=(var<int>::Ptr x,var<int>::Ptr y) {
+      return new (x->getSolver()) LessOrEqual(x,y);
+   }
+   inline Constraint::Ptr operator>=(var<int>::Ptr x,var<int>::Ptr y) {
+      return new (x->getSolver()) LessOrEqual(y,x);
+   }
+   inline Constraint::Ptr operator<=(var<int>::Ptr x,const int c) {
+      x->removeAbove(c);
+      x->getSolver()->fixpoint();
+      return nullptr;
+   }
+   inline Constraint::Ptr operator>=(var<int>::Ptr x,const int c) {
+      x->removeBelow(c);
+      x->getSolver()->fixpoint();
+      return nullptr;
+   }
+   inline Objective::Ptr minimize(var<int>::Ptr x) {
+      return new Minimize(x);
+   }
+   inline var<bool>::Ptr isEqual(var<int>::Ptr x,const int c) {
+      var<bool>::Ptr b = makeBoolVar(x->getSolver());
+      try {
+         x->getSolver()->post(new (x->getSolver()) IsEqual(b,x,c));
+      } catch(Status s) {}
+      return b;
+   }
+   inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x,const int c) {
+      var<bool>::Ptr b = makeBoolVar(x->getSolver());
+      try {
+         x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b,x,c));
+      } catch(Status s) {}
+      return b;
+   }
+   inline var<bool>::Ptr isLess(var<int>::Ptr x,const int c) {
+      return isLessOrEqual(x,c - 1);
+   }
+   inline var<bool>::Ptr isLargerOrEqual(var<int>::Ptr x,const int c) {
+      return isLessOrEqual(- x,- c);        
+   }
+   inline var<bool>::Ptr isLarger(var<int>::Ptr x,const int c) {
+      return isLargerOrEqual(x , c + 1);
+   }
+   template <class Vec> var<int>::Ptr sum(Vec& xs) {
+      int sumMin = 0,sumMax = 0;
+      for(const auto& x : xs) {
+         sumMin += x->min();
+         sumMax += x->max();
+      }
+      auto cp = xs[0]->getSolver();
+      auto s = Factory::makeIntVar(cp,sumMin,sumMax);
+      cp->post(new (cp) Sum(xs,s));
+      return s;        
+   }
+   template <class Vec> Constraint::Ptr sum(const Vec& xs,var<int>::Ptr s) {
+      return new (xs[0]->getSolver()) Sum(xs,s);
+   }
+   template <class Vec> Constraint::Ptr sum(const Vec& xs,int s) {
+      auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
+      return new (xs[0]->getSolver()) Sum(xs,sv);
+   }
+   template <class Vec> Constraint::Ptr clause(const Vec& xs) {
+      return new (xs[0]->getSolver()) Clause(xs);
+   }
+   template <class Vec> Constraint::Ptr isClause(var<bool>::Ptr b,const Vec& xs) {
+      return new (b->getSolver()) IsClause(b,xs);
+   }
+   inline var<bool>::Ptr implies(var<bool>::Ptr a,var<bool>::Ptr b) { // a=>b is not(a) or b is (1-a)+b >= 1
+      std::vector<var<int>::Ptr> left = {1- (var<int>::Ptr)a,b};
+      return isLargerOrEqual(sum(left),1);
+   }
    template <class Vec> Constraint::Ptr allDifferent(const Vec& xs) {
       return new (xs[0]->getSolver()) AllDifferentBinary(xs);
    }
@@ -390,14 +394,14 @@ namespace Factory {
    inline var<int>::Ptr element(Matrix<int,2>& d,var<int>::Ptr x,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       for(int i=0;i<d.size(0);i++)
-          for(int j=0;j < d.size(1);j++) {
-              min = min < d[i][j] ? min : d[i][j];
-              max = max > d[i][j] ? max : d[i][j];
-          }
+         for(int j=0;j < d.size(1);j++) {
+            min = min < d[i][j] ? min : d[i][j];
+            max = max > d[i][j] ? max : d[i][j];
+         }
       auto z = makeIntVar(x->getSolver(),min,max);
       x->getSolver()->post(new (x->getSolver()) Element2D(d,x,y,z));
       return z;
-    }
+   }
    inline Constraint::Ptr element(const VMSlice<int,2,1>& array,var<int>::Ptr y,var<int>::Ptr z) {
       std::vector<int> flat(array.size());
       for(int i=0;i < array.size();i++) 
@@ -417,10 +421,10 @@ namespace Factory {
       return z;
    }
    template <class Vec> Constraint::Ptr elementVar(const Vec& xs,var<int>::Ptr y,var<int>::Ptr z) {
-       std::vector<var<int>::Ptr> flat(xs.size());
-       for(int i=0;i<xs.size();i++)
-           flat[i] = xs[i];
-       return new (y->getSolver()) Element1DVar(flat,y,z);
+      std::vector<var<int>::Ptr> flat(xs.size());
+      for(int i=0;i<xs.size();i++)
+         flat[i] = xs[i];
+      return new (y->getSolver()) Element1DVar(flat,y,z);
    }
    template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;

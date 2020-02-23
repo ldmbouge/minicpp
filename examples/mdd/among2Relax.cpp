@@ -33,7 +33,7 @@ int main(int argc,char* argv[])
 
    auto v = Factory::intVarArray(cp, 4, 1, 5);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDDRelax(cp,2);
+   auto mdd = new MDDRelax(cp,4);
    //auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, {2});
    Factory::amongMDD(mdd->getSpec(),v, 1, 1, {3});
