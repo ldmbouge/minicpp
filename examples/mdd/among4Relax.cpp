@@ -64,7 +64,7 @@ int main(int argc,char* argv[])
          if (x) {
             int c = x->min();
             return  [=] {
-                       std::cout << "branch(" << i << ") ==" << c << std::endl;
+                       //std::cout << "branch(" << i << ") ==" << c << std::endl;
                        cp->post(x == c);
                        // mdd->debugGraph();
                     }

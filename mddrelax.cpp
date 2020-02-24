@@ -137,6 +137,19 @@ MDDNode* MDDRelax::findSimilar(const std::multimap<float,MDDNode*>& layer,
    }
 }
 
+MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
+{
+   float query = s.inner(refDir);
+   auto nlt = layer.lower_bound(query);
+   while (nlt != layer.end() && nlt->first == query) {
+      bool isEqual = nlt->second->getState() == s;
+      if (isEqual)
+         return nlt->second;
+      else nlt++;
+   }
+   return nullptr;
+}
+
 void removeMatch(std::multimap<float,MDDNode*>& layer,float key,MDDNode* n)
 {
    auto i = layer.lower_bound(key);
@@ -156,13 +169,19 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
    using namespace std;
    std::multimap<float,MDDNode*,std::less<float> > cl;
    const MDDState& refDir = _refs[l];
-   for(auto& n : layer) 
-      cl.insert({n->getState().inner(refDir),n});
    
    std::set<MDDNode*,MDDNodePtrOrder> delta;
    bool xb = x[l-1]->isBound();
    // cout << "startSplit(" << l << ")" << (xb ? "T" : "F") << " " << layer.size() << endl;
    for(auto i = layer.rbegin();i != layer.rend() && (xb || layer.size() < _width);i++) {
+
+      if (cl.size()==0) {
+         int nbR=0;
+         for(auto& n : layer) nbR += n->getState().isRelaxed();
+         if (nbR==0) break;
+         for(auto& n : layer) cl.insert({n->getState().inner(refDir),n});        
+      }
+      
       auto n = *i;
       // cout << "split[" << l << "]@" << n->getPosition() << " : " << n->getState() << endl;
          
@@ -273,14 +292,10 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
    if (delta.size() == 0) return;
    const MDDState& refDir = _refs[l];
    std::set<MDDNode*,MDDNodePtrOrder> out;
-   std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2* _width);
    std::multimap<float,MDDNode*,std::less<float> > cl;
-
-   for(auto& n : layer) {
-      umap.insert({n->key(),n});
-      float key = n->getState().inner(refDir);
-      cl.insert({key,n});
-   }
+   for(auto& n : layer) 
+      cl.insert({n->getState().inner(refDir),n});
+   
    char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
    for(auto n : delta) {
       const MDDState& state = n->getState();
@@ -294,10 +309,8 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
             continue;
          }
          _mddspec.createState(psi,state,x[l-1],v);
-         auto found = umap.find(&psi);
-         MDDNode* child = nullptr;
-         if(found != umap.end()) {
-            child = found->second;
+         MDDNode* child = findMatch(cl,psi,refDir);
+         if (child) {
             addSupport(l-1,v);
             n->addArc(mem,child,v);
          } else { // Never seen psi before.
@@ -307,7 +320,7 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
                addSupport(l-1,v);
                n->addArc(mem,child,v);
                auto ir = out.insert(child);
-               umap.insert({child->key(),child});
+               //umap.insert({child->key(),child});
                cl.insert({psi.inner(refDir),child});
             } else {
                MDDNode* psiSim = findSimilar(cl,psi,refDir);
@@ -345,8 +358,8 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
 
 void MDDRelax::rebuild()
 {
-   std::cout << "MDDRelax::rebuild(lowest="
-             << _lowest+1 <<  " -> " << numVariables << ")" << std::endl;
+   // std::cout << "MDDRelax::rebuild(lowest="
+   //           << _lowest+1 <<  " -> " << numVariables << ")" << std::endl;
    std::set<MDDNode*,MDDNodePtrOrder> delta;
    for(int l = _lowest + 1; l < numVariables;l++) {
       std::set<MDDNode*,MDDNodePtrOrder> splitNodes = split(layers[l],l);

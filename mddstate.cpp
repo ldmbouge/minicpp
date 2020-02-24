@@ -140,6 +140,7 @@ bool MDDSpec::exist(const MDDState& a,var<int>::Ptr x,int v)
 
 bool MDDSpec::createState(MDDState& result,const MDDState& parent,var<int>::Ptr var,int v)
 {
+  result.clear();
   if(arcLambda(parent, var, v)) {
      for(auto& c :constraints) {
         if(c.member(var))
@@ -190,6 +191,7 @@ double MDDSpec::similarity(const MDDState& a,const MDDState& b)
 
 void MDDSpec::relaxation(MDDState& a,const MDDState& b)
 {
+  a.clear();
   for(auto& cstr : constraints)
     for(auto p : cstr) 
        a.set(p,relaxationLambdas[p](a,b));      

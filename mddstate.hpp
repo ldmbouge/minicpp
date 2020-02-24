@@ -169,40 +169,52 @@ inline std::ostream& operator<<(std::ostream& os,MDDConstraintDescriptor& p)
 class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
-   int               _hash;  // a hash value of the state to speed up equality testing.
-   bool           _relaxed;
+   int               _hash;  // a hash value of the state to speed up equality testing.   
+   mutable float      _rip;
+   struct Flags {
+      bool         _relaxed:1;
+      mutable bool  _ripped:1;
+      bool          _unused:6;
+   } _flags;
    class TrailState : public Entry {
       MDDState* _at;
       char*   _from;
       int       _sz;
       int   _h;
-      bool  _r;
+      Flags  _f;
+      float _ip;
    public:
       TrailState(MDDState* at,char* from,int sz) : _at(at),_from(from),_sz(sz)
       {
          memcpy(_from,_at->_mem,_sz);
          _h = _at->_hash;
-         _r = _at->_relaxed;
+         _f = _at->_flags;
+         _ip = _at->_rip;
       }
       void restore() override {
          memcpy(_at->_mem,_from,_sz);
-         _at->_hash = _h;
-         _at->_relaxed = _r;
+         _at->_hash  = _h;
+         _at->_flags = _f;
+         _at->_rip   = _ip;
       }
    };
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_relaxed(false) {}
+   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_flags({false,false}) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
-      : _spec(s),_mem(b),_hash(0),_relaxed(false) {}
-   MDDState(MDDStateSpec* s,char* b,int hash,bool relax) 
-      : _spec(s),_mem(b),_hash(hash),_relaxed(relax) {}
+   : _spec(s),_mem(b),_hash(0),_flags({relax,false}) {}
+   MDDState(MDDStateSpec* s,char* b,int hash,bool relax,float rip,bool ripped) 
+      : _spec(s),_mem(b),_hash(hash),_rip(rip) {
+         _flags._relaxed = relax;
+         _flags._ripped = ripped;
+      }
    MDDState(const MDDState& s) 
-      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_relaxed(s._relaxed) {}
+      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_rip(s._rip),_flags(s._flags) {}
    void initState(const MDDState& s) {
       _spec = s._spec;
       _mem = s._mem;
-      _relaxed = s._relaxed;
+      _flags = s._flags;
       _hash = s._hash;
+      _rip  = s._rip;
    }
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
       auto sz = _spec->layoutSize();
@@ -213,7 +225,8 @@ public:
       _spec = s._spec;
       memcpy(_mem,s._mem,sz);
       _hash = s._hash;
-      _relaxed = s._relaxed;
+      _flags = s._flags;
+      _rip = s._rip;
       return *this;
    }
    MDDState& operator=(MDDState&& s) { 
@@ -221,22 +234,27 @@ public:
       _spec = std::move(s._spec);
       _mem  = std::move(s._mem);      
       _hash = std::move(s._hash);
-      _relaxed = std::move(s._relaxed);
+      _rip  = std::move(s._rip);
+      _flags = std::move(s._flags);
       return *this;
    }
    MDDState clone(Storage::Ptr mem) const {
       char* block = _spec ? (char*)mem->allocate(sizeof(char)*_spec->layoutSize()) : nullptr;
       if (_spec)  memcpy(block,_mem,_spec->layoutSize());
-      return MDDState(_spec,block,_hash,_relaxed);      
+      return MDDState(_spec,block,_hash,_flags._relaxed,_rip,_flags._ripped);
    }
    auto layoutSize() const     { return _spec->layoutSize();}   
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
    int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
-   void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}        // to set a state property
-   bool isRelaxed() const      { return _relaxed;}      
-   void relax(bool r = true)   { _relaxed = r;}
+   void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
+   void clear()                { _flags._ripped = false;_flags._relaxed = false;}
+   bool isRelaxed() const      { return _flags._relaxed;}
+   void relax(bool r = true)   { _flags._relaxed = r;}
    float inner(const MDDState& s) const {
+      if (_flags._ripped) 
+         return _rip;      
+      _flags._ripped = true;
       float tot = 0;
       if (_mem && s._mem)
          for(int k=0;k < layoutSize();k++) {
@@ -244,6 +262,7 @@ public:
             float v0 = _mem[k],v1 = s._mem[k];
             tot += (v0+1) * (v1+1);
          }
+      _rip = tot;
       return tot;
    }
    int hash() {
@@ -262,16 +281,16 @@ public:
    int getHash() const noexcept { return _hash;}
    bool operator==(const MDDState& s) const {    // equality test likely O(1) when different.
       if (_hash == s._hash)
-         return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _relaxed == s._relaxed;
+         return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _flags._relaxed == s._flags._relaxed;
       else return false;
    }
    bool operator!=(const MDDState& s) const {
       if (_hash == s._hash)
-         return memcmp(_mem,s._mem,_spec->layoutSize())!=0 || _relaxed != s._relaxed;
+         return memcmp(_mem,s._mem,_spec->layoutSize())!=0 || _flags._relaxed != s._flags._relaxed;
       else return true;
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
-      os << (s._relaxed ? 'T' : 'F') << '[';
+      os << (s._flags._relaxed ? 'T' : 'F') << '[';
       if(s._spec != nullptr)
          for(auto atr : s._spec->_attrs)
             os << atr->get(s._mem) << " ";
