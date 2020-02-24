@@ -345,7 +345,8 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
 
 void MDDRelax::rebuild()
 {
-   //std::cout << "MDDRelax::rebuild(lowest=" << _lowest << ")" << std::endl;
+   std::cout << "MDDRelax::rebuild(lowest="
+             << _lowest+1 <<  " -> " << numVariables << ")" << std::endl;
    std::set<MDDNode*,MDDNodePtrOrder> delta;
    for(int l = _lowest + 1; l < numVariables;l++) {
       std::set<MDDNode*,MDDNodePtrOrder> splitNodes = split(layers[l],l);
