@@ -94,7 +94,7 @@ public:
       
 void cleanRows(std::string& buf)
 {
-   buf = std::regex_replace(buf,std::regex("r"),"\n");
+   buf = std::regex_replace(buf,std::regex("\r"),"\n");
    buf = std::regex_replace(buf,std::regex("\n\n"),"\n");
 }
 
