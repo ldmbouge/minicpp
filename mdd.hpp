@@ -46,6 +46,7 @@ protected:
    std::vector<var<int>::Ptr> x;
    std::vector<TVec<MDDNode*>> layers;
    std::deque<MDDNode*> queue;
+   ::trail<bool> _firstTime;
    std::vector<std::vector<::trail<int>>> supports;
    std::vector<int> oft;
    //bool reduced = false;

@@ -29,7 +29,8 @@ MDD::MDD(CPSolver::Ptr cp)
 :  Constraint(cp),
    _lastNid(0),
    trail(cp->getStateManager()),
-   cp(cp)
+   cp(cp),
+   _firstTime(trail,true)
 {
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
@@ -159,12 +160,17 @@ void MDD::trimLayer(int layer)
 */
 void MDD::scheduleRemoval(MDDNode* node)
 {
+   if (_firstTime.fresh()) {
+      _firstTime = false;
+      queue.clear();
+   }
    queue.push_front(node);
 }
 
 void MDD::removeNode(MDDNode* node)
 {
    if(node->isActive()){
+      assert(layers[node->getLayer()][node->getPosition()] == node);
       node->remove(this);
       node->deactivate();
       //swap nodes in layer and decrement size of layer

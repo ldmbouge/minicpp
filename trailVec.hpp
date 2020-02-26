@@ -92,7 +92,8 @@ public:
        assert(_sz > 0);
    }
    SZT remove(SZT i) {
-      assert(_sz > 0 && i >= 0 && i < _sz);
+      assert(_sz > 0);
+      assert(i >= 0 && i < _sz);
       if (i < _sz - 1) 
          at(i,_data[_sz - 1]);      
       _t->trail(new (_t) TrailEntry<SZT>(&_sz));

@@ -169,6 +169,7 @@ template <typename Fun> vector<int> toVec(int min,int max,Fun f)
 
 void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
 {
+   auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
       auto x = selectMin(line,
                          [](const auto& x) { return x->size() > 1;},
@@ -177,15 +178,18 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
          int c = x->min();
          
          return  [=] {
-            cp->post(x == c);}
-         | [=] {
-            cp->post(x != c);};
+                    cp->post(x == c);
+                 }
+            | [=] {
+                 cp->post(x != c);
+              };
       } else return Branches({});
    });
 
    search.onSolution([&line,&in]() {
+                        cout << line << endl;
                         for(int o=0;o < in.nbOpts();o++) {
-                           std::cout << in.lb(o) << '/' << in.ub(o);
+                           std::cout << in.lb(o) << '/' << in.ub(o) << ' ';
                            for(int c = 0;c < in.nbCars();c++) {
                               if (in.requires(line[c]->min(),o))
                                  std::cout << 'Y';
@@ -198,6 +202,8 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
    auto stat = search.solve([](const SearchStatistics& stats) {
                                return stats.numberOfSolutions() > 0;
                             });
+   auto dur = RuntimeMonitor::elapsedSince(start);
+   std::cout << "Time : " << dur << std::endl;
    cout << stat << endl;
 }
 
@@ -210,30 +216,40 @@ void buildModel(CPSolver::Ptr cp, Instance& in)
    int nbC = (int) cars.size();int nbO = (int) options.size();
    auto line = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
    matrix<Vecb, var<bool>::Ptr, 2> setup(cp->getStore(),{nbC, nbO});
-   
-   auto mdd = new MDDRelax(cp,64);
+   using namespace std;
+   cout << line << endl;
+   auto mdd = new MDDRelax(cp,16);
+   // for(int o = 0; o < nbO;o++) {
+   //    auto vl = slice<var<int>::Ptr>(0,in.nbCars(),[&line,o](int i) { return isEqual(line[i],o);});
+   //    cout << vl << endl;
+   //    //cp->post(sum(vl) == in.demand(o));
+   // }
    gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
-   std::cout << mdd->getSpec() << std::endl;
+   cp->post(mdd);
+   //std::cout << mdd->getSpec() << std::endl;
+   MDDRelax* as[nbO];
    for(int o = 0; o < nbO; o++){
       auto opts = Factory::intVarArray(cp, nbC);
       for(int c = 0; c < nbC; c++){
          setup[c][o] = makeBoolVar(cp);
          opts[c] = setup[c][o];
       }
+      auto mdd = new MDDRelax(cp,16);
+      as[o] = mdd;
       seqMDD(mdd->getSpec(),opts, in.ub(o), 0, in.lb(o), {1});
+      cp->post(mdd);
    }
-   cp->post(mdd);
    for(int c = 0; c < nbC; c++) {
       for(int o= 0;o < nbO ; o++) {
          auto rl = toVec(0,mx,[in,o](int i) { return in.requires(i,o);});
-         cp->post(setup[o][c] == element(rl,line[c]));
+         cp->post(setup[c][o] == element(rl,line[c]));
       }
    }
    for(int o=0;o < nbO;o++) {
       for(int i=1;i < in.demand(o);i++) {
          int rLow = 0;
          int rUp = nbC - i * in.ub(o) - 1;
-         auto sl = slice<var<bool>::Ptr>(rLow,rUp,[&setup,o](int s) { return setup[o][s];});         
+         auto sl = slice<var<bool>::Ptr>(rLow,rUp,[&setup,o](int s) { return setup[s][o];});         
          cp->post(sum(sl) >= in.demand(o) - i * in.lb(o));
       }
    }
@@ -249,7 +265,6 @@ int main(int argc,char* argv[])
       std::cout << in << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
       buildModel(cp,in);
-//      solveModel(cp);
    } catch (std::exception e) {
       std::cerr << "Unable to find the file" << std::endl;
    }

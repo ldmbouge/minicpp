@@ -76,7 +76,7 @@ void MDDRelax::relaxLayer(int i)
       layers[i].push_back(n,mem);
       n->setPosition(k++,mem);
    }
-   std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
+   //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
 }
 
 void MDDRelax::trimLayer(int layer)
