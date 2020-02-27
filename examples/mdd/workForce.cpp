@@ -143,9 +143,9 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
       res[i] = clo(i);
    return res;
 }
-void solveModel(CPSolver::Ptr cp,const vector<Job>& jobs)
+void solveModel(CPSolver::Ptr cp,Veci& vars, const vector<Job>& jobs,Objective::Ptr obj)
 {
-   auto vars = cp->intVars();
+//   auto vars = cp->intVars();
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
       auto x = selectMin(vars,
@@ -161,14 +161,14 @@ void solveModel(CPSolver::Ptr cp,const vector<Job>& jobs)
               };
       } else return Branches({});
    });
-
-   search.onSolution([&vars,&jobs]() {
+   
+   search.onSolution([&vars,obj]() {
+      cout << "obj : " << obj->value() << " ";
                         cout << vars << endl;
                      });
 
-   auto stat = search.solve([](const SearchStatistics& stats) {
-                               return stats.numberOfSolutions() > 0;
-                            });
+   
+   auto stat = search.optimize(obj);
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
    cout << stat << endl;
@@ -185,9 +185,13 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       Factory::allDiffMDD(mdd->getSpec(),all(cp, c, [&emp](int i) {return emp[i];}));
       cp->post(mdd);
    }
-//   auto t = Factory::intVarArray(cp, jobs.size(), [] (int i) -> var<int>::Ptr { });
-//   Objective::Ptr obj = Factory::minimize(Factory::sum());
-   solveModel(cp, jobs);
+   auto sm = Factory::intVarArray(cp, nbE);
+   for(int i = 0; i < nbE; i++){
+      auto t = Factory::intVarArray(cp, (int) compat[i].size(), [i,&cp,&compat] (int j) {return Factory::makeIntVar(cp, compat[i][j], compat[i][j]);});
+      sm[i] = t[emp[i]];
+   }
+   Objective::Ptr obj = Factory::minimize(Factory::sum(sm));
+   solveModel(cp, emp, jobs, obj);
 }
 
 int main(int argc,char* argv[])
