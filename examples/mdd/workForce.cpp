@@ -120,7 +120,7 @@ set<set<int>> sweep(vector<Job>& jobs)
       pt.push_back(make_tuple(jobs[i].start(),true,i));
       pt.push_back(make_tuple(jobs[i].end(),false,i));
    }
-   sort(pt.begin(),pt.end(),[](const auto& e0,const auto& e1) {return std::get<0>(e0) < std::get<0>(e1);});
+   sort(pt.begin(),pt.end(),[](const auto& e0,const auto& e1) {return (std::get<0>(e0) < std::get<0>(e1));});
    set<int> clique;
    bool added = false;
    for(const auto& p: pt){
@@ -139,8 +139,10 @@ set<set<int>> sweep(vector<Job>& jobs)
 Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)> clo)
 {
    auto res = Factory::intVarArray(cp, (int) over.size());
-   for(int i = 0; i < over.size(); i++)
-      res[i] = clo(i);
+   int i = 0;
+   for(auto e : over){
+      res[i++] = clo(e);
+   }
    return res;
 }
 void solveModel(CPSolver::Ptr cp,Veci& vars, const vector<Job>& jobs,Objective::Ptr obj)
