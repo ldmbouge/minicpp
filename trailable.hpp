@@ -31,6 +31,7 @@ public:
    trail() : _ctx(nullptr),_magic(-1),_value(T())  {}
    trail(Trailer::Ptr ctx,const T& v = T()) : _ctx(ctx),_magic(ctx->magic()),_value(v) {}
    bool fresh() const { return _magic != _ctx->magic();}
+   Trailer::Ptr ctx() const { return _ctx;}
    operator T() const { return _value;}
    T value() const { return _value;}
    trail<T>& operator=(const T& v);

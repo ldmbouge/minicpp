@@ -1,4 +1,3 @@
-
 #include <string>
 #include <sstream>
 #include <algorithm>
@@ -9,6 +8,8 @@
 #include <iostream>
 #include <set>
 #include <tuple>
+#include <limits>
+
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"
@@ -17,6 +18,7 @@
 #include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
+
 
 using namespace std;
 using namespace Factory;
@@ -145,35 +147,13 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
    }
    return res;
 }
-void solveModel(CPSolver::Ptr cp,Veci& vars, const vector<Job>& jobs,Objective::Ptr obj)
-{
-//   auto vars = cp->intVars();
-   auto start = RuntimeMonitor::now();
-   DFSearch search(cp,[=]() {
-      auto x = selectMin(vars,
-                         [](const auto& x) { return x->size() > 1;},
-                         [](const auto& x) { return x->size();});
-      if (x) {
-         int c = x->min();
-         return  [=] {
-                    cp->post(x == c);
-                 }
-            | [=] {
-                 cp->post(x != c);
-              };
-      } else return Branches({});
-   });
-   
-   search.onSolution([&vars,obj]() {
-      cout << "obj : " << obj->value() << " ";
-                        cout << vars << endl;
-                     });
 
-   
-   auto stat = search.optimize(obj);
-   auto dur = RuntimeMonitor::elapsedSince(start);
-   std::cout << "Time : " << dur << std::endl;
-   cout << stat << endl;
+std::ostream& operator<<(std::ostream& os,const set<int>& s)
+{
+   os << '{';
+   for(auto i : s)
+      os << i << ',';
+   return os << "\b}";
 }
 
 void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize)
@@ -183,24 +163,56 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    auto emp = Factory::intVarArray(cp,(int) jobs.size(), 0, nbE-1);
 
    for(const set<int>& c : cliques){
-      auto mdd = new MDDRelax(cp,relaxSize);
-      Factory::allDiffMDD(mdd->getSpec(),all(cp, c, [&emp](int i) {return emp[i];}));
-      cp->post(mdd);
+      std::cout << "Clique: " << c << std::endl;
+      auto adv = all(cp, c, [&emp](int i) {return emp[i];});
+      
+      // auto mdd = new MDDRelax(cp,relaxSize);
+      // Factory::allDiffMDD(mdd->getSpec(),adv);
+      // cp->post(mdd);
+ 
+      cp->post(Factory::allDifferent(adv));
    }
-   auto sm = Factory::intVarArray(cp, nbE);
-   for(int i = 0; i < nbE; i++){
-      auto t = Factory::intVarArray(cp, (int) compat[i].size(), [i,&cp,&compat] (int j) {return Factory::makeIntVar(cp, compat[i][j], compat[i][j]);});
-      sm[i] = t[emp[i]];
-   }
+   
+   auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});
+      
    Objective::Ptr obj = Factory::minimize(Factory::sum(sm));
-   solveModel(cp, emp, jobs, obj);
+   
+   auto start = RuntimeMonitor::now();
+   DFSearch search(cp,[=]() {
+      auto x = selectMin(emp,
+                         [](const auto& x) { return x->size() > 1;},
+                         [](const auto& x) { return x->size();});
+      if (x) {
+         int i = x->getId();
+         int smallest = std::numeric_limits<int>::max();
+         int bv = -1;
+         for(int v=0;v < compat[i].size();v++) {
+            if (!emp[i]->contains(v))
+               continue;
+            bv = compat[i][v] < smallest ? v : bv;
+            smallest = std::min(smallest,compat[i][v]);           
+         }
+         return  [=] {
+                    cp->post(x == bv);
+                 }
+            | [=] {
+                 cp->post(x != bv);
+              };
+      } else return Branches({});
+   });
+   
+   search.onSolution([&emp,obj]() { cout << "obj : " << obj->value() << " " << emp << endl;});   
+   auto stat = search.optimize(obj);
+   auto dur = RuntimeMonitor::elapsedSince(start);
+   std::cout << "Time : " << dur << std::endl;
+   cout << stat << endl;
 }
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "/Users/zitoun/work/minicpp/minicpp/examples/data/workforce9-jobs.csv";
-   const char* compatFile = "/Users/zitoun/work/minicpp/minicpp/examples/data/workforce9.csv";
-   int relaxationSize = 32;
+   const char* jobsFile = "data/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce100.csv";
+   int relaxationSize = 2;
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);

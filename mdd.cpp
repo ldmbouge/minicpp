@@ -151,6 +151,10 @@ void MDD::buildDiagram()
 */
 void MDD::trimLayer(int layer)
 {
+   if (_firstTime.fresh()) {
+      _firstTime = false;
+      queue.clear();
+   }
    for(int i = (int) layers[layer].size() - 1; i >= 0; i--)
       layers[layer][i]->trim(this,x[layer]);
 }
@@ -165,6 +169,8 @@ void MDD::scheduleRemoval(MDDNode* node)
       queue.clear();
    }
    queue.push_front(node);
+   assert(node->isActive());
+   assert(layers[node->getLayer()][node->getPosition()] == node);
 }
 
 void MDD::removeNode(MDDNode* node)
