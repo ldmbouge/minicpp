@@ -166,11 +166,11 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       std::cout << "Clique: " << c << std::endl;
       auto adv = all(cp, c, [&emp](int i) {return emp[i];});
       
-      // auto mdd = new MDDRelax(cp,relaxSize);
-      // Factory::allDiffMDD(mdd->getSpec(),adv);
-      // cp->post(mdd);
+       auto mdd = new MDDRelax(cp,relaxSize);
+       Factory::allDiffMDD(mdd->getSpec(),adv);
+       cp->post(mdd);
  
-      cp->post(Factory::allDifferent(adv));
+      //cp->post(Factory::allDifferent(adv));
    }
    
    auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});
@@ -212,7 +212,7 @@ int main(int argc,char* argv[])
 {
    const char* jobsFile = "data/workforce100-jobs.csv";
    const char* compatFile = "data/workforce100.csv";
-   int relaxationSize = 2;
+   int relaxationSize = 8;
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);
