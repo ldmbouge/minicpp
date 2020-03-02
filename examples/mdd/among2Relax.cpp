@@ -22,6 +22,7 @@
 #include "search.hpp"
 #include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
+#include <climits>
 
 
 int main(int argc,char* argv[])

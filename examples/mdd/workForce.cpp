@@ -169,7 +169,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
        auto mdd = new MDDRelax(cp,relaxSize);
        Factory::allDiffMDD(mdd->getSpec(),adv);
        cp->post(mdd);
- 
+      mdd->saveGraph();
       //cp->post(Factory::allDifferent(adv));
    }
    
@@ -210,9 +210,9 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce100-jobs.csv";
-   const char* compatFile = "data/workforce100.csv";
-   int relaxationSize = 8;
+   const char* jobsFile = "data/workforce9-jobs.csv";
+   const char* compatFile = "data/workforce9.csv";
+   int relaxationSize = 4;
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);

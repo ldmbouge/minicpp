@@ -49,7 +49,9 @@ void MDDRelax::relaxLayer(int i)
    int   lim = bucketSize + ((rem > 0) ? 1 : 0);
    rem = rem > 0 ? rem - 1 : 0;
    int   from = 0;
-   char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize()); 
+   char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
+   
+   std::multimap<float,MDDNode*,std::less<float> > cli;
    std::vector<MDDNode*> nl(_width,nullptr);
    for(k=0;k < _width;k++) { // k is the bucket id
       MDDState acc(&_mddspec,buf);
@@ -62,9 +64,9 @@ void MDDRelax::relaxLayer(int i)
             auto arc = *i;
             arc->moveTo(target,trail,mem);
          }
+         acc.relax();
       }
       acc.hash();
-      acc.relax();
       target->setState(acc,mem);
       nl[k] = target;
       lim += bucketSize + ((rem > 0) ? 1 : 0);

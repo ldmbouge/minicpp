@@ -22,6 +22,11 @@ namespace Factory {
          rv = new MDDPInt(id,ofs,init,max);
       return rv;
    }
+   MDDProperty::Ptr makeBSProperty(short id,unsigned short ofs,int nbb,unsigned char init)
+   {
+      MDDProperty::Ptr rv = new MDDPBitSequence(id,ofs,nbb,init);
+      return rv;
+   }
 }
 
 
@@ -53,6 +58,7 @@ void MDDStateSpec::layout()
    if (boB != 0) 
       lszBit = (lszBit | 0x7) + 1;
    _lsz = lszBit >> 3;
+   assert(_lsz % 8 == 0); // # bits is always a multiple of 8. 
    std::cout << "State requires:" << _lsz << " bytes" << std::endl;
 }
 
@@ -70,6 +76,14 @@ int MDDStateSpec::addState(MDDConstraintDescriptor& d, int init,int max)
    d.addProperty(aid);
    return aid;
 }
+int MDDStateSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
+{
+   int aid = (int)_attrs.size();
+   _attrs.push_back(Factory::makeBSProperty(aid,0,nbb,init));
+   d.addProperty(aid);
+   return aid;
+}
+
 
 std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor& d,int from, int to,int max, std::function<int(int)> clo)
 {
@@ -94,6 +108,15 @@ int MDDSpec::addState(MDDConstraintDescriptor& d,int init,int max)
    similarityLambdas.push_back(nullptr);
    return rv;
 }
+int MDDSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
+{
+   auto rv = MDDStateSpec::addBSState(d,nbb,init);
+   transistionLambdas.push_back(nullptr);
+   relaxationLambdas.push_back(nullptr);
+   similarityLambdas.push_back(nullptr);
+   return rv;   
+}
+
 
 void MDDSpec::addArc(const MDDConstraintDescriptor& d,std::function<bool(const MDDState&, var<int>::Ptr, int)> a){
     auto& b = arcLambda;
@@ -106,11 +129,11 @@ void MDDSpec::addArc(const MDDConstraintDescriptor& d,std::function<bool(const M
                      return (a(p, var, val) || !d.member(var)) && b(p, var, val);
                    };
 }
-void MDDSpec::addTransition(int p,std::function<int(const MDDState&, var<int>::Ptr, int)> t)
+void MDDSpec::addTransition(int p,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> t)
 {
     transistionLambdas[p] = t;
 }
-void MDDSpec::addRelaxation(int p,std::function<int(const MDDState&,const MDDState&)> r)
+void MDDSpec::addRelaxation(int p,std::function<void(MDDState&,const MDDState&,const MDDState&)> r)
 {
     relaxationLambdas[p] = r;
 }
@@ -145,7 +168,7 @@ bool MDDSpec::createState(MDDState& result,const MDDState& parent,var<int>::Ptr 
      for(auto& c :constraints) {
         if(c.member(var))
            for(auto i : c) 
-              result.set(i,transistionLambdas[i](parent,var,v));
+              transistionLambdas[i](result,parent,var,v);
         else
            for(auto i : c) 
               result.set(i, parent.at(i));
@@ -165,7 +188,7 @@ std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& 
        for(auto& c :constraints) {
           if(c.member(var))
              for(auto i : c) 
-                result.set(i,transistionLambdas[i](parent,var,v));
+                transistionLambdas[i](result,parent,var,v);
           else
              for(auto i : c) 
                 result.set(i, parent.at(i));
@@ -194,7 +217,7 @@ void MDDSpec::relaxation(MDDState& a,const MDDState& b)
   a.clear();
   for(auto& cstr : constraints)
     for(auto p : cstr) 
-       a.set(p,relaxationLambdas[p](a,b));      
+       relaxationLambdas[p](a,a,b);      
 }
 
 MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b)
@@ -202,7 +225,7 @@ MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState&
   MDDState result(this,(char*)mem->allocate(layoutSize()));
   for(auto& cstr : constraints) {
     for(auto p : cstr) {
-      result.set(p,relaxationLambdas[p](a,b));
+       relaxationLambdas[p](result,a,b);
     }
   }   
   result.hash();
@@ -236,13 +259,13 @@ namespace Factory {
                 ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
       });
 
-      mdd.addTransition(minC,[minC,values] (const auto& p,auto x, int v) -> int { return p.at(minC) + values.member(v);});
-      mdd.addTransition(maxC,[maxC,values] (const auto& p,auto x, int v) -> int { return p.at(maxC) + values.member(v);});
-      mdd.addTransition(rem,[rem] (const auto& p,auto x,int v) -> int { return p.at(rem) - 1;});
+      mdd.addTransition(minC,[minC,values] (auto& out,const auto& p,auto x, int v) { out.set(minC,p.at(minC) + values.member(v));});
+      mdd.addTransition(maxC,[maxC,values] (auto& out,const auto& p,auto x, int v) { out.set(maxC,p.at(maxC) + values.member(v));});
+      mdd.addTransition(rem,[rem] (auto& out,const auto& p,auto x,int v)           { out.set(rem,p.at(rem) - 1);});
 
-      mdd.addRelaxation(minC,[minC](auto l,auto r) -> int { return std::min(l.at(minC), r.at(minC));});
-      mdd.addRelaxation(maxC,[maxC](auto l,auto r) -> int { return std::max(l.at(maxC), r.at(maxC));});
-      mdd.addRelaxation(rem ,[rem](auto l,auto r) -> int { return l.at(rem);});
+      mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.set(minC,std::min(l.at(minC), r.at(minC)));});
+      mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.set(maxC,std::max(l.at(maxC), r.at(maxC)));});
+      mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.set(rem,l.at(rem));});
 
       mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l.at(minC) - r.at(minC)); });
       mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l.at(maxC) - r.at(maxC)); });
@@ -254,17 +277,17 @@ namespace Factory {
       mdd.append(vars);
       auto& d = mdd.makeConstraintDescriptor(vars,"allDiffMdd");
       auto udom = domRange(vars);
-      int minDom = udom.first, maxDom = udom.second;
-
-      std::vector<int> ps = mdd.addStates(d,minDom,maxDom,1,[] (int i) -> int   { return 1;});
-      mdd.addArc(d,[=] (const auto& p,auto var,int val) -> bool {return p.at(ps[val-minDom]);});
-
-      for(int i = minDom; i <= maxDom; i++){
-         int idx = ps[i-minDom];
-         mdd.addTransition(idx,[idx,i](const auto& p,auto var, int val) -> int { return  p.at(idx) && i != val;});
-         mdd.addRelaxation(idx,[idx](auto l,auto r) -> int { return l.at(idx) || r.at(idx);});
-         mdd.addSimilarity(idx,[idx](auto l,auto r) -> double { return abs(l.at(idx)- r.at(idx));});
-      }
+      int minDom = udom.first;
+      const int dom = mdd.addBSState(d,udom.second - udom.first + 1,0);
+      mdd.addTransition(dom,[minDom,dom](auto& out,const auto& in,auto var,int val) {
+                               out.setBS(dom,in.getBS(dom));
+                               out.getBS(dom).set(val - minDom);
+                               assert(out.getBS(dom).getBit(val - minDom) == 1);
+                            });
+      mdd.addRelaxation(dom,[dom](auto& out,const auto& l,const auto& r)     {
+                               out.getBS(dom).setBinAND(l.getBS(dom),r.getBS(dom));
+                            });
+      mdd.addArc(d,[minDom,dom](const auto& p,auto var,int val) -> bool  { return p.getBS(dom).getBit(val - minDom)==0;});
    }
 
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
@@ -289,22 +312,20 @@ namespace Factory {
 
       lambdaMap d = toDict(min,max,ps,[=] (int i,int pi) -> lambdaTrans {
          if (i == max || i == minLIdx)
-            return [pi,values] (const auto& p,auto x, int v) -> int {return p.at(pi)+values.member(v);};
-         return [pi] (const auto& p,auto x, int v) -> int {return p.at(pi+1);};
+            return [pi,values] (auto& out,const auto& p,auto x, int v)  { out.set(pi,p.at(pi)+values.member(v));};
+         return [pi] (auto& out,const auto& p,auto x, int v)  { out.set(pi+1,p.at(pi+1));};
       });
       
       spec.addTransitions(d);
 
       for(int i = min; i <= minLIdx; i++){
          int p = ps[i];
-         spec.addRelaxation(p,[p](auto l,auto r)->int{return std::min(l.at(p),r.at(p));});
+         spec.addRelaxation(p,[p](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
       }
-
       for(int i = maxFIdx; i <= max; i++){
          int p = ps[i];
-         spec.addRelaxation(p,[p](auto l,auto r)->int{return std::max(l.at(p),r.at(p));});
+         spec.addRelaxation(p,[p](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
-
       for(auto i : ps)
          spec.addSimilarity(i,[i](auto l,auto r)->double{return abs(l.at(i)- r.at(i));});
    }
@@ -329,20 +350,20 @@ namespace Factory {
 
       lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,ps] (int i,int pi) -> lambdaTrans {
               if (i <= minLDom)
-                 return [=] (const auto& p,auto x, int v) -> int {return p.at(pi) + ((v - min) == i);};
-              return [=] (const auto& p,auto x, int v) -> int {return p.at(pi) + ((v - min) == (i - dz));};
+                 return [=] (auto& out,const auto& p,auto x, int v) { out.set(pi,p.at(pi) + ((v - min) == i));};
+              return [=] (auto& out,const auto& p,auto x, int v)    { out.set(pi,p.at(pi) + ((v - min) == (i - dz)));};
            });
       spec.addTransitions(d);
 
       for(ORInt i = minFDom; i <= minLDom; i++){
          int p = ps[i];
-         spec.addRelaxation(p,[p](auto l,auto r)->int{return std::min(l.at(p),r.at(p));});
+         spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
          spec.addSimilarity(p,[p](auto l,auto r)->double{return std::min(l.at(p),r.at(p));});
       }
 
       for(ORInt i = maxFDom; i <= maxLDom; i++){
          int p = ps[i];
-         spec.addRelaxation(p,[p](auto l,auto r)->int{return std::max(l.at(p),r.at(p));});
+         spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
          spec.addSimilarity(p,[p](auto l,auto r)->double{return std::max(l.at(p),r.at(p));});
       }
    }

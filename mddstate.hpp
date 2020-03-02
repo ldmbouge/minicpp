@@ -15,9 +15,12 @@
 #include <set>
 #include <cstring>
 #include <map>
+#include <bitset>
 
 class MDDState;
-typedef std::function<int(const MDDState&, var<int>::Ptr, int)> lambdaTrans;
+typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> lambdaTrans;
+typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
+typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::map<int,lambdaTrans> lambdaMap;
 
 class MDDStateSpec;
@@ -46,6 +49,62 @@ public :
    }
 };
 
+class MDDBSValue {
+   unsigned long long* const _buf;
+   const short               _nbw;
+   const int                _bLen;
+public:
+   MDDBSValue(char* buf,short nbw,int nbb)
+      : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw),_bLen(nbb) {}
+   MDDBSValue& operator=(const MDDBSValue& v) {
+      for(int i=0;i <_nbw;i++)
+         _buf[i] = v._buf[i];
+      assert(_bLen == v._bLen);
+      assert(_nbw == v._nbw);
+      return *this;
+   }
+   bool getBit(int ofs) {
+      const int wIdx = ofs / 64;
+      const int bOfs = ofs % 64;
+      const unsigned long long bmask = 0x1 << bOfs;
+      return (_buf[wIdx] & bmask) == bmask;
+   }
+   void clear(int ofs) {
+      const int wIdx = ofs / 64;
+      const int bOfs = ofs % 64;
+      const unsigned long long bmask = 0x1 << bOfs;
+      _buf[wIdx] &= ~bmask;
+   }
+   void set(int ofs) {
+      const int wIdx = ofs / 64;
+      const int bOfs = ofs % 64;
+      const unsigned long long bmask = 0x1 << bOfs;
+      _buf[wIdx] |= bmask;      
+   }
+   void setBinOR(const MDDBSValue& a,const MDDBSValue& b) {
+      for(int i=0;i < _nbw;i++)
+         _buf[i] = a._buf[i] | b._buf[i];      
+   }
+   void setBinAND(const MDDBSValue& a,const MDDBSValue& b) {
+      for(int i=0;i < _nbw;i++)
+         _buf[i] = a._buf[i] & b._buf[i];      
+   }
+   friend std::ostream& operator<<(std::ostream& os,const MDDBSValue& v) {
+      os << '[';
+      for(int i=0;i < v._nbw - 1;i++) 
+         os << std::bitset<64>(v._buf[i]);
+      unsigned long long mask = 1ull;
+      int bOfs = 0;
+      while (v._bLen != bOfs) {
+         os << (((v._buf[v._nbw-1] & mask)==mask) ? 1 : 0);
+         bOfs++;
+         mask <<=1;
+      }
+      os << ']';
+      return os;
+   }
+};
+
 class MDDProperty {
 protected:
    short _id;
@@ -58,11 +117,14 @@ public:
    MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs) {}
    MDDProperty(short id,unsigned short ofs) : _id(id),_ofs(ofs) {}
    MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; return *this;}
-   virtual void init(char* buf) const = 0;
-   virtual int get(char* buf) const = 0;
+   virtual void init(char* buf) const              {}
+   virtual int get(char* buf) const                { return 0;}
+   virtual MDDBSValue getBS(char* buf) const       { return MDDBSValue(nullptr,0,0);}
    virtual void setInt(char* buf,int v)            {}
    virtual void setByte(char* buf,unsigned char v) {}
+   virtual void setBS(char* buf,const MDDBSValue& v)  {}
    virtual void print(std::ostream& os) const  {}
+   virtual void stream(char* buf,std::ostream& os) const {}
    friend class MDDStateSpec;
 };
 
@@ -88,6 +150,7 @@ public:
    void init(char* buf) const override     { *reinterpret_cast<int*>(buf+_ofs) = _init;}
    int get(char* buf) const override       { return *reinterpret_cast<int*>(buf+_ofs);}
    void setInt(char* buf,int v) override   { *reinterpret_cast<int*>(buf+_ofs) = v;}
+   void stream(char* buf,std::ostream& os) const override { os << *reinterpret_cast<int*>(buf+_ofs);}
    void print(std::ostream& os) const override  {
       os << "PInt(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
    }
@@ -113,6 +176,7 @@ public:
    int get(char* buf) const override       { return (unsigned char)buf[_ofs];}
    void setInt(char* buf,int v) override   { buf[_ofs] = v;}
    void setByte(char* buf,unsigned char v) override { buf[_ofs] = v;}
+   void stream(char* buf,std::ostream& os) const override { os << ((unsigned char)buf[_ofs]);}
    void print(std::ostream& os) const override  {
       os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
@@ -134,11 +198,54 @@ public:
    int get(char* buf) const override       { return ((unsigned char)buf[_ofs] & _bmask) == _bmask;}
    void setInt(char* buf,int v) override   { if (v) buf[_ofs] |= _bmask; else buf[_ofs] &= ~_bmask;}
    void setByte(char* buf,unsigned char v) override { buf[_ofs] = v ? (buf[_ofs] | _bmask) : (buf[_ofs] & ~_bmask);}
+   void stream(char* buf,std::ostream& os) const override { os << (((unsigned char)buf[_ofs] & _bmask) == _bmask);}
    void print(std::ostream& os) const override  {
       os << "PBit(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_bmask << ')';
    }
    friend class MDDStateSpec;   
 };
+
+class MDDPBitSequence : public MDDProperty {
+   const int    _nbBits;
+   unsigned char  _init;
+   const short _nbWords; 
+   size_t storageSize() const override     {
+      int up;
+      if (_nbBits % 64) {
+         up = ((_nbBits / 64) + 1) * 64;
+      } else up = _nbBits;
+      return up;
+   }
+   size_t setOffset(size_t bitOffset) override {
+      _ofs = bitOffset >> 3;
+      return bitOffset + storageSize();
+   }
+ public:
+   MDDPBitSequence(short id,unsigned short ofs,int nbbits,unsigned char init) // init = 0 | 1
+      : MDDProperty(id,ofs),_nbBits(nbbits),_init(init),_nbWords((_nbBits % 64) ? _nbBits / 64 + 1 : _nbBits/64) {}   
+   void init(char* buf) const override {
+      unsigned long long* ptr = reinterpret_cast<unsigned long long*>(buf);
+      unsigned long long bmask = (_init) ? ~0x0ull : 0x0ull;
+      for(int i=0;i < _nbWords - 1;i++)
+         ptr[i] = bmask;
+      if (_init) {
+         int nbr = _nbBits % 64;
+         unsigned long long lm = (1ull << (nbr+1)) - 1;
+         ptr[_nbWords-1] = lm;
+      }
+   }
+   MDDBSValue getBS(char* buf) const override   { return MDDBSValue(buf + _ofs,_nbWords,_nbBits);}
+   void setBS(char* buf,const MDDBSValue& v) override {
+      MDDBSValue dest(buf+_ofs,_nbWords,_nbBits);
+      dest = v;      
+   }
+   void stream(char* buf,std::ostream& os) const override { os << getBS(buf);}
+   void print(std::ostream& os) const override  {
+      os << "PBS(" << _id << ',' << _ofs << ',' << _nbBits << ',' << (int)_init << ')';
+   }
+   friend class MDDStateSpec;   
+};
+
 
 class MDDStateSpec {
 protected:
@@ -150,6 +257,7 @@ public:
    void layout();
    auto size() const { return _attrs.size();}
    virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
+   virtual int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init);
    std::vector<int> addStates(MDDConstraintDescriptor&d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addStates(MDDConstraintDescriptor&d,int max,std::initializer_list<int> inputs);
    friend class MDDState;
@@ -246,8 +354,10 @@ public:
    auto layoutSize() const     { return _spec->layoutSize();}   
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
    int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
+   MDDBSValue getBS(int i) const    { return _spec->_attrs[i]->getBS(_mem);}
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
+   void setBS(int i,const MDDBSValue& val) { _spec->_attrs[i]->setBS(_mem,val);}
    void clear()                { _flags._ripped = false;_flags._relaxed = false;}
    bool isRelaxed() const      { return _flags._relaxed;}
    void relax(bool r = true)   { _flags._relaxed = r;}
@@ -269,8 +379,8 @@ public:
       const int nbw = (int)_spec->layoutSize() / 4;
       int nlb = _spec->layoutSize() & 0x3;
       char* sfx = _mem + (nbw << 2);
-      int* b = reinterpret_cast<int*>(_mem);
-      int ttl = 0;
+      unsigned int* b = reinterpret_cast<unsigned int*>(_mem);
+      unsigned int ttl = 0;
       for(size_t s = 0;s <nbw;s++)
          ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
       while(nlb-- > 0)
@@ -292,8 +402,10 @@ public:
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << (s._flags._relaxed ? 'T' : 'F') << '[';
       if(s._spec != nullptr)
-         for(auto atr : s._spec->_attrs)
-            os << atr->get(s._mem) << " ";
+         for(auto atr : s._spec->_attrs) {
+            atr->stream(s._mem,os);
+            os << ' ';
+         }
       return os << ']';
    }
 };
@@ -304,9 +416,10 @@ public:
    MDDConstraintDescriptor& makeConstraintDescriptor(const Factory::Veci&, const char*);
    int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
+   int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
    void addArc(const MDDConstraintDescriptor& d,std::function<bool(const MDDState&, var<int>::Ptr, int)> a);
-   void addTransition(int,std::function<int(const MDDState&, var<int>::Ptr, int)>);
-   void addRelaxation(int,std::function<int(const MDDState&,const MDDState&)>);
+   void addTransition(int,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)>);
+   void addRelaxation(int,std::function<void(MDDState&,const MDDState&,const MDDState&)>);
    void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
    void addTransitions(lambdaMap& map);
    bool exist(const MDDState& a,var<int>::Ptr x,int v);
@@ -335,9 +448,9 @@ private:
    std::vector<MDDConstraintDescriptor> constraints;
    std::vector<var<int>::Ptr> x;
    std::function<bool(const MDDState&, var<int>::Ptr, int)> arcLambda;
-   std::vector<std::function<int(const MDDState&, var<int>::Ptr, int)>> transistionLambdas;
-   std::vector<std::function<int(const MDDState&,const MDDState&)>> relaxationLambdas;
-   std::vector<std::function<double(const MDDState&,const MDDState&)>> similarityLambdas;
+   std::vector<lambdaTrans> transistionLambdas;
+   std::vector<lambdaRelax> relaxationLambdas;
+   std::vector<lambdaSim> similarityLambdas;
 };
 
 
