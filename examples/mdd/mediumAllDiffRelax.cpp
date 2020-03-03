@@ -23,8 +23,8 @@
 #include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
 
-#define SZ_VAR 20
-#define SZ_VAL 20
+#define SZ_VAR 5
+#define SZ_VAL 5
 
 
 using namespace std;
@@ -66,7 +66,7 @@ void solveModel(CPSolver::Ptr cp)
 
 int main(int argc,char* argv[])
 {
-   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 16;   
+   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
    auto start = RuntimeMonitor::cputime();

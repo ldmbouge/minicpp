@@ -285,9 +285,9 @@ namespace Factory {
                                out.setBS(all,in.getBS(all));
                                out.getBS(all).set(val - minDom);
                             });
-      mdd.addTransition(some,[minDom,all](auto& out,const auto& in,auto var,int val) {
-                                out.setBS(all,in.getBS(all));
-                                out.getBS(all).set(val - minDom);
+      mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,int val) {
+                                out.setBS(some,in.getBS(some));
+                                out.getBS(some).set(val - minDom);
                             });
       mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r)     {
                                out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));

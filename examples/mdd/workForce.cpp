@@ -166,10 +166,11 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       std::cout << "Clique: " << c << std::endl;
       auto adv = all(cp, c, [&emp](int i) {return emp[i];});
       
-       auto mdd = new MDDRelax(cp,relaxSize);
-       Factory::allDiffMDD(mdd->getSpec(),adv);
-       cp->post(mdd);
-      mdd->saveGraph();
+      auto mdd = new MDDRelax(cp,relaxSize);
+      //auto mdd = new MDD(cp);
+      Factory::allDiffMDD(mdd->getSpec(),adv);
+      cp->post(mdd);
+      //mdd->saveGraph();
       //cp->post(Factory::allDifferent(adv));
    }
    
