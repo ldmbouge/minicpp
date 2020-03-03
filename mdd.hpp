@@ -22,7 +22,7 @@ public:
    virtual void debugGraph() {}
    void post() override;
    MDDSpec& getSpec()      { return _mddspec; }
-   virtual void trimLayer(int layer);
+   virtual void trimLayer(unsigned int layer);
    void scheduleRemoval(MDDNode*);
    int getSupport(int layer,int value) const { return supports[layer][value - oft[layer]];}
    void addSupport(int layer, int value)     { supports[layer][value - oft[layer]] += 1;} 
@@ -37,7 +37,7 @@ public:
 protected:
    virtual void trimDomains();
    void hookupPropagators();
-   void buildNextLayer(int i);
+   void buildNextLayer(unsigned int i);
    virtual void buildDiagram();
    int _lastNid;
    Trailer::Ptr trail;
@@ -49,9 +49,7 @@ protected:
    ::trail<bool> _firstTime;
    std::vector<std::vector<::trail<int>>> supports;
    std::vector<int> oft;
-   //bool reduced = false;
-   unsigned long numVariables;
-   //bool maximize;
+   unsigned numVariables;
    MDDNode* root = nullptr;
    MDDNode* sink = nullptr;
    var<int>::Ptr objective = nullptr;
@@ -60,16 +58,16 @@ protected:
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
    MDD* _mdd;
-   int _layer;
+   unsigned int _layer;
 public:
-   MDDTrim(CPSolver::Ptr cp, MDD* mdd, int layer): Constraint(cp), _mdd(mdd), _layer(layer){}
+   MDDTrim(CPSolver::Ptr cp, MDD* mdd,unsigned int layer): Constraint(cp), _mdd(mdd), _layer(layer){}
    void post() override {}
    void propagate() override { _mdd->trimLayer(_layer);}
 };
 
 class MDDStats {
    //MDD* _mdd;
-   unsigned long _nbLayers;
+   unsigned _nbLayers;
    std::pair<int,int> _width;
    std::pair<std::size_t,std::size_t> _nbIEdges;
    std::pair<std::size_t,std::size_t> _nbOEdges;

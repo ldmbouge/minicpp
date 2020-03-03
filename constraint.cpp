@@ -287,7 +287,7 @@ IsClause::IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x)
       _nUnBounds(x[0]->getSolver()->getStateManager(),(int)x.size())
 {
     for(auto xi : x) _x.push_back(xi);
-    for(int i = 0; i < _x.size();i++)
+    for(auto i = 0u; i < _x.size();i++)
         _unBounds[i] = i;
     _clause = new (x[0]->getSolver()) Clause(x);
 }
@@ -414,7 +414,7 @@ void Circuit::setup(CPSolver::Ptr cp)
    _dest = new (cp) trail<int>[_x.size()];
    _orig = new (cp) trail<int>[_x.size()];
    _lengthToDest = new (cp) trail<int>[_x.size()];
-   for(int i=0;i<_x.size();i++) {
+   for(auto i=0u;i<_x.size();i++) {
       new (_dest+i) trail<int>(cp->getStateManager(),i);
       new (_orig+i) trail<int>(cp->getStateManager(),i);
       new (_lengthToDest+i) trail<int>(cp->getStateManager(),0);
@@ -429,9 +429,9 @@ void Circuit::post()
       _x[0]->assign(0);
       return ;      
    }
-   for(int i=0;i < _x.size();i++)
+   for(auto i=0u;i < _x.size();i++)
       _x[i]->remove(i);
-   for(int i=0;i < _x.size();i++) {
+   for(auto i=0u;i < _x.size();i++) {
       if (_x[i]->isBound())
          bind(i);
       else 
@@ -448,7 +448,7 @@ void Circuit::bind(int i)
    _orig[destj] = origi;
    int length = _lengthToDest[origi] + _lengthToDest[j] + 1;
    _lengthToDest[origi] = length;
-   if (length < _x.size() - 1)
+   if (length < (int)_x.size() - 1)
       _x[destj]->remove(origi);                     
 }
 
@@ -527,7 +527,7 @@ Element1D::Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr
 void Element1D::post()
 {
    Matrix<int,2> t2({1,(int)_t.size()});
-   for(int j=0;j< _t.size();j++)
+   for(auto j=0u;j< _t.size();j++)
       t2[0][j] = _t[j];
    auto x = Factory::makeIntVar(_y->getSolver(),0,0);
    auto c = new (_y->getSolver()) Element2D(t2,x,_y,_z);

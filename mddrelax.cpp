@@ -18,7 +18,7 @@ void MDDRelax::buildDiagram()
 
    auto start = RuntimeMonitor::now();
    _refs.emplace_back(rootState);
-   for(int i = 0; i < numVariables; i++) {
+   for(auto i = 0u; i < numVariables; i++) {
       buildNextLayer(i);
       relaxLayer(i+1);
    }
@@ -38,7 +38,7 @@ void MDDRelax::relaxLayer(int i)
    const MDDState& refDir = _refs[i];
 
    std::vector<std::tuple<float,MDDNode*>> cl(iSize);
-   int k = 0;
+   unsigned int k = 0;
    for(auto& n : layers[i])
       cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
    std::sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
@@ -81,7 +81,7 @@ void MDDRelax::relaxLayer(int i)
    //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
 }
 
-void MDDRelax::trimLayer(int layer)
+void MDDRelax::trimLayer(unsigned int layer)
 {
    MDD::trimLayer(layer);
    if (_lowest.fresh())
@@ -289,7 +289,7 @@ void MDDRelax::delState(MDDNode* node,int l)
    assert(node->getNumChildren()==0);
 }
 
-void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,int l)
+void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,unsigned int l)
 {
    if (delta.size() == 0) return;
    const MDDState& refDir = _refs[l];
@@ -321,8 +321,7 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
                layer.push_back(child,mem);
                addSupport(l-1,v);
                n->addArc(mem,child,v);
-               auto ir = out.insert(child);
-               //umap.insert({child->key(),child});
+               out.insert(child);
                cl.insert({psi.inner(refDir),child});
             } else {
                MDDNode* psiSim = findSimilar(cl,psi,refDir);
@@ -337,7 +336,7 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
                   n->addArc(mem,psiSim,v);
                } else {
                   auto nh = cl.extract(psiSimState.inner(refDir));
-                  auto ir = out.insert(resetState(n,psiSim,ns,v,l));
+                  out.insert(resetState(n,psiSim,ns,v,l));
                   if (!nh.empty()) {
                      nh.key() = psiSimState.inner(refDir);
                      cl.insert(std::move(nh));
@@ -363,7 +362,7 @@ void MDDRelax::rebuild()
    // std::cout << "MDDRelax::rebuild(lowest="
    //           << _lowest+1 <<  " -> " << numVariables << ")" << std::endl;
    std::set<MDDNode*,MDDNodePtrOrder> delta;
-   for(int l = _lowest + 1; l < numVariables;l++) {
+   for(unsigned l = _lowest + 1; l < numVariables;l++) {
       std::set<MDDNode*,MDDNodePtrOrder> splitNodes = split(layers[l],l);
       for(auto n : splitNodes)
          delta.insert(n);
@@ -399,9 +398,9 @@ void MDDRelax::propagate()
 void MDDRelax::debugGraph()
 {
    using namespace std;
-   for(int l=0;l < numVariables;l++) {
+   for(unsigned l=0u;l < numVariables;l++) {
       cout << "L[" << l <<"] = ";
-      for(int i=0;i < layers[l].size();i++) {
+      for(unsigned i=0u;i < layers[l].size();i++) {
          cout << "\t" << layers[l][i]->getState() << " : "
               << layers[l][i]->getState().inner(_refs[l]) << endl;
       }

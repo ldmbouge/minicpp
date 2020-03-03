@@ -118,7 +118,7 @@ set<set<int>> sweep(vector<Job>& jobs)
    set<set<int>> cliques;
    using Evt = tuple<int,bool,int>;
    vector<Evt> pt;
-   for(int i = 0; i < jobs.size(); i++){
+   for(auto i = 0u; i < jobs.size(); i++){
       pt.push_back(make_tuple(jobs[i].start(),true,i));
       pt.push_back(make_tuple(jobs[i].end(),false,i));
    }
@@ -186,7 +186,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          int i = x->getId();
          int smallest = std::numeric_limits<int>::max();
          int bv = -1;
-         for(int v=0;v < compat[i].size();v++) {
+         for(auto v=0u;v < compat[i].size();v++) {
             if (!emp[i]->contains(v))
                continue;
             bv = compat[i][v] < smallest ? v : bv;
@@ -221,7 +221,7 @@ int main(int argc,char* argv[])
          cout << j << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
       buildModel(cp,jobs,compat,relaxationSize);
-   } catch (std::exception e) {
+   } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << std::endl;
    }
 

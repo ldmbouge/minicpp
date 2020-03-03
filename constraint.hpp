@@ -116,7 +116,7 @@ class Sum : public Constraint { // s = Sum({x0,...,xk})
    //std::vector<var<int>::Ptr> _x;
    trail<int>    _nUnBounds;
    trail<int>    _sumBounds;
-   int _n;
+   unsigned int _n;
    std::vector<int> _unBounds;
 public:
    template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
@@ -128,10 +128,10 @@ public:
         _n((int)x.size() + 1),
         _unBounds(_n)
    {
-      for(auto i=0;i < x.size();i++)
+     for(typename Vec::size_type i=0;i < x.size();i++)
          _x[i] = x[i];
       _x[_n-1] = Factory::minus(s);
-      for(auto i=0; i < _n;i++)
+      for(typename Vec::size_type i=0; i < _n;i++)
          _unBounds[i] = i;
    }        
    void post() override;
@@ -166,7 +166,7 @@ public:
       : Constraint(x[0]->getSolver()),
         _x(x.size(),Factory::alloci(x[0]->getStore()))
    {
-      for(auto i=0;i < x.size();i++)
+     for(typename Vec::size_type i=0;i < x.size();i++)
          _x[i] = x[i];
    }
    void post() override;
@@ -206,7 +206,7 @@ public:
         _x(x.size(),Factory::alloci(x[0]->getStore()))
    {
       auto cp = x[0]->getSolver();
-      for(auto i=0;i < x.size();i++)
+      for(auto i=0u;i < x.size();i++)
          _x[i] = x[i];
       setup(cp);
    }
@@ -271,7 +271,7 @@ public:
         _z(z),
         _yValues(_y->size())
    {
-      for(auto i = 0;i < array.size();i++)
+      for(auto i = 0u;i < array.size();i++)
          _array[i] = array[i];
    }
    void post() override;
@@ -411,7 +411,7 @@ namespace Factory {
    template <class Vec> inline var<int>::Ptr element(const Vec& array,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       std::vector<int> flat(array.size());
-      for(int i=0;i < array.size();i++) {
+      for(auto i=0u;i < array.size();i++) {
          const int v = flat[i] = array[i];
          min = min < v ? min : v;
          max = max > v ? max : v;
@@ -429,7 +429,7 @@ namespace Factory {
    template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
       std::vector<var<int>::Ptr> flat(xs.size());
-      for(int i=0;i < xs.size();i++) {
+      for(auto i=0u;i < xs.size();i++) {
          const auto& v = flat[i] = xs[i];
          min = min < v->min() ? min : v->min();
          max = max > v->max() ? max : v->max();

@@ -37,8 +37,8 @@ void solveModel(CPSolver::Ptr cp)
       // auto x = selectMin(vx,
       //                    [](const auto& x) { return x->size() > 1;},
       //                    [](const auto& x) { return x->size();});
-      int i;      
-      for(i=0;i< vx.size();i++)
+      unsigned i;      
+      for(i=0u;i< vx.size();i++)
          if (vx[i]->size() > 1)
             break;
       auto x = i < vx.size() ? vx[i] : nullptr;

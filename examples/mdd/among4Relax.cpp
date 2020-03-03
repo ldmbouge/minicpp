@@ -51,8 +51,8 @@ int main(int argc,char* argv[])
 
    if(useSearch){
       DFSearch search(cp,[=]() {
-         int i;
-         for(i=0;i< v.size();i++)
+         unsigned i;
+         for(i=0u;i< v.size();i++)
             if (v[i]->size() > 1)
                break;
          auto x = v[i];

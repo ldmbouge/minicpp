@@ -149,7 +149,7 @@ void MDDSpec::addTransitions(lambdaMap& map)
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
 {
    MDDState rootState(this,(char*)mem->allocate(layoutSize()));
-   for(int k=0;k < size();k++)
+   for(auto k=0u;k < size();k++)
       rootState.init(k);
    rootState.hash();
    std::cout << "ROOT:" << rootState << std::endl;
