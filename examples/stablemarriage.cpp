@@ -71,10 +71,10 @@ int main(int argc,char* argv[])
    
     search.onSolution([&wife,&husband]() {
                          cout << "wife = ";
-                         for(int i=0;i < wife.size();i++)
+                         for(auto i=0u;i < wife.size();i++)
                             cout << setw(4) << wife[i] << " ";
                          cout << " | husband = ";
-                         for(int i=0;i < husband.size();i++)
+                         for(auto i=0u;i < husband.size();i++)
                             cout << setw(4) << husband[i] << " ";
                          cout << endl;
                       });

@@ -63,8 +63,8 @@ class MDDNode {
       void restore() { *_at = _old;}
    };
 public:
-   MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,int layer, int id);
-   MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id);
+   MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id);
+   MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,unsigned layer, int id);
    const auto& getParents()            { return parents;}
    const auto& getChildren()           { return children;}
    std::size_t getNumChildren() const  { return children.size();}
@@ -86,7 +86,7 @@ public:
    }
    const MDDState& getState() { return state;}
    bool contains(int v);
-   short getLayer() const    { return layer;}
+   unsigned short getLayer() const    { return layer;}
    int getPosition() const   { return pos;}
    int getId() const         { return _nid;}
    void setPosition(int p,Storage::Ptr mem) {
@@ -108,7 +108,7 @@ private:
    int pos;
    int _nid;
    bool _active;
-   const short layer;
+   const unsigned short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;
    MDDState state;                     // Direct state embedding

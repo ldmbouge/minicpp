@@ -8,7 +8,7 @@
 
 #include "mddnode.hpp"
 
-MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,int layer, int id)
+MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id)
    : pos(id),
      _nid(nid),
      _active(true),
@@ -17,7 +17,8 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,int layer, int id)
      parents(t,mem,2)
 {}
 
-MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,int layer, int id)
+MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
+		 int dsz,unsigned layer, int id)
    : pos(id),
      _nid(nid),
      _active(true),

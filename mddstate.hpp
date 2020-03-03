@@ -367,7 +367,7 @@ public:
       _flags._ripped = true;
       float tot = 0;
       if (_mem && s._mem)
-         for(int k=0;k < layoutSize();k++) {
+         for(size_t k=0u;k < layoutSize();k++) {
             tot *= 2;
             float v0 = _mem[k],v1 = s._mem[k];
             tot += (v0+1) * (v1+1);
@@ -376,12 +376,12 @@ public:
       return tot;
    }
    int hash() {
-      const int nbw = (int)_spec->layoutSize() / 4;
+      const auto nbw = _spec->layoutSize() / 4;
       int nlb = _spec->layoutSize() & 0x3;
       char* sfx = _mem + (nbw << 2);
       unsigned int* b = reinterpret_cast<unsigned int*>(_mem);
       unsigned int ttl = 0;
-      for(size_t s = 0;s <nbw;s++)
+      for(auto s = 0u;s <nbw;s++)
          ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
       while(nlb-- > 0)
          ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;

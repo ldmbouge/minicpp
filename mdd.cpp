@@ -44,13 +44,13 @@ void MDD::post()
    x = _mddspec.getVars();
    numVariables = x.size();
    layers = std::vector<TVec<MDDNode*>>(numVariables+1);
-   for(int i = 0; i < numVariables+1; i++)
+   for(auto i = 0u; i < numVariables+1; i++)
       layers[i] = TVec<MDDNode*>(trail,mem,32);
 
    supports = std::vector< std::vector<::trail<int>> >(numVariables, std::vector<::trail<int>>(0));
 
    //Create Supports for all values for each variable
-   for(int i = 0; i < numVariables; i++){
+   for(auto i = 0u; i < numVariables; i++){
       for(int v = x[i]->min(); v <= x[i]->max(); v++)
          supports[i].emplace_back(trail,0);
       oft.push_back(x[i]->min());
@@ -75,12 +75,12 @@ struct MDDStateEqual {
    bool operator()(const MDDState* s1,const MDDState* s2) const { return *s1 == *s2;}
 };
 
-void MDD::buildNextLayer(int i)
+void MDD::buildNextLayer(unsigned int i)
 {
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    for(int v = x[i]->min(); v <= x[i]->max(); v++) {
       if(!x[i]->contains(v)) continue;
-      for(int pidx = 0; pidx < layers[i].size(); pidx++) {
+      for(auto pidx = 0u; pidx < layers[i].size(); pidx++) {
          MDDNode* parent = layers[i][pidx];
          MDDState state;
          bool     ok;
@@ -108,7 +108,7 @@ void MDD::buildNextLayer(int i)
 
 void MDD::trimDomains()
 {
-   for(auto i = 1; i < numVariables;i++) {
+   for(auto i = 1u; i < numVariables;i++) {
       auto& layer = layers[i];
       for(int j = (int)layer.size() - 1;j >= 0;j--) {
          if(layer[j]->disconnected())
@@ -119,7 +119,7 @@ void MDD::trimDomains()
 
 void MDD::hookupPropagators()
 {
-   for(int i = 0; i < numVariables; i++){
+   for(auto i = 0u; i < numVariables; i++){
       if (!x[i]->isBound()) {
          x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, this,i));
          x[i]->propagateOnDomainChange(this);
@@ -139,7 +139,7 @@ void MDD::buildDiagram()
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
 
-   for(int i = 0; i < numVariables; i++)
+   for(auto i = 0u; i < numVariables; i++)
       buildNextLayer(i);   
    trimDomains();
    propagate();
@@ -149,7 +149,7 @@ void MDD::buildDiagram()
 /*
   MDD::trimLayer(int layer) trims the nodes to remove arcs that are no longer consistent.
 */
-void MDD::trimLayer(int layer)
+void MDD::trimLayer(unsigned int layer)
 {
    if (_firstTime.fresh()) {
       _firstTime = false;
@@ -208,12 +208,12 @@ void MDD::removeSupport(int layer, int value)
 void MDD::saveGraph()
 {
    std::cout << "digraph MDD {" << std::endl;
-   for(int l = 0; l < numVariables; l++){
-      for(int i = 0; i < layers[l].size(); i++){
+   for(auto l = 0u; l < numVariables; l++){
+      for(auto i = 0u; i < layers[l].size(); i++){
          if(!layers[l][i]->isActive()) continue;
          auto nc = layers[l][i]->getNumChildren();
          const auto& ch = layers[l][i]->getChildren();
-         for(int j = 0; j < nc; j++){
+         for(auto j = 0u; j < nc; j++){
             int count = ch[j]->getChild()->getPosition();
             assert(ch[j]->getParent() == layers[l][i]);
             if (l == 0)
@@ -231,7 +231,7 @@ void MDD::saveGraph()
       }
    }
    std::cout << "}" << std::endl;
-   for(int l = 0; l < numVariables; l++) {
+   for(auto l = 0u; l < numVariables; l++) {
       std::cout << "sup[" << l << "] = ";
       for(int v = x[l]->min();v <= x[l]->max();v++)
         std::cout << v << ":" << getSupport(l,v) << ',';
@@ -246,7 +246,7 @@ MDDStats::MDDStats(MDD* mdd) : _nbLayers(mdd->nbLayers()) {
    for(auto& layer : mdd->getLayers()){
       _width.first = std::min(_width.first,(int)layer.size());
       _width.second = std::max(_width.second,(int)layer.size());
-      for(int i = 1; i < layer.size()-1; i++){
+      for(auto i = 1u; i < layer.size()-1; i++){
          auto n = layer[i];
          size_t out = n->getNumChildren();
          size_t in = n->getNumParents();

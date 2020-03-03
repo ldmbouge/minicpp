@@ -54,7 +54,7 @@ int main(int argc,char* argv[])
     std::vector<int> best(n);
 
     search.onSolution([&succ,&best,&obj]() {
-                          for(int i=0;i < best.size();i++)
+                          for(auto i=0u;i < best.size();i++)
                               best[i] = succ[i]->min();
                           cout << "objective = " << obj->value() << endl;
                       });

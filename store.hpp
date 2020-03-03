@@ -36,7 +36,7 @@ class Storage {
    std::vector<Storage::Segment::Ptr> _store;
    const std::size_t   _segSize;
    trail<size_t>           _top;   
-   trail<int>              _seg;
+   trail<unsigned>         _seg;
 public:
    Storage(Trailer::Ptr ctx,std::size_t defSize = SEGSIZE); 
    ~Storage();

@@ -79,7 +79,7 @@ public:
       if (_sz >= _msz) {
          SZT newSize = _msz << 1;
          T* nd = new (mem) T[newSize];
-         for(int i=0;i< _msz;i++)
+         for(SZT i=0;i< _msz;i++)
             nd[i] = _data[i];
          _t->trail(new (_t) TrailEntry<T*>(&_data));
          _t->trail(new (_t) TrailEntry<SZT>(&_msz));

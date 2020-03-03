@@ -77,7 +77,7 @@ void Trailer::popToNode(long node)
 
 void Trailer::pop()
 {
-   int to;
+   unsigned to;
    std::size_t mem;
    long node;
    std::tie(to,mem,node) = _tops.top();

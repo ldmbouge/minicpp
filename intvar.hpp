@@ -227,8 +227,10 @@ public:
    }
 };
 
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
 
 template <>
 class var<bool> :public IntVarImpl {
@@ -239,7 +241,9 @@ public:
     bool isFalse() const { return max()==0;}
     void assign(bool b)  { IntVarImpl::assign(b);}
 };
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
 
 inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
     return xp->print(os);
@@ -247,7 +251,7 @@ inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
 
 template <class T,class A> inline std::ostream& operator<<(std::ostream& os,const std::vector<T,A>& v) {
    os << '[';
-   for (int i = 0; i < v.size(); ++i) {
+   for(typename std::vector<T,A>::size_type i = 0; i < v.size(); ++i) {
       os << v[i];
       if (i != v.size() - 1)
             os << ", ";
@@ -304,7 +308,7 @@ namespace Factory {
    Vecb boolVarArray(CPSolver::Ptr cps,int sz);
    template<typename Fun> Veci intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
-      for(int i=0;i < x.size();i++)
+      for(auto i=0u;i < x.size();i++)
          x[i] = body(i);
       return x;
    }
