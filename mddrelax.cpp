@@ -5,6 +5,20 @@
 #include <algorithm>
 #include "RuntimeMonitor.hpp"
 
+
+MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
+{
+   float query = s.inner(refDir);
+   auto nlt = layer.lower_bound(query);
+   while (nlt != layer.end() && nlt->first == query) {
+      bool isEqual = nlt->second->getState() == s;
+      if (isEqual)
+         return nlt->second;
+      else nlt++;
+   }
+   return nullptr;
+}
+
 void MDDRelax::buildDiagram()
 {
    std::cout << "MDDRelax::buildDiagram" << std::endl;
@@ -68,7 +82,15 @@ void MDDRelax::relaxLayer(int i)
       }
       acc.hash();
       target->setState(acc,mem);
-      nl[k] = target;
+
+      MDDNode* found = findMatch(cli,target->getState(),refDir);
+      if (found) {
+         for(auto i=target->getParents().rbegin();i != target->getParents().rend();i++)
+            (*i)->moveTo(found,trail,mem);
+      } else {
+         nl[k] = target;
+         cli.insert({target->getState().inner(refDir),target});
+      }
       lim += bucketSize + ((rem > 0) ? 1 : 0);
       rem = rem > 0 ? rem - 1 : 0;
    }
@@ -139,18 +161,6 @@ MDDNode* MDDRelax::findSimilar(const std::multimap<float,MDDNode*>& layer,
    }
 }
 
-MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
-{
-   float query = s.inner(refDir);
-   auto nlt = layer.lower_bound(query);
-   while (nlt != layer.end() && nlt->first == query) {
-      bool isEqual = nlt->second->getState() == s;
-      if (isEqual)
-         return nlt->second;
-      else nlt++;
-   }
-   return nullptr;
-}
 
 void removeMatch(std::multimap<float,MDDNode*>& layer,float key,MDDNode* n)
 {
