@@ -211,8 +211,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce9-jobs.csv";
-   const char* compatFile = "data/workforce9.csv";
+   const char* jobsFile = "data/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce100.csv";
    int relaxationSize = 4;
    try {
       auto jobsCSV = csv(jobsFile,true);

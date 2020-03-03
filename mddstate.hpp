@@ -106,8 +106,9 @@ public:
       for(int i=0;i < v._nbw - 1;i++) 
          os << std::bitset<64>(v._buf[i]);
       unsigned long long mask = 1ull;
-      int bOfs = 0;
-      while (v._bLen != bOfs) {
+      unsigned bOfs = 0;
+      const unsigned last = v._bLen % 64;
+      while (last != bOfs) {
          os << (((v._buf[v._nbw-1] & mask)==mask) ? 1 : 0);
          bOfs++;
          mask <<=1;
