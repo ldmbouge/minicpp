@@ -2,7 +2,7 @@
 //  mddstate.cpp
 //  minicpp
 //
-//  Created by Waldy on 10/28/19.
+//  Created by Waldy on 10/28/19.
 //  Copyright © 2019 Waldy. All rights reserved.
 //
 
@@ -58,7 +58,7 @@ void MDDStateSpec::layout()
    if (boB != 0) 
       lszBit = (lszBit | 0x7) + 1;
    _lsz = lszBit >> 3;
-   assert(_lsz % 8 == 0); // # bits is always a multiple of 8. 
+   //assert(_lsz % 8 == 0); // # bits is always a multiple of 8.
    std::cout << "State requires:" << _lsz << " bytes" << std::endl;
 }
 

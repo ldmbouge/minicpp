@@ -176,7 +176,7 @@ public:
    int get(char* buf) const override       { return (unsigned char)buf[_ofs];}
    void setInt(char* buf,int v) override   { buf[_ofs] = v;}
    void setByte(char* buf,unsigned char v) override { buf[_ofs] = v;}
-   void stream(char* buf,std::ostream& os) const override { os << ((unsigned char)buf[_ofs]);}
+   void stream(char* buf,std::ostream& os) const override { int v = (unsigned char)buf[_ofs];os << v;}
    void print(std::ostream& os) const override  {
       os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }

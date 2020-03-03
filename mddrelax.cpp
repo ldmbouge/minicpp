@@ -66,7 +66,7 @@ void MDDRelax::relaxLayer(int i)
    char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
    
    std::multimap<float,MDDNode*,std::less<float> > cli;
-   std::vector<MDDNode*> nl(_width,nullptr);
+   std::vector<MDDNode*> nl;
    for(k=0;k < _width;k++) { // k is the bucket id
       MDDState acc(&_mddspec,buf);
       acc.initState(layers[i][from]->getState());
@@ -88,7 +88,7 @@ void MDDRelax::relaxLayer(int i)
          for(auto i=target->getParents().rbegin();i != target->getParents().rend();i++)
             (*i)->moveTo(found,trail,mem);
       } else {
-         nl[k] = target;
+         nl.push_back(target);
          cli.insert({target->getState().inner(refDir),target});
       }
       lim += bucketSize + ((rem > 0) ? 1 : 0);
