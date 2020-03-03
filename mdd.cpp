@@ -42,7 +42,7 @@ MDD::MDD(CPSolver::Ptr cp)
 void MDD::post()
 {
    x = _mddspec.getVars();
-   numVariables = x.size();
+   numVariables = (unsigned int) x.size();
    layers = std::vector<TVec<MDDNode*>>(numVariables+1);
    for(auto i = 0u; i < numVariables+1; i++)
       layers[i] = TVec<MDDNode*>(trail,mem,32);
@@ -84,7 +84,7 @@ void MDD::buildNextLayer(unsigned int i)
          MDDNode* parent = layers[i][pidx];
          MDDState state;
          bool     ok;
-         std::tie(state,ok) = _mddspec.createState(mem,parent->getState(), x[i], v);
+         std::tie(state,ok) = _mddspec.createState(mem,parent->getState(),i, x[i], v);
          if(ok) {
             if(i < numVariables - 1){
                auto found = umap.find(&state);
@@ -239,7 +239,7 @@ void MDD::saveGraph()
    }
 }
 
-MDDStats::MDDStats(MDD* mdd) : _nbLayers(mdd->nbLayers()) {
+MDDStats::MDDStats(MDD* mdd) : _nbLayers((unsigned int)mdd->nbLayers()) {
    _width = std::make_pair (INT_MAX,0);
    _nbIEdges = std::make_pair (INT_MAX,0);
    _nbOEdges = std::make_pair (INT_MAX,0);

@@ -69,10 +69,10 @@ void MDDRelax::relaxLayer(int i)
    std::vector<MDDNode*> nl;
    for(k=0;k < _width;k++) { // k is the bucket id
       MDDState acc(&_mddspec,buf);
-      acc.initState(layers[i][from]->getState());
-      MDDNode* target = layers[i][from];
+      MDDNode* target = std::get<1>(cl[from]);
+      acc.initState(target->getState());
       for(from++; from < lim;from++) {
-         MDDNode* strip = layers[i][from];
+         MDDNode* strip = std::get<1>(cl[from]);
          _mddspec.relaxation(acc,strip->getState());
          for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
             auto arc = *i;
@@ -121,7 +121,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       auto v = a->getValue();
       MDDState cs;
       bool ok;
-      std::tie(cs,ok) = _mddspec.createState(mem,p->getState(),x[l-1],v);
+      std::tie(cs,ok) = _mddspec.createState(mem,p->getState(),l-1,x[l-1],v);
       if (first)
          ms = std::move(cs);
       else
@@ -212,7 +212,7 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
             auto v = a->getValue();
             MDDState ms;
             bool ok;
-            std::tie(ms,ok) = _mddspec.createState(mem,p->getState(),x[l-1],v);
+            std::tie(ms,ok) = _mddspec.createState(mem,p->getState(),l-1,x[l-1],v);
             assert(ok);
             MDDNode* bj = findSimilar(cl,ms,refDir);
             // cout << "\tsimto:" << ms << " = " << bj->getState() << endl;
@@ -314,13 +314,13 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
       MDDState psi(&_mddspec,buf);
       for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
          if (!x[l-1]->contains(v)) continue;
-         if (!_mddspec.exist(state,x[l-1],v)) continue;
+         if (!_mddspec.exist(state,l-1,x[l-1],v)) continue;
          if (l == numVariables) {
             addSupport(l-1,v);
             n->addArc(mem,sink,v);
             continue;
          }
-         _mddspec.createState(psi,state,x[l-1],v);
+         _mddspec.createState(psi,state,l-1,x[l-1],v);
          MDDNode* child = findMatch(cl,psi,refDir);
          if (child) {
             addSupport(l-1,v);

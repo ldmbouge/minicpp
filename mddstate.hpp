@@ -18,6 +18,7 @@
 #include <bitset>
 
 class MDDState;
+typedef std::function<bool(const MDDState&,unsigned,var<int>::Ptr,int)> lambdaArc;
 typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
@@ -81,10 +82,10 @@ public:
       const unsigned long long bmask = 0x1 << bOfs;
       _buf[wIdx] |= bmask;      
    }
-   unsigned cardinality() const {
-      unsigned nbb = 0;
+   unsigned long long cardinality() const {
+      unsigned long long nbb = 0;
       for(unsigned i = 0;i < _nbw;i++) 
-         nbb += __builtin_popcount(_buf[i]);      
+         nbb += __builtin_popcountl(_buf[i]);      
       return nbb;
    }
    void setBinOR(const MDDBSValue& a,const MDDBSValue& b) {
@@ -430,15 +431,15 @@ public:
    int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
-   void addArc(const MDDConstraintDescriptor& d,std::function<bool(const MDDState&, var<int>::Ptr, int)> a);
+   void addArc(const MDDConstraintDescriptor& d,lambdaArc a);
    void addTransition(int,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)>);
    void addRelaxation(int,std::function<void(MDDState&,const MDDState&,const MDDState&)>);
    void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
    void addTransitions(lambdaMap& map);
-   bool exist(const MDDState& a,var<int>::Ptr x,int v);
+   bool exist(const MDDState& a,unsigned l,var<int>::Ptr x,int v);
    double similarity(const MDDState& a,const MDDState& b);
-   bool createState(MDDState& result,const MDDState& parent,var<int>::Ptr var,int v);
-   std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,var<int>::Ptr var, int v);
+   bool createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
+   std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,unsigned l,var<int>::Ptr var, int v);
    void relaxation(MDDState& a,const MDDState& b);
    MDDState relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b);
    MDDState rootState(Storage::Ptr& mem);
@@ -460,7 +461,7 @@ private:
    void init();
    std::vector<MDDConstraintDescriptor> constraints;
    std::vector<var<int>::Ptr> x;
-   std::function<bool(const MDDState&, var<int>::Ptr, int)> arcLambda;
+   std::function<bool(const MDDState&,unsigned,var<int>::Ptr, int)> arcLambda;
    std::vector<lambdaTrans> transistionLambdas;
    std::vector<lambdaRelax> relaxationLambdas;
    std::vector<lambdaSim> similarityLambdas;

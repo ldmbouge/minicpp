@@ -218,7 +218,7 @@ void Sum::propagate()
    int nU = _nUnBounds;
    int sumMin = _sumBounds,sumMax = _sumBounds;
    for(int i = nU - 1; i >= 0;i--) {
-      int idx = _unBounds[i];
+      auto idx = _unBounds[i];
       sumMin += _x[idx]->min();
       sumMax += _x[idx]->max();
       if (_x[idx]->isBound()) {
@@ -232,7 +232,7 @@ void Sum::propagate()
    if (0 < sumMin ||  sumMax < 0)
       throw Failure;
    for(int i = nU - 1; i >= 0;i--) {
-      int idx = _unBounds[i];
+      auto idx = _unBounds[i];
       _x[idx]->removeAbove(-(sumMin - _x[idx]->min()));
       _x[idx]->removeBelow(-(sumMax - _x[idx]->max()));
    }

@@ -30,11 +30,11 @@ int main(int argc,char* argv[])
    int useSearch = 1;
    using namespace std;
    using namespace Factory;
-   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 16;
+   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
 
    CPSolver::Ptr cp  = Factory::makeSolver();
-   const int nb = 20;
-   auto v = Factory::intVarArray(cp, nb, 1, nb);
+   const int nb = 3;
+   auto v = Factory::intVarArray(cp, nb, 0, nb-1);
    auto start = RuntimeMonitor::cputime();
    auto mdd = new MDDRelax(cp,width);
    Factory::allDiffMDD(mdd->getSpec(),v);
@@ -43,7 +43,7 @@ int main(int argc,char* argv[])
    
    std::cout << "MDD Usage: " << mdd->usage() << std::endl;
    auto end = RuntimeMonitor::cputime();
-   //   mdd->saveGraph();
+   mdd->saveGraph();
    std::cout << "VARS: " << v << std::endl;
    std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    

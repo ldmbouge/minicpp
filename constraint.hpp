@@ -117,7 +117,7 @@ class Sum : public Constraint { // s = Sum({x0,...,xk})
    trail<int>    _nUnBounds;
    trail<int>    _sumBounds;
    unsigned int _n;
-   std::vector<int> _unBounds;
+   std::vector<unsigned long> _unBounds;
 public:
    template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
       : Constraint(s->getSolver()),
