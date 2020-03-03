@@ -143,8 +143,8 @@ void MDDSpec::addSimilarity(int p,std::function<double(const MDDState&,const MDD
 }
 void MDDSpec::addTransitions(lambdaMap& map)
 {
-     for(auto& kv : map)
-        transistionLambdas[kv.first] = kv.second;
+   for(auto& kv : map)
+      transistionLambdas[kv.first] = kv.second;
 }
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
 {
@@ -278,16 +278,28 @@ namespace Factory {
       auto& d = mdd.makeConstraintDescriptor(vars,"allDiffMdd");
       auto udom = domRange(vars);
       int minDom = udom.first;
-      const int dom = mdd.addBSState(d,udom.second - udom.first + 1,0);
-      mdd.addTransition(dom,[minDom,dom](auto& out,const auto& in,auto var,int val) {
-                               out.setBS(dom,in.getBS(dom));
-                               out.getBS(dom).set(val - minDom);
-                               assert(out.getBS(dom).getBit(val - minDom) == 1);
+      const int all  = mdd.addBSState(d,udom.second - udom.first + 1,0);
+      const int some = mdd.addBSState(d,udom.second - udom.first + 1,0);
+      
+      mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,int val) {
+                               out.setBS(all,in.getBS(all));
+                               out.getBS(all).set(val - minDom);
                             });
-      mdd.addRelaxation(dom,[dom](auto& out,const auto& l,const auto& r)     {
-                               out.getBS(dom).setBinAND(l.getBS(dom),r.getBS(dom));
+      mdd.addTransition(some,[minDom,all](auto& out,const auto& in,auto var,int val) {
+                                out.setBS(all,in.getBS(all));
+                                out.getBS(all).set(val - minDom);
                             });
-      mdd.addArc(d,[minDom,dom](const auto& p,auto var,int val) -> bool  { return p.getBS(dom).getBit(val - minDom)==0;});
+      mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r)     {
+                               out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));
+                            });
+      mdd.addRelaxation(some,[some](auto& out,const auto& l,const auto& r)     {
+                                out.getBS(some).setBinOR(l.getBS(some),r.getBS(some));
+                            });
+      mdd.addArc(d,[minDom,some,all](const auto& p,auto var,int val) -> bool  {
+                      bool notOk = p.getBS(all).getBit(val - minDom) ||
+                         (p.getBS(some) == p.getBS(all) && p.getBS(some).getBit(val - minDom));
+                      return !notOk;
+                   });
    }
 
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)

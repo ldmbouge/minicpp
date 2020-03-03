@@ -63,7 +63,7 @@ public:
       assert(_nbw == v._nbw);
       return *this;
    }
-   bool getBit(int ofs) {
+   bool getBit(int ofs) const {
       const int wIdx = ofs / 64;
       const int bOfs = ofs % 64;
       const unsigned long long bmask = 0x1 << bOfs;
@@ -81,6 +81,12 @@ public:
       const unsigned long long bmask = 0x1 << bOfs;
       _buf[wIdx] |= bmask;      
    }
+   unsigned cardinality() const {
+      unsigned nbb = 0;
+      for(unsigned i = 0;i < _nbw;i++) 
+         nbb += __builtin_popcount(_buf[i]);      
+      return nbb;
+   }
    void setBinOR(const MDDBSValue& a,const MDDBSValue& b) {
       for(int i=0;i < _nbw;i++)
          _buf[i] = a._buf[i] | b._buf[i];      
@@ -88,6 +94,12 @@ public:
    void setBinAND(const MDDBSValue& a,const MDDBSValue& b) {
       for(int i=0;i < _nbw;i++)
          _buf[i] = a._buf[i] & b._buf[i];      
+   }
+   friend bool operator==(const MDDBSValue& a,const MDDBSValue& b) {
+      bool eq = a._nbw == b._nbw && a._bLen == b._bLen;
+      for(unsigned i = 0 ;eq && i < a._nbw;i++)
+         eq = a._buf[i] == b._buf[i];
+      return eq;
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDBSValue& v) {
       os << '[';
