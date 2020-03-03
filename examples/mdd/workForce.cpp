@@ -213,7 +213,8 @@ int main(int argc,char* argv[])
 {
    const char* jobsFile = "data/workforce100-jobs.csv";
    const char* compatFile = "data/workforce100.csv";
-   int relaxationSize = 4;
+   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
+   int relaxationSize = width;
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);
