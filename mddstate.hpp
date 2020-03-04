@@ -137,6 +137,7 @@ public:
    virtual void setInt(char* buf,int v)            {}
    virtual void setByte(char* buf,unsigned char v) {}
    virtual void setBS(char* buf,const MDDBSValue& v)  {}
+   virtual void setProp(char* buf,char* from)  {}
    virtual void print(std::ostream& os) const  {}
    virtual void stream(char* buf,std::ostream& os) const {}
    friend class MDDStateSpec;
@@ -165,6 +166,7 @@ public:
    int get(char* buf) const override       { return *reinterpret_cast<int*>(buf+_ofs);}
    void setInt(char* buf,int v) override   { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void stream(char* buf,std::ostream& os) const override { os << *reinterpret_cast<int*>(buf+_ofs);}
+   void setProp(char* buf,char* from) override  { setInt(buf,get(from));}
    void print(std::ostream& os) const override  {
       os << "PInt(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
    }
@@ -191,6 +193,7 @@ public:
    void setInt(char* buf,int v) override   { buf[_ofs] = v;}
    void setByte(char* buf,unsigned char v) override { buf[_ofs] = v;}
    void stream(char* buf,std::ostream& os) const override { int v = (unsigned char)buf[_ofs];os << v;}
+   void setProp(char* buf,char* from)  override { setInt(buf,get(from));}
    void print(std::ostream& os) const override  {
       os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
@@ -213,6 +216,7 @@ public:
    void setInt(char* buf,int v) override   { if (v) buf[_ofs] |= _bmask; else buf[_ofs] &= ~_bmask;}
    void setByte(char* buf,unsigned char v) override { buf[_ofs] = v ? (buf[_ofs] | _bmask) : (buf[_ofs] & ~_bmask);}
    void stream(char* buf,std::ostream& os) const override { os << (((unsigned char)buf[_ofs] & _bmask) == _bmask);}
+   void setProp(char* buf,char* from) override { setInt(buf,get(from));}
    void print(std::ostream& os) const override  {
       os << "PBit(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_bmask << ')';
    }
@@ -238,7 +242,7 @@ class MDDPBitSequence : public MDDProperty {
    MDDPBitSequence(short id,unsigned short ofs,int nbbits,unsigned char init) // init = 0 | 1
       : MDDProperty(id,ofs),_nbBits(nbbits),_init(init),_nbWords((_nbBits % 64) ? _nbBits / 64 + 1 : _nbBits/64) {}   
    void init(char* buf) const override {
-      unsigned long long* ptr = reinterpret_cast<unsigned long long*>(buf);
+      unsigned long long* ptr = reinterpret_cast<unsigned long long*>(buf + _ofs);
       unsigned long long bmask = (_init) ? ~0x0ull : 0x0ull;
       for(int i=0;i < _nbWords - 1;i++)
          ptr[i] = bmask;
@@ -252,6 +256,12 @@ class MDDPBitSequence : public MDDProperty {
    void setBS(char* buf,const MDDBSValue& v) override {
       MDDBSValue dest(buf+_ofs,_nbWords,_nbBits);
       dest = v;      
+   }
+   void setProp(char* buf,char* from) override {
+      unsigned long long* p0 = reinterpret_cast<unsigned long long*>(buf + _ofs);
+      unsigned long long* p1 = reinterpret_cast<unsigned long long*>(from + _ofs);
+      for(int i=0;i < _nbWords;i++)
+         p0[i] = p1[i];
    }
    void stream(char* buf,std::ostream& os) const override { os << getBS(buf);}
    void print(std::ostream& os) const override  {
@@ -372,6 +382,7 @@ public:
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
    void setBS(int i,const MDDBSValue& val) { _spec->_attrs[i]->setBS(_mem,val);}
+   void setProp(int i,const MDDState& from) { _spec->_attrs[i]->setProp(_mem,from._mem);}
    void clear()                { _flags._ripped = false;_flags._relaxed = false;}
    bool isRelaxed() const      { return _flags._relaxed;}
    void relax(bool r = true)   { _flags._relaxed = r;}

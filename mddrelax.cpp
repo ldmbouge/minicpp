@@ -40,6 +40,13 @@ void MDDRelax::buildDiagram()
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "build/Relax:" << dur << std::endl;
    propagate();
+
+   // for(auto i = 0u;i < numVariables;i++) {
+   //    std::cout << "layer[" << i << "] = " << layers[i].size() << std::endl;
+   //    for(auto j=0u;j < layers[i].size();j++) {
+   //       std::cout << '\t' << layers[i][j]->getState() << std::endl;
+   //    }
+   // }
    hookupPropagators();
 }
 
@@ -181,7 +188,14 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
    using namespace std;
    std::multimap<float,MDDNode*,std::less<float> > cl;
    const MDDState& refDir = _refs[l];
-   
+
+
+   // cout << "S[" << l <<"] = " << layers[l].size();
+   // for(unsigned i=0u;i < layers[l].size();i++) {
+   //    cout << "   " << layers[l][i]->getState() << ":"
+   //         << layers[l][i]->getState().inner(_refs[l]) << endl;
+   // }
+
    std::set<MDDNode*,MDDNodePtrOrder> delta;
    bool xb = x[l-1]->isBound();
    // cout << "startSplit(" << l << ")" << (xb ? "T" : "F") << " " << layer.size() << endl;
@@ -246,6 +260,13 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
          }
       }
    }
+
+   // cout << "DS[" << l <<"] = " << layers[l].size();
+   // for(unsigned i=0u;i < layers[l].size();i++) {
+   //    cout << "   " << layers[l][i]->getState() << ":"
+   //         << layers[l][i]->getState().inner(_refs[l]) << endl;
+   // }
+
    return delta;
 }
 
@@ -302,6 +323,14 @@ void MDDRelax::delState(MDDNode* node,int l)
 void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,unsigned int l)
 {
    if (delta.size() == 0) return;
+
+   using namespace std;
+   // cout << "SP[" << l <<"] = " << layers[l].size();
+   // for(unsigned i=0u;i < layers[l].size();i++) {
+   //    cout << "   " << layers[l][i]->getState() << ":"
+   //         << layers[l][i]->getState().inner(_refs[l]) << endl;
+   // }
+
    const MDDState& refDir = _refs[l];
    std::set<MDDNode*,MDDNodePtrOrder> out;
    std::multimap<float,MDDNode*,std::less<float> > cl;
@@ -365,6 +394,13 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
          x[l-1]->remove(v);
    }
    delta = out;
+
+   // cout << "EP[" << l <<"] = " << layers[l].size();
+   // for(unsigned i=0u;i < layers[l].size();i++) {
+   //    cout << "   " << layers[l][i]->getState() << ":"
+   //         << layers[l][i]->getState().inner(_refs[l]) << endl;
+   // }
+
 }
 
 void MDDRelax::rebuild()
@@ -409,9 +445,9 @@ void MDDRelax::debugGraph()
 {
    using namespace std;
    for(unsigned l=0u;l < numVariables;l++) {
-      cout << "L[" << l <<"] = ";
+      cout << "L[" << l <<"] = " << layers[l].size();
       for(unsigned i=0u;i < layers[l].size();i++) {
-         cout << "\t" << layers[l][i]->getState() << " : "
+         cout << "   " << layers[l][i]->getState() << ":"
               << layers[l][i]->getState().inner(_refs[l]) << endl;
       }
    }

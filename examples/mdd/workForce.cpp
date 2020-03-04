@@ -159,6 +159,7 @@ std::ostream& operator<<(std::ostream& os,const set<int>& s)
 
 void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize,int over)
 {
+   using namespace std;
    int nbE = (int) compat.size();
    set<set<int>> cliques = sweep(jobs);
    vector<set<int>> cv;
@@ -192,7 +193,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       ss += chosen.size();
    }
    assert(ss == cv.size());
-   
+   MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
       //auto mdd = new MDD(cp);
       auto mdd = new MDDRelax(cp,relaxSize);
@@ -203,6 +204,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          Factory::allDiffMDD(mdd->getSpec(),adv);
       }
       cp->post(mdd);
+      theOne = mdd;
       //mdd->saveGraph();
       //cp->post(Factory::allDifferent(adv));
    }
@@ -233,10 +235,16 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             smallest = std::min(smallest,compat[i][v]);           
          }
          return  [=] {
+                    //cout << "?x(" << i << ") == " << bv << endl;
                     cp->post(x == bv);
+                    //cout << "!x(" << i << ") == " << bv << endl;
+                    //theOne->debugGraph();
                  }
             | [=] {
+                 //cout << "?x(" << i << ") != " << bv << endl;
                  cp->post(x != bv);
+                 //cout << "!x(" << i << ") != " << bv << endl;
+                 //theOne->debugGraph();
               };
       } else return Branches({});
    });
@@ -250,8 +258,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce50-jobs.csv";
-   const char* compatFile = "data/workforce50.csv";
+   const char* jobsFile = "data/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce100.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
    std::cout << "overlap = " << over << "\twidth=" << width << std::endl;

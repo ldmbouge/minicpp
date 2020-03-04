@@ -171,7 +171,7 @@ bool MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
               transistionLambdas[i](result,parent,var,v);
         else
            for(auto i : c) 
-              result.set(i, parent.at(i));
+              result.setProp(i,parent);
      }
      result.hash();
      result.relax(parent.isRelaxed());
@@ -191,7 +191,7 @@ std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& 
                 transistionLambdas[i](result,parent,var,v);
           else
              for(auto i : c) 
-                result.set(i, parent.at(i));
+                result.setProp(i, parent);
        }
        result.hash();
        result.relax(parent.isRelaxed());
