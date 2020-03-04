@@ -250,8 +250,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce100-jobs.csv";
-   const char* compatFile = "data/workforce100.csv";
+   const char* jobsFile = "data/workforce50-jobs.csv";
+   const char* compatFile = "data/workforce50.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
    std::cout << "overlap = " << over << "\twidth=" << width << std::endl;
