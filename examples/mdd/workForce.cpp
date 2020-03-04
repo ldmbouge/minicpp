@@ -9,6 +9,7 @@
 #include <set>
 #include <tuple>
 #include <limits>
+#include <iterator>
 
 #include "solver.hpp"
 #include "trailable.hpp"
@@ -156,19 +157,51 @@ std::ostream& operator<<(std::ostream& os,const set<int>& s)
    return os << "\b}";
 }
 
-void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize)
+void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize,int over)
 {
    int nbE = (int) compat.size();
-   auto cliques = sweep(jobs);
+   set<set<int>> cliques = sweep(jobs);
+   vector<set<int>> cv;
+   std::copy(cliques.begin(),cliques.end(),std::inserter(cv,cv.end()));
    auto emp = Factory::intVarArray(cp,(int) jobs.size(), 0, nbE-1);
+   vector<bool> taken(cv.size()); // for each clique a boolean saying whether it was already picked up.
+   vector<set<unsigned>> cid; // identifiers of cliques to bundle in the same MDD (identifiers refer to index within cv)
 
-   for(const set<int>& c : cliques){
-      std::cout << "Clique: " << c << std::endl;
-      auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-      
-      auto mdd = new MDDRelax(cp,relaxSize);
+   unsigned ss = 0;
+   for(auto i=0u;i < cv.size();i++) {
+      if (taken[i]) continue;
+      set<int> acc = cv[i];
+      taken[i] = true;
+      auto largest = acc.size();
+      set<unsigned> chosen;
+      chosen.insert(i);
+      for(auto j = i+1;j < cv.size();j++) {
+         if (taken[j]) continue;
+         auto& c2 = cv[j];
+         std::set<int> inter;
+         std::set_intersection(acc.begin(),acc.end(),c2.begin(),c2.end(),std::inserter(inter,inter.begin()));
+         largest = std::max(largest,c2.size());
+         bool takeIt = inter.size() >= (over * largest)/100;
+         if (takeIt) {
+            acc = inter;
+            taken[j] = true;
+            chosen.insert(j);
+         }
+      }      
+      cid.push_back(chosen);
+      ss += chosen.size();
+   }
+   assert(ss == cv.size());
+   
+   for(auto& ctm : cid) {
       //auto mdd = new MDD(cp);
-      Factory::allDiffMDD(mdd->getSpec(),adv);
+      auto mdd = new MDDRelax(cp,relaxSize);
+      for(auto theClique : ctm) {  // merge on cliques if normal alldiff.
+         auto c = cv[theClique];
+         std::cout << "Clique: " << c << std::endl;
+         auto adv = all(cp, c, [&emp](int i) {return emp[i];});
+         Factory::allDiffMDD(mdd->getSpec(),adv);
+      }
       cp->post(mdd);
       //mdd->saveGraph();
       //cp->post(Factory::allDifferent(adv));
@@ -180,9 +213,15 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
-      auto x = selectMin(emp,
-                         [](const auto& x) { return x->size() > 1;},
-                         [](const auto& x) { return x->size();});
+      // auto x = selectMin(emp,
+      //                    [](const auto& x) { return x->size() > 1;},
+      //                    [](const auto& x) { return x->size();});
+      unsigned i;      
+      for(i=0u;i< emp.size();i++)
+         if (emp[i]->size() > 1)
+            break;
+      auto x = i < emp.size() ? emp[i] : nullptr;
+
       if (x) {
          int i = x->getId();
          int smallest = std::numeric_limits<int>::max();
@@ -214,7 +253,8 @@ int main(int argc,char* argv[])
    const char* jobsFile = "data/workforce100-jobs.csv";
    const char* compatFile = "data/workforce100.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
-   int relaxationSize = width;
+   int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
+   std::cout << "overlap = " << over << "\twidth=" << width << std::endl;
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);
@@ -222,7 +262,7 @@ int main(int argc,char* argv[])
       for (auto& j : jobs)
          cout << j << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp,jobs,compat,relaxationSize);
+      buildModel(cp,jobs,compat,width,over);
    } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << std::endl;
    }
