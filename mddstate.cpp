@@ -58,7 +58,8 @@ void MDDStateSpec::layout()
    if (boB != 0) 
       lszBit = (lszBit | 0x7) + 1;
    _lsz = lszBit >> 3;
-   //assert(_lsz % 8 == 0); // # bits is always a multiple of 8.
+   _lsz = (_lsz & 0x7) ? (_lsz | 0x7)+1 : _lsz;
+   assert(_lsz % 8 == 0); // # bytes is always a multiple of 8.
    std::cout << "State requires:" << _lsz << " bytes" << std::endl;
 }
 

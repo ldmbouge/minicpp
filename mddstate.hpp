@@ -333,7 +333,10 @@ class MDDState {  // An actual state of an MDDNode.
 public:
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_flags({false,false}) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
-   : _spec(s),_mem(b),_hash(0),_flags({relax,false}) {}
+      : _spec(s),_mem(b),_hash(0),_flags({relax,false}) {
+      if (_spec)
+         memset(_mem,0,_spec->layoutSize());
+   }
    MDDState(MDDStateSpec* s,char* b,int hash,bool relax,float rip,bool ripped) 
       : _spec(s),_mem(b),_hash(hash),_rip(rip) {
          _flags._relaxed = relax;
@@ -388,15 +391,21 @@ public:
    void relax(bool r = true)   { _flags._relaxed = r;}
    float inner(const MDDState& s) const {
       if (_flags._ripped) 
-         return _rip;      
+         return _rip;
       _flags._ripped = true;
+
+      unsigned long long* m0 = reinterpret_cast<unsigned long long*>(_mem);
+      unsigned long long* m1 = reinterpret_cast<unsigned long long*>(s._mem);
       float tot = 0;
-      if (_mem && s._mem)
-         for(size_t k=0u;k < layoutSize();k++) {
+      if (_mem && s._mem) {
+         auto up = layoutSize() / 8;
+         for(auto k=0u;k < up;k++) {
             tot *= 2;
-            float v0 = _mem[k],v1 = s._mem[k];
-            tot += (v0+1) * (v1+1);
+            tot += ~(m0[k] ^ m1[k]);           
+            //float v0 = _mem[k],v1 = s._mem[k];
+            //tot += (v0+1) * (v1+1);
          }
+      }
       _rip = tot;
       return tot;
    }
