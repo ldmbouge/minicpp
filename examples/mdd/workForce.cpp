@@ -202,16 +202,20 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          std::cout << "Clique: " << c << std::endl;
          auto adv = all(cp, c, [&emp](int i) {return emp[i];});
          Factory::allDiffMDD(mdd->getSpec(),adv);
+         //cp->post(Factory::allDifferent(adv));
       }
       cp->post(mdd);
       theOne = mdd;
       //mdd->saveGraph();
-      //cp->post(Factory::allDifferent(adv));
    }
    
    auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});
       
    Objective::Ptr obj = Factory::minimize(Factory::sum(sm));
+
+   int sol[] = {8, 8, 9, 1, 10, 12, 1, 3, 6, 2, 16, 5, 4, 2, 2, 11, 23, 19, 2, 3, 4, 14, 14, 0, 31, 8, 15, 0, 1, 16, 15, 10, 28, 26, 28, 1, 49, 17, 20, 9, 9, 13, 7, 21, 12, 11, 14, 0, 26, 5, 20, 23, 14, 20, 25, 16, 7, 15, 12, 24, 45, 10, 4, 17, 28, 1, 7, 3, 18, 21, 62, 13, 27, 8, 63, 72, 59, 5, 74, 4, 11, 18, 10, 6, 12, 9, 13, 70, 22, 26, 61, 48, 70, 25, 6, 67, 5, 6, 65, 23};
+
+         
    
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
@@ -235,9 +239,9 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             smallest = std::min(smallest,compat[i][v]);           
          }
          return  [=] {
-                    //cout << "?x(" << i << ") == " << bv << endl;
+                    //cout << "?x(" << i << ") == " << sol[i] << endl;
                     cp->post(x == bv);
-                    //cout << "!x(" << i << ") == " << bv << endl;
+                    //cout << "!x(" << i << ") == " << sol[i] << endl;
                     //theOne->debugGraph();
                  }
             | [=] {
@@ -248,9 +252,13 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
               };
       } else return Branches({});
    });
-   
-   search.onSolution([&emp,obj]() { cout << "obj : " << obj->value() << " " << emp << endl;});   
-   auto stat = search.optimize(obj);
+
+   SearchStatistics stat;
+   search.onSolution([&emp,obj,&stat]() {
+                        cout << "obj : " << obj->value() << " " << emp << endl;
+                        cout << "#F  : " << stat.numberOfFailures() << endl;
+                     });   
+   search.optimize(obj,stat);
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
    cout << stat << endl;
@@ -258,8 +266,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce100-jobs.csv";
-   const char* compatFile = "data/workforce100.csv";
+   const char* jobsFile = "data/workforce50-jobs.csv";
+   const char* compatFile = "data/workforce50.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
    std::cout << "overlap = " << over << "\twidth=" << width << std::endl;

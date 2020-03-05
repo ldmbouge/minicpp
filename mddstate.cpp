@@ -64,8 +64,7 @@ void MDDStateSpec::layout()
 
 MDDConstraintDescriptor& MDDSpec::makeConstraintDescriptor(const Factory::Veci& v,const char* n)
 {
-   MDDConstraintDescriptor d(v,n);
-   constraints.push_back(d);
+   constraints.emplace_back(v,n);
    return constraints[constraints.size()-1];
 }
 
@@ -280,6 +279,7 @@ namespace Factory {
       int minDom = udom.first;
       const int all  = mdd.addBSState(d,udom.second - udom.first + 1,0);
       const int some = mdd.addBSState(d,udom.second - udom.first + 1,0);
+      const int len  = mdd.addState(d,0,vars.size());
       
       mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,int val) {
                                out.setBS(all,in.getBS(all));
@@ -289,15 +289,19 @@ namespace Factory {
                                 out.setBS(some,in.getBS(some));
                                 out.getBS(some).set(val - minDom);
                             });
+      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val) { out.set(len,in.at(len) + d.member(var));});
+      
       mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r)     {
                                out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));
                             });
       mdd.addRelaxation(some,[some](auto& out,const auto& l,const auto& r)     {
                                 out.getBS(some).setBinOR(l.getBS(some),r.getBS(some));
                             });
-      mdd.addArc(d,[minDom,some,all](const auto& p,unsigned l,auto var,int val) -> bool  {
+      mdd.addRelaxation(len,[len](auto& out,const auto& l,const auto& r)     { out.set(len,l.at(len));});
+
+      mdd.addArc(d,[minDom,some,all,len](const auto& p,unsigned l,auto var,int val) -> bool  {
                       bool notOk = p.getBS(all).getBit(val - minDom) ||
-                         (p.getBS(some).cardinality() == l  && p.getBS(some).getBit(val - minDom));
+                         (p.getBS(some).cardinality() == p.at(len)  && p.getBS(some).getBit(val - minDom));
                       return !notOk;
                    });
    }

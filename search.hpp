@@ -94,6 +94,8 @@ public:
    SearchStatistics solve(Limit limit);
    SearchStatistics solve();
    SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo);
+   SearchStatistics optimize(Objective::Ptr obj,SearchStatistics& stat,Limit limit);
+   SearchStatistics optimize(Objective::Ptr obj,SearchStatistics& stat);
    SearchStatistics optimize(Objective::Ptr obj,Limit limit);
    SearchStatistics optimize(Objective::Ptr obj);
    SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo);
