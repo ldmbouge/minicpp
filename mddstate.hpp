@@ -396,18 +396,18 @@ public:
 
       unsigned long long* m0 = reinterpret_cast<unsigned long long*>(_mem);
       unsigned long long* m1 = reinterpret_cast<unsigned long long*>(s._mem);
-      float tot = 0;
       if (_mem && s._mem) {
          auto up = layoutSize() / 8;
+         unsigned long long asw = 0;
          for(auto k=0u;k < up;k++) {
-            tot *= 2;
-            tot += ~(m0[k] ^ m1[k]);           
+            asw <<= 1;
+            asw += __builtin_popcountl(~(m0[k] ^ m1[k]));
             //float v0 = _mem[k],v1 = s._mem[k];
             //tot += (v0+1) * (v1+1);
          }
-      }
-      _rip = tot;
-      return tot;
+         _rip = asw;
+      } else _rip = 0;
+      return _rip;
    }
    int hash() {
       const auto nbw = _spec->layoutSize() / 4;
