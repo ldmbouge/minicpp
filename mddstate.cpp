@@ -158,7 +158,7 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
    MDDState rootState(this,(char*)mem->allocate(layoutSize()));
    for(auto k=0u;k < size();k++)
       rootState.init(k);
-   rootState.hash();
+   //rootState.hash();
    std::cout << "ROOT:" << rootState << std::endl;
    return rootState;
 }
@@ -180,7 +180,7 @@ bool MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
            for(auto i : c) 
               result.setProp(i,parent);
      }
-     result.hash();
+     //result.hash();
      result.relax(parent.isRelaxed());
      return true;
   }
@@ -200,7 +200,7 @@ std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& 
              for(auto i : c) 
                 result.setProp(i, parent);
        }
-       result.hash();
+       //result.hash();
        result.relax(parent.isRelaxed());
        return std::pair<MDDState,bool>(result,true);
     }
@@ -235,7 +235,7 @@ MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState&
        relaxationLambdas[p](result,a,b);
     }
   }   
-  result.hash();
+  //result.hash();
   result.relax();
   return result;
 }

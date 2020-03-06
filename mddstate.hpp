@@ -44,10 +44,12 @@ public :
    {
       os << _name << "(" << _vars << ")" << std::endl;
    }
+   /*
    MDDConstraintDescriptor operator=(const MDDConstraintDescriptor& d)
    {
       return MDDConstraintDescriptor(d);
    }
+   */
 };
 
 class MDDBSValue {
@@ -335,7 +337,7 @@ inline std::ostream& operator<<(std::ostream& os,MDDConstraintDescriptor& p)
 class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
-   int               _hash;  // a hash value of the state to speed up equality testing.   
+   //int               _hash;  // a hash value of the state to speed up equality testing.   
    mutable float      _rip;
    struct Flags {
       bool         _relaxed:1;
@@ -346,43 +348,43 @@ class MDDState {  // An actual state of an MDDNode.
       MDDState* _at;
       char*   _from;
       int       _sz;
-      int   _h;
+      //int   _h;
       Flags  _f;
       float _ip;
    public:
       TrailState(MDDState* at,char* from,int sz) : _at(at),_from(from),_sz(sz)
       {
          memcpy(_from,_at->_mem,_sz);
-         _h = _at->_hash;
+         //_h = _at->_hash;
          _f = _at->_flags;
          _ip = _at->_rip;
       }
       void restore() override {
          memcpy(_at->_mem,_from,_sz);
-         _at->_hash  = _h;
+         //_at->_hash  = _h;
          _at->_flags = _f;
          _at->_rip   = _ip;
       }
    };
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_flags({false,false}) {}
+   MDDState() : _spec(nullptr),_mem(nullptr),/*_hash(0),*/_flags({false,false}) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
-      : _spec(s),_mem(b),_hash(0),_flags({relax,false}) {
+      : _spec(s),_mem(b),/*_hash(0),*/_flags({relax,false}) {
       if (_spec)
          memset(_mem,0,_spec->layoutSize());
    }
-   MDDState(MDDStateSpec* s,char* b,int hash,bool relax,float rip,bool ripped) 
-      : _spec(s),_mem(b),_hash(hash),_rip(rip) {
+   MDDState(MDDStateSpec* s,char* b,/*int hash,*/bool relax,float rip,bool ripped) 
+      : _spec(s),_mem(b),/*_hash(hash),*/_rip(rip) {
          _flags._relaxed = relax;
          _flags._ripped = ripped;
       }
    MDDState(const MDDState& s) 
-      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_rip(s._rip),_flags(s._flags) {}
+      : _spec(s._spec),_mem(s._mem),/*_hash(s._hash),*/_rip(s._rip),_flags(s._flags) {}
    void initState(const MDDState& s) {
       _spec = s._spec;
       _mem = s._mem;
       _flags = s._flags;
-      _hash = s._hash;
+      //_hash = s._hash;
       _rip  = s._rip;
    }
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
@@ -393,7 +395,7 @@ public:
       assert(_mem != nullptr);
       _spec = s._spec;
       memcpy(_mem,s._mem,sz);
-      _hash = s._hash;
+      //_hash = s._hash;
       _flags = s._flags;
       _rip = s._rip;
       return *this;
@@ -402,7 +404,7 @@ public:
       assert(_spec == s._spec || _spec == nullptr);
       _spec = std::move(s._spec);
       _mem  = std::move(s._mem);      
-      _hash = std::move(s._hash);
+      //_hash = std::move(s._hash);
       _rip  = std::move(s._rip);
       _flags = std::move(s._flags);
       return *this;
@@ -410,7 +412,7 @@ public:
    MDDState clone(Storage::Ptr mem) const {
       char* block = _spec ? (char*)mem->allocate(sizeof(char)*_spec->layoutSize()) : nullptr;
       if (_spec)  memcpy(block,_mem,_spec->layoutSize());
-      return MDDState(_spec,block,_hash,_flags._relaxed,_rip,_flags._ripped);
+      return MDDState(_spec,block,/*_hash,*/_flags._relaxed,_rip,_flags._ripped);
    }
    auto layoutSize() const     { return _spec->layoutSize();}   
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
@@ -444,6 +446,7 @@ public:
       } else _rip = 0;
       return _rip;
    }
+   
    int hash() {
       const auto nbw = _spec->layoutSize() / 4;
       int nlb = _spec->layoutSize() & 0x3;
@@ -454,19 +457,26 @@ public:
          ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
       while(nlb-- > 0)
          ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
-      _hash = ttl;
-      return _hash;
+      //_hash = ttl;      
+      //return _hash;
+      return ttl;
    }
-   int getHash() const noexcept { return _hash;}
+   //int getHash() const noexcept { return _hash;}
    bool operator==(const MDDState& s) const {    // equality test likely O(1) when different.
+      return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _flags._relaxed == s._flags._relaxed;
+      /*
       if (_hash == s._hash)
          return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _flags._relaxed == s._flags._relaxed;
       else return false;
+      */
    }
    bool operator!=(const MDDState& s) const {
+      return memcmp(_mem,s._mem,_spec->layoutSize())!=0 || _flags._relaxed != s._flags._relaxed;
+      /*
       if (_hash == s._hash)
          return memcmp(_mem,s._mem,_spec->layoutSize())!=0 || _flags._relaxed != s._flags._relaxed;
       else return true;
+      */
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << (s._flags._relaxed ? 'T' : 'F') << '[';

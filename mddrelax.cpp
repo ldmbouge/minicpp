@@ -156,7 +156,7 @@ void MDDRelax::relaxLayer(int i)
          }
          acc.relax();
       }
-      acc.hash();
+      //acc.hash();
       target->setState(acc,mem);
 
       MDDNode* found = findMatch(cli,target->getState(),refDir);
@@ -339,10 +339,11 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
 
    return delta;
 }
-
+/*
 struct MDDStateHash {
    std::size_t operator()(MDDState* s)  const noexcept { return s->getHash();}
 };
+*/
 
 struct MDDStateEqual {
    bool operator()(const MDDState* s1,const MDDState* s2) const { return *s1 == *s2;}

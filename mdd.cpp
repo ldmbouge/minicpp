@@ -69,7 +69,7 @@ void MDD::propagate()
 }
 
 struct MDDStateHash {
-   std::size_t operator()(MDDState* s)  const noexcept { return s->getHash();}
+   std::size_t operator()(MDDState* s)  const noexcept { return s->hash();}
 };
 
 struct MDDStateEqual {
