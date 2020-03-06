@@ -48,6 +48,13 @@ void MDDSpec::append(const Factory::Veci& y)
     std::cout << "size of x: " << x.size() << std::endl;
 }
 
+void MDDSpec::varOrder()
+{
+   std::sort(x.begin(),x.end(),[](const var<int>::Ptr& a,const var<int>::Ptr& b) {
+                                  return a->getId() < b->getId();
+                               });   
+}
+
 void MDDStateSpec::layout()
 {
    size_t lszBit = 0;
@@ -290,8 +297,9 @@ namespace Factory {
                                 out.setBS(some,in.getBS(some));
                                 out.getBS(some).set(val - minDom);
                             });
-      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val) { out.set(len,in.at(len) + d.member(var));});
-      
+      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val) {
+                               out.set(len,in.at(len) + d.member(var));
+                            });      
       mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r)     {
                                out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));
                             });
@@ -305,6 +313,21 @@ namespace Factory {
                          (p.getBS(some).cardinality() == p.at(len)  && p.getBS(some).getBit(val - minDom));
                       return !notOk;
                    });
+      mdd.addSimilarity(all,[all](const auto& l,const auto& r) -> double {
+                               MDDBSValue lv = l.getBS(all);
+                               MDDBSValue tmp((char*)alloca(sizeof(char)*l.byteSize(all)),lv.nbWords(),lv.bitLen());
+                               tmp.setBinXOR(lv,r.getBS(all));
+                               return tmp.cardinality();
+                            });
+      mdd.addSimilarity(some,[some](const auto& l,const auto& r) -> double {
+                               MDDBSValue lv = l.getBS(some);
+                               MDDBSValue tmp((char*)alloca(sizeof(char)*l.byteSize(some)),lv.nbWords(),lv.bitLen());
+                               tmp.setBinXOR(lv,r.getBS(some));
+                               return tmp.cardinality();
+                            });
+      mdd.addSimilarity(len,[](const auto& l,const auto& r) -> double {
+                               return 0;
+                            });
    }
 
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)

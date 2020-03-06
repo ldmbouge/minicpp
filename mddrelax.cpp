@@ -22,6 +22,7 @@ MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,
 void MDDRelax::buildDiagram()
 {
    std::cout << "MDDRelax::buildDiagram" << std::endl;
+   _mddspec.varOrder();
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
@@ -50,6 +51,74 @@ void MDDRelax::buildDiagram()
    hookupPropagators();
 }
 
+
+// pairwise (k-means) based relaxation.
+void MDDRelax::relaxLayer(int i)
+{
+   _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
+   if (layers[i].size() <= _width)
+      return;   
+
+   std::mt19937 rNG;
+   rNG.seed(42);
+   std::vector<int>  cid(_width);
+   std::vector<MDDState> means(_width);
+   char* buf = new char[_mddspec.layoutSize() * _width];
+   std::vector<int> perm(layers[i].size());
+   std::iota(perm.begin(),perm.end(),0);
+   std::shuffle(perm.begin(),perm.end(),rNG);
+   int k = 0;
+   for(auto& mk : means) {
+      mk = MDDState(&_mddspec,buf + k * _mddspec.layoutSize());
+      cid[k] = perm[k];
+      mk.initState(layers[i][cid[k++]]->getState());
+   }
+   std::vector<int> asgn(layers[i].size());
+   const int nbIter = 1;
+   for(int ni=0;ni < nbIter;ni++) {
+      for(int j=0; j < layers[i].size();j++) {
+         double bestSim = std::numeric_limits<double>::max();
+         int    idx = -1;
+         const auto& ln = layers[i][j]->getState();
+         for(int c = 0;c < means.size();c++) {
+            double sim = _mddspec.similarity(ln,means[c]);
+            idx     = (bestSim < sim) ? idx : c;
+            bestSim = (bestSim < sim) ? bestSim : sim;
+         }
+         assert(j >= 0 && j < layers[i].size());
+         asgn[j] = idx;
+      }      
+   }
+   for(int j=0;j < asgn.size();j++) {
+      MDDNode* target = layers[i][cid[asgn[j]]];
+      MDDNode* strip = layers[i][j];
+      if (target != strip) {
+         _mddspec.relaxation(means[asgn[j]],layers[i][j]->getState());
+         means[asgn[j]].relax();
+         for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
+            auto arc = *i;
+            arc->moveTo(target,trail,mem);
+         }
+      }
+   }
+   std::vector<MDDNode*> nl(_width,nullptr);
+   for(int j=0;j < means.size();j++) {
+      nl[j] = layers[i][cid[j]];
+      nl[j]->setState(means[j],mem);
+   }
+   
+   layers[i].clear();
+   k = 0;
+   for(MDDNode* n : nl) {
+      layers[i].push_back(n,mem);
+      n->setPosition(k++,mem);
+   }
+   delete []buf;
+}
+
+
+// "inner product"  based relaxation.
+/*
 void MDDRelax::relaxLayer(int i)
 {
    _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
@@ -109,6 +178,7 @@ void MDDRelax::relaxLayer(int i)
    }
    //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
 }
+*/
 
 void MDDRelax::trimLayer(unsigned int layer)
 {

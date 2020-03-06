@@ -157,6 +157,34 @@ std::ostream& operator<<(std::ostream& os,const set<int>& s)
    return os << "\b}";
 }
 
+void checkSolution(Objective::Ptr obj,Factory::Veci& emp,set<set<int>>& cliques,vector<vector<int>>& compat)
+{
+   size_t nbJ = emp.size();
+   int score = 0;
+   for(int j=0;j < nbJ;j++)
+      score += compat[j][emp[j]->min()];
+   std::cout  << "CHECK:" << score << " " << obj->value() << std::endl;
+   int allOk = 0;
+   for(auto& c : cliques) {
+      int nbEq = 0;
+      for(auto i : c)
+         for(auto j : c) 
+            nbEq += emp[j]->min() == emp[i]->min();
+      std::cout << "CL: " << c << " EQ = " << nbEq << " CLSize:" << c.size() << std::endl;
+      allOk += nbEq == c.size();
+   }
+   if (allOk != cliques.size())
+      std::cout << "BAD Solution" << std::endl;
+   else std::cout << "ALL good" << std::endl;
+}
+
+std::string tab(int d) {
+   std::string s = "";
+   while (d--!=0)
+      s = s + "  ";
+   return s;
+}
+
 void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize,int over)
 {
    using namespace std;
@@ -192,6 +220,14 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       cid.push_back(chosen);
       ss += chosen.size();
    }
+
+   int sol[] = {8, 8, 9, 1, 10, 12, 1, 3, 6, 2, 16, 5, 4, 2, 2, 11,
+                23, 19, 2, 3, 4, 14, 14, 0, 31, 8, 15, 0, 1, 23, 15, 10, 28, 26};
+
+   /*for(int i=0;i <= 15;i++)
+      cp->post(emp[i] == sol[i]);
+   */
+   
    assert(ss == cv.size());
    MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
@@ -208,15 +244,15 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       theOne = mdd;
       //mdd->saveGraph();
    }
-   
+
+   for(int i=0;i <= 15;i++)
+      cp->post(emp[i] == sol[i]);
+
    auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});
       
    Objective::Ptr obj = Factory::minimize(Factory::sum(sm));
 
-   int sol[] = {8, 8, 9, 1, 10, 12, 1, 3, 6, 2, 16, 5, 4, 2, 2, 11, 23, 19, 2, 3, 4, 14, 14, 0, 31, 8, 15, 0, 1, 16, 15, 10, 28, 26, 28, 1, 49, 17, 20, 9, 9, 13, 7, 21, 12, 11, 14, 0, 26, 5, 20, 23, 14, 20, 25, 16, 7, 15, 12, 24, 45, 10, 4, 17, 28, 1, 7, 3, 18, 21, 62, 13, 27, 8, 63, 72, 59, 5, 74, 4, 11, 18, 10, 6, 12, 9, 13, 70, 22, 26, 61, 48, 70, 25, 6, 67, 5, 6, 65, 23};
-
-         
-   
+  
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
                          // auto x = selectMin(emp,
@@ -240,26 +276,27 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             smallest = std::min(smallest,compat[i][v]);           
          }
          return  [=] {
-                    //cout << "?x(" << i << ") == " << sol[i] << endl;
+                    cout << tab(i) << "?x(" << i << ") == " << bv << endl;
                     cp->post(x == bv);
-                    //cout << "!x(" << i << ") == " << sol[i] << endl;
+                    cout << tab(i) << "!x(" << i << ") == " << bv << endl;
                     //theOne->debugGraph();
                  }
             | [=] {
-                 //cout << "?x(" << i << ") != " << bv << endl;
+                 cout << tab(i) << "?x(" << i << ") != " << bv << " FAIL" << endl;
                  cp->post(x != bv);
-                 //cout << "!x(" << i << ") != " << bv << endl;
+                 cout << tab(i) << "!x(" << i << ") != " << bv << endl;
                  //theOne->debugGraph();
               };
       } else return Branches({});
    });
 
    SearchStatistics stat;
-   search.onSolution([&emp,obj,&stat]() {
+   search.onSolution([&emp,obj,&stat,&cliques,&compat]() {
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;
+                        checkSolution(obj,emp,cliques,compat);
                      });   
-   search.optimize(obj,stat);
+   search.optimize(obj,stat);   
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
    cout << stat << endl;

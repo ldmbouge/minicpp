@@ -131,6 +131,7 @@ void MDD::hookupPropagators()
 void MDD::buildDiagram()
 {
    // Generate Root and Sink Nodes for MDD
+   _mddspec.varOrder();
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);

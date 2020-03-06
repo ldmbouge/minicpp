@@ -57,6 +57,8 @@ class MDDBSValue {
 public:
    MDDBSValue(char* buf,short nbw,int nbb)
       : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw),_bLen(nbb) {}
+   short nbWords() const { return _nbw;}
+   int  bitLen() const { return _bLen;}
    MDDBSValue& operator=(const MDDBSValue& v) {
       for(int i=0;i <_nbw;i++)
          _buf[i] = v._buf[i];
@@ -88,13 +90,25 @@ public:
          nbb += __builtin_popcountl(_buf[i]);      
       return nbb;
    }
-   void setBinOR(const MDDBSValue& a,const MDDBSValue& b) {
+   MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) {
       for(int i=0;i < _nbw;i++)
-         _buf[i] = a._buf[i] | b._buf[i];      
+         _buf[i] = a._buf[i] | b._buf[i];
+      return *this;
    }
-   void setBinAND(const MDDBSValue& a,const MDDBSValue& b) {
+   MDDBSValue& setBinAND(const MDDBSValue& a,const MDDBSValue& b) {
       for(int i=0;i < _nbw;i++)
-         _buf[i] = a._buf[i] & b._buf[i];      
+         _buf[i] = a._buf[i] & b._buf[i];
+      return *this;
+   }
+   MDDBSValue& setBinXOR(const MDDBSValue& a,const MDDBSValue& b) {
+      for(int i=0;i < _nbw;i++)
+         _buf[i] = a._buf[i] ^ b._buf[i];
+      return *this;
+   }
+   MDDBSValue& NOT() {
+      for(int i=0;i <_nbw;i++)
+         _buf[i] = ~_buf[i];
+      return *this;
    }
    friend bool operator==(const MDDBSValue& a,const MDDBSValue& b) {
       bool eq = a._nbw == b._nbw && a._bLen == b._bLen;
@@ -131,6 +145,7 @@ public:
    MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs) {}
    MDDProperty(short id,unsigned short ofs) : _id(id),_ofs(ofs) {}
    MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; return *this;}
+   int size() const { return storageSize() >> 3;}
    virtual void init(char* buf) const              {}
    virtual int get(char* buf) const                { return 0;}
    virtual MDDBSValue getBS(char* buf) const       { return MDDBSValue(nullptr,0,0);}
@@ -279,6 +294,7 @@ public:
    MDDStateSpec() {}
    auto layoutSize() const { return _lsz;}
    void layout();
+   virtual void varOrder() {}
    auto size() const { return _attrs.size();}
    virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
    virtual int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init);
@@ -386,6 +402,7 @@ public:
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
    void setBS(int i,const MDDBSValue& val) { _spec->_attrs[i]->setBS(_mem,val);}
    void setProp(int i,const MDDState& from) { _spec->_attrs[i]->setProp(_mem,from._mem);}
+   int byteSize(int i) const   { return _spec->_attrs[i]->size();}
    void clear()                { _flags._ripped = false;_flags._relaxed = false;}
    bool isRelaxed() const      { return _flags._relaxed;}
    void relax(bool r = true)   { _flags._relaxed = r;}
@@ -448,6 +465,7 @@ class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
    MDDConstraintDescriptor& makeConstraintDescriptor(const Factory::Veci&, const char*);
+   void varOrder() override;
    int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
