@@ -52,6 +52,7 @@ void MDDRelax::buildDiagram()
 
 
 // pairwise (k-means) based relaxation.
+/*
 void MDDRelax::relaxLayer(int i)
 {
    _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
@@ -114,10 +115,10 @@ void MDDRelax::relaxLayer(int i)
    }
    delete []buf;
 }
-
+*/
 
 // "inner product"  based relaxation.
-/*
+
 void MDDRelax::relaxLayer(int i)
 {
    _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
@@ -177,7 +178,7 @@ void MDDRelax::relaxLayer(int i)
    }
    //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
 }
-*/
+
 
 void MDDRelax::trimLayer(unsigned int layer)
 {

@@ -170,7 +170,7 @@ void checkSolution(Objective::Ptr obj,Factory::Veci& emp,set<set<int>>& cliques,
       for(auto i : c)
          for(auto j : c) 
             nbEq += emp[j]->min() == emp[i]->min();
-      std::cout << "CL: " << c << " EQ = " << nbEq << " CLSize:" << c.size() << std::endl;
+      //std::cout << "CL: " << c << " EQ = " << nbEq << " CLSize:" << c.size() << std::endl;
       allOk += nbEq == c.size();
    }
    if (allOk != cliques.size())
@@ -220,21 +220,6 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       cid.push_back(chosen);
       ss += chosen.size();
    }
-
-   int sol[] = {8, 8, 9, 1, 10, 12, 1, 3, 6, 2, 16,
-                5, // emp[11]
-                4, // emp[12]
-                2, // emp[13]
-                2, // emp[14]
-                11,// emp[15]
-                23,// emp[16]  !!!!!!!!!!!!!!!
-                19, 2, 3, 4, 14, 14, 0, 31, 8, 15, 0, 1, 23, 15, 10, 28, 26};
-
-   //   for(int i=0;i <= 11;i++)
-   // cp->post(emp[i] == sol[i]);
-
-   //cp->post(emp[12] == sol[12]);
-         
    
    assert(ss == cv.size());
    MDDRelax* theOne = nullptr;
@@ -253,18 +238,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       //mdd->saveGraph();
    }
 
-   //theOne->saveGraph();
-   //cp->post(emp[12] == sol[12]);
-   //theOne->saveGraph();
-
-   //for(int i = 0;i < emp.size();i++)
-   //std::cout << "emp[" << i << "] = " << emp[i] << std::endl;
-   
-   //for(int i=13;i <= 15;i++)
-   //cp->post(emp[i] == sol[i]);
-
-   auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});
-      
+   auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});      
    Objective::Ptr obj = Factory::minimize(Factory::sum(sm));
 
   
