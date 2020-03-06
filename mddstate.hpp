@@ -118,6 +118,23 @@ public:
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDBSValue& v) {
       os << '[';
+      unsigned nbb = v._bLen;
+      int val = 0;
+      for(int i=0;i < v._nbw;i++) {
+         unsigned long long w = v._buf[i];
+         const unsigned biw = nbb >= 64 ? 64 : nbb;
+         nbb -= 64;
+         unsigned long long mask = 1ull;
+         unsigned bOfs = 0;
+         while (bOfs != biw) {
+            bool hasValue = ((w & mask)==mask);
+            if (hasValue) os << val << ',';
+            val++;
+            bOfs++;
+            mask <<=1;
+         }
+      }
+      /*      
       for(int i=0;i < v._nbw - 1;i++) 
          os << std::bitset<64>(v._buf[i]);
       unsigned long long mask = 1ull;
@@ -128,6 +145,7 @@ public:
          bOfs++;
          mask <<=1;
       }
+      */
       os << ']';
       return os;
    }

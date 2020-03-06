@@ -41,6 +41,7 @@ MDD::MDD(CPSolver::Ptr cp)
 */
 void MDD::post()
 {
+   _mddspec.varOrder();
    x = _mddspec.getVars();
    numVariables = (unsigned int) x.size();
    layers = std::vector<TVec<MDDNode*>>(numVariables+1);

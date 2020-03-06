@@ -22,7 +22,6 @@ MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,
 void MDDRelax::buildDiagram()
 {
    std::cout << "MDDRelax::buildDiagram" << std::endl;
-   _mddspec.varOrder();
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);

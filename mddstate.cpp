@@ -129,11 +129,11 @@ void MDDSpec::addArc(const MDDConstraintDescriptor& d,lambdaArc a){
     auto& b = arcLambda;
     if(arcLambda == nullptr)
        arcLambda = [=] (const MDDState& p,unsigned layer,var<int>::Ptr var, int val) -> bool {
-                      return (a(p,layer, var, val) || !d.member(var));
+                      return (!d.member(var) || a(p,layer, var, val));
                    };
    else
       arcLambda = [=] (const MDDState& p,unsigned layer,var<int>::Ptr var, int val) -> bool {
-                     return (a(p,layer,var, val) || !d.member(var)) && b(p,layer, var, val);
+                     return (!d.member(var) || a(p,layer,var, val)) && b(p,layer, var, val);
                    };
 }
 void MDDSpec::addTransition(int p,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> t)
