@@ -40,16 +40,7 @@ public :
    std::vector<int>& properties() { return _properties;}
    auto begin() { return _properties.begin();}
    auto end()   { return _properties.end();}
-   void print (std::ostream& os) const
-   {
-      os << _name << "(" << _vars << ")" << std::endl;
-   }
-   /*
-   MDDConstraintDescriptor operator=(const MDDConstraintDescriptor& d)
-   {
-      return MDDConstraintDescriptor(d);
-   }
-   */
+   void print (std::ostream& os) const { os << _name << "(" << _vars << ")" << std::endl;}
 };
 
 class MDDBSValue {
