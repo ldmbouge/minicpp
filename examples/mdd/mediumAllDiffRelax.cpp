@@ -23,8 +23,8 @@
 #include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
 
-#define SZ_VAR 5
-#define SZ_VAL 5
+#define SZ_VAR 10
+#define SZ_VAL 10
 
 
 using namespace std;
@@ -73,6 +73,7 @@ int main(int argc,char* argv[])
    auto mdd = new MDDRelax(cp,width);
    Factory::allDiffMDD(mdd->getSpec(),v);
    cp->post(mdd);
+   mdd->saveGraph();
    auto end = RuntimeMonitor::cputime();
    MDDStats stats(mdd);
    std::cout << "MDD Usage:" << mdd->usage() << std::endl;

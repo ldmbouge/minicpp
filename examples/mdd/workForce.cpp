@@ -221,12 +221,20 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       ss += chosen.size();
    }
 
-   int sol[] = {8, 8, 9, 1, 10, 12, 1, 3, 6, 2, 16, 5, 4, 2, 2, 11,
-                23, 19, 2, 3, 4, 14, 14, 0, 31, 8, 15, 0, 1, 23, 15, 10, 28, 26};
+   int sol[] = {8, 8, 9, 1, 10, 12, 1, 3, 6, 2, 16,
+                5, // emp[11]
+                4, // emp[12]
+                2, // emp[13]
+                2, // emp[14]
+                11,// emp[15]
+                23,// emp[16]  !!!!!!!!!!!!!!!
+                19, 2, 3, 4, 14, 14, 0, 31, 8, 15, 0, 1, 23, 15, 10, 28, 26};
 
-   /*for(int i=0;i <= 15;i++)
-      cp->post(emp[i] == sol[i]);
-   */
+   //   for(int i=0;i <= 11;i++)
+   // cp->post(emp[i] == sol[i]);
+
+   //cp->post(emp[12] == sol[12]);
+         
    
    assert(ss == cv.size());
    MDDRelax* theOne = nullptr;
@@ -245,8 +253,15 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       //mdd->saveGraph();
    }
 
-   for(int i=0;i <= 15;i++)
-      cp->post(emp[i] == sol[i]);
+   //theOne->saveGraph();
+   //cp->post(emp[12] == sol[12]);
+   //theOne->saveGraph();
+
+   //for(int i = 0;i < emp.size();i++)
+   //std::cout << "emp[" << i << "] = " << emp[i] << std::endl;
+   
+   //for(int i=13;i <= 15;i++)
+   //cp->post(emp[i] == sol[i]);
 
    auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});
       
@@ -276,15 +291,15 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             smallest = std::min(smallest,compat[i][v]);           
          }
          return  [=] {
-                    cout << tab(i) << "?x(" << i << ") == " << bv << endl;
+                    //cout << tab(i) << "?x(" << i << ") == " << bv << endl;
                     cp->post(x == bv);
-                    cout << tab(i) << "!x(" << i << ") == " << bv << endl;
+                    //cout << tab(i) << "!x(" << i << ") == " << bv << endl;
                     //theOne->debugGraph();
                  }
             | [=] {
-                 cout << tab(i) << "?x(" << i << ") != " << bv << " FAIL" << endl;
+                 //cout << tab(i) << "?x(" << i << ") != " << bv << " FAIL" << endl;
                  cp->post(x != bv);
-                 cout << tab(i) << "!x(" << i << ") != " << bv << endl;
+                 //cout << tab(i) << "!x(" << i << ") != " << bv << endl;
                  //theOne->debugGraph();
               };
       } else return Branches({});
@@ -304,8 +319,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce50-jobs.csv";
-   const char* compatFile = "data/workforce50.csv";
+   const char* jobsFile = "data/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce100.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
    std::cout << "overlap = " << over << "\twidth=" << width << std::endl;
