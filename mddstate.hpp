@@ -45,7 +45,7 @@ public :
 
 class MDDBSValue {
    unsigned long long* const _buf;
-   const short               _nbw;
+   const unsigned short      _nbw;
    const int                _bLen;
 public:
    MDDBSValue(char* buf,short nbw,int nbb)

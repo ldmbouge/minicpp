@@ -161,12 +161,12 @@ void checkSolution(Objective::Ptr obj,Factory::Veci& emp,set<set<int>>& cliques,
 {
    size_t nbJ = emp.size();
    int score = 0;
-   for(int j=0;j < nbJ;j++)
+   for(unsigned j=0;j < nbJ;j++)
       score += compat[j][emp[j]->min()];
    std::cout  << "CHECK:" << score << " " << obj->value() << std::endl;
-   int allOk = 0;
+   unsigned  allOk = 0;
    for(auto& c : cliques) {
-      int nbEq = 0;
+      unsigned nbEq = 0;
       for(auto i : c)
          for(auto j : c) 
             nbEq += emp[j]->min() == emp[i]->min();
@@ -222,7 +222,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    }
    
    assert(ss == cv.size());
-   MDDRelax* theOne = nullptr;
+   //MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
       //auto mdd = new MDD(cp);
       auto mdd = new MDDRelax(cp,relaxSize);
@@ -234,7 +234,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          //cp->post(Factory::allDifferent(adv));
       }
       cp->post(mdd);
-      theOne = mdd;
+      //theOne = mdd;
       //mdd->saveGraph();
    }
 
