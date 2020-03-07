@@ -310,7 +310,7 @@ namespace Factory {
 
       mdd.addArc(d,[minDom,some,all,len](const auto& p,unsigned l,auto var,int val) -> bool  {
                       bool notOk = p.getBS(all).getBit(val - minDom) ||
-                         (p.getBS(some).cardinality() == p.at(len)  && p.getBS(some).getBit(val - minDom));
+			(p.getBS(some).cardinality() == (unsigned)p.at(len)  && p.getBS(some).getBit(val - minDom));
                       return !notOk;
                    });
       mdd.addSimilarity(all,[all](const auto& l,const auto& r) -> double {
