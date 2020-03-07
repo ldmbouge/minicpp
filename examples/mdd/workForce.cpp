@@ -244,10 +244,11 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
   
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
-                         // auto x = selectMin(emp,
-                         //                    [](const auto& x) { return x->size() > 1;},
-                         //                    [](const auto& x) { return x->size();});
-                                              
+                         /*  auto x = selectMin(emp,
+                                            [](const auto& x) { return x->size() > 1;},
+                                            [](const auto& x) { return x->size();});
+                         */
+                                                                       
       unsigned i;      
       for(i=0u;i< emp.size();i++)
          if (emp[i]->size() > 1)
