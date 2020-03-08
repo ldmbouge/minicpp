@@ -123,7 +123,15 @@ set<set<int>> sweep(vector<Job>& jobs)
       pt.push_back(make_tuple(jobs[i].start(),true,i));
       pt.push_back(make_tuple(jobs[i].end(),false,i));
    }
-   sort(pt.begin(),pt.end(),[](const auto& e0,const auto& e1) {return (std::get<0>(e0) < std::get<0>(e1));});
+   sort(pt.begin(),pt.end(),[](const auto& e0,const auto& e1) {
+                               return (std::get<0>(e0) < std::get<0>(e1)) 
+                                  || (std::get<0>(e0) == std::get<0>(e1) && std::get<1>(e0) > std::get<1>(e1));
+                            });
+   for(const auto& e : pt) {
+      bool isStart = std::get<1>(e);
+      std::cout << ((isStart) ? '+' : '-') << " " << std::get<2>(e) << " || ";
+      std::cout << std::get<0>(e) << " : " << jobs[std::get<2>(e)] << std::endl;
+   }
    set<int> clique;
    bool added = false;
    for(const auto& p: pt){
@@ -239,31 +247,31 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    }
 
    auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});      
-   Objective::Ptr obj = Factory::minimize(Factory::sum(sm));
-
+   Objective::Ptr obj = Factory::maximize(Factory::sum(sm));
   
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
-                         /*  auto x = selectMin(emp,
+                         auto x = selectMin(emp,
                                             [](const auto& x) { return x->size() > 1;},
                                             [](const auto& x) { return x->size();});
-                         */
-                                                                       
+                         
+                         /*                                                                       
       unsigned i;      
       for(i=0u;i< emp.size();i++)
          if (emp[i]->size() > 1)
             break;
       auto x = i < emp.size() ? emp[i] : nullptr;
+                         */
                          
       if (x) {
          int i = x->getId();
-         int smallest = std::numeric_limits<int>::max();
+         int largest = std::numeric_limits<int>::min();
          int bv = -1;
          for(auto v=0u;v < compat[i].size();v++) {
             if (!emp[i]->contains(v))
                continue;
-            bv = compat[i][v] < smallest ? v : bv;
-            smallest = std::min(smallest,compat[i][v]);           
+            bv = compat[i][v] > largest ? v : bv;
+            largest = std::max(largest,compat[i][v]);           
          }
          return  [=] {
                     //cout << tab(i) << "?x(" << i << ") == " << bv << endl;
@@ -284,7 +292,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    search.onSolution([&emp,obj,&stat,&cliques,&compat]() {
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;
-                        checkSolution(obj,emp,cliques,compat);
+                        //checkSolution(obj,emp,cliques,compat);
                      });   
    search.optimize(obj,stat);   
    auto dur = RuntimeMonitor::elapsedSince(start);
