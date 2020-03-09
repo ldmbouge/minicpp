@@ -223,6 +223,16 @@ public:
    int value() const override { return _obj->min();}
 };
 
+class Maximize : public Objective {
+   var<int>::Ptr _obj;
+   int        _primal;
+   void print(std::ostream& os) const;
+public:
+   Maximize(var<int>::Ptr& x);
+   void tighten() override;
+   int value() const override { return _obj->max();}
+};
+
 class Element2D : public Constraint {
    struct Triplet {
       int x,y,z;
@@ -330,6 +340,9 @@ namespace Factory {
    }
    inline Objective::Ptr minimize(var<int>::Ptr x) {
       return new Minimize(x);
+   }
+   inline Objective::Ptr maximize(var<int>::Ptr x) {
+      return new Maximize(x);
    }
    inline var<bool>::Ptr isEqual(var<int>::Ptr x,const int c) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());

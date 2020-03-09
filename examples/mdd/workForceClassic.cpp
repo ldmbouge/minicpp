@@ -16,7 +16,6 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
 
@@ -193,57 +192,17 @@ std::string tab(int d) {
    return s;
 }
 
-void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize,int over)
+void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
 {
    using namespace std;
    int nbE = (int) compat.size();
    set<set<int>> cliques = sweep(jobs);
-   vector<set<int>> cv;
-   std::copy(cliques.begin(),cliques.end(),std::inserter(cv,cv.end()));
    auto emp = Factory::intVarArray(cp,(int) jobs.size(), 0, nbE-1);
-   vector<bool> taken(cv.size()); // for each clique a boolean saying whether it was already picked up.
-   vector<set<unsigned>> cid; // identifiers of cliques to bundle in the same MDD (identifiers refer to index within cv)
-
-   unsigned ss = 0;
-   for(auto i=0u;i < cv.size();i++) {
-      if (taken[i]) continue;
-      set<int> acc = cv[i];
-      taken[i] = true;
-      auto largest = acc.size();
-      set<unsigned> chosen;
-      chosen.insert(i);
-      for(auto j = i+1;j < cv.size();j++) {
-         if (taken[j]) continue;
-         auto& c2 = cv[j];
-         std::set<int> inter;
-         std::set_intersection(acc.begin(),acc.end(),c2.begin(),c2.end(),std::inserter(inter,inter.begin()));
-         largest = std::max(largest,c2.size());
-         bool takeIt = inter.size() >= (over * largest)/100;
-         if (takeIt) {
-            acc = inter;
-            taken[j] = true;
-            chosen.insert(j);
-         }
-      }      
-      cid.push_back(chosen);
-      ss += chosen.size();
-   }
    
-   assert(ss == cv.size());
-   //MDDRelax* theOne = nullptr;
-   for(auto& ctm : cid) {
-      //auto mdd = new MDD(cp);
-      auto mdd = new MDDRelax(cp,relaxSize);
-      for(auto theClique : ctm) {  // merge on cliques if normal alldiff.
-         auto c = cv[theClique];
-         std::cout << "Clique: " << c << std::endl;
-         auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-         Factory::allDiffMDD(mdd->getSpec(),adv);
-         //cp->post(Factory::allDifferent(adv));
-      }
-      cp->post(mdd);
-      //theOne = mdd;
-      //mdd->saveGraph();
+   for(auto& c : cliques) {
+      std::cout << "Clique: " << c << std::endl;
+      auto adv = all(cp, c, [&emp](int i) {return emp[i];});
+      cp->post(Factory::allDifferent(adv));
    }
 
    auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});      
@@ -289,10 +248,9 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    });
 
    SearchStatistics stat;
-   search.onSolution([&emp,obj,&stat,&cliques,&compat]() {
+   search.onSolution([&emp,obj,&stat]() {
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;
-                        //checkSolution(obj,emp,cliques,compat);
                      });   
    search.optimize(obj,stat);   
    auto dur = RuntimeMonitor::elapsedSince(start);
@@ -304,9 +262,6 @@ int main(int argc,char* argv[])
 {
    const char* jobsFile = "data/workforce100-jobs.csv";
    const char* compatFile = "data/workforce100.csv";
-   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
-   int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
-   std::cout << "overlap = " << over << "\twidth=" << width << std::endl;
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);
@@ -314,7 +269,7 @@ int main(int argc,char* argv[])
       for (auto& j : jobs)
          cout << j << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp,jobs,compat,width,over);
+      buildModel(cp,jobs,compat);
    } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << std::endl;
    }

@@ -155,6 +155,27 @@ void Minimize::tighten()
    throw Failure;
 }
 
+Maximize::Maximize(var<int>::Ptr& x)
+    : _obj(x),_primal(0x80000001)
+{
+    auto todo = std::function<void(void)>([this]() {
+                                             _obj->removeBelow(_primal);
+                                         });
+    _obj->getSolver()->onFixpoint(todo);
+}
+
+void Maximize::print(std::ostream& os) const
+{
+   os << "maximize(" << *_obj << ", primal = " << _primal << ")";
+}
+
+void Maximize::tighten()
+{
+   assert(_obj->isBound());
+   _primal = _obj->min() + 1;
+   throw Failure;
+}
+
 void IsEqual::post() 
 {
     propagate();
