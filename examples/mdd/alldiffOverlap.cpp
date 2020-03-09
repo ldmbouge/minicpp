@@ -64,58 +64,22 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int useMDD)
       
    int N = 12;
    int D = 10;
-   auto Vars = Factory::intVarArray(cp, N, 1, D);
+   auto vars = Factory::intVarArray(cp, N, 1, D);
 
-   set<int> C1;
-   C1.insert(0);
-   C1.insert(1);
-   //   C1.insert(2);
-   C1.insert(3);
-   C1.insert(4);
-   C1.insert(5);
-   C1.insert(6);
-   C1.insert(7);
-   C1.insert(8);
-   //   C1.insert(9);
-   C1.insert(10);
-   C1.insert(11);
-   set<int> C2;
-   C2.insert(0);
-   C2.insert(1);
-   C2.insert(2);
-   C2.insert(3);
-   //   C2.insert(4);
-   C2.insert(5);
-   C2.insert(6);
-   //   C2.insert(7);
-   C2.insert(8);
-   C2.insert(9);
-   C2.insert(10);
-   C2.insert(11);
-   set<int> C3;
-   C3.insert(0);
-   C3.insert(1);
-   C3.insert(2);
-   //   C3.insert(3);
-   C3.insert(4);
-   C3.insert(5);
-   C3.insert(6);
-   C3.insert(7);
-   C3.insert(8);
-   C3.insert(9);
-   C3.insert(10);
-   //   C3.insert(11);
+   set<int> C1 = {0,1,  3,4,5,6,7,8,  10,11};
+   set<int> C2 = {0,1,2,3,  5,6,  8,9,10,11};
+   set<int> C3 = {0,1,2,  4,5,6,7,8,9,10};
    
    auto mdd = new MDDRelax(cp,relaxSize);
-   auto adv1 = all(cp, C1, [&Vars](int i) {return Vars[i];});
+   auto adv1 = all(cp, C1, [&vars](int i) {return vars[i];});
    Factory::allDiffMDD(mdd->getSpec(),adv1);
    cp->post(Factory::allDifferent(adv1));
 
-   auto adv2 = all(cp, C2, [&Vars](int i) {return Vars[i];});
+   auto adv2 = all(cp, C2, [&vars](int i) {return vars[i];});
    Factory::allDiffMDD(mdd->getSpec(),adv2);
    cp->post(Factory::allDifferent(adv2));
 
-   auto adv3 = all(cp, C3, [&Vars](int i) {return Vars[i];});
+   auto adv3 = all(cp, C3, [&vars](int i) {return vars[i];});
    Factory::allDiffMDD(mdd->getSpec(),adv3);
    cp->post(Factory::allDifferent(adv3));
 
@@ -126,7 +90,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int useMDD)
    
 
    DFSearch search(cp,[=]() {
-       auto x = selectMin(Vars,
+       auto x = selectMin(vars,
 			  [](const auto& x) { return x->size() > 1;},
 			  [](const auto& x) { return x->size();});
        
@@ -142,9 +106,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int useMDD)
        } else return Branches({});
      });
       
-   search.onSolution([&Vars]() {
+   search.onSolution([&vars]() {
        std::cout << "Assignment:" << std::endl;
-       std::cout << Vars << std::endl;
+       std::cout << vars << std::endl;
      });
       
       
