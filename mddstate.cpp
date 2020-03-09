@@ -125,16 +125,16 @@ int MDDSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
 }
 
 
-void MDDSpec::addArc(const MDDConstraintDescriptor& d,lambdaArc a){
+void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
     auto& b = arcLambda;
     if(arcLambda == nullptr)
-       arcLambda = [=] (const MDDState& p,unsigned layer,var<int>::Ptr var, int val) -> bool {
-                      return (!d.member(var) || a(p,layer, var, val));
+       arcLambda = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
+                      return (!d.member(var) || a(p,c, var, val));
                    };
    else
-      arcLambda = [=] (const MDDState& p,unsigned layer,var<int>::Ptr var, int val) -> bool {
-                     return (!d.member(var) || a(p,layer,var, val)) && b(p,layer, var, val);
-                   };
+      arcLambda = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
+                     return (!d.member(var) || a(p,c,var, val)) && b(p,c, var, val);
+                  };
 }
 void MDDSpec::addTransition(int p,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> t)
 {
@@ -163,15 +163,16 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
    return rootState;
 }
 
-bool MDDSpec::exist(const MDDState& a,unsigned l,var<int>::Ptr x,int v)
+bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v)
 {
-   return arcLambda(a,l,x,v);
+   return arcLambda(a,c,x,v);
 }
 
 bool MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v)
 {
   result.clear();
-  if(arcLambda(parent,l,var, v)) {
+  MDDState child;
+  if(arcLambda(parent,child,var, v)) {
      for(auto& c :constraints) {
         if(c.member(var))
            for(auto i : c) 
@@ -190,7 +191,8 @@ bool MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
 std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,unsigned l,
                                               var<int>::Ptr var, int v)
 {
-   if(arcLambda(parent,l,var, v)){
+   MDDState child;
+   if(arcLambda(parent,child,var, v)){
        MDDState result(this,(char*)mem->allocate(layoutSize()));
        for(auto& c :constraints) {
           if(c.member(var))
@@ -200,7 +202,6 @@ std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& 
              for(auto i : c) 
                 result.setProp(i, parent);
        }
-       //result.hash();
        result.relax(parent.isRelaxed());
        return std::pair<MDDState,bool>(result,true);
     }
@@ -261,7 +262,7 @@ namespace Factory {
       const int maxC = mdd.addState(d,0,x.size());
       const int rem  = mdd.addState(d,(int)x.size(),x.size());
 
-      mdd.addArc(d,[=] (const MDDState& p,unsigned l,var<int>::Ptr var, int val) -> bool {
+      mdd.addArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
          return (p.at(minC) + values.member(val) <= ub) &&
                 ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
       });
@@ -308,7 +309,7 @@ namespace Factory {
                             });
       mdd.addRelaxation(len,[len](auto& out,const auto& l,const auto& r)     { out.set(len,l.at(len));});
 
-      mdd.addArc(d,[minDom,some,all,len](const auto& p,unsigned l,auto var,int val) -> bool  {
+      mdd.addArc(d,[minDom,some,all,len](const auto& p,const auto& c,auto var,int val) -> bool  {
                       bool notOk = p.getBS(all).getBit(val - minDom) ||
 			(p.getBS(some).cardinality() == (unsigned)p.at(len)  && p.getBS(some).getBit(val - minDom));
                       return !notOk;
@@ -343,7 +344,7 @@ namespace Factory {
       });
       int p0 = ps[0]; int pminL = ps[minLIdx]; int pmaxF = ps[maxFIdx];
       int pmin = ps[min]; int pmax = ps[max];
-      spec.addArc(desc,[=] (const auto& p,unsigned l,auto x,int v) -> bool {
+      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v) -> bool {
                      bool inS = values.member(v);
                      int minv = p.at(pmax) - p.at(pmin) + inS;
                      return (p.at(p0) < 0 && minv >= lb && p.at(pminL) + inS <= ub)
@@ -384,7 +385,7 @@ namespace Factory {
 
       std::vector<int> ps = spec.addStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
 
-      spec.addArc(desc,[=](const auto& p,unsigned l,auto x,int v)->bool{
+      spec.addArc(desc,[=](const auto& p,const auto& c,auto x,int v)->bool{
                           return p.at(ps[v-min]) < values[v];
                        });
 

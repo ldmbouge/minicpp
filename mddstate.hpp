@@ -18,7 +18,7 @@
 #include <bitset>
 
 class MDDState;
-typedef std::function<bool(const MDDState&,unsigned,var<int>::Ptr,int)> lambdaArc;
+typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int)> ArcFun;
 typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
@@ -127,18 +127,6 @@ public:
             mask <<=1;
          }
       }
-      /*      
-      for(int i=0;i < v._nbw - 1;i++) 
-         os << std::bitset<64>(v._buf[i]);
-      unsigned long long mask = 1ull;
-      unsigned bOfs = 0;
-      const unsigned last = v._bLen % 64;
-      while (last != bOfs) {
-         os << (((v._buf[v._nbw-1] & mask)==mask) ? 1 : 0);
-         bOfs++;
-         mask <<=1;
-      }
-      */
       os << ']';
       return os;
    }
@@ -328,7 +316,6 @@ inline std::ostream& operator<<(std::ostream& os,MDDConstraintDescriptor& p)
 class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
-   //int               _hash;  // a hash value of the state to speed up equality testing.   
    mutable float      _rip;
    struct Flags {
       bool         _relaxed:1;
@@ -339,33 +326,30 @@ class MDDState {  // An actual state of an MDDNode.
       MDDState* _at;
       char*   _from;
       int       _sz;
-      //int   _h;
       Flags  _f;
       float _ip;
    public:
       TrailState(MDDState* at,char* from,int sz) : _at(at),_from(from),_sz(sz)
       {
          memcpy(_from,_at->_mem,_sz);
-         //_h = _at->_hash;
          _f = _at->_flags;
          _ip = _at->_rip;
       }
       void restore() override {
          memcpy(_at->_mem,_from,_sz);
-         //_at->_hash  = _h;
          _at->_flags = _f;
          _at->_rip   = _ip;
       }
    };
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),/*_hash(0),*/_flags({false,false}) {}
+   MDDState() : _spec(nullptr),_mem(nullptr),_flags({false,false}) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
-      : _spec(s),_mem(b),/*_hash(0),*/_flags({relax,false}) {
+      : _spec(s),_mem(b),_flags({relax,false}) {
       if (_spec)
          memset(_mem,0,_spec->layoutSize());
    }
    MDDState(MDDStateSpec* s,char* b,/*int hash,*/bool relax,float rip,bool ripped) 
-      : _spec(s),_mem(b),/*_hash(hash),*/_rip(rip) {
+      : _spec(s),_mem(b),_rip(rip) {
          _flags._relaxed = relax;
          _flags._ripped = ripped;
       }
@@ -375,7 +359,6 @@ public:
       _spec = s._spec;
       _mem = s._mem;
       _flags = s._flags;
-      //_hash = s._hash;
       _rip  = s._rip;
    }
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
@@ -386,7 +369,6 @@ public:
       assert(_mem != nullptr);
       _spec = s._spec;
       memcpy(_mem,s._mem,sz);
-      //_hash = s._hash;
       _flags = s._flags;
       _rip = s._rip;
       return *this;
@@ -395,7 +377,6 @@ public:
       assert(_spec == s._spec || _spec == nullptr);
       _spec = std::move(s._spec);
       _mem  = std::move(s._mem);      
-      //_hash = std::move(s._hash);
       _rip  = std::move(s._rip);
       _flags = std::move(s._flags);
       return *this;
@@ -405,6 +386,7 @@ public:
       if (_spec)  memcpy(block,_mem,_spec->layoutSize());
       return MDDState(_spec,block,/*_hash,*/_flags._relaxed,_rip,_flags._ripped);
    }
+   bool valid() const          { return _mem != nullptr;}
    auto layoutSize() const     { return _spec->layoutSize();}   
    void init(int i) const      { _spec->_attrs[i]->init(_mem);}
    int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
@@ -430,8 +412,6 @@ public:
          for(auto k=0u;k < up;k++) {
             asw <<= 1;
             asw += __builtin_popcountl(~(m0[k] ^ m1[k]));
-            //float v0 = _mem[k],v1 = s._mem[k];
-            //tot += (v0+1) * (v1+1);
          }
          _rip = asw;
       } else _rip = 0;
@@ -448,26 +428,13 @@ public:
          ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
       while(nlb-- > 0)
          ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
-      //_hash = ttl;      
-      //return _hash;
       return ttl;
    }
-   //int getHash() const noexcept { return _hash;}
    bool operator==(const MDDState& s) const {    // equality test likely O(1) when different.
       return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _flags._relaxed == s._flags._relaxed;
-      /*
-      if (_hash == s._hash)
-         return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _flags._relaxed == s._flags._relaxed;
-      else return false;
-      */
    }
    bool operator!=(const MDDState& s) const {
       return memcmp(_mem,s._mem,_spec->layoutSize())!=0 || _flags._relaxed != s._flags._relaxed;
-      /*
-      if (_hash == s._hash)
-         return memcmp(_mem,s._mem,_spec->layoutSize())!=0 || _flags._relaxed != s._flags._relaxed;
-      else return true;
-      */
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << (s._flags._relaxed ? 'T' : 'F') << '[';
@@ -488,12 +455,12 @@ public:
    int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
-   void addArc(const MDDConstraintDescriptor& d,lambdaArc a);
+   void addArc(const MDDConstraintDescriptor& d,ArcFun a);
    void addTransition(int,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)>);
    void addRelaxation(int,std::function<void(MDDState&,const MDDState&,const MDDState&)>);
    void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
    void addTransitions(lambdaMap& map);
-   bool exist(const MDDState& a,unsigned l,var<int>::Ptr x,int v);
+   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v);
    double similarity(const MDDState& a,const MDDState& b);
    bool createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
    std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,unsigned l,var<int>::Ptr var, int v);
@@ -518,7 +485,7 @@ private:
    void init();
    std::vector<MDDConstraintDescriptor> constraints;
    std::vector<var<int>::Ptr> x;
-   std::function<bool(const MDDState&,unsigned,var<int>::Ptr, int)> arcLambda;
+   ArcFun arcLambda;
    std::vector<lambdaTrans> transistionLambdas;
    std::vector<lambdaRelax> relaxationLambdas;
    std::vector<lambdaSim> similarityLambdas;

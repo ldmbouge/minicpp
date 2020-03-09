@@ -74,6 +74,8 @@ public:
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
    void removeParent(MDD* mdd,int value,int pos);
    void removeChild(MDD* mdd,int value,int pos);
+   void unhookOutgoing(MDDEdge::Ptr arc);
+   void unhookIncoming(MDDEdge::Ptr arc);
    void unhook(MDDEdge::Ptr arc);
    void unhookChild(MDDEdge::Ptr arc);
    void hookChild(MDDEdge::Ptr arc,Storage::Ptr mem);

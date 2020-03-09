@@ -375,20 +375,19 @@ void MDDRelax::delState(MDDNode* node,int l)
    if (node->getNumParents() > 0) {
       for(auto i = node->getParents().rbegin();i != node->getParents().rend();i++) {
          auto arc = *i;
-         MDDNode* parent = arc->getParent();
-         parent->unhook(arc);
+         arc->getParent()->unhookOutgoing(arc);
          delSupport(l-1,arc->getValue());         
       }
    }
    if (node->getNumChildren() > 0) {
       for(auto i = node->getChildren().rbegin();i != node->getChildren().rend();i++) {
          auto arc = *i;
-         node->unhook(arc);
+         arc->getChild()->unhookIncoming(arc);
          delSupport(l,arc->getValue());
       }
    }
-   assert(node->getNumParents()==0);
-   assert(node->getNumChildren()==0);
+   //assert(node->getNumParents()==0);  // Can't use the assert since I don't "remove" from node.
+   //assert(node->getNumChildren()==0);
 }
 
 void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,unsigned int l)
@@ -413,8 +412,9 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
       const MDDState& state = n->getState();
       MDDState psi(&_mddspec,buf);
       for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
+         MDDState childState; // there is none yet. We are trying to build it (down pass)
          if (!x[l-1]->contains(v)) continue;
-         if (!_mddspec.exist(state,l-1,x[l-1],v)) continue;
+         if (!_mddspec.exist(state,childState,x[l-1],v)) continue;
          if (l == numVariables) {
             addSupport(l-1,v);
             n->addArc(mem,sink,v);

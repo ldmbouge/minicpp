@@ -29,6 +29,30 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
 {}
 
 
+void MDDNode::unhookOutgoing(MDDEdge::Ptr arc)
+{
+   // Remove this outgoing arc from the children's list held in the receiving node. 
+   assert(this == arc->getParent());
+   int at = arc->getChildPosition();
+   assert(at >= 0 && at < children.size());
+   assert(children.get(at) == arc);
+   children.remove(at);
+   if (children.size() > 0)
+      children.get(at)->setChildPosition(parents.getTrail(), at); 
+}
+
+void MDDNode::unhookIncoming(MDDEdge::Ptr arc)
+{
+   // Remove this incoming arc from the parent's list held in the receiving node.
+   assert(arc->getChild() == this);
+   int at = arc->getParentPosition();
+   assert(at >= 0 && at < parents.size());
+   assert(parents.get(at) == arc);
+   parents.remove(at);
+   if (parents.size() > 0)
+      parents.get(at)->setParentPosition(parents.getTrail(), at);  // whoever was moved needs to know their position.
+}
+
 void MDDNode::unhook(MDDEdge::Ptr arc)
 {
    assert(this == arc->getParent());
