@@ -202,7 +202,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
    for(auto& c : cliques) {
       std::cout << "Clique: " << c << std::endl;
       auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-      cp->post(Factory::allDifferent(adv));
+      cp->post(Factory::allDifferentAC(adv));
    }
 
    auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});      
@@ -260,8 +260,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce100-jobs.csv";
-   const char* compatFile = "data/workforce100.csv";
+   const char* jobsFile = "data/workforce400-jobs.csv";
+   const char* compatFile = "data/workforce400.csv";
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);
