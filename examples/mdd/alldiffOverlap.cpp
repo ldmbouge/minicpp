@@ -80,7 +80,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
    // initialize random seed
    srand(1234);
    
+
    vector< set<int> > Cliques;
+   /*** This part was used to generate random cliques ***
    for (int i=0; i<NbCliques; i++) {
      set<int> C;
      // for (int j=0; j<N; j++) {
@@ -103,8 +105,30 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
      if (D < (int)C.size()) D = (int)C.size();
    }   
+   ***/
 
+   // Hard-coded instance
+   set<int> C = {0,1,2,5,6};
+   Cliques.push_back(C);
+   C =  {3,5,7};
+   Cliques.push_back(C);
+   C =  {4,5,7,8};
+   Cliques.push_back(C);
+   C =  {3,4,6,8,9};
+   Cliques.push_back(C);
+   C =  {4,5,7};
+   Cliques.push_back(C);
+   C =  {6,7,9,10};
+   Cliques.push_back(C);
+   C =  {7,10,11,12};
+   Cliques.push_back(C);
+   C =  {7,8,9,11};
+   Cliques.push_back(C);
+   C =  {8,9,10,13};
+   Cliques.push_back(C);
 
+   D = 5;
+   
    std::cout << "N = " << N << std::endl;
    std::cout << "D = " << D << std::endl;
    std::cout << "NbCliques = " << NbCliques << std::endl;      
