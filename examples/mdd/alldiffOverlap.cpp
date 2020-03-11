@@ -208,6 +208,8 @@ int main(int argc,char* argv[])
    try {
       CPSolver::Ptr cp  = Factory::makeSolver();
       buildModel(cp, width, mode);
+   } catch(Status s) {
+      std::cout << "model infeasible during post" << std::endl;
    } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << std::endl;
    }
