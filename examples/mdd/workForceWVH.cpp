@@ -123,7 +123,10 @@ set<set<int>> sweep(vector<Job>& jobs)
       pt.push_back(make_tuple(jobs[i].start(),true,i));
       pt.push_back(make_tuple(jobs[i].end(),false,i));
    }
-   sort(pt.begin(),pt.end(),[](const auto& e0,const auto& e1) {return (std::get<0>(e0) < std::get<0>(e1));});
+   sort(pt.begin(),pt.end(),[](const auto& e0,const auto& e1) {
+                               return (std::get<0>(e0) < std::get<0>(e1)) 
+                                  || (std::get<0>(e0) == std::get<0>(e1) && std::get<1>(e0) > std::get<1>(e1));
+                            });
    set<int> clique;
    bool added = false;
    for(const auto& p: pt){
@@ -138,17 +141,17 @@ set<set<int>> sweep(vector<Job>& jobs)
    }
 
    // WVH: add pairwise not-equal constraints
-   for(auto i = 0u; i < jobs.size()-1; i++){
-     for(auto j = i+1; j < jobs.size(); j++){
-       if ((jobs[i].end() >= jobs[j].start()) &&
-	   (jobs[i].start() <= jobs[j].end())) {
-	 set<int> pair;
-	 pair.insert(i);
-	 pair.insert(j);
-	 cliques.insert(pair);
-       }
-     }
-   }   
+   // for(auto i = 0u; i < jobs.size()-1; i++){
+   //   for(auto j = i+1; j < jobs.size(); j++){
+   //     if ((jobs[i].end() >= jobs[j].start()) &&
+   // 	   (jobs[i].start() <= jobs[j].end())) {
+   // 	 set<int> pair;
+   // 	 pair.insert(i);
+   // 	 pair.insert(j);
+   // 	 cliques.insert(pair);
+   //     }
+   //   }
+   // }   
    
    return cliques;
 }
@@ -308,8 +311,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce50-jobs.csv";
-   const char* compatFile = "data/workforce50.csv";
+   const char* jobsFile = "data/workforce400-jobs.csv";
+   const char* compatFile = "data/workforce400.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
    std::cout << "overlap = " << over << "\twidth=" << width << std::endl;
