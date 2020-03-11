@@ -168,7 +168,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       
    auto stat = search.solve([](const SearchStatistics& stats) {
        return stats.numberOfSolutions() > 0;
-     });
+     }); 
    cout << stat << endl;
 }
 
