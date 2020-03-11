@@ -196,9 +196,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();
-      MDDState cs;
-      bool ok;
-      std::tie(cs,ok) = _mddspec.createState(mem,p->getState(),l-1,x[l-1],v);
+      MDDState cs = _mddspec.createState(mem,p->getState(),l-1,x[l-1],v);
       if (first)
          ms = std::move(cs);
       else
@@ -295,10 +293,7 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
          for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
             auto p = a->getParent();      // p is the parent
             auto v = a->getValue();
-            MDDState ms;
-            bool ok;
-            std::tie(ms,ok) = _mddspec.createState(mem,p->getState(),l-1,x[l-1],v);
-            assert(ok);
+            MDDState ms =  _mddspec.createState(mem,p->getState(),l-1,x[l-1],v);
             MDDNode* bj = findSimilar(cl,ms,refDir);
             // cout << "\tsimto:" << ms << " = " << bj->getState() << endl;
             if (bj->getState() == ms) { // there is a perfect match

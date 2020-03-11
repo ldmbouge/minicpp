@@ -202,10 +202,11 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
    for(auto& c : cliques) {
       std::cout << "Clique: " << c << std::endl;
       auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-      cp->post(Factory::allDifferentAC(adv));
+      cp->post(Factory::allDifferent(adv));
    }
 
-   auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});      
+   
+   auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});
    Objective::Ptr obj = Factory::maximize(Factory::sum(sm));
   
    auto start = RuntimeMonitor::now();
@@ -214,12 +215,15 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
                                             [](const auto& x) { return x->size() > 1;},
                                             [](const auto& x) { return x->size();});
                          
-                         /*                                                                       
+                         int depth = 0;
+                         for(int i=0;i < nbE;i++) 
+                            depth += emp[i]->size() == 1;
+                         /*                                               
       unsigned i;      
       for(i=0u;i< emp.size();i++)
          if (emp[i]->size() > 1)
             break;
-      auto x = i < emp.size() ? emp[i] : nullptr;
+      auto x = i < emp.size() ? emp[i] : nullptr;                                                
                          */
                          
       if (x) {
@@ -233,7 +237,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
             largest = std::max(largest,compat[i][v]);           
          }
          return  [=] {
-                    //cout << tab(i) << "?x(" << i << ") == " << bv << endl;
+                    //cout << tab(depth) << "?x(" << i << ") == " << bv << " " <<  x << endl;
                     cp->post(x == bv);
                     //cout << tab(i) << "!x(" << i << ") == " << bv << endl;
                     //theOne->debugGraph();
@@ -260,8 +264,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce400-jobs.csv";
-   const char* compatFile = "data/workforce400.csv";
+   const char* jobsFile = "data/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce100.csv";
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);

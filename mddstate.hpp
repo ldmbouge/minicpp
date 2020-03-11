@@ -62,19 +62,19 @@ public:
    bool getBit(int ofs) const {
       const int wIdx = ofs / 64;
       const int bOfs = ofs % 64;
-      const unsigned long long bmask = 0x1 << bOfs;
+      const unsigned long long bmask = 0x1ull << bOfs;
       return (_buf[wIdx] & bmask) == bmask;
    }
    void clear(int ofs) {
       const int wIdx = ofs / 64;
       const int bOfs = ofs % 64;
-      const unsigned long long bmask = 0x1 << bOfs;
+      const unsigned long long bmask = 0x1ull << bOfs;
       _buf[wIdx] &= ~bmask;
    }
    void set(int ofs) {
       const int wIdx = ofs / 64;
       const int bOfs = ofs % 64;
-      const unsigned long long bmask = 0x1 << bOfs;
+      const unsigned long long bmask = 0x1ull << bOfs;
       _buf[wIdx] |= bmask;      
    }
    unsigned long long cardinality() const {
@@ -462,8 +462,8 @@ public:
    void addTransitions(lambdaMap& map);
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v);
    double similarity(const MDDState& a,const MDDState& b);
-   bool createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
-   std::pair<MDDState,bool> createState(Storage::Ptr& mem,const MDDState& state,unsigned l,var<int>::Ptr var, int v);
+   void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
+   MDDState createState(Storage::Ptr& mem,const MDDState& state,unsigned l,var<int>::Ptr var, int v);
    void relaxation(MDDState& a,const MDDState& b);
    MDDState relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b);
    MDDState rootState(Storage::Ptr& mem);

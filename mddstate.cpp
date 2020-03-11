@@ -168,44 +168,33 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v)
    return arcLambda(a,c,x,v);
 }
 
-bool MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v)
+void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v)
 {
   result.clear();
-  MDDState child;
-  if(arcLambda(parent,child,var, v)) {
-     for(auto& c :constraints) {
-        if(c.member(var))
-           for(auto i : c) 
-              transistionLambdas[i](result,parent,var,v);
-        else
-           for(auto i : c) 
-              result.setProp(i,parent);
-     }
-     //result.hash();
-     result.relax(parent.isRelaxed());
-     return true;
+  for(auto& c :constraints) {
+     if(c.member(var))
+        for(auto i : c) 
+           transistionLambdas[i](result,parent,var,v);
+     else
+        for(auto i : c) 
+           result.setProp(i,parent);
   }
-  return false;
+  result.relax(parent.isRelaxed());
 }
 
-std::pair<MDDState,bool> MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,unsigned l,
-                                              var<int>::Ptr var, int v)
+MDDState MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,unsigned l,var<int>::Ptr var, int v)
 {
-   MDDState child;
-   if(arcLambda(parent,child,var, v)){
-       MDDState result(this,(char*)mem->allocate(layoutSize()));
-       for(auto& c :constraints) {
-          if(c.member(var))
-             for(auto i : c) 
-                transistionLambdas[i](result,parent,var,v);
-          else
-             for(auto i : c) 
-                result.setProp(i, parent);
-       }
-       result.relax(parent.isRelaxed());
-       return std::pair<MDDState,bool>(result,true);
-    }
-    return std::pair<MDDState,bool>(MDDState(),false);
+   MDDState result(this,(char*)mem->allocate(layoutSize()));
+   for(auto& c :constraints) {
+      if(c.member(var))
+         for(auto i : c) 
+            transistionLambdas[i](result,parent,var,v);
+      else
+         for(auto i : c) 
+            result.setProp(i, parent);
+   }
+   result.relax(parent.isRelaxed());
+   return result;
 }
 
 double MDDSpec::similarity(const MDDState& a,const MDDState& b) 

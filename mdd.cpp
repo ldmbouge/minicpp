@@ -83,23 +83,21 @@ void MDD::buildNextLayer(unsigned int i)
       if(!x[i]->contains(v)) continue;
       for(auto pidx = 0u; pidx < layers[i].size(); pidx++) {
          MDDNode* parent = layers[i][pidx];
-         MDDState state;
-         bool     ok;
-         std::tie(state,ok) = _mddspec.createState(mem,parent->getState(),i, x[i], v);
-         if(ok) {
-            if(i < numVariables - 1){
-               auto found = umap.find(&state);
-               MDDNode* child = nullptr;
-               if(found == umap.end()){
-                  child = new (mem) MDDNode(_lastNid++,mem, trail, state, x[i]->size(),i+1, (int)layers[i+1].size());
-                  umap.insert({child->key(),child});
-                  layers[i+1].push_back(child,mem);
-               }  else child = found->second;
-               parent->addArc(mem,child, v);
-            } else
-               parent->addArc(mem,sink, v);
-            addSupport(i, v);
-         }
+         MDDState child;
+         if (!_mddspec.exist(parent->getState(),child,x[i],v)) continue;
+         MDDState state = _mddspec.createState(mem,parent->getState(),i, x[i], v);
+         if(i < numVariables - 1){
+            auto found = umap.find(&state);
+            MDDNode* child = nullptr;
+            if(found == umap.end()){
+               child = new (mem) MDDNode(_lastNid++,mem, trail, state, x[i]->size(),i+1, (int)layers[i+1].size());
+               umap.insert({child->key(),child});
+               layers[i+1].push_back(child,mem);
+            }  else child = found->second;
+            parent->addArc(mem,child, v);
+         } else
+            parent->addArc(mem,sink, v);
+         addSupport(i, v);
       }
       if (getSupport(i,v) == 0)
          x[i]->remove(v);
