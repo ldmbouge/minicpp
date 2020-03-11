@@ -51,8 +51,10 @@ std::string tab(int d) {
    return s;
 }
 
-void buildModel(CPSolver::Ptr cp, int relaxSize, int useMDD)
+void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 {
+   // mode: 0 (standard alldiff), 1 (AC alldiff), 2 (MDD), 3 (AC + MDD)
+
    using namespace std;
 
    // Settings as in Andersen et al. [CP 2007]:
@@ -60,35 +62,77 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int useMDD)
    //   n = number of variables
    //   r = size of scope of each constraint
    //   d = domain size
-   // The paper reports (10,9,9) and (12,10,10).
-      
-   int N = 12;
-   int D = 10;
+   // The paper reports (10,9,9) and (12,10,10), e.g.,
+   //
+   //   set<int> C1 = {0,1,  3,4,5,6,7,8,  10,11};
+   //   set<int> C2 = {0,1,2,3,  5,6,  8,9,10,11};
+   //   set<int> C3 = {0,1,2,  4,5,6,7,8,9,10};
+   //
+   // Issue: the "Hall set" check in MDD makes these instances trivial,
+   // which means we need should compare with AC-alldiff.  We therefore 
+   // consider more complex instances with more alldiff constraints (and
+   // more variables).
+
+   int N = 15;
+   int D = 0; // set later, to minimum Alldiff scope
+   int NbCliques = 9;
+
+   // initialize random seed
+   srand(1234);
+   
+   vector< set<int> > Cliques;
+   for (int i=0; i<NbCliques; i++) {
+     set<int> C;
+     // for (int j=0; j<N; j++) {
+     //   // include variable with some probability 
+     //   auto v = rand() % 100;
+     //   if (v < 60) {
+     // 	 C.insert(j);
+     //   }
+     // }
+     for (int j=i; j<=i+N-NbCliques; j++) {
+       // include variables from staggered interval (best case scenario for MDDs)
+       auto v = rand() % 100;
+       if (v < 60) {
+     	 C.insert(j);
+       }
+     }
+     
+     std::cout << "clique " << i << ": " << C << std::endl;
+     Cliques.push_back(C);
+
+     if (D < (int)C.size()) D = (int)C.size();
+   }   
+
+
+   std::cout << "N = " << N << std::endl;
+   std::cout << "D = " << D << std::endl;
+   std::cout << "NbCliques = " << NbCliques << std::endl;      
+
    auto vars = Factory::intVarArray(cp, N, 0, D-1);
 
-   set<int> C1 = {0,1,  3,4,5,6,7,8,  10,11};
-   set<int> C2 = {0,1,2,3,  5,6,  8,9,10,11};
-   set<int> C3 = {0,1,2,  4,5,6,7,8,9,10};
-   
-   auto mdd = new MDDRelax(cp,relaxSize);
-   auto adv1 = all(cp, C1, [&vars](int i) {return vars[i];});
-   Factory::allDiffMDD(mdd->getSpec(),adv1);
-   cp->post(Factory::allDifferent(adv1));
-
-   auto adv2 = all(cp, C2, [&vars](int i) {return vars[i];});
-   Factory::allDiffMDD(mdd->getSpec(),adv2);
-   cp->post(Factory::allDifferent(adv2));
-   
-   auto adv3 = all(cp, C3, [&vars](int i) {return vars[i];});
-   Factory::allDiffMDD(mdd->getSpec(),adv3);
-   cp->post(Factory::allDifferent(adv3));
-  
-
-   // All added to single MDD
-   if (useMDD != 0) {
+   if (mode == 0) {
+     for (int i=0; i<NbCliques; i++) {
+       auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
+       cp->post(Factory::allDifferent(adv));
+     }
+   }
+   if ((mode == 1) || (mode == 3)) {
+     for (int i=0; i<NbCliques; i++) {
+       auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
+       cp->post(Factory::allDifferentAC(adv));
+     }
+   }
+   if ((mode == 2) || (mode==3)) {
+     auto mdd = new MDDRelax(cp,relaxSize);
+     for (int i=0; i<NbCliques; i++) {
+       auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
+       Factory::allDiffMDD(mdd->getSpec(),adv);
+     }
      cp->post(mdd);
    }
-
+   
+   
    DFSearch search(cp,[=]() {
       unsigned i;
       for(i=0u;i< vars.size();i++)
@@ -130,14 +174,16 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int useMDD)
 
 int main(int argc,char* argv[])
 {
-   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
-   int useMDD  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
- 
+   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
+   int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 0;
+
+   // mode: 0 (standard alldiff), 1 (AC alldiff), 2 (MDD), 3 (AC + MDD)
+   
    std::cout << "width = " << width << std::endl;
-   std::cout << "useMDD = " << useMDD << std::endl;
+   std::cout << "mode = " << mode << std::endl;
    try {
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp, width, useMDD);
+      buildModel(cp, width, mode);
    } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << std::endl;
    }
