@@ -261,11 +261,13 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
                             depth += emp[i]->size() == 1;
 
       unsigned i;      
-      for(i=0u;i< emp.size();i++)
+      // for(i=0u;i< emp.size();i++)
+      //    cout << emp[i] << endl;
+      for(i=0u;i< emp.size();i++) 
          if (emp[i]->size() > 1)
-            break;
-      auto x = i < emp.size() ? emp[i] : nullptr;                        
-
+            break;     
+      auto x = i < emp.size() ? emp[i] : nullptr;                                                
+      // cout << "picked: " << i << endl;
                          
       if (x) {
          int i = x->getId();
@@ -280,14 +282,12 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          return  [=] {
                     //cout << tab(depth) << "?x(" << i << ") == " << bv << " " <<  x << endl;
                     cp->post(x == bv);
-                    //cout << tab(i) << "!x(" << i << ") == " << bv << endl;
-                    //theOne->debugGraph();
+                    //cout << tab(depth) << "!x(" << i << ") == " << bv << endl;
                  }
             | [=] {
-                 //cout << tab(i) << "?x(" << i << ") != " << bv << " FAIL" << endl;
+                 //cout << tab(depth) << "?x(" << i << ") != " << bv << " FAIL" << endl;
                  cp->post(x != bv);
-                 //cout << tab(i) << "!x(" << i << ") != " << bv << endl;
-                 //theOne->debugGraph();
+                 //cout << tab(depth) << "!x(" << i << ") != " << bv << endl;
               };
       } else return Branches({});
    });
