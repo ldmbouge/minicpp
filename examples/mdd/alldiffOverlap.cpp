@@ -64,7 +64,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int useMDD)
       
    int N = 12;
    int D = 10;
-   auto vars = Factory::intVarArray(cp, N, 1, D);
+   auto vars = Factory::intVarArray(cp, N, 0, D-1);
 
    set<int> C1 = {0,1,  3,4,5,6,7,8,  10,11};
    set<int> C2 = {0,1,2,3,  5,6,  8,9,10,11};
@@ -78,31 +78,41 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int useMDD)
    auto adv2 = all(cp, C2, [&vars](int i) {return vars[i];});
    Factory::allDiffMDD(mdd->getSpec(),adv2);
    cp->post(Factory::allDifferent(adv2));
-
+   
    auto adv3 = all(cp, C3, [&vars](int i) {return vars[i];});
    Factory::allDiffMDD(mdd->getSpec(),adv3);
    cp->post(Factory::allDifferent(adv3));
+  
 
    // All added to single MDD
    if (useMDD != 0) {
      cp->post(mdd);
    }
-   
 
    DFSearch search(cp,[=]() {
+      unsigned i;
+      for(i=0u;i< vars.size();i++)
+         if (vars[i]->size() > 1)
+            break;
+      auto x = i < vars.size() ? vars[i] : nullptr;
+      /*
        auto x = selectMin(vars,
 			  [](const auto& x) { return x->size() > 1;},
 			  [](const auto& x) { return x->size();});
-       
+      */   
        if (x) {
 	 int c = x->min();
 
-	 return  [=] {
-	   cp->post(x == c);
-	 }
-	 | [=] {
-	   cp->post(x != c);
-	 };
+         return  [=] {
+                    //cout << tab(i) << "?x(" << i << ") == " << c << endl;
+                    cp->post(x == c);
+                    //cout << tab(i) << "!x(" << i << ") == " << c << endl;
+                 }
+            | [=] {
+                 //cout << tab(i) << "?x(" << i << ") != " << c << " FAIL" << endl;
+                 cp->post(x != c);
+                 //cout << tab(i) << "!x(" << i << ") != " << c << endl;
+              };
        } else return Branches({});
      });
       

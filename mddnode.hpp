@@ -70,6 +70,8 @@ public:
    std::size_t getNumChildren() const  { return children.size();}
    std::size_t getNumParents() const   { return parents.size();}
    bool disconnected() const           { return children.size() < 1 || parents.size() < 1;}
+   void clearChildren() { children.clear();}
+   void clearParents()  { parents.clear();}
    void remove(MDD* mdd);
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
    void removeParent(MDD* mdd,int value,int pos);
@@ -85,6 +87,7 @@ public:
    void setState(const MDDState& s,Storage::Ptr mem) {
       auto t = children.getTrail();
       state.assign(s,t,mem);
+      clearDirty();
    }
    const MDDState& getState() { return state;}
    bool contains(int v);
@@ -97,19 +100,36 @@ public:
       pos = p;
    }
    bool isActive() const { return _active;}
+   bool isDirty() const  { return _dirty;}
+   void markDirty()  {
+      auto t = children.getTrail();
+      t->trail(new (t) TrailEntry<bool>(&_dirty));
+      _dirty = true;
+   }
+   void clearDirty() {
+      auto t = children.getTrail();
+      t->trail(new (t) TrailEntry<bool>(&_dirty));
+      _dirty = false;
+   }
    void deactivate() {
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<bool>(&_active));
       _active = false;
    }
+   void activate() {
+      auto t = children.getTrail();
+      t->trail(new (t) TrailEntry<bool>(&_active));
+      _active = true;
+   }
    void print(std::ostream& os)
    {
-      os << "L[" << layer << "," << pos << "] " << state;
+      os << "L[" << layer << "," << pos << ',' << (_dirty ? 'D':'C') <<  "] " << state;
    }
 private:   
    int pos;
    int _nid;
    bool _active;
+   bool _dirty;
    const unsigned short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;

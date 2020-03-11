@@ -209,12 +209,13 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    if (changed) {
       for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) {
          n->unhook(*i);
+         (*i)->getChild()->markDirty();
          delSupport(l,(*i)->getValue());
       }
       // std::cout << "refresh[" << l << "]@" << n->getPosition() << " : "
       //           << n->getState() << " to " << ms << std::endl;
       n->setState(ms,mem);
-   }
+   } else n->clearDirty();
    return changed;
 }
 
@@ -357,6 +358,7 @@ MDDNode* MDDRelax::resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l)
    for(auto i = to->getChildren().rbegin();i != to->getChildren().rend();i++) {
       auto arc = *i;
       to->unhook(arc);
+      arc->getChild()->markDirty();
       delSupport(l,arc->getValue());
    }
    return to;
@@ -378,13 +380,16 @@ void MDDRelax::delState(MDDNode* node,int l)
          arc->getParent()->unhookOutgoing(arc);
          delSupport(l-1,arc->getValue());         
       }
+      node->clearParents();
    }
    if (node->getNumChildren() > 0) {
       for(auto i = node->getChildren().rbegin();i != node->getChildren().rend();i++) {
          auto arc = *i;
          arc->getChild()->unhookIncoming(arc);
+         arc->getChild()->markDirty();
          delSupport(l,arc->getValue());
       }
+      node->clearChildren();
    }
    //assert(node->getNumParents()==0);  // Can't use the assert since I don't "remove" from node.
    //assert(node->getNumChildren()==0);
@@ -392,7 +397,7 @@ void MDDRelax::delState(MDDNode* node,int l)
 
 void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,unsigned int l)
 {
-   if (delta.size() == 0) return;
+   //if (delta.size() == 0) return;
 
    using namespace std;
    // cout << "SP[" << l <<"] = " << layers[l].size();
@@ -404,11 +409,30 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
    const MDDState& refDir = _refs[l];
    std::set<MDDNode*,MDDNodePtrOrder> out;
    std::multimap<float,MDDNode*,std::less<float> > cl;
-   for(auto& n : layer) 
+   std::vector<MDDNode*> recycled;
+   for(auto i = layer.rbegin();i != layer.rend() && l != numVariables;i++) {
+      auto n = *i;
+      if (n->getNumParents() == 0) {
+         recycled.push_back(n);
+         delState(n,l);
+         continue;
+      }
+      if (n->isDirty()) {
+         bool updated = refreshNode(n,l);
+         if (updated) {
+            out.insert(n);
+         }
+      }
       cl.insert({n->getState().inner(refDir),n});
+   }
    
    char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
+   //   for(auto n : delta)
+   //std::cout << "DELTA = " << n << std::endl;
    for(auto n : delta) {
+      if (!n->isActive()) continue;
+      assert(n->isActive());
+      //std::cout << "spawn:" << n << (n->isActive() ? " AAA" : "  NA") << std::endl;
       const MDDState& state = n->getState();
       MDDState psi(&_mddspec,buf);
       for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
@@ -427,12 +451,25 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
             n->addArc(mem,child,v);
          } else { // Never seen psi before.
             if (layer.size() < _width) { // there is room in this layer.
-               child = new (mem) MDDNode(_lastNid++,mem,trail,psi.clone(mem),x[l-1]->size(),l,(int)layer.size());
-               layer.push_back(child,mem);
-               addSupport(l-1,v);
-               n->addArc(mem,child,v);
-               out.insert(child);
-               cl.insert({psi.inner(refDir),child});
+               if (recycled.size() > 0) {
+                  MDDNode* reuse = recycled.back();
+                  reuse->activate();
+                  reuse->setState(psi.clone(mem), mem);
+                  recycled.pop_back();
+                  reuse->setPosition(layer.size(), mem);
+                  layer.push_back(reuse, mem);
+                  addSupport(l-1, v);
+                  n->addArc(mem,reuse,v);
+                  out.insert(reuse);
+                  cl.insert({psi.inner(refDir),reuse});
+               } else {
+                  child = new (mem) MDDNode(_lastNid++,mem,trail,psi.clone(mem),x[l-1]->size(),l,(int)layer.size());
+                  layer.push_back(child,mem);
+                  addSupport(l-1,v);
+                  n->addArc(mem,child,v);
+                  out.insert(child);
+                  cl.insert({psi.inner(refDir),child});
+               }
             } else {
                MDDNode* psiSim = findSimilar(cl,psi,refDir);
                const MDDState& psiSimState = psiSim->getState();
@@ -456,7 +493,8 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
             }
          }
       }
-      if (n->getNumChildren() == 0) {         
+      if (n->getNumChildren() == 0) {
+         //std::cout << "spawn::delState: " << n << std::endl;
          delState(n,l-1); // delete is in the layer above. cl contain nodes from layer *l*
       }
    }
@@ -465,7 +503,6 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
          x[l-1]->remove(v);
    }
    delta = out;
-
    // cout << "EP[" << l <<"] = " << layers[l].size();
    // for(unsigned i=0u;i < layers[l].size();i++) {
    //    cout << "   " << layers[l][i]->getState() << ":"
@@ -480,9 +517,13 @@ void MDDRelax::rebuild()
    //           << _lowest+1 <<  " -> " << numVariables << ")" << std::endl;
    std::set<MDDNode*,MDDNodePtrOrder> delta;
    for(unsigned l = _lowest + 1; l < numVariables;l++) {
+      // First refresh the down information in the nodes of layer l based on whether those are dirty.
+      
       std::set<MDDNode*,MDDNodePtrOrder> splitNodes = split(layers[l],l);
-      for(auto n : splitNodes)
+      for(auto n : splitNodes) {
+         assert(n->isActive());
          delta.insert(n);
+      }
       spawn(delta,layers[l+1],l+1);
    }
 }

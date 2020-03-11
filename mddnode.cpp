@@ -12,6 +12,7 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id
    : pos(id),
      _nid(nid),
      _active(true),
+     _dirty(false),
      layer(layer),
      children(t,mem,2),
      parents(t,mem,2)
@@ -22,6 +23,7 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
    : pos(id),
      _nid(nid),
      _active(true),
+     _dirty(false),
      layer(layer),
      children(t,mem,dsz),
      parents(t,mem,dsz),
@@ -90,9 +92,12 @@ void MDDNode::hookChild(MDDEdge::Ptr arc,Storage::Ptr mem)
 */
 void MDDNode::remove(MDD* mdd)
 {
-   for(int i = (int)children.size() - 1; i >= 0 ; i--)
-      children.get(i)->remove(mdd);
-   for(int i = (int)parents.size() - 1; i >=0 ; i--)
+   for(int i = (int)children.size() - 1; i >= 0 ; i--) {
+      MDDEdge::Ptr arc = children.get(i);
+      arc->getChild()->markDirty();
+      arc->remove(mdd);
+   }
+   for(int i = (int)parents.size() - 1; i >=0 ; i--) // Would have to do something for up properties.
       parents.get(i)->remove(mdd);
 }
 
@@ -157,8 +162,11 @@ void MDDNode::trim(MDD* mdd,var<int>::Ptr x)
 {
    if (isActive()) {
       for(int i = (int)children.size() - 1; i >= 0 ; i--){
-         if(!x->contains(children.get(i)->getValue()))
-            children.get(i)->remove(mdd);
+         if(!x->contains(children.get(i)->getValue())) {
+            auto arc = children.get(i);
+            arc->getChild()->markDirty();
+            arc->remove(mdd);
+         }
       }
    }
 }
