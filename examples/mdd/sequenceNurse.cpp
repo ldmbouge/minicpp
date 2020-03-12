@@ -50,6 +50,13 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
    return res;
 }
 
+std::string tab(int d) {
+   std::string s = "";
+   while (d--!=0)
+      s = s + "  ";
+   return s;
+}
+
 
 void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 {
@@ -112,6 +119,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   cp->post(mdd);
   
   DFSearch search(cp,[=]() {
+<<<<<<< HEAD
       unsigned i = 0u;
       for(i=0u;i < vars.size();i++)
 	if (vars[i]->size()> 1) break;
@@ -121,16 +129,40 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 			 [](const auto& x) { return x->size() > 1;},
 			 [](const auto& x) { return x->size();});
       */
+=======
+         // unsigned i;
+         // for(i=0u;i< vars.size();i++)
+         //    if (vars[i]->size() > 1)
+         //       break;
+         // auto x = (i < vars.size()) ? vars[i] : nullptr;
+
+		       int depth = 0;
+		       for(auto i=0u;i < vars.size();i++) 
+			 depth += vars[i]->size() == 1;
+
+	 auto x = selectMin(vars,
+			 [](const auto& x) { return x->size() > 1;},
+			 [](const auto& x) { return x->size();});
+	 
+>>>>>>> a306b782a3c5ab97e454588734ebf46ac56c22d9
       if (x) {
+	int i = x->getId();
 	int c = x->min();
 	
 	return  [=] {
-	  cp->post(x == c);}
-	| [=] {
-	  cp->post(x != c);};
+		  cout << tab(depth) << "?x(" << i << ") == " << c << " " <<  x << endl;
+		  cp->post(x == c);
+		  cout << tab(depth) << "!x(" << i << ") == " << c << " " <<  x << endl;
+		}
+	  | [=] {
+	      cout << tab(depth) << "?x(" << i << ") != " << c << " " <<  x << endl;
+	      cp->post(x != c);
+	      cout << tab(depth) << "!x(" << i << ") != " << c << " " <<  x << endl;
+	    };
       } else return Branches({});
     });
   
+<<<<<<< HEAD
   int cnt = 0;
   search.onSolution([&vars,&cnt]() {
       //cnt++;
@@ -140,6 +172,12 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
   auto start = RuntimeMonitor::cputime();
 
+=======
+  search.onSolution([&vars]() {
+		      std::cout << "Assignment:" << vars << std::endl;
+		    });
+  
+>>>>>>> a306b782a3c5ab97e454588734ebf46ac56c22d9
   auto stat = search.solve([](const SearchStatistics& stats) {
       //return stats.numberOfSolutions() > INT_MAX;
       return stats.numberOfSolutions() > 0;

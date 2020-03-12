@@ -148,7 +148,7 @@ void MDDSpec::addSimilarity(int p,std::function<double(const MDDState&,const MDD
 {
     similarityLambdas[p] = s;
 }
-void MDDSpec::addTransitions(lambdaMap& map)
+void MDDSpec::addTransitions(const lambdaMap& map)
 {
    for(auto& kv : map)
       transistionLambdas[kv.first] = kv.second;
@@ -288,7 +288,7 @@ namespace Factory {
                                 out.getBS(some).set(val - minDom);
                             });
       mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val) {
-                               out.set(len,in.at(len) + d.member(var));
+                               out.set(len,in.at(len) + 1);
                             });      
       mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r)     {
                                out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));
@@ -331,26 +331,29 @@ namespace Factory {
       std::vector<int> ps = spec.addStates(desc,minFIdx,maxLIdx,SHRT_MAX,[maxLIdx,len,minLIdx] (int i) -> int {
          return (i - (i <= minLIdx ? minLIdx : (i >= len ? maxLIdx : 0)));
       });
-      int p0 = ps[0]; int pminL = ps[minLIdx]; int pmaxF = ps[maxFIdx];
-      int pmin = ps[minFIdx];
-      int pmax = ps[maxLIdx];
+      int p0 = ps[0];
+      const int pminL = ps[minLIdx];
+      const int pmaxF = ps[maxFIdx];
+      const int pmin = ps[minFIdx];
+      const int pmax = ps[maxLIdx];
       spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v) -> bool {
-                     bool inS = values.member(v);
-                     int minv = p.at(pmax) - p.at(pmin) + inS;
-                     return (p.at(p0) < 0 && minv >= lb && p.at(pminL) + inS <= ub)
-                        ||  (minv >= lb && p.at(pminL) - p.at(pmaxF) + inS <= ub);
-                  });
-
-      lambdaMap d = toDict(minFIdx,maxLIdx,ps,[=] (int i,int pi) -> lambdaTrans {
-         if (i == maxLIdx || i == minLIdx)
-            return [pi,values] (auto& out,const auto& p,auto x, int v)  { out.set(pi,p.at(pi)+values.member(v));};
-         return [pi] (auto& out,const auto& p,auto x, int v)  { out.set(pi,p.at(pi+1));};
-      });
+                          bool inS = values.member(v);
+                          int minv = p.at(pmax) - p.at(pmin) + inS;
+                          return (p.at(p0) < 0 && minv >= lb && p.at(pminL) + inS <= ub)
+                             ||  (minv >= lb && p.at(pminL) - p.at(pmaxF) + inS <= ub);
+                       });
       
-      spec.addTransitions(d);
-      //spec.addTransitions(toDict(minFIdx,minLIdx)
+      spec.addTransitions(toDict(ps[minFIdx],
+                                 ps[minLIdx]-1,
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+      spec.addTransitions(toDict(ps[maxFIdx],
+                                 ps[maxLIdx]-1,
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+      spec.addTransition(ps[minLIdx],[values,
+                                      k=ps[minLIdx]](auto& out,const auto& p,auto x,int v) { out.set(k,p.at(k)+values.member(v));});
+      spec.addTransition(ps[maxLIdx],[values,
+                                      k=ps[maxLIdx]](auto& out,const auto& p,auto x,int v) { out.set(k,p.at(k)+values.member(v));});
       
-
       for(int i = minFIdx; i <= minLIdx; i++)
          spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
       for(int i = maxFIdx; i <= maxLIdx; i++)
