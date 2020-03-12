@@ -339,8 +339,8 @@ namespace Factory {
       spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v) -> bool {
                           bool inS = values.member(v);
                           int minv = p.at(pmax) - p.at(pmin) + inS;
-                          return (p.at(p0) < 0 && minv >= lb && p.at(pminL) + inS <= ub)
-                             ||  (minv >= lb && p.at(pminL) - p.at(pmaxF) + inS <= ub);
+                          return (p.at(p0) < 0 &&  minv >= lb && p.at(pminL) + inS               <= ub)
+                             ||  (p.at(p0) >= 0 && minv >= lb && p.at(pminL) - p.at(pmaxF) + inS <= ub);
                        });
       
       spec.addTransitions(toDict(ps[minFIdx],

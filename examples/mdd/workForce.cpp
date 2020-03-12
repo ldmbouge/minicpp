@@ -251,23 +251,19 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
   
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
-                         /*                         auto x = selectMin(emp,
+                         auto x = selectMin(emp,
                                              [](const auto& x) { return x->size() > 1;},
                                              [](const auto& x) { return x->size();});
-                         */
-                         
+                                                  
                          int depth = 0;
                          for(int i=0;i < nbE;i++) 
                             depth += emp[i]->size() == 1;
 
-      unsigned i;      
-      // for(i=0u;i< emp.size();i++)
-      //    cout << emp[i] << endl;
-      for(i=0u;i< emp.size();i++) 
-         if (emp[i]->size() > 1)
-            break;     
-      auto x = i < emp.size() ? emp[i] : nullptr;                                                
-      // cout << "picked: " << i << endl;
+      // unsigned i;      
+      // for(i=0u;i< emp.size();i++) 
+      //    if (emp[i]->size() > 1)
+      //       break;     
+      // auto x = i < emp.size() ? emp[i] : nullptr;                                                
                          
       if (x) {
          int i = x->getId();
@@ -307,8 +303,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce9-jobs.csv";
-   const char* compatFile = "data/workforce9.csv";
+   const char* jobsFile = "data/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce100.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
    std::cout << "overlap = " << over << "\twidth=" << width << std::endl;
