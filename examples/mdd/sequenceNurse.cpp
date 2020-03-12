@@ -112,10 +112,15 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   cp->post(mdd);
   
   DFSearch search(cp,[=]() {
+      unsigned i = 0u;
+      for(i=0u;i < vars.size();i++)
+	if (vars[i]->size()> 1) break;
+      auto x = i< vars.size() ? vars[i] : nullptr;
+      /*
       auto x = selectMin(vars,
 			 [](const auto& x) { return x->size() > 1;},
 			 [](const auto& x) { return x->size();});
-      
+      */
       if (x) {
 	int c = x->min();
 	
@@ -126,14 +131,17 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       } else return Branches({});
     });
   
-  search.onSolution([&vars]() {
-      // std::cout << "Assignment:" << std::endl;
-      // std::cout << vars << std::endl;
+  int cnt = 0;
+  search.onSolution([&vars,&cnt]() {
+      //cnt++;
+      //std::cout << " " << cnt;
+       std::cout << "Assignment:" << std::endl;
+       std::cout << vars << std::endl;
     });
   
   auto stat = search.solve([](const SearchStatistics& stats) {
       //return stats.numberOfSolutions() > INT_MAX;
-      return stats.numberOfSolutions() > 0;
+                              return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   
