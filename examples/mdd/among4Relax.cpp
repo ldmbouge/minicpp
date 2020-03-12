@@ -33,7 +33,7 @@ int main(int argc,char* argv[])
       
    CPSolver::Ptr cp  = Factory::makeSolver();
 
-   auto v = Factory::intVarArray(cp, 200, 1, 9);
+   auto v = Factory::intVarArray(cp, 50, 1, 9);
    auto start = RuntimeMonitor::now();
    auto mdd = new MDDRelax(cp,width);
    //auto mdd = new MDD(cp);

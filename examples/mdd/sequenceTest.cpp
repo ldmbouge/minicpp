@@ -85,8 +85,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     });
   
   search.onSolution([&vars]() {
-      // std::cout << "Assignment:" << std::endl;
-      // std::cout << vars << std::endl;
+      std::cout << "Assignment:" << vars << std::endl;
     });
   
   auto stat = search.solve([](const SearchStatistics& stats) {

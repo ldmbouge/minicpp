@@ -329,7 +329,7 @@ namespace Factory {
       auto& desc = spec.makeConstraintDescriptor(vars,"seqMDD");
 
       std::vector<int> ps = spec.addStates(desc,min,max,SHRT_MAX,[max,len,minLIdx] (int i) -> int {
-         return (i - (i <= minLIdx ? minLIdx : (i > len ? max : 0)));
+         return (i - (i <= minLIdx ? minLIdx : (i >= len ? max : 0)));
       });
       int p0 = ps[0]; int pminL = ps[minLIdx]; int pmaxF = ps[maxFIdx];
       int pmin = ps[min]; int pmax = ps[max];
@@ -343,7 +343,7 @@ namespace Factory {
       lambdaMap d = toDict(min,max,ps,[=] (int i,int pi) -> lambdaTrans {
          if (i == max || i == minLIdx)
             return [pi,values] (auto& out,const auto& p,auto x, int v)  { out.set(pi,p.at(pi)+values.member(v));};
-         return [pi] (auto& out,const auto& p,auto x, int v)  { out.set(pi+1,p.at(pi+1));};
+         return [pi] (auto& out,const auto& p,auto x, int v)  { out.set(pi,p.at(pi+1));};
       });
       
       spec.addTransitions(d);
