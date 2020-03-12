@@ -50,6 +50,13 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
    return res;
 }
 
+std::string tab(int d) {
+   std::string s = "";
+   while (d--!=0)
+      s = s + "  ";
+   return s;
+}
+
 
 void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 {
@@ -112,24 +119,40 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   cp->post(mdd);
   
   DFSearch search(cp,[=]() {
-      auto x = selectMin(vars,
+         // unsigned i;
+         // for(i=0u;i< vars.size();i++)
+         //    if (vars[i]->size() > 1)
+         //       break;
+         // auto x = (i < vars.size()) ? vars[i] : nullptr;
+
+		       int depth = 0;
+		       for(auto i=0u;i < vars.size();i++) 
+			 depth += vars[i]->size() == 1;
+
+	 auto x = selectMin(vars,
 			 [](const auto& x) { return x->size() > 1;},
 			 [](const auto& x) { return x->size();});
-      
+	 
       if (x) {
+	int i = x->getId();
 	int c = x->min();
 	
 	return  [=] {
-	  cp->post(x == c);}
-	| [=] {
-	  cp->post(x != c);};
+		  cout << tab(depth) << "?x(" << i << ") == " << c << " " <<  x << endl;
+		  cp->post(x == c);
+		  cout << tab(depth) << "!x(" << i << ") == " << c << " " <<  x << endl;
+		}
+	  | [=] {
+	      cout << tab(depth) << "?x(" << i << ") != " << c << " " <<  x << endl;
+	      cp->post(x != c);
+	      cout << tab(depth) << "!x(" << i << ") != " << c << " " <<  x << endl;
+	    };
       } else return Branches({});
     });
   
   search.onSolution([&vars]() {
-      // std::cout << "Assignment:" << std::endl;
-      // std::cout << vars << std::endl;
-    });
+		      std::cout << "Assignment:" << vars << std::endl;
+		    });
   
   auto stat = search.solve([](const SearchStatistics& stats) {
                               //return stats.numberOfSolutions() > INT_MAX;

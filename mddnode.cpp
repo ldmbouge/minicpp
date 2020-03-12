@@ -48,7 +48,7 @@ void MDDNode::unhookIncoming(MDDEdge::Ptr arc)
    // Remove this incoming arc from the parent's list held in the receiving node.
    assert(arc->getChild() == this);
    int at = arc->getParentPosition();
-   assert(at >= 0 && at < parents.size());
+   assert(at >= 0 && at < (int)parents.size());
    assert(parents.get(at) == arc);
    parents.remove(at);
    if (parents.size() > 0)
@@ -59,7 +59,7 @@ void MDDNode::unhook(MDDEdge::Ptr arc)
 {
    assert(this == arc->getParent());
    int at = arc->getChildPosition();
-   assert(at >= 0 && at < children.size());
+   assert(at >= 0 && at < (int)children.size());
    assert(children.get(at) == arc);
    children.remove(at);
    if (children.size() > 0)
@@ -72,7 +72,7 @@ void MDDNode::unhookChild(MDDEdge::Ptr arc)
 {
    assert(arc->getChild() == this);
    int at = arc->getParentPosition();
-   assert(at >= 0 && at < parents.size());
+   assert(at >= 0 && at < (int)parents.size());
    assert(parents.get(at) == arc);
    parents.remove(at);
    if (parents.size() > 0)

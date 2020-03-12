@@ -61,7 +61,7 @@ class SparseSet {
     trail<int>       _size,_min,_max;
     int              _ofs,_n;
     void exchangePositions(int val1,int val2);
-    bool checkVal(int val) const { assert( val <= _values.size()-1);return true;}
+  bool checkVal(int val) const { assert(val <= (int)_values.size()-1);return true;}
     bool internalContains(int val) const {
         if (val < 0 || val >= _n)
             return false;
