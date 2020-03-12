@@ -459,7 +459,7 @@ public:
    void addTransition(int,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)>);
    void addRelaxation(int,std::function<void(MDDState&,const MDDState&,const MDDState&)>);
    void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
-   void addTransitions(lambdaMap& map);
+   void addTransitions(const lambdaMap& map);
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v);
    double similarity(const MDDState& a,const MDDState& b);
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
@@ -495,6 +495,13 @@ private:
 std::pair<int,int> domRange(const Factory::Veci& vars);
 
 namespace Factory {
+   template <typename Fun> inline lambdaMap toDict(int min, int max,Fun clo)
+   {
+      lambdaMap r;
+      for(int i = min; i <= max; i++)
+         r[i] = clo(i);
+      return r;
+   }
    inline lambdaMap toDict(int min, int max,std::vector<int>& p,std::function<lambdaTrans(int,int)> clo)
    {
       lambdaMap r;
