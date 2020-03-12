@@ -77,38 +77,38 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
   // vars[i] is shift on day i
   // mapping: 0 = Day, 1 = Evening, 2 = Night, 3 = Off
-  auto vars = Factory::intVarArray(cp, H, 0, 3); 
+  auto vars = Factory::intVarArray(cp, H, 0, 3);
 
   auto mdd = new MDDRelax(cp,relaxSize);
-
+  
   //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
   std::set<int> S = {0,1,2};
   Factory::seqMDD(mdd->getSpec(), vars, 28, 20, 28, S);
-
+  
   //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
   S = {3};
   Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 14, S);
-
+  
   //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
   S = {2};
   Factory::seqMDD(mdd->getSpec(), vars, 14, 1, 4, S);
-
+  
   //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
   S = {1};
   Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 8, S);
-
+  
   //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
   S = {2};
   Factory::seqMDD(mdd->getSpec(), vars, 2, 0, 1, S);
-
+  
   //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
   S = {1,2};
   Factory::seqMDD(mdd->getSpec(), vars, 7, 2, 4, S);
-
+  
   //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
   S = {0,1,2};
   Factory::seqMDD(mdd->getSpec(), vars, 7, 0, 6, S);
-
+  
   cp->post(mdd);
   
   DFSearch search(cp,[=]() {
@@ -135,16 +135,20 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   search.onSolution([&vars,&cnt]() {
       //cnt++;
       //std::cout << " " << cnt;
-       std::cout << "Assignment:" << std::endl;
-       std::cout << vars << std::endl;
+      std::cout << "Assignment:" << " " << vars << std::endl;
     });
-  
+
+  auto start = RuntimeMonitor::cputime();
+
   auto stat = search.solve([](const SearchStatistics& stats) {
       //return stats.numberOfSolutions() > INT_MAX;
-                              return stats.numberOfSolutions() > 0;
+      return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
-  
+
+  auto end = RuntimeMonitor::cputime();
+  std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
+ 
 }
 
 int main(int argc,char* argv[])
@@ -152,7 +156,7 @@ int main(int argc,char* argv[])
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
 
-   // mode: 0 (standard summations), 1 (MDD)
+   // mode: 0 (cumulative sums encoding), 1 (MDD)
    
    std::cout << "width = " << width << std::endl;
    std::cout << "mode = " << mode << std::endl;

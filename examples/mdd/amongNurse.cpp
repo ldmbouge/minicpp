@@ -70,7 +70,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
    * The planning horizon H ranges from 40 to 80 days.
    ***/
   
-  int H = 50; // time horizon (number of workdays)
+  int H = 40; // time horizon (number of workdays)
   
   auto vars = Factory::intVarArray(cp, H, 0, 1); // vars[i]=1 means that the nurse works on day i
 
@@ -92,32 +92,45 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
   // constraint 1
   cout << "Constraint type 1" << endl;
-  for (int i=0; i<H-N1+1; i++) {
-    cout << "among " << i << ": ";
-    set<int> amongVars;
-    for (int j=i; j<i+N1; j++) {
-      amongVars.insert(j);
-      cout << j << " ";
+
+  if (mode == 1) {
+    for (int i=0; i<H-N1+1; i++) {
+      cout << "among " << i << ": ";
+      set<int> amongVars;
+      for (int j=i; j<i+N1; j++) {
+	amongVars.insert(j);
+	cout << j << " ";
+      }
+      cout << endl;
+
+      auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+      Factory::amongMDD(mdd->getSpec(), adv, L1, U1, workDay);
     }
-    cout << endl;
-    
-    auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
-    Factory::amongMDD(mdd->getSpec(), adv, L1, U1, workDay);
   }
+  if (mode == 2) {
+    Factory::seqMDD(mdd->getSpec(), vars, N1, L1, U1, workDay);
+  }
+    
   // constraint 2
   cout << "Constraint type 2" << endl;
-  for (int i=0; i<H-N2+1; i++) {
-    cout << "among " << i << ": ";
-    set<int> amongVars;
-    for (int j=i; j<i+N2; j++) {
-      amongVars.insert(j);    
-      cout << j << " ";
+  if (mode == 1) {
+    for (int i=0; i<H-N2+1; i++) {
+      cout << "among " << i << ": ";
+      set<int> amongVars;
+      for (int j=i; j<i+N2; j++) {
+	amongVars.insert(j);    
+	cout << j << " ";
+      }
+      cout << endl;
+      
+      auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+      Factory::amongMDD(mdd->getSpec(), adv, L2, U2, workDay);
     }
-    cout << endl;
-    
-    auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
-    Factory::amongMDD(mdd->getSpec(), adv, L2, U2, workDay);
   }
+  if (mode == 2) {
+    Factory::seqMDD(mdd->getSpec(), vars, N2, L2, U2, workDay);
+  }
+  
   // constraint 3
   cout << "Constraint type 3" << endl;
   for (int i=0; i<H/N3; i++) {
@@ -142,9 +155,14 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   cp->post(mdd);
   
   DFSearch search(cp,[=]() {
-      auto x = selectMin(vars,
-			 [](const auto& x) { return x->size() > 1;},
-			 [](const auto& x) { return x->size();});
+      unsigned i = 0u;
+      for(i=0u;i < vars.size();i++)
+	if (vars[i]->size()> 1) break;
+      auto x = i< vars.size() ? vars[i] : nullptr;
+
+      // auto x = selectMin(vars,
+      // 			 [](const auto& x) { return x->size() > 1;},
+      // 			 [](const auto& x) { return x->size();});
       
       if (x) {
 	int c = x->min();
@@ -160,13 +178,17 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       //      std::cout << "Assignment:" << std::endl;
       // std::cout << vars << std::endl;
     });
-  
+
+  auto start = RuntimeMonitor::cputime();
+
   auto stat = search.solve([](const SearchStatistics& stats) {
       return stats.numberOfSolutions() > INT_MAX;
       //return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   
+  auto end = RuntimeMonitor::cputime();
+  std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
 }
 
 int main(int argc,char* argv[])
@@ -174,8 +196,8 @@ int main(int argc,char* argv[])
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
 
-   // mode: 0 (standard summations), 1 (MDD)
-   
+   // mode: 0 (standard summations), 1 (MDD), 2 (Sequence MDD)
+
    std::cout << "width = " << width << std::endl;
    std::cout << "mode = " << mode << std::endl;
    try {
