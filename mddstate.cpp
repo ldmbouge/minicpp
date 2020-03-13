@@ -400,4 +400,39 @@ namespace Factory {
          spec.addSimilarity(p,[p](auto l,auto r)->double{return std::max(l.at(p),r.at(p));});
       }
    }
+
+
+  void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub) {
+      // Enforce
+      //   sum(i, array[i]*vars[i]) >= lb and
+      //   sum(i, array[i]*vars[i]) <= ub
+      spec.append(vars);
+    
+      auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
+
+      // Define the states: minimum and maximum weighted value (initialize at 0, maximum is ub).
+      // The "rem" state (for capturing remaining value) is not effective -- instead, use bottom-up state information.
+      const int minW = mdd.addState(d, 0, ub);
+      const int maxW = mdd.addState(d, 0, ub);
+
+      // State 'len' is needed to capture the index i of the variable array, to express array[i]*val when variable vars[i]=val.
+      const int len  = mdd.addState(d,0,vars.size());
+
+      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val) -> bool {
+	  return (p.at(minW) + val*array[len] <= ub) &&
+	         (p.at(maxW) + val*array[len] >= lb);
+      });
+
+      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val) { out.set(minW, p.at(minW) + array[len]*val);});
+      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val) { out.set(maxW, p.at(maxW) + array[len]*val);});
+      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val) { out.set(len,  p.at(len) + 1);});      
+
+      mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.set(minW,std::min(l.at(minW), r.at(minW)));});
+      mdd.addRelaxation(maxW,[maxW](auto& out,const auto& l,const auto& r) { out.set(maxW,std::max(l.at(maxW), r.at(maxW)));});
+      mdd.addRelaxation(len, [len](auto& out,const auto& l,const auto& r)  { out.set(len,l.at(len));});
+
+      mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
+      mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
+      mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
+  }
 }
