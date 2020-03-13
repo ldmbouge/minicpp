@@ -23,6 +23,7 @@ class MDDRelax : public MDD {
    const MDDState& pickReference(int layer,int layerSize) {
       std::uniform_int_distribution<int> sampler(0,layerSize-1);
       int dirIdx = sampler(_rnG);
+      std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
       return layers[layer][dirIdx]->getState();
    }
    void rebuild();
