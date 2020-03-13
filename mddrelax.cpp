@@ -553,6 +553,7 @@ void MDDRelax::debugGraph()
    using namespace std;
    for(unsigned l=0u;l < numVariables;l++) {
       cout << "L[" << l <<"] = " << layers[l].size();
+      cout << "REF:" << _refs[l] << endl;
       for(unsigned i=0u;i < layers[l].size();i++) {
          cout << "   " << layers[l][i]->getState() << ":"
               << layers[l][i]->getState().inner(_refs[l]) << endl;
