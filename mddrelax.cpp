@@ -5,6 +5,22 @@
 #include <algorithm>
 #include "RuntimeMonitor.hpp"
 
+MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
+   : MDD(cp),
+     _width(width),
+     _lowest(cp->getStateManager(),0),
+     _rnG(42)
+{}
+
+
+const MDDState& MDDRelax::pickReference(int layer,int layerSize)
+{
+   std::uniform_int_distribution<int> sampler(0,layerSize-1);
+   int dirIdx = sampler(_rnG);
+   std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
+   return layers[layer][dirIdx]->getState();
+}
+
 
 MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
 {
