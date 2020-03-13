@@ -169,6 +169,7 @@ void MDDRelax::relaxLayer(int i)
    std::multimap<float,MDDNode*,std::less<float> > cli;
    std::vector<MDDNode*> nl;
    for(k=0;k < _width;k++) { // k is the bucket id
+      memset(buf,0,_mddspec.layoutSize());
       MDDState acc(&_mddspec,buf);
       MDDNode* target = std::get<1>(cl[from]);
       acc.initState(target->getState());
