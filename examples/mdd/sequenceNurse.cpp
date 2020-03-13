@@ -141,6 +141,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 		  cout << tab(depth) << "?x(" << i << ") == " << c << " " <<  x << endl;
 		  cp->post(x == c);
 		  cout << tab(depth) << "!x(" << i << ") == " << c << " " <<  x << endl;
+                  if (x->getId() <= 9) mdd->saveGraph();
 		}
 	  | [=] {
 	      cout << tab(depth) << "?x(" << i << ") != " << c << " " <<  x << endl;
