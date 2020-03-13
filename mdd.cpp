@@ -78,7 +78,7 @@ struct MDDStateEqual {
 
 void MDD::buildNextLayer(unsigned int i)
 {
-   std::cout << "BUILD layer:" << i << std::endl;
+   //std::cout << "BUILD layer:" << i << std::endl;
    
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    for(int v = x[i]->min(); v <= x[i]->max(); v++) {
@@ -95,10 +95,10 @@ void MDD::buildNextLayer(unsigned int i)
                child = new (mem) MDDNode(_lastNid++,mem, trail, state, x[i]->size(),i+1, (int)layers[i+1].size());
                umap.insert({child->key(),child});
                layers[i+1].push_back(child,mem);
-               std::cout << "ADDING: " << state << " @ " << layers[i+1].size()-1 << std::endl;
+               //std::cout << "ADDING: " << state << " @ " << layers[i+1].size()-1 << std::endl;
             }  else {
                child = found->second;
-               std::cout << "LINKING: " << state << " @ " << child->getPosition() << std::endl;
+               //std::cout << "LINKING: " << state << " @ " << child->getPosition() << std::endl;
             }
             parent->addArc(mem,child, v);
          } else

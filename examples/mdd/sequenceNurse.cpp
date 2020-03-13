@@ -138,18 +138,14 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	int c = x->min();
 	
 	return  [=] {
-		  cout << tab(depth) << "?x(" << i << ") == " << c << " " <<  x << endl;
+                   //cout << tab(depth) << "?x(" << i << ") == " << c << " " <<  x << endl;
 		  cp->post(x == c);
-		  cout << tab(depth) << "!x(" << i << ") == " << c << " " <<  x << endl;
-                  if (x->getId() <= 9) {
-                     mdd->debugGraph();
-                     mdd->saveGraph();
-                  }
+		  //cout << tab(depth) << "!x(" << i << ") == " << c << " " <<  x << endl;
 		}
 	  | [=] {
-	      cout << tab(depth) << "?x(" << i << ") != " << c << " " <<  x << endl;
+               //cout << tab(depth) << "?x(" << i << ") != " << c << " " <<  x << endl;
 	      cp->post(x != c);
-	      cout << tab(depth) << "!x(" << i << ") != " << c << " " <<  x << endl;
+	      //cout << tab(depth) << "!x(" << i << ") != " << c << " " <<  x << endl;
 	    };
       } else return Branches({});
     });

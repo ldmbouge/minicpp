@@ -17,17 +17,17 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
 {
-   using namespace std;
-   int k = 0;
-   cout << "LAYER:" << layer << endl;
-   for(auto& n : layers[layer]) {
-      cout << '\t' << k << ':' << n->getState() << endl;      
-   }
+   // using namespace std;
+   // int k = 0;
+   // cout << "LAYER:" << layer << endl;
+   // for(auto& n : layers[layer]) {
+   //    cout << '\t' << k++ << ':' << n->getState() << endl;      
+   // }
    double v = _sampler(_rnG);
    double w = 1.0 / (double)layerSize;
    int c = (int)std::floor(v / w);
    int dirIdx = c;
-   std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
+   //std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
    return layers[layer][dirIdx]->getState();
 }
 
@@ -158,18 +158,18 @@ void MDDRelax::relaxLayer(int i)
       cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
 
 
-   std::cout << "before SORT" << std::endl;
-   for(auto p : cl) {
-      std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
-   }
+   // std::cout << "before SORT" << std::endl;
+   // for(auto p : cl) {
+   //    std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
+   // }
    std::stable_sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
                                            return std::get<0>(p1) < std::get<0>(p2);
                                         });
 
-   std::cout << "after SORT" << std::endl;
-   for(auto p : cl) {
-      std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
-   }
+   // std::cout << "after SORT" << std::endl;
+   // for(auto p : cl) {
+   //    std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
+   // }
 
    const int bucketSize = iSize / _width;
    int   rem = iSize % _width;
@@ -189,13 +189,13 @@ void MDDRelax::relaxLayer(int i)
          MDDNode* strip = std::get<1>(cl[from]);
 
 
-         std::cout << acc << std::endl;
-         std::cout << strip->getId() << ':' << strip->getState() << std::endl;
+         // std::cout << acc << std::endl;
+         // std::cout << strip->getId() << ':' << strip->getState() << std::endl;
          
          _mddspec.relaxation(acc,strip->getState());
 
-         std::cout << "yields..." << std::endl;
-         std::cout << acc << std::endl;
+         // std::cout << "yields..." << std::endl;
+         // std::cout << acc << std::endl;
          
          for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
             auto arc = *i;
@@ -225,9 +225,9 @@ void MDDRelax::relaxLayer(int i)
    }
    //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
 
-   int r=0;
-   for(auto n : layers[i])
-      std::cout << "ENDRELAX " << r++ << " : " << n->getState() << std::endl;
+   // int r=0;
+   // for(auto n : layers[i])
+   //    std::cout << "ENDRELAX " << r++ << " : " << n->getState() << std::endl;
 }
 
 
