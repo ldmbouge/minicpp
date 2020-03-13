@@ -51,17 +51,11 @@ namespace stl {
       typedef T&  reference;
       typedef const T& const_reference;
       typedef std::size_t size_type;
-      typedef std::ptrdiff_t difference_type;      
+      typedef std::ptrdiff_t difference_type;
    public:
-      using propagate_on_container_copy_assignment = std::true_type;
-      using propagate_on_container_move_assignment = std::true_type;
-      using propagate_on_container_swap = std::true_type;
-      StackAdapter() {         
-      }
       explicit StackAdapter(CA ca) : _ca(ca) {}  
       pointer allocate(size_type n, const void* hint = nullptr) {
          //std::cout << "allocate called  : " << n << " bytes:" << n * sizeof(T) << std::endl;
-         assert(_ca);
          return (pointer)_ca->allocate(n * sizeof(T));
       } 
       void deallocate(value_type* p, size_type n) {
@@ -69,7 +63,6 @@ namespace stl {
          return;
       } 
       size_type max_size() const noexcept {
-         assert(_ca);
          return _ca->capacity() / sizeof(value_type);
       } 
       template <class U, class... Args> void construct(U* p, Args&&... args) {
@@ -88,14 +81,20 @@ namespace stl {
       struct rebind { typedef StackAdapter<U,CA> other; };
 
       template <class T1,class T2>
-      friend bool operator == (const StackAdapter<T1,CA>& lhs,const StackAdapter<T2,CA>& rhs) noexcept {
-         return lhs._ca == rhs._ca;
-      }
+      friend bool operator == (const StackAdapter<T1,CA>& lhs,const StackAdapter<T2,CA>& rhs);
       template <class T1,class T2>
-      friend bool operator!=(const StackAdapter<T1,CA>& lhs,const StackAdapter<T2,CA>& rhs) noexcept {
-         return !(lhs._ca == rhs._ca);
-      }
+      friend bool operator != (const StackAdapter<T1,CA>& lhs,const StackAdapter<T2,CA>& rhs);
    };
+ 
+   template <class T1, class T2,class CA>
+   inline bool operator == (const StackAdapter<T1,CA>& lhs,const StackAdapter<T2,CA>& rhs) noexcept {
+      return lhs._ca == rhs._ca;
+   }
+ 
+   template <class T1, class T2,class CA>
+   inline bool operator != (const StackAdapter<T1,CA>& lhs,const StackAdapter<T2,CA>& rhs) noexcept {
+      return !(lhs == rhs);
+   }
 }
 
 #endif

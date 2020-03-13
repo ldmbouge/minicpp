@@ -35,10 +35,12 @@ $(LIBNAME): $(OFILES)
 	rm -f $@.$$$$
 
 
-$(PYNAME): pybridge.cpp libcopl.dylib
-	$(CC) $(CXXFLAGS) -dynamiclib -std=c++14 -I`python3-config --includes` \
-	-I/usr/local/Cellar/pybind11/2.4.3/include -L. `python3-config --ldflags` \
-	$< -lcopl -lc++ -o minicpp`python3-config --extension-suffix`
+$(PYNAME): pybridge.cpp $(LIBNAME)
+	$(CC) $< $(CXXFLAGS) -shared -std=c++14 -I`python3-config --includes` \
+	`python3-config --ldflags` \
+	`python3 -m pybind11 --includes` \
+	-I/usr/local/Cellar/pybind11/2.4.3/include -L. -Wl,-rpath,`pwd` \
+	-lcopl -o minicpp`python3-config --extension-suffix`
 
 %.o : %.cxx
 	@echo "Compiling (CXX)... " $<
