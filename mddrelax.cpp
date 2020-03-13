@@ -203,6 +203,10 @@ void MDDRelax::relaxLayer(int i)
       n->setPosition(k++,mem);
    }
    //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
+
+   int r=0;
+   for(auto n : layers[i])
+      std::cout << "ENDRELAX " << r++ << " : " << n->getState() << std::endl;
 }
 
 

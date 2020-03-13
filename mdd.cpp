@@ -78,6 +78,8 @@ struct MDDStateEqual {
 
 void MDD::buildNextLayer(unsigned int i)
 {
+   std::cout << "BUILD layer:" << i << std::endl;
+   
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    for(int v = x[i]->min(); v <= x[i]->max(); v++) {
       if(!x[i]->contains(v)) continue;
@@ -85,15 +87,19 @@ void MDD::buildNextLayer(unsigned int i)
          MDDNode* parent = layers[i][pidx];
          MDDState child;
          if (!_mddspec.exist(parent->getState(),child,x[i],v)) continue;
-         MDDState state = _mddspec.createState(mem,parent->getState(),i, x[i], v);
          if(i < numVariables - 1){
+            MDDState state = _mddspec.createState(mem,parent->getState(),i, x[i], v);
             auto found = umap.find(&state);
             MDDNode* child = nullptr;
             if(found == umap.end()){
                child = new (mem) MDDNode(_lastNid++,mem, trail, state, x[i]->size(),i+1, (int)layers[i+1].size());
                umap.insert({child->key(),child});
                layers[i+1].push_back(child,mem);
-            }  else child = found->second;
+               std::cout << "ADDING: " << state << " @ " << layers[i+1].size()-1 << std::endl;
+            }  else {
+               child = found->second;
+               std::cout << "LINKING: " << state << " @ " << child->getPosition() << std::endl;
+            }
             parent->addArc(mem,child, v);
          } else
             parent->addArc(mem,sink, v);
