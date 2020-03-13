@@ -162,9 +162,9 @@ void MDDRelax::relaxLayer(int i)
    for(auto p : cl) {
       std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
    }
-   std::sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
-                                    return std::get<0>(p1) < std::get<0>(p2);
-                                 });
+   std::stable_sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
+                                           return std::get<0>(p1) < std::get<0>(p2);
+                                        });
 
    std::cout << "after SORT" << std::endl;
    for(auto p : cl) {
