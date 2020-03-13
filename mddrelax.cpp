@@ -9,22 +9,17 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
    : MDD(cp),
      _width(width),
      _lowest(cp->getStateManager(),0),
-     _rnG(42)
+     _rnG(42),
+     _sampler(0,_width-1)
 {}
 
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
-{
-   std::uniform_int_distribution<int> sampler(0,layerSize-1);
-
-   std::uniform_int_distribution<int>::result_type v0 = _rnG();
-   std::cout << "V0:" << v0 << std::endl;
-   
-   int dirIdx = sampler(_rnG);
+{ 
+   int dirIdx = _sampler(_rnG) % layerSize;
    std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
    return layers[layer][dirIdx]->getState();
 }
-
 
 MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
 {
