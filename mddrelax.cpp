@@ -156,9 +156,21 @@ void MDDRelax::relaxLayer(int i)
    unsigned int k = 0;
    for(auto& n : layers[i])
       cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
+
+
+   std::cout << "before SORT" << std::endl;
+   for(auto p : cl) {
+      std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
+   }
    std::sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
                                     return std::get<0>(p1) < std::get<0>(p2);
                                  });
+
+   std::cout << "after SORT" << std::endl;
+   for(auto p : cl) {
+      std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
+   }
+
    const int bucketSize = iSize / _width;
    int   rem = iSize % _width;
    int   lim = bucketSize + ((rem > 0) ? 1 : 0);
@@ -175,7 +187,16 @@ void MDDRelax::relaxLayer(int i)
       acc.initState(target->getState());
       for(from++; from < lim;from++) {
          MDDNode* strip = std::get<1>(cl[from]);
+
+
+         std::cout << acc << std::endl;
+         std::cout << strip->getId() << ':' << strip->getState() << std::endl;
+         
          _mddspec.relaxation(acc,strip->getState());
+
+         std::cout << "yields..." << std::endl;
+         std::cout << acc << std::endl;
+         
          for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
             auto arc = *i;
             arc->moveTo(target,trail,mem);
