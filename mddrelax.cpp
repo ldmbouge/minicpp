@@ -17,6 +17,12 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
 {
+   using namespace std;
+   int k = 0;
+   cout << "LAYER:" << layer << endl;
+   for(auto& n : layers[layer]) {
+      cout << '\t' << k << ':' << n << endl;      
+   }
    double v = _sampler(_rnG);
    double w = 1.0 / (double)layerSize;
    int c = (int)std::floor(v / w);
