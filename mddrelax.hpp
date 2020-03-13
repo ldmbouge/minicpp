@@ -19,6 +19,7 @@ class MDDRelax : public MDD {
    const unsigned int _width;
    ::trail<unsigned> _lowest;
    std::mt19937 _rnG;
+   std::uniform_real_distribution<double> _sampler;
    std::vector<MDDState> _refs;
    const MDDState& pickReference(int layer,int layerSize); 
    void rebuild();
