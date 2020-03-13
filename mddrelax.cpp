@@ -16,6 +16,10 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
 {
    std::uniform_int_distribution<int> sampler(0,layerSize-1);
+
+   std::uniform_int_distribution<int>::result_type v0 = _rnG();
+   std::cout << "V0:" << v0 << std::endl;
+   
    int dirIdx = sampler(_rnG);
    std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
    return layers[layer][dirIdx]->getState();
