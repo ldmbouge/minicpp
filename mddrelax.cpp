@@ -21,7 +21,7 @@ const MDDState& MDDRelax::pickReference(int layer,int layerSize)
    int k = 0;
    cout << "LAYER:" << layer << endl;
    for(auto& n : layers[layer]) {
-      cout << '\t' << k << ':' << n << endl;      
+      cout << '\t' << k << ':' << n->getState() << endl;      
    }
    double v = _sampler(_rnG);
    double w = 1.0 / (double)layerSize;
