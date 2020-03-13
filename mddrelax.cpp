@@ -3,6 +3,7 @@
 #include <unordered_map>
 #include <map>
 #include <algorithm>
+#include <cmath>
 #include "RuntimeMonitor.hpp"
 
 MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
@@ -10,13 +11,16 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
      _width(width),
      _lowest(cp->getStateManager(),0),
      _rnG(42),
-     _sampler(0,_width-1)
+     _sampler(0.0,1.0)
 {}
 
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
-{ 
-   int dirIdx = _sampler(_rnG) % layerSize;
+{
+   double v = _sampler(_rnG);
+   double w = 1.0 / (double)layerSize;
+   int c = (int)std::floor(v / w);
+   int dirIdx = c;
    std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
    return layers[layer][dirIdx]->getState();
 }
