@@ -90,10 +90,52 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   
   auto mdd = new MDDRelax(cp,relaxSize);
 
-  // constraint 1
-  cout << "Constraint type 1" << endl;
+  if (mode == 0) {
+    cout << "Cumulative sums domain encoding: cannot model y[i+1] = y[i] + x[i]" << endl;
+    exit(1);
+    
+    // constraint type 1
+    auto cumul = Factory::intVarArray(cp, H+1, 0, H); // vars[i]=1 means that the nurse works on day i
+    cp->post(cumul[0] == 0);
 
-  if (mode == 1) {
+    // error: ambiguous overload for ‘operator+’
+    //for (int i=0; i<H; i++) {
+    //      cp->post(cumul[i+1] == cumul[i] + vars[i]);
+
+    for (int i=0; i<H-N1+1; i++) {
+      cp->post(cumul[i+N1] <= cumul[i] + U1);
+      cp->post(cumul[i+N1] >= cumul[i] + L1);
+    }
+
+    // constraint type 2    
+    for (int i=0; i<H-N2+1; i++) {
+      cp->post(cumul[i+N2] <= cumul[i] + U2);
+      cp->post(cumul[i+N2] >= cumul[i] + L2);
+    }
+
+    // constraint type 3
+    for (int i=0; i<H/N3; i++) {
+      cout << "Sum for week " << i << ": ";
+      if (7*i+7<H) {
+	set<int> weekVars;
+	for (int j=7*i; j<7*i+7; j++) {
+	  weekVars.insert(j);    
+	  cout << j << " ";
+	}
+	cout << endl;
+	
+	auto adv = all(cp, weekVars, [&vars](int i) {return vars[i];});
+	// post as simple sums (baseline model in [Van Hoeve 2009])
+	cp->post(sum(adv) >= L3);
+	cp->post(sum(adv) <= U3);
+      }
+    }    
+  }
+  else if (mode == 1) {
+    cout << "Among MDD encoding" << endl;
+
+    // constraint 1
+    cout << "Constraint type 1" << endl; 
     for (int i=0; i<H-N1+1; i++) {
       cout << "among " << i << ": ";
       set<int> amongVars;
@@ -102,18 +144,13 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	cout << j << " ";
       }
       cout << endl;
-
+      
       auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
       Factory::amongMDD(mdd->getSpec(), adv, L1, U1, workDay);
     }
-  }
-  if (mode == 2) {
-    Factory::seqMDD(mdd->getSpec(), vars, N1, L1, U1, workDay);
-  }
     
-  // constraint 2
-  cout << "Constraint type 2" << endl;
-  if (mode == 1) {
+    // constraint 2
+    cout << "Constraint type 2" << endl;
     for (int i=0; i<H-N2+1; i++) {
       cout << "among " << i << ": ";
       set<int> amongVars;
@@ -126,33 +163,55 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
       Factory::amongMDD(mdd->getSpec(), adv, L2, U2, workDay);
     }
+  
+    // constraint 3
+    cout << "Constraint type 3" << endl;
+    for (int i=0; i<H/N3; i++) {
+      cout << "Among for week " << i << ": ";
+      if (7*i+7<H) {
+	set<int> amongVars;
+	for (int j=7*i; j<7*i+7; j++) {
+	  amongVars.insert(j);    
+	  cout << j << " ";
+	}
+	cout << endl;
+	
+	auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+      }
+    }
+    cp->post(mdd);
   }
-  if (mode == 2) {
+  else if (mode == 2) {
+    cout << "Sequence MDD encoding" << endl;
+
+    // constraint 1
+    cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
+    Factory::seqMDD(mdd->getSpec(), vars, N1, L1, U1, workDay);
+
+    // constraint 2
+    cout << "Sequence(vars," << N2 << "," << L2 << "," << U2 << ",{1})" << std::endl;
     Factory::seqMDD(mdd->getSpec(), vars, N2, L2, U2, workDay);
+
+    // constraint 3
+    cout << "Constraint type 3" << endl;
+    for (int i=0; i<H/N3; i++) {
+      cout << "Among for week " << i << ": ";
+      if (7*i+7<H) {
+	set<int> amongVars;
+	for (int j=7*i; j<7*i+7; j++) {
+	  amongVars.insert(j);    
+	  cout << j << " ";
+	}
+	cout << endl;
+	
+	auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+      }
+    }
+    cp->post(mdd);
   }
   
-  // constraint 3
-  cout << "Constraint type 3" << endl;
-  for (int i=0; i<H/N3; i++) {
-    cout << "among for week " << i << ": ";
-    if (7*i+7<H) {
-      set<int> amongVars;
-      for (int j=7*i; j<7*i+7; j++) {
-  	amongVars.insert(j);    
-  	cout << j << " ";
-      }
-      cout << endl;
-    
-      auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
-      Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
-
-      // post as simple sums (baseline model in [Van Hoeve 2009])
-      //cp->post(sum(adv) >= L3);
-      //cp->post(sum(adv) <= U3);
-    }
-  }
-
-  cp->post(mdd);
   
   DFSearch search(cp,[=]() {
       unsigned i = 0u;
@@ -196,7 +255,7 @@ int main(int argc,char* argv[])
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
 
-   // mode: 0 (standard summations), 1 (MDD), 2 (Sequence MDD)
+   // mode: 0 (Cumulative sums),  1 (MDD), 2 (Sequence MDD)
 
    std::cout << "width = " << width << std::endl;
    std::cout << "mode = " << mode << std::endl;
