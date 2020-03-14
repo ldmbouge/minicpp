@@ -210,49 +210,28 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
 
 void buildModel(CPSolver::Ptr cp, Instance& in)
 {
+   using namespace std;
+
    auto cars = in.cars();
    auto options = in.options();
    int mx = in.nbConf()-1;
    int nbC = (int) cars.size();int nbO = (int) options.size();
+
    auto line = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
-   matrix<Vecb, var<bool>::Ptr, 2> setup(cp->getStore(),{nbC, nbO});
-   using namespace std;
-   cout << line << endl;
+   
    auto mdd = new MDDRelax(cp,16);
-   // for(int o = 0; o < nbO;o++) {
-   //    auto vl = slice<var<int>::Ptr>(0,in.nbCars(),[&line,o](int i) { return isEqual(line[i],o);});
-   //    cout << vl << endl;
-   //    //cp->post(sum(vl) == in.demand(o));
-   // }
+   
    gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
-   cp->post(mdd);
-   //std::cout << mdd->getSpec() << std::endl;
-   MDDRelax* as[nbO];
+
    for(int o = 0; o < nbO; o++){
-      auto opts = Factory::intVarArray(cp, nbC);
-      for(int c = 0; c < nbC; c++){
-         setup[c][o] = makeBoolVar(cp);
-         opts[c] = setup[c][o];
-      }
-      auto mdd = new MDDRelax(cp,16);
-      as[o] = mdd;
-      seqMDD(mdd->getSpec(),opts, in.ub(o), 0, in.lb(o), {1});
-      cp->post(mdd);
+     set<int> Confs;
+     for(int i=0; i<in.nbConf(); i++) {
+       if ( in.requires(i,o) ) { Confs.insert(i); }
+     }
+     seqMDD(mdd->getSpec(), line, in.ub(o), 0, in.lb(o), Confs);
    }
-   for(int c = 0; c < nbC; c++) {
-      for(int o= 0;o < nbO ; o++) {
-         auto rl = toVec(0,mx,[in,o](int i) { return in.requires(i,o);});
-         cp->post(setup[c][o] == element(rl,line[c]));
-      }
-   }
-   for(int o=0;o < nbO;o++) {
-      for(int i=1;i < in.demand(o);i++) {
-         int rLow = 0;
-         int rUp = nbC - i * in.ub(o) - 1;
-         auto sl = slice<var<bool>::Ptr>(rLow,rUp,[&setup,o](int s) { return setup[s][o];});         
-         cp->post(sum(sl) >= in.demand(o) - i * in.lb(o));
-      }
-   }
+   cp->post(mdd);
+
    solveModel(cp,line,in);
 }
 
