@@ -91,17 +91,16 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   auto mdd = new MDDRelax(cp,relaxSize);
 
   if (mode == 0) {
-    cout << "Cumulative sums domain encoding: cannot model y[i+1] = y[i] + x[i]" << endl;
-    exit(1);
-    
+   
     // constraint type 1
-    auto cumul = Factory::intVarArray(cp, H+1, 0, H); // vars[i]=1 means that the nurse works on day i
+    auto cumul = Factory::intVarArray(cp, H+1, 0, H); // cumulative sum: cumul[i+1] = vars[0] + ... + vars[i]
     cp->post(cumul[0] == 0);
 
-    // error: ambiguous overload for ‘operator+’
-    //for (int i=0; i<H; i++) {
-    //      cp->post(cumul[i+1] == cumul[i] + vars[i]);
-
+    // new ternary equality cumul[i+1] = cumul[i] + vars[i]
+    for (int i=0; i<H; i++) {
+      cp->post(equal(cumul[i+1], cumul[i], vars[i]));
+    }
+    
     for (int i=0; i<H-N1+1; i++) {
       cp->post(cumul[i+N1] <= cumul[i] + U1);
       cp->post(cumul[i+N1] >= cumul[i] + L1);

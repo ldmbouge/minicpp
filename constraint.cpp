@@ -49,6 +49,37 @@ void EQBinBC::post()
                            });
    }
 }
+
+void EQTernBC::post()
+{
+   // x == y + z
+   if (_x->isBound() && _y->isBound())
+      _z->assign(_x->min() - _y->min());
+   else if (_x->isBound() && _z->isBound())
+      _y->assign(_x->min() - _z->min());
+   else if (_y->isBound() && _z->isBound())
+      _x->assign(_y->min() + _z->min());
+   else {
+      _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
+      _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
+      _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+      
+      _x->whenBoundsChange([this] {
+	  _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
+	  _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+                           });
+      _y->whenBoundsChange([this] {
+	  _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
+	  _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+                           });
+      _z->whenBoundsChange([this] {
+	  _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
+	  _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
+	});
+   }
+}
+
+
 void NEQBinBC::print(std::ostream& os) const
 {
    os << _x << " != " << _y << " + " << _c << std::endl;

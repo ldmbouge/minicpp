@@ -50,6 +50,16 @@ public:
    void post() override;
 };
 
+
+class EQTernBC : public Constraint { // x == y + z
+  var<int>::Ptr _x,_y,_z;
+public:
+   EQTernBC(var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z)
+       : Constraint(x->getSolver()),_x(x),_y(y),_z(z) {}
+   void post() override;
+};
+
+
 class NEQBinBC : public Constraint { // x != y + c
    var<int>::Ptr _x,_y;
    int _c;
@@ -291,6 +301,9 @@ public:
 namespace Factory {
    inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
       return new (x->getSolver()) EQBinBC(x,y,c);
+   }
+   inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z) {
+      return new (x->getSolver()) EQTernBC(x,y,z);
    }
    inline Constraint::Ptr notEqual(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
       return new (x->getSolver()) NEQBinBC(x,y,c);

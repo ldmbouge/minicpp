@@ -61,11 +61,12 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   std::set<int> S = {1};
 
   // This sequence constraint gives no error: 
-  // Factory::seqMDD(mdd->getSpec(), vars, 5, 2, 3, S);
+  //Factory::seqMDD(mdd->getSpec(), vars, 5, 2, 3, S);
 
   // But this one gives an infeasible during post (irrespective of S).
   // There is something wrong with the lower bound: 
   //Factory::seqMDD(mdd->getSpec(), vars, 5, 3, 3, S);
+  
   Factory::seqMDD2(mdd->getSpec(), vars, 5, 2, 3, S);
 
   cp->post(mdd);
