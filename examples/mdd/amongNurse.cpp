@@ -106,10 +106,19 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       cp->post(cumul[i+N1] >= cumul[i] + L1);
     }
 
-    // constraint type 2    
+    // constraint type 2
+
+    auto cumul2 = Factory::intVarArray(cp, H+1, 0, H); // cumulative sum: cumul[i+1] = vars[0] + ... + vars[i]
+    cp->post(cumul2[0] == 0);
+
+    // new ternary equality cumul[i+1] = cumul[i] + vars[i]
+    for (int i=0; i<H; i++) {
+      cp->post(equal(cumul2[i+1], cumul2[i], vars[i]));
+    }
+        
     for (int i=0; i<H-N2+1; i++) {
-      cp->post(cumul[i+N2] <= cumul[i] + U2);
-      cp->post(cumul[i+N2] >= cumul[i] + L2);
+      cp->post(cumul2[i+N2] <= cumul2[i] + U2);
+      cp->post(cumul2[i+N2] >= cumul2[i] + L2);
     }
 
     // constraint type 3
@@ -186,11 +195,11 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
     // constraint 1
     cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
-    Factory::seqMDD(mdd->getSpec(), vars, N1, L1, U1, workDay);
+    Factory::seqMDD2(mdd->getSpec(), vars, N1, L1, U1, workDay);
 
     // constraint 2
     cout << "Sequence(vars," << N2 << "," << L2 << "," << U2 << ",{1})" << std::endl;
-    Factory::seqMDD(mdd->getSpec(), vars, N2, L2, U2, workDay);
+    Factory::seqMDD2(mdd->getSpec(), vars, N2, L2, U2, workDay);
 
     // constraint 3
     cout << "Constraint type 3" << endl;
@@ -233,8 +242,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     });
   
   search.onSolution([&vars]() {
-      //      std::cout << "Assignment:" << std::endl;
-      // std::cout << vars << std::endl;
+                       std::cout << "Assignment:" << vars << std::endl;
     });
 
   auto start = RuntimeMonitor::cputime();
