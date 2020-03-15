@@ -54,7 +54,7 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
 void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 {
 
-  auto vars = Factory::intVarArray(cp, 5, 0, 1); 
+  auto vars = Factory::intVarArray(cp, 10, 0, 1); 
 
   auto mdd = new MDDRelax(cp,relaxSize);
 
@@ -65,22 +65,33 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
   // But this one gives an infeasible during post (irrespective of S).
   // There is something wrong with the lower bound: 
-  Factory::seqMDD(mdd->getSpec(), vars, 5, 3, 3, S);
+  //Factory::seqMDD(mdd->getSpec(), vars, 5, 3, 3, S);
+  Factory::seqMDD2(mdd->getSpec(), vars, 5, 2, 3, S);
 
   cp->post(mdd);
+  mdd->saveGraph();
   
   DFSearch search(cp,[=]() {
+
+                        unsigned i;
+                        for(i=0u;i< vars.size();i++)
+                           if (vars[i]->size() > 1)
+                              break;
+                        auto x = i < vars.size() ? vars[i] : nullptr;
+                        /*                        
       auto x = selectMin(vars,
 			 [](const auto& x) { return x->size() > 1;},
 			 [](const auto& x) { return x->size();});
-      
+                        */
       if (x) {
 	int c = x->min();
 	
 	return  [=] {
-	  cp->post(x == c);}
-	| [=] {
-	  cp->post(x != c);};
+                   cp->post(x == c);
+                }
+           | [=] {
+                cp->post(x != c);
+             };
       } else return Branches({});
     });
   

@@ -203,11 +203,11 @@ public:
    MDDPByte(short id,unsigned short ofs,unsigned char init,unsigned char max=255)
       : MDDProperty(id,ofs),_init(init),_max(max) {}
    void init(char* buf) const override     { buf[_ofs] = _init;}
-   int get(char* buf) const override       { return (unsigned char)buf[_ofs];}
-   void setInt(char* buf,int v) override   { buf[_ofs] = v;}
+   int get(char* buf) const override       { int rv =  (unsigned char)buf[_ofs];return rv;}
+   void setInt(char* buf,int v) override   { buf[_ofs] = (unsigned char)v;}
    void setByte(char* buf,unsigned char v) override { buf[_ofs] = v;}
    void stream(char* buf,std::ostream& os) const override { int v = (unsigned char)buf[_ofs];os << v;}
-   void setProp(char* buf,char* from)  override { setInt(buf,get(from));}
+   void setProp(char* buf,char* from)  override { setByte(buf,get(from));}
    void print(std::ostream& os) const override  {
       os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
@@ -512,6 +512,7 @@ namespace Factory {
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);
    void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars);
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
+   void seqMDD2(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
    void gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub);
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub);
 }

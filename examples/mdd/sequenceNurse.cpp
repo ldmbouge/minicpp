@@ -89,32 +89,25 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   auto mdd = new MDDRelax(cp,relaxSize);
   
   //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
-  std::set<int> S = {0,1,2};
-  Factory::seqMDD(mdd->getSpec(), vars, 28, 20, 28, S);
+  Factory::seqMDD2(mdd->getSpec(), vars, 28, 20, 28, {0,1,2});
   
   //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
-  S = {3};
-  Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 14, S);
+  Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 14, {3});
   
   //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
-  S = {2};
-  Factory::seqMDD(mdd->getSpec(), vars, 14, 1, 4, S);
+  Factory::seqMDD2(mdd->getSpec(), vars, 14, 1, 4, {2});
   
   //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
-  S = {1};
-  Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 8, S);
+  Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 8, {1});
   
   //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
-  S = {2};
-  Factory::seqMDD(mdd->getSpec(), vars, 2, 0, 1, S);
+  Factory::seqMDD2(mdd->getSpec(), vars, 2, 0, 1, {2});
   
   //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
-  S = {1,2};
-  Factory::seqMDD(mdd->getSpec(), vars, 7, 2, 4, S);
+  Factory::seqMDD2(mdd->getSpec(), vars, 7, 2, 4, {1,2});
   
   //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
-  S = {0,1,2};
-  Factory::seqMDD(mdd->getSpec(), vars, 7, 0, 6, S);
+  Factory::seqMDD2(mdd->getSpec(), vars, 7, 0, 6, {0,1,2});
   
   cp->post(mdd);
   
