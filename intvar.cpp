@@ -181,8 +181,12 @@ namespace Factory {
     Veci intVarArray(CPSolver::Ptr cps,int sz) {
         return Veci(sz,(alloci(cps->getStore())));
     }
-    Vecb boolVarArray(CPSolver::Ptr cps,int sz) {
-        return Vecb(sz,(allocb(cps->getStore())));
+   Vecb boolVarArray(CPSolver::Ptr cps,int sz,bool createVar) {
+      Vecb a(sz,(allocb(cps->getStore())));
+      if (createVar)
+         for(int i =0;i < sz;i++)
+            a[i] = Factory::makeBoolVar(cps);
+      return a;
     }
 
 };
