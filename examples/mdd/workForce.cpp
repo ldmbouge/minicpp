@@ -289,7 +289,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    });
 
    SearchStatistics stat;
-   search.onSolution([&emp,obj,&stat,&cliques,&compat]() {
+   search.onSolution([&emp,obj,&stat/*,&cliques,&compat*/]() {
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;
                         //exit(1);

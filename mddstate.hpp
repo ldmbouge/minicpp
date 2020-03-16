@@ -31,11 +31,24 @@ class MDDConstraintDescriptor {
    ValueSet               _vset;
    const char*            _name;
    std::vector<int> _properties;
+   std::vector<int> _tid; // transition ids
+   std::vector<int> _rid; // relaxation ids
+   std::vector<int> _sid; // similarity ids
 public :
    MDDConstraintDescriptor(const Factory::Veci& vars, const char* name);
    MDDConstraintDescriptor(const MDDConstraintDescriptor&);
    void addProperty(int p) {_properties.push_back(p);}
-   bool member(var<int>::Ptr x) const { return _vset.member(x->getId());}
+   bool ownsProperty(int p) const {
+      auto at = std::find(_properties.begin(),_properties.end(),p);
+      return at != _properties.end();
+   }
+   const std::vector<int>& transitions() const { return _tid;}
+   const std::vector<int>& relaxations() const { return _rid;}
+   const std::vector<int>& similarities() const { return _sid;}
+   void registerTransition(int t) { _tid.emplace_back(t);}
+   void registerRelaxation(int t) { _rid.emplace_back(t);}
+   void registerSimilarity(int t) { _sid.emplace_back(t);}
+   bool inScope(var<int>::Ptr x) const { return _vset.member(x->getId());}
    const Factory::Veci& vars() const { return _vars;}
    std::vector<int>& properties() { return _properties;}
    auto begin() { return _properties.begin();}
@@ -133,32 +146,42 @@ public:
 };
 
 class MDDProperty {
+public:
+   enum Direction {Down,Up};
 protected:
    short _id;
    unsigned short _ofs;
+   enum Direction   _d;
    virtual size_t storageSize() const = 0;  // given in _bits_
    virtual size_t setOffset(size_t bitOffset) = 0;
 public:
    typedef handle_ptr<MDDProperty> Ptr;
-   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs) {}
-   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs) {}
-   MDDProperty(short id,unsigned short ofs) : _id(id),_ofs(ofs) {}
-   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; return *this;}
+   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs),_d(p._d) {}
+   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs),_d(p._d) {}
+   MDDProperty(short id,unsigned short ofs,enum Direction dir = Down) : _id(id),_ofs(ofs),_d(dir) {}
+   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _d = p._d;return *this;}
    int size() const { return storageSize() >> 3;}
    virtual void init(char* buf) const              {}
    virtual int get(char* buf) const                { return 0;}
    virtual MDDBSValue getBS(char* buf) const       { return MDDBSValue(nullptr,0,0);}
    virtual void setInt(char* buf,int v)            {}
    virtual void setByte(char* buf,unsigned char v) {}
-   virtual void setBS(char* buf,const MDDBSValue& v)  {}
+   virtual MDDBSValue setBS(char* buf,const MDDBSValue& v)  { return MDDBSValue(nullptr,0,0);}
    virtual void setProp(char* buf,char* from)  {}
    virtual void print(std::ostream& os) const  {}
    virtual void stream(char* buf,std::ostream& os) const {}
    friend class MDDStateSpec;
 };
 
+inline std::ostream& operator<<(std::ostream& os,const enum MDDProperty::Direction& d) {
+   switch(d) {
+      case MDDProperty::Down: return os << "Down";
+      case MDDProperty::Up:   return os << "Up";
+   }
+}
+
 namespace Factory {
-   inline MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max=0x7fffffff);
+   inline MDDProperty::Ptr makeProperty(enum MDDProperty::Direction dir,short id,unsigned short ofs,int init,int max=0x7fffffff);
 }
 
 class MDDPInt :public MDDProperty {
@@ -174,15 +197,15 @@ class MDDPInt :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPInt> Ptr;
-   MDDPInt(short id,unsigned short ofs,int init,int max=0x7fffffff)
-      : MDDProperty(id,ofs),_init(init),_max(max) {}
+   MDDPInt(enum Direction dir,short id,unsigned short ofs,int init,int max=0x7fffffff)
+      : MDDProperty(id,ofs,dir),_init(init),_max(max) {}
    void init(char* buf) const override     { *reinterpret_cast<int*>(buf+_ofs) = _init;}
    int get(char* buf) const override       { return *reinterpret_cast<int*>(buf+_ofs);}
    void setInt(char* buf,int v) override   { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void stream(char* buf,std::ostream& os) const override { os << *reinterpret_cast<int*>(buf+_ofs);}
    void setProp(char* buf,char* from) override  { setInt(buf,get(from));}
    void print(std::ostream& os) const override  {
-      os << "PInt(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
+      os << "PInt(" << _d << ',' << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
    }
    friend class MDDStateSpec;
 };
@@ -200,8 +223,8 @@ class MDDPByte :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPByte> Ptr;
-   MDDPByte(short id,unsigned short ofs,unsigned char init,unsigned char max=255)
-      : MDDProperty(id,ofs),_init(init),_max(max) {}
+   MDDPByte(enum Direction dir,short id,unsigned short ofs,unsigned char init,unsigned char max=255)
+      : MDDProperty(id,ofs,dir),_init(init),_max(max) {}
    void init(char* buf) const override     { buf[_ofs] = _init;}
    int get(char* buf) const override       { int rv =  (unsigned char)buf[_ofs];return rv;}
    void setInt(char* buf,int v) override   { buf[_ofs] = (unsigned char)v;}
@@ -209,7 +232,7 @@ public:
    void stream(char* buf,std::ostream& os) const override { int v = (unsigned char)buf[_ofs];os << v;}
    void setProp(char* buf,char* from)  override { setByte(buf,get(from));}
    void print(std::ostream& os) const override  {
-      os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
+      os << "PByte(" << _d << ',' << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
    friend class MDDStateSpec;
 };
@@ -219,12 +242,12 @@ class MDDPBit : public MDDProperty {   // the offset is a byte offset.
    const unsigned char _bmask; // mask with 1 at correct bit position
    size_t storageSize() const override     { return 1;}
    size_t setOffset(size_t bitOffset) override {
-      _ofs = bitOffset >> 3;
+      _ofs = bitOffset >> 3;      
       return bitOffset + storageSize();
    }
 public:
-   MDDPBit(short id,unsigned short ofs,unsigned char init)
-      : MDDProperty(id,ofs),_init(init),_bmask(0x1 << (id & 0x7)) {}
+   MDDPBit(enum Direction dir,short id,unsigned short ofs,unsigned char init)
+      : MDDProperty(id,ofs,dir),_init(init),_bmask(0x1 << (id & 0x7)) {}
    void init(char* buf) const override     { buf[_ofs] = _init ? (buf[_ofs] | _bmask) : (buf[_ofs] & ~_bmask);}
    int get(char* buf) const override       { return ((unsigned char)buf[_ofs] & _bmask) == _bmask;}
    void setInt(char* buf,int v) override   { if (v) buf[_ofs] |= _bmask; else buf[_ofs] &= ~_bmask;}
@@ -232,7 +255,7 @@ public:
    void stream(char* buf,std::ostream& os) const override { os << (((unsigned char)buf[_ofs] & _bmask) == _bmask);}
    void setProp(char* buf,char* from) override { setInt(buf,get(from));}
    void print(std::ostream& os) const override  {
-      os << "PBit(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_bmask << ')';
+      os << "PBit(" << _d << ',' << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_bmask << ')';
    }
    friend class MDDStateSpec;   
 };
@@ -250,11 +273,13 @@ class MDDPBitSequence : public MDDProperty {
    }
    size_t setOffset(size_t bitOffset) override {
       _ofs = bitOffset >> 3;
-      return bitOffset + storageSize();
+      _ofs = ((_ofs & 0x7) != 0)  ? (_ofs | 0x7)+1 : _ofs; // 8-byte align
+      return (_ofs << 3) + storageSize();
    }
  public:
-   MDDPBitSequence(short id,unsigned short ofs,int nbbits,unsigned char init) // init = 0 | 1
-      : MDDProperty(id,ofs),_nbBits(nbbits),_init(init),_nbWords((_nbBits % 64) ? _nbBits / 64 + 1 : _nbBits/64) {}   
+   MDDPBitSequence(enum Direction dir,short id,unsigned short ofs,int nbbits,unsigned char init) // init = 0 | 1
+      : MDDProperty(id,ofs,dir),_nbBits(nbbits),_init(init),
+        _nbWords((_nbBits % 64) ? _nbBits / 64 + 1 : _nbBits/64) {}   
    void init(char* buf) const override {
       unsigned long long* ptr = reinterpret_cast<unsigned long long*>(buf + _ofs);
       unsigned long long bmask = (_init) ? ~0x0ull : 0x0ull;
@@ -267,9 +292,10 @@ class MDDPBitSequence : public MDDProperty {
       }
    }
    MDDBSValue getBS(char* buf) const override   { return MDDBSValue(buf + _ofs,_nbWords,_nbBits);}
-   void setBS(char* buf,const MDDBSValue& v) override {
+   MDDBSValue setBS(char* buf,const MDDBSValue& v) override {
       MDDBSValue dest(buf+_ofs,_nbWords,_nbBits);
-      dest = v;      
+      dest = v;
+      return dest;
    }
    void setProp(char* buf,char* from) override {
       unsigned long long* p0 = reinterpret_cast<unsigned long long*>(buf + _ofs);
@@ -279,7 +305,7 @@ class MDDPBitSequence : public MDDProperty {
    }
    void stream(char* buf,std::ostream& os) const override { os << getBS(buf);}
    void print(std::ostream& os) const override  {
-      os << "PBS(" << _id << ',' << _ofs << ',' << _nbBits << ',' << (int)_init << ')';
+      os << "PBS(" << _d << ',' << _id << ',' << _ofs << ',' << _nbBits << ',' << (int)_init << ')';
    }
    friend class MDDStateSpec;   
 };
@@ -297,6 +323,7 @@ public:
    auto size() const { return _attrs.size();}
    virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
    virtual int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init);
+   virtual int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init);
    std::vector<int> addStates(MDDConstraintDescriptor&d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addStates(MDDConstraintDescriptor&d,int max,std::initializer_list<int> inputs);
    friend class MDDState;
@@ -393,7 +420,7 @@ public:
    MDDBSValue getBS(int i) const    { return _spec->_attrs[i]->getBS(_mem);}
    int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
-   void setBS(int i,const MDDBSValue& val) { _spec->_attrs[i]->setBS(_mem,val);}
+   MDDBSValue setBS(int i,const MDDBSValue& val) { return _spec->_attrs[i]->setBS(_mem,val);}
    void setProp(int i,const MDDState& from) { _spec->_attrs[i]->setProp(_mem,from._mem);}
    int byteSize(int i) const   { return _spec->_attrs[i]->size();}
    void clear()                { _flags._ripped = false;_flags._relaxed = false;}
@@ -455,22 +482,21 @@ public:
    int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
+   int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
    void addArc(const MDDConstraintDescriptor& d,ArcFun a);
-   void addTransition(int,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)>);
-   void addRelaxation(int,std::function<void(MDDState&,const MDDState&,const MDDState&)>);
-   void addSimilarity(int,std::function<double(const MDDState&,const MDDState&)>);
+   void addTransition(int,lambdaTrans);
+   void addUpTransition(int,lambdaTrans);
+   void addRelaxation(int,lambdaRelax);
+   void addSimilarity(int,lambdaSim);
    void addTransitions(const lambdaMap& map);
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v);
    double similarity(const MDDState& a,const MDDState& b);
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
    MDDState createState(Storage::Ptr& mem,const MDDState& state,unsigned l,var<int>::Ptr var, int v);
+   void updateState(bool set,MDDState& target,const MDDState& source,var<int>::Ptr var,int v);
    void relaxation(MDDState& a,const MDDState& b);
    MDDState relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b);
    MDDState rootState(Storage::Ptr& mem);
-
-   auto getArcs()         { return arcLambda;}
-   auto getRelaxations()  { return relaxationLambdas;}
-   auto getSimilarities() { return similarityLambdas;}
 
    void append(const Factory::Veci& x);
    std::vector<var<int>::Ptr>& getVars(){ return x; }
@@ -485,10 +511,11 @@ private:
    void init();
    std::vector<MDDConstraintDescriptor> constraints;
    std::vector<var<int>::Ptr> x;
-   ArcFun arcLambda;
-   std::vector<lambdaTrans> transistionLambdas;
-   std::vector<lambdaRelax> relaxationLambdas;
-   std::vector<lambdaSim> similarityLambdas;
+   ArcFun                        _exist;
+   std::vector<lambdaTrans> _transition;
+   std::vector<lambdaRelax> _relaxation;
+   std::vector<lambdaSim>   _similarity;
+   std::vector<lambdaTrans> _uptrans;
 };
 
 

@@ -33,7 +33,7 @@ int main(int argc,char* argv[])
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
 
    CPSolver::Ptr cp  = Factory::makeSolver();
-   const int nb = 3;
+   const int nb = 5;
    auto v = Factory::intVarArray(cp, nb, 0, nb-1);
    auto start = RuntimeMonitor::cputime();
    auto mdd = new MDDRelax(cp,width);
@@ -49,9 +49,14 @@ int main(int argc,char* argv[])
    
    if(useSearch){
       DFSearch search(cp,[=]() {
-                            auto x = selectMin(v,
-                                               [](const auto& x) { return x->size() > 1;},
-                                               [](const auto& x) { return x->size();});
+                            unsigned i = 0u;
+                            for(i=0u;i < v.size();i++)
+                               if (v[i]->size()> 1) break;
+                            auto x = i< v.size() ? v[i] : nullptr;
+
+                            // auto x = selectMin(v,
+                            //                    [](const auto& x) { return x->size() > 1;},
+                            //                    [](const auto& x) { return x->size();});
           
                             if (x) {
                                //mddAppliance->saveGraph();
@@ -62,20 +67,19 @@ int main(int argc,char* argv[])
                                           std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
                                           cp->post(x == c);
                                           //                         mdd->saveGraph();
-                                          std::cout << "VARS: " << v << std::endl;
+                                          //std::cout << "VARS: " << v << std::endl;
                                        }
                                   | [=] {
                                        std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
                                        cp->post(x != c);
                                        //                      mdd->saveGraph();
-                                       std::cout << "VARS: " << v << std::endl;
+                                       //std::cout << "VARS: " << v << std::endl;
                                     };
                             } else return Branches({});
                          });
       
       search.onSolution([&v]() {
-                           std::cout << "Assignment:" << std::endl;
-                           std::cout << v << std::endl;
+                           std::cout << "Assignment:"  << v << std::endl;
                         });
       
       

@@ -11,20 +11,20 @@
 #include <limits.h>
 
 namespace Factory {
-   MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max)
+   MDDProperty::Ptr makeProperty(enum MDDProperty::Direction dir,short id,unsigned short ofs,int init,int max)
    {
       MDDProperty::Ptr rv;
       if (max <= 1)
-         rv = new MDDPBit(id,ofs,init);
+         rv = new MDDPBit(dir,id,ofs,init);
       else if (max <= 255)
-         rv = new MDDPByte(id,ofs,init,max);
+         rv = new MDDPByte(dir,id,ofs,init,max);
       else
-         rv = new MDDPInt(id,ofs,init,max);
+         rv = new MDDPInt(dir,id,ofs,init,max);
       return rv;
    }
-   MDDProperty::Ptr makeBSProperty(short id,unsigned short ofs,int nbb,unsigned char init)
+   MDDProperty::Ptr makeBSProperty(enum MDDProperty::Direction dir,short id,unsigned short ofs,int nbb,unsigned char init)
    {
-      MDDProperty::Ptr rv = new MDDPBitSequence(id,ofs,nbb,init);
+      MDDProperty::Ptr rv = new MDDPBitSequence(dir,id,ofs,nbb,init);
       return rv;
    }
 }
@@ -37,7 +37,7 @@ MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& 
 : _vars(d._vars), _vset(d._vset), _name(d._name), _properties(d._properties) {}
 
 MDDSpec::MDDSpec()
-   :arcLambda(nullptr)
+   : _exist(nullptr)
 {}
 
 void MDDSpec::append(const Factory::Veci& y)
@@ -72,25 +72,31 @@ void MDDStateSpec::layout()
 
 MDDConstraintDescriptor& MDDSpec::makeConstraintDescriptor(const Factory::Veci& v,const char* n)
 {
-   constraints.emplace_back(v,n);
-   return constraints[constraints.size()-1];
+   return constraints.emplace_back(v,n);
+   //return constraints[constraints.size()-1];
 }
 
 int MDDStateSpec::addState(MDDConstraintDescriptor& d, int init,int max)
 {
    int aid = (int)_attrs.size();
-   _attrs.push_back(Factory::makeProperty(aid, 0, init, max));
+   _attrs.push_back(Factory::makeProperty(MDDProperty::Down,aid, 0, init, max));
    d.addProperty(aid);
    return aid;
 }
 int MDDStateSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
 {
    int aid = (int)_attrs.size();
-   _attrs.push_back(Factory::makeBSProperty(aid,0,nbb,init));
+   _attrs.push_back(Factory::makeBSProperty(MDDProperty::Down,aid,0,nbb,init));
    d.addProperty(aid);
    return aid;
 }
-
+int MDDStateSpec::addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init)
+{
+   int aid = (int)_attrs.size();
+   _attrs.push_back(Factory::makeBSProperty(MDDProperty::Up,aid,0,nbb,init));
+   d.addProperty(aid);
+   return aid;
+}
 
 std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor& d,int from, int to,int max, std::function<int(int)> clo)
 {
@@ -110,71 +116,87 @@ std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor& d,int max, std
 int MDDSpec::addState(MDDConstraintDescriptor& d,int init,int max)
 {
    auto rv = MDDStateSpec::addState(d,init,max);
-   transistionLambdas.push_back(nullptr);
-   relaxationLambdas.push_back(nullptr);
-   similarityLambdas.push_back(nullptr);
    return rv;
 }
 int MDDSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
 {
    auto rv = MDDStateSpec::addBSState(d,nbb,init);
-   transistionLambdas.push_back(nullptr);
-   relaxationLambdas.push_back(nullptr);
-   similarityLambdas.push_back(nullptr);
+   return rv;   
+}
+int MDDSpec::addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init)
+{
+   auto rv = MDDStateSpec::addBSStateUp(d,nbb,init);
    return rv;   
 }
 
-
 void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
-    auto& b = arcLambda;
-    if(arcLambda == nullptr)
-       arcLambda = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
-                      return (!d.member(var) || a(p,c, var, val));
-                   };
-   else
-      arcLambda = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
-                     return (!d.member(var) || a(p,c,var, val)) && b(p,c, var, val);
-                  };
+    auto& b = _exist;
+    if(_exist == nullptr)
+       _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
+                   return (!d.inScope(var) || a(p,c, var, val));
+                };
+    else
+       _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
+                   return (!d.inScope(var) || a(p,c,var, val)) && b(p,c, var, val);
+                };
 }
-void MDDSpec::addTransition(int p,std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> t)
+void MDDSpec::addUpTransition(int p,lambdaTrans t)
 {
-    transistionLambdas[p] = t;
+   _uptrans.emplace_back(std::move(t));
 }
-void MDDSpec::addRelaxation(int p,std::function<void(MDDState&,const MDDState&,const MDDState&)> r)
+void MDDSpec::addTransition(int p,lambdaTrans t)
 {
-    relaxationLambdas[p] = r;
+   for(auto& cd : constraints)
+      if (cd.ownsProperty(p)) {
+         cd.registerTransition(_transition.size());
+         break;
+      }  
+   _transition.emplace_back(std::move(t));
 }
-void MDDSpec::addSimilarity(int p,std::function<double(const MDDState&,const MDDState&)> s)
+void MDDSpec::addRelaxation(int p,lambdaRelax r)
 {
-    similarityLambdas[p] = s;
+    for(auto& cd : constraints)
+      if (cd.ownsProperty(p)) {
+         cd.registerRelaxation(_relaxation.size());
+         break;
+      }  
+   _relaxation.emplace_back(std::move(r));
+}
+void MDDSpec::addSimilarity(int p,lambdaSim s)
+{
+    for(auto& cd : constraints)
+      if (cd.ownsProperty(p)) {
+         cd.registerSimilarity(_similarity.size());
+         break;
+      }  
+   _similarity.emplace_back(std::move(s));
 }
 void MDDSpec::addTransitions(const lambdaMap& map)
 {
    for(auto& kv : map)
-      transistionLambdas[kv.first] = kv.second;
+      addTransition(kv.first,kv.second);
 }
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
 {
    MDDState rootState(this,(char*)mem->allocate(layoutSize()));
    for(auto k=0u;k < size();k++)
       rootState.init(k);
-   //rootState.hash();
    std::cout << "ROOT:" << rootState << std::endl;
    return rootState;
 }
 
 bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v)
 {
-   return arcLambda(a,c,x,v);
+   return _exist(a,c,x,v);
 }
 
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v)
 {
   result.clear();
   for(auto& c :constraints) {
-     if(c.member(var))
-        for(auto i : c) 
-           transistionLambdas[i](result,parent,var,v);
+     if(c.inScope(var))
+        for(auto i : c.transitions()) 
+           _transition[i](result,parent,var,v);
      else
         for(auto i : c) 
            result.setProp(i,parent);
@@ -186,9 +208,9 @@ MDDState MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,unsigned 
 {
    MDDState result(this,(char*)mem->allocate(layoutSize()));
    for(auto& c :constraints) {
-      if(c.member(var))
-         for(auto i : c) 
-            transistionLambdas[i](result,parent,var,v);
+      if(c.inScope(var))
+         for(auto i : c.transitions()) 
+            _transition[i](result,parent,var,v);
       else
          for(auto i : c) 
             result.setProp(i, parent);
@@ -197,14 +219,22 @@ MDDState MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,unsigned 
    return result;
 }
 
+void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,var<int>::Ptr var,int v)
+{
+   // when set is true. compute T^{Up}(source,var,val) and store in target
+   // when set is false compute Relax(target,T^{Up}(source,var,val)) and store in target.
+   
+}
+
+
 double MDDSpec::similarity(const MDDState& a,const MDDState& b) 
 {
   double dist = 0;
   for(auto& cstr : constraints) {
-    for(auto p : cstr) {
-      double abSim = similarityLambdas[p](a,b);
-      dist += abSim;
-    }
+     for(auto p : cstr.similarities()) {
+        double abSim = _similarity[p](a,b);
+        dist += abSim;
+     }
   }
   return dist;
 }
@@ -213,19 +243,16 @@ void MDDSpec::relaxation(MDDState& a,const MDDState& b)
 {
   a.clear();
   for(auto& cstr : constraints)
-    for(auto p : cstr) 
-       relaxationLambdas[p](a,a,b);      
+     for(auto p : cstr.relaxations()) 
+        _relaxation[p](a,a,b);      
 }
 
 MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b)
 {
   MDDState result(this,(char*)mem->allocate(layoutSize()));
-  for(auto& cstr : constraints) {
-    for(auto p : cstr) {
-       relaxationLambdas[p](result,a,b);
-    }
-  }   
-  //result.hash();
+  for(auto& cstr : constraints) 
+     for(auto p : cstr.relaxations()) 
+        _relaxation[p](result,a,b);       
   result.relax();
   return result;
 }
@@ -278,18 +305,23 @@ namespace Factory {
       const int all  = mdd.addBSState(d,udom.second - udom.first + 1,0);
       const int some = mdd.addBSState(d,udom.second - udom.first + 1,0);
       const int len  = mdd.addState(d,0,vars.size());
+      const int allu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
+      const int someu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
       
       mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,int val) {
-                               out.setBS(all,in.getBS(all));
-                               out.getBS(all).set(val - minDom);
+                               out.setBS(all,in.getBS(all)).set(val - minDom);
                             });
       mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,int val) {
-                                out.setBS(some,in.getBS(some));
-                                out.getBS(some).set(val - minDom);
+                                out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
-      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val) {
-                               out.set(len,in.at(len) + 1);
-                            });      
+      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val) { out.set(len,in.at(len) + 1);});
+      mdd.addUpTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,int val) {
+                                  out.setBS(allu,in.getBS(allu)).set(val - minDom);
+                               });
+      mdd.addUpTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,int val) {
+                                  out.setBS(someu,in.getBS(someu)).set(val - minDom);
+                               });
+      
       mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r)     {
                                out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));
                             });
@@ -297,7 +329,14 @@ namespace Factory {
                                 out.getBS(some).setBinOR(l.getBS(some),r.getBS(some));
                             });
       mdd.addRelaxation(len,[len](auto& out,const auto& l,const auto& r)     { out.set(len,l.at(len));});
+      mdd.addRelaxation(allu,[allu](auto& out,const auto& l,const auto& r)     {
+                               out.getBS(allu).setBinAND(l.getBS(allu),r.getBS(allu));
+                            });
+      mdd.addRelaxation(someu,[someu](auto& out,const auto& l,const auto& r)     {
+                                out.getBS(someu).setBinOR(l.getBS(someu),r.getBS(someu));
+                            });
 
+      
       mdd.addArc(d,[minDom,some,all,len](const auto& p,const auto& c,auto var,int val) -> bool  {
                       bool notOk = p.getBS(all).getBit(val - minDom) ||
 			(p.getBS(some).cardinality() == (unsigned)p.at(len)  && p.getBS(some).getBit(val - minDom));

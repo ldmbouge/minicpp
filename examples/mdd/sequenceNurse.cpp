@@ -127,7 +127,6 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 			 [](const auto& x) { return x->size();});
 	 
       if (x) {
-	int i = x->getId();
 	int c = x->min();
 	
 	return  [=] {
@@ -145,9 +144,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   
   int cnt = 0;
   search.onSolution([&vars,&cnt]() {
-      //cnt++;
-      //std::cout << " " << cnt;
-      std::cout << "Assignment:" << " " << vars << std::endl;
+                       cnt++;
+                       //std::cout << " " << cnt;
+                       std::cout << "Assignment:" << " " << vars << std::endl;
     });
 
   auto start = RuntimeMonitor::cputime();

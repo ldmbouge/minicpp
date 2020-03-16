@@ -585,6 +585,20 @@ void MDDRelax::trimDomains()
    }   
 }
 
+void MDDRelax::computeUp()
+{
+   for(auto i = numVariables - 1;i >= 0;i--) {
+      for(auto& n : layers[i]) {
+         bool first = true;
+         for(auto& arcToKid : n->getChildren()) {
+            MDDNode* kid = arc->getChild(); 
+           _mddspec.updateState(first,n->getState(),kid->getState(),x[i],arc->getValue());
+            first = false;
+         }
+      }
+   }
+}
+
 
 void MDDRelax::propagate()
 {

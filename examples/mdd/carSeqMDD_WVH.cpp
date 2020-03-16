@@ -215,7 +215,8 @@ void buildModel(CPSolver::Ptr cp, Instance& in)
    auto cars = in.cars();
    auto options = in.options();
    int mx = in.nbConf()-1;
-   int nbC = (int) cars.size();int nbO = (int) options.size();
+   //int nbC = (int) cars.size();
+   int nbO = (int) options.size();
 
    auto line = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
    
