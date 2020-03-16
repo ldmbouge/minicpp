@@ -33,13 +33,34 @@ int main(int argc,char* argv[])
 
    auto mdd = new MDD(cp);
    //auto mdd = new MDDRelax(cp,1);
-   
+
    vector<int> vals {1,2,3,4,5};
 
-   Factory::sumMDD(mdd->getSpec(),vars, vals, 15, 15);
+   // Test 1: constant RHS
+   //Factory::sumMDD(mdd->getSpec(), vars, vals, 15, 15);
+
+
+   // Test 2: variable RHS
+   auto z = Factory::makeIntVar(cp, 15, 15);
+   //Factory::sumMDD(mdd->getSpec(), vars, vals, z);
+
+   // Test 3: variable RHS with matrix (element) summation
+   vector< vector<int> > valMatrix;
+   vector<int> var0 {0,1,2};
+   vector<int> var1 {0,2,4};
+   vector<int> var2 {0,3,6};
+   vector<int> var3 {0,4,8};
+   vector<int> var4 {0,5,10};
+   valMatrix.push_back(var0);
+   valMatrix.push_back(var1);
+   valMatrix.push_back(var2);
+   valMatrix.push_back(var3);
+   valMatrix.push_back(var4);
+   Factory::sumMDD(mdd->getSpec(), vars, valMatrix, z);
+
    cp->post(mdd);
    
-     DFSearch search(cp,[=]() {
+   DFSearch search(cp,[=]() {
 
       unsigned i = 0u;
       for(i=0u;i < vars.size();i++)
