@@ -16,6 +16,7 @@
 #ifndef __CONSTRAINT_H
 #define __CONSTRAINT_H
 
+#include <set>
 #include <array>
 #include <algorithm>
 #include <iomanip>
@@ -59,6 +60,14 @@ public:
    void post() override;
 };
 
+class EQTernBCbool : public Constraint { // x == y + b
+  var<int>::Ptr _x,_y;
+  var<bool>::Ptr _b;
+public:
+  EQTernBCbool(var<int>::Ptr x,var<int>::Ptr y,var<bool>::Ptr b)
+    : Constraint(x->getSolver()),_x(x),_y(y),_b(b) {}
+  void post() override;
+};
 
 class NEQBinBC : public Constraint { // x != y + c
    var<int>::Ptr _x,_y;
@@ -107,6 +116,17 @@ class IsEqual : public Constraint { // b <=> x == c
 public:
    IsEqual(var<bool>::Ptr b,var<int>::Ptr x,int c)
       : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
+   void post() override;
+   void propagate() override;
+};
+
+class IsMember : public Constraint { // b <=> x in S
+   var<bool>::Ptr _b;
+   var<int>::Ptr _x;
+   std::set<int> _S;
+public:
+   IsMember(var<bool>::Ptr b,var<int>::Ptr x,std::set<int> S)
+      : Constraint(x->getSolver()),_b(b),_x(x),_S(S) {}
    void post() override;
    void propagate() override;
 };
@@ -305,6 +325,9 @@ namespace Factory {
    inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z) {
       return new (x->getSolver()) EQTernBC(x,y,z);
    }
+   inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,var<bool>::Ptr b) {
+     return new (x->getSolver()) EQTernBCbool(x,y,b);
+   }
    inline Constraint::Ptr notEqual(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
       return new (x->getSolver()) NEQBinBC(x,y,c);
    }
@@ -361,6 +384,13 @@ namespace Factory {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       try {
          x->getSolver()->post(new (x->getSolver()) IsEqual(b,x,c));
+      } catch(Status s) {}
+      return b;
+   }
+   inline var<bool>::Ptr isMember(var<int>::Ptr x,const std::set<int> S) {
+      var<bool>::Ptr b = makeBoolVar(x->getSolver());
+      try {
+         x->getSolver()->post(new (x->getSolver()) IsMember(b,x,S));
       } catch(Status s) {}
       return b;
    }
