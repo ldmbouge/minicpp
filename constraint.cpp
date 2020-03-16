@@ -290,7 +290,7 @@ void IsMember::propagate()
       int xMin = _x->min(), xMax = _x->max();
       for (int v=xMin; v<=xMax; v++) {
   	// if v is not in S: remove from domain of x
-	if (_x->contains(v) && _S.find(v) == _S.end())
+	if (_x->contains(v) && (_S.find(v) == _S.end()))
 	  _x->remove(v);
       }
       setActive(false);
@@ -308,16 +308,29 @@ void IsMember::propagate()
 	_b->assign(false);
       setActive(false);
     } else {
-      // both b and x are not bound: check if x still has value in S
-      bool hasMember = false;
-      for (std::set<int>::iterator it=_S.begin(); it!=_S.end(); ++it) {
-	if (_x->contains(*it)) {
-	  hasMember = true;
-	  break;
+      // both b and x are not bound: check if x still has value in S and a value not in S
+      bool hasMemberInS = false;
+      bool hasMemberOutS = false;
+
+      int xMin = _x->min(), xMax = _x->max();
+      for (int v=xMin; v<=xMax; v++) {
+	if (_x->contains(v)) {
+	  if (_S.find(v) == _S.end()) {
+	    hasMemberOutS = true;
+	  }
+	  else {
+	    hasMemberInS = true;
+	  }
 	}
+	if ((hasMemberInS == true) && (hasMemberOutS == true))
+	  break;
       }
-      if (hasMember==false) {
+      if (hasMemberInS==false) {
 	_b->assign(false);
+	setActive(false);
+      }
+      else if (hasMemberOutS==false) {
+	_b->assign(true);
 	setActive(false);
       }
     }

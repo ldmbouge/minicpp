@@ -65,13 +65,8 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
   auto cumul = Factory::intVarArray(cp, H+1, 0, H); 
   cp->post(cumul[0] == 0);
     
-  // std::vector<var<bool>::Ptr> boolVar(H);
-  // for (int i=0; i<H; i++) {
-  //   boolVar[i] = isMember(vars[i], S);
-  // }
   auto boolVar = Factory::boolVarArray(cp, H);
   for (int i=0; i<H; i++) {
-    boolVar[i] = makeBoolVar(cp); // WVH: why is this needed?
     cp->post(isMember(boolVar[i], vars[i], S));
   }
     
@@ -118,6 +113,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
   if (mode == 0 ) {
 
+    cout << "Cumulative Sums encoding" << endl;
     addCumulSeq(cp, vars, 14, 4, 14, {0});
     addCumulSeq(cp, vars, 28, 20, 28, {1,2,3});
     addCumulSeq(cp, vars, 14, 1, 4, {3});
@@ -137,7 +133,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
     Factory::seqMDD2(mdd->getSpec(), vars, 28, 20, 28, {1,2,3});
   
-        //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
+    //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
     Factory::seqMDD2(mdd->getSpec(), vars, 14, 1, 4, {3});
     
     //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
