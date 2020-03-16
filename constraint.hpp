@@ -387,6 +387,9 @@ namespace Factory {
       } catch(Status s) {}
       return b;
    }
+   inline Constraint::Ptr isMember(var<bool>::Ptr b, var<int>::Ptr x, const std::set<int> S) {
+     return new (x->getSolver()) IsMember(b,x,S);
+   }
    inline var<bool>::Ptr isMember(var<int>::Ptr x,const std::set<int> S) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       try {

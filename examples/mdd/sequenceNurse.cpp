@@ -58,16 +58,21 @@ std::string tab(int d) {
 }
 
 
-void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, const std::set<int> S, int N, int L, int U) {
+void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
 
   int H = vars.size();
   
   auto cumul = Factory::intVarArray(cp, H+1, 0, H); 
   cp->post(cumul[0] == 0);
     
-  std::vector<var<bool>::Ptr> boolVar(H);
+  // std::vector<var<bool>::Ptr> boolVar(H);
+  // for (int i=0; i<H; i++) {
+  //   boolVar[i] = isMember(vars[i], S);
+  // }
+  auto boolVar = Factory::boolVarArray(cp, H);
   for (int i=0; i<H; i++) {
-    boolVar[i] = isMember(vars[i], S);
+    boolVar[i] = makeBoolVar(cp); // WVH: why is this needed?
+    cp->post(isMember(boolVar[i], vars[i], S));
   }
     
   for (int i=0; i<H; i++) {
@@ -94,8 +99,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
    * (Day, Evening, Night, Off).
    *
    * Constraints:
-   *  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
    *  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
+   *  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
    *  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
    *  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
    *  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
@@ -108,64 +113,44 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   int H = 40; // time horizon (number of days)
 
   // vars[i] is shift on day i
-  // mapping: 0 = Day, 1 = Evening, 2 = Night, 3 = Off
+  // mapping: 0 = Off, 1 = Day, 2 = Evening, 3 = Night
   auto vars = Factory::intVarArray(cp, H, 0, 3);
 
   if (mode == 0 ) {
 
-    //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
-    // Factory::seqMDD2(mdd->getSpec(), vars, 28, 20, 28, {0,1,2});
-    addCumulSeq(cp, vars, {0,1,2}, 28, 20, 28);
-  
-    // //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
-    // Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 14, {3});
-    addCumulSeq(cp, vars, {3}, 14, 4, 14);
-
-    // //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
-    // Factory::seqMDD2(mdd->getSpec(), vars, 14, 1, 4, {2});
-    addCumulSeq(cp, vars, {2}, 14, 1, 4);
-
-    // //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
-    // Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 8, {1});
-    addCumulSeq(cp, vars, {1}, 14, 4, 8);
-    
-    // //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
-    // Factory::seqMDD2(mdd->getSpec(), vars, 2, 0, 1, {2});
-    addCumulSeq(cp, vars, {2}, 2, 0, 1);
-    
-    // //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
-    // Factory::seqMDD2(mdd->getSpec(), vars, 7, 2, 4, {1,2});
-    addCumulSeq(cp, vars, {1,2}, 7, 2, 4);
-
-    // //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
-    // Factory::seqMDD2(mdd->getSpec(), vars, 7, 0, 6, {0,1,2});
-    addCumulSeq(cp, vars, {0,1,2}, 7, 0, 6);
-    
+    addCumulSeq(cp, vars, 14, 4, 14, {0});
+    addCumulSeq(cp, vars, 28, 20, 28, {1,2,3});
+    addCumulSeq(cp, vars, 14, 1, 4, {3});
+    addCumulSeq(cp, vars, 14, 4, 8, {2});
+    addCumulSeq(cp, vars, 2, 0, 1, {3});
+    addCumulSeq(cp, vars, 7, 2, 4, {2,3});
+    addCumulSeq(cp, vars, 7, 0, 6, {1,2,3});
+      
   }
   else if (mode == 1) {
   
     auto mdd = new MDDRelax(cp,relaxSize);
   
-    //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 28, 20, 28, {0,1,2});
-  
     //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
-    Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 14, {3});
-    
-    //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 14, 1, 4, {2});
+    Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 14, {0});
+
+    //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
+    Factory::seqMDD2(mdd->getSpec(), vars, 28, 20, 28, {1,2,3});
+  
+        //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
+    Factory::seqMDD2(mdd->getSpec(), vars, 14, 1, 4, {3});
     
     //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
-    Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 8, {1});
+    Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 8, {2});
     
     //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 2, 0, 1, {2});
+    Factory::seqMDD2(mdd->getSpec(), vars, 2, 0, 1, {3});
     
     //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 7, 2, 4, {1,2});
+    Factory::seqMDD2(mdd->getSpec(), vars, 7, 2, 4, {2,3});
     
     //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 7, 0, 6, {0,1,2});
+    Factory::seqMDD2(mdd->getSpec(), vars, 7, 0, 6, {1,2,3});
     
     cp->post(mdd);
   }
@@ -204,18 +189,17 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   
   int cnt = 0;
   search.onSolution([&vars,&cnt]() {
-      //cnt++;
-      //std::cout << " " << cnt;
-      std::cout << "Assignment:" << std::endl;
-      std::cout << "vars = " << " " << vars << std::endl;
-      //      std::cout << "cumul1 = " << " " << cumul1 << std::endl;
+      cnt++;
+      std::cout << "\rNumber of solutions = " << cnt << std::flush;
+      //std::cout << "Assignment:" << std::endl;
+      //std::cout << "vars = " << " " << vars << std::endl;
     });
 
   auto start = RuntimeMonitor::cputime();
 
   auto stat = search.solve([](const SearchStatistics& stats) {
-      // return stats.numberOfSolutions() > INT_MAX;
-      return stats.numberOfSolutions() > 100;
+      //      return stats.numberOfSolutions() > INT_MAX;
+      return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
 
