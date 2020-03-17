@@ -10,302 +10,73 @@
 #include "acstr.hpp"
 #include "trailList.hpp"
 
+enum LitRel {EQ, NEQ, LEQ, GEQ};
+
+class Literal {
+    var<int>::Ptr _x;
+    LitRel _rel;
+    int _c;
+    Constraint::Ptr _cPtr;
+    int _depth;
+public:
+    void makeVar() {};
+    void explain() {};  // TODO: delegate to cPtr->explain(this) when this is implemented and adjust return type
+    friend class LitVar;
+};
+
 class LitVar : public AVar {
+    int _id;
+    CPSolver::Ptr _solver;
+    var<int>::Ptr _x;
+    LitRel _rel;
+    int _c;
+    trail<char> _val;
+    int _depth;
+    void initVal();
+    trailList<Constraint::Ptr> _onBindList;
+protected:
+    void setId(int id) override { _id = id;}
+    int getId() const { return _id;}
 public:
     typedef handle_ptr<LitVar> Ptr;
-    virtual CPSolver::Ptr getSolver() const = 0;
-    virtual bool isBound() const = 0;
-    virtual bool isTrue() const = 0;
-    virtual bool isFalse() const = 0;
-    virtual void makePerm() {}
-    virtual void updateVal() {}
-    virtual void setTrue() {}
-    virtual void setFalse() {}
-    virtual void assign(bool b) {}
-    virtual TLCNode* propagateOnBind(Constraint::Ptr c) { return NULL;}
-};
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% EQ
-
-template<typename T> class LitVarEQ {};
-template<>
-class LitVarEQ<char> : public LitVar {
-    var<int>::Ptr _x;
-    int _c;
-    char _val;
-    void initVal();
-public:
-    LitVarEQ<char>(const var<int>::Ptr& x, const int c) : _x(x), _c(c), _val(0x02) { initVal();}
-    inline bool isBound() const override { return _val != 0x02;}
-    inline bool isTrue() const override { return _val == 0x01;}
-    inline bool isFalse() const override { return _val == 0x00;}
-    inline var<int>::Ptr getVar() const { return _x;}
-    inline int getC() const { return _c;}
-    inline char getVal() const { return _val;}
-    void makePerm() override {}
-    friend class LitVarEQ<trail<char>>;
-};
-
-template<>
-class LitVarEQ<trail<char>> : public LitVar {
-    CPSolver::Ptr _solver;
-    var<int>::Ptr _x;
-    int _c;
-    int _id;
-    trail<char> _val;
-    void initVal();
-    trailList<Constraint::Ptr> _onBindList;
-protected:
-    void setId(int id) override { _id = id;}
-    int getId() const { return _id;}
-public:
-    typedef handle_ptr<LitVarEQ<trail<char>>> Ptr;
-    LitVarEQ<trail<char>>(const var<int>::Ptr& x, const int c) 
+    LitVar(const Literal& l)
+      : _solver(l._x->getSolver()),
+        _x(l._x),
+        _c(l._c),
+        _depth(l._depth),
+        _rel(l._rel),
+        _val(_x->getSolver()->getStateManager(), 0x02),
+        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
+    { initVal();
+      _x->whenDomainChange([&] {updateVal();});
+    }
+    LitVar(const var<int>::Ptr& x, const int c, LitRel r) 
       : _solver(x->getSolver()),
         _x(x), 
         _c(c), 
+        _depth(0), // depth is 0 because this constructor is used for literal variables initiated in model declaration, not during lcg
+        _rel(r),
         _val(x->getSolver()->getStateManager(), 0x02),
         _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
         { initVal();
           _x->whenDomainChange([&] {updateVal();});
         }
-    LitVarEQ<trail<char>>(const LitVarEQ<char>& l)
-      : _solver(l.getVar()->getSolver()),
-        _x(l.getVar()), 
-        _c(l.getC()), 
-        _val(_x->getSolver()->getStateManager(), l.getVal()), 
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { _x->whenDomainChange([&] {updateVal();});}
-    LitVarEQ<trail<char>>(const LitVarEQ<char>&& l)
-      : _solver(l.getVar()->getSolver()),
-        _x(std::move(l._x)), 
-        _c(std::move(l._c)), 
-        _val(_x->getSolver()->getStateManager(),std::move(l._val)), 
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { _x->whenDomainChange([&] {updateVal();});}
-    inline CPSolver::Ptr getSolver() const override { return _solver;}
-    inline bool isBound() const override { return _val != 0x02;}
-    inline bool isTrue() const override { return _val == 0x01;}
-    inline bool isFalse() const override { return _val == 0x00;}
-    void setTrue() override;
-    void setFalse() override;
-    void updateVal() override;
-    void assign(bool b) override;
-    void makePerm() override {}
-   TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));return nullptr;}
+    inline CPSolver::Ptr getSolver() const { return _solver;}
+    inline bool isBound() const { return _val != 0x02;}
+    inline bool isTrue() const { return _val == 0x01;}
+    inline bool isFalse() const { return _val == 0x00;}
+    void setTrue();
+    void setFalse();
+    void updateVal();
+    void assign(bool b);
+    TLCNode* propagateOnBind(Constraint::Ptr c) { _onBindList.emplace_back(std::move(c));return nullptr;}
 };
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% NEQ
-
-template<typename T> class LitVarNEQ {};
-template<>
-class LitVarNEQ<char> : public LitVar {
-    var<int>::Ptr _x;
-    int _c;
-    char _val;
-    void initVal();
-public:
-    LitVarNEQ<char>(const var<int>::Ptr& x, const int c) : _x(x), _c(c), _val(0x02) { initVal();}
-    inline bool isBound() const override { return _val != 0x02;}
-    inline bool isTrue() const override { return _val == 0x01;}
-    inline bool isFalse() const override { return _val == 0x00;}
-    inline var<int>::Ptr getVar() const { return _x;}
-    inline int getC() const { return _c;}
-    inline char getVal() const { return _val;}
-    void makePerm() override {}
-    friend class LitVarNEQ<trail<char>>;
-};
-
-template<>
-class LitVarNEQ<trail<char>> : public LitVar {
-    CPSolver::Ptr _solver;
-    var<int>::Ptr _x;
-    int _c;
-    int _id;
-    trail<char> _val;
-    void initVal();
-    trailList<Constraint::Ptr> _onBindList;
-protected:
-    void setId(int id) override { _id = id;}
-    int getId() const { return _id;}
-public:
-    typedef handle_ptr<LitVarNEQ<trail<char>>> Ptr;
-    LitVarNEQ<trail<char>>(const var<int>::Ptr& x, const int c) 
-      : _solver(x->getSolver()),
-        _x(x), 
-        _c(c), 
-        _val(x->getSolver()->getStateManager(), 0x02),
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { initVal();
-          _x->whenDomainChange([&] {updateVal();});
-        }
-    LitVarNEQ<trail<char>>(const LitVarNEQ<char>& l)
-      : _x(l.getVar()), 
-        _c(l.getC()), 
-        _val(_x->getSolver()->getStateManager(), l.getVal()), 
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { _x->whenDomainChange([&] {updateVal();});}
-    LitVarNEQ<trail<char>>(const LitVarNEQ<char>&& l)
-      : _x(std::move(l._x)), 
-        _c(std::move(l._c)), 
-        _val(_x->getSolver()->getStateManager(),std::move(l._val)), 
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { _x->whenDomainChange([&] {updateVal();});}
-    inline CPSolver::Ptr getSolver() const override { return _solver;}
-    inline bool isBound() const override { return _val != 0x02;}
-    inline bool isTrue() const override { return _val == 0x01;}
-    inline bool isFalse() const override { return _val == 0x00;}
-    void setTrue() override;
-    void setFalse() override;
-    void updateVal() override;
-    void assign(bool b) override;
-    void makePerm() override {}
-    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));return nullptr;}
-};
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% GEQ
-
-template<typename T> class LitVarGEQ {};
-template<>
-class LitVarGEQ<char> : public LitVar {
-    var<int>::Ptr _x;
-    int _c;
-    char _val;
-    void initVal();
-public:
-    LitVarGEQ<char>(const var<int>::Ptr& x, const int c) : _x(x), _c(c), _val(0x02) { initVal();}
-    inline bool isBound() const override { return _val != 0x02;}
-    inline bool isTrue() const override { return _val == 0x01;}
-    inline bool isFalse() const override { return _val == 0x00;}
-    inline var<int>::Ptr getVar() const { return _x;}
-    inline int getC() const { return _c;}
-    inline char getVal() const { return _val;}
-    void makePerm() override {}
-    friend class LitVarGEQ<trail<char>>;
-};
-
-template<>
-class LitVarGEQ<trail<char>> : public LitVar {
-    CPSolver::Ptr _solver;
-    var<int>::Ptr _x;
-    int _c;
-    int _id;
-    trail<char> _val;
-    void initVal();
-    trailList<Constraint::Ptr> _onBindList;
-protected:
-    void setId(int id) override { _id = id;}
-    int getId() const { return _id;}
-public:
-    typedef handle_ptr<LitVarGEQ<trail<char>>> Ptr;
-    LitVarGEQ<trail<char>>(const var<int>::Ptr& x, const int c) 
-      : _solver(x->getSolver()),
-        _x(x), 
-        _c(c), 
-        _val(x->getSolver()->getStateManager(), 0x02),
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { initVal();
-          _x->whenDomainChange([&] {updateVal();});
-        }
-    LitVarGEQ<trail<char>>(const LitVarGEQ<char>& l)
-      : _x(l.getVar()), 
-        _c(l.getC()), 
-        _val(_x->getSolver()->getStateManager(), l.getVal()), 
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { _x->whenDomainChange([&] {updateVal();});}
-    LitVarGEQ<trail<char>>(const LitVarGEQ<char>&& l)
-      : _x(std::move(l._x)), 
-        _c(std::move(l._c)), 
-        _val(_x->getSolver()->getStateManager(),std::move(l._val)), 
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { _x->whenDomainChange([&] {updateVal();});}
-    inline CPSolver::Ptr getSolver() const override { return _solver;}
-    inline bool isBound() const override { return _val != 0x02;}
-    inline bool isTrue() const override { return _val == 0x01;}
-    inline bool isFalse() const override { return _val == 0x00;}
-    void setTrue() override;
-    void setFalse() override;
-    void updateVal() override;
-    void assign(bool b) override;
-    void makePerm() override {}
-    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));return nullptr;}
-};
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LEQ
-
-template<typename T> class LitVarLEQ {};
-template<>
-class LitVarLEQ<char> : public LitVar {
-    var<int>::Ptr _x;
-    int _c;
-    char _val;
-    void initVal();
-public:
-    LitVarLEQ<char>(const var<int>::Ptr& x, const int c) : _x(x), _c(c), _val(0x02) { initVal();}
-    inline bool isBound() const override { return _val != 0x02;}
-    inline bool isTrue() const override { return _val == 0x01;}
-    inline bool isFalse() const override { return _val == 0x00;}
-    inline var<int>::Ptr getVar() const { return _x;}
-    inline int getC() const { return _c;}
-    inline char getVal() const { return _val;}
-    void makePerm() override {}
-    friend class LitVarLEQ<trail<char>>;
-};
-
-template<>
-class LitVarLEQ<trail<char>> : public LitVar {
-    CPSolver::Ptr _solver;
-    var<int>::Ptr _x;
-    int _c;
-    int _id;
-    trail<char> _val;
-    void initVal();
-    trailList<Constraint::Ptr> _onBindList;
-protected:
-    void setId(int id) override { _id = id;}
-    int getId() const { return _id;}
-public:
-    typedef handle_ptr<LitVarLEQ<trail<char>>> Ptr;
-    LitVarLEQ<trail<char>>(const var<int>::Ptr& x, const int c) 
-      : _solver(x->getSolver()),
-        _x(x), 
-        _c(c), 
-        _val(x->getSolver()->getStateManager(), 0x02),
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { initVal();
-          _x->whenDomainChange([&] {updateVal();});
-        }
-    LitVarLEQ<trail<char>>(const LitVarLEQ<char>& l)
-      : _x(l.getVar()), 
-        _c(l.getC()), 
-        _val(_x->getSolver()->getStateManager(), l.getVal()), 
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { _x->whenDomainChange([&] {updateVal();});}
-    LitVarLEQ<trail<char>>(const LitVarLEQ<char>&& l)
-      : _x(std::move(l._x)), 
-        _c(std::move(l._c)), 
-        _val(_x->getSolver()->getStateManager(),std::move(l._val)), 
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { _x->whenDomainChange([&] {updateVal();});}
-    inline CPSolver::Ptr getSolver() const override { return _solver;}
-    inline bool isBound() const override { return _val != 0x02;}
-    inline bool isTrue() const override { return _val == 0x01;}
-    inline bool isFalse() const override { return _val == 0x00;}
-    void setTrue() override;
-    void setFalse() override;
-    void updateVal() override;
-    void assign(bool b) override;
-    void makePerm() override {}
-    TLCNode* propagateOnBind(Constraint::Ptr c) override { _onBindList.emplace_back(std::move(c));return nullptr;}
-};
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 namespace Factory {
-    LitVarEQ<trail<char>>::Ptr makeLitVarEQ(const var<int>::Ptr& x, const int c); 
-    LitVarNEQ<trail<char>>::Ptr makeLitVarNEQ(const var<int>::Ptr& x, const int c); 
-    LitVarGEQ<trail<char>>::Ptr makeLitVarGEQ(const var<int>::Ptr& x, const int c); 
-    LitVarLEQ<trail<char>>::Ptr makeLitVarLEQ(const var<int>::Ptr& x, const int c); 
+    LitVar::Ptr makeLitVarEQ(const var<int>::Ptr& x, const int c); 
+    LitVar::Ptr makeLitVarNEQ(const var<int>::Ptr& x, const int c); 
+    LitVar::Ptr makeLitVarLEQ(const var<int>::Ptr& x, const int c); 
+    LitVar::Ptr makeLitVarGEQ(const var<int>::Ptr& x, const int c); 
 }
 
 #endif

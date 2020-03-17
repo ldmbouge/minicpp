@@ -20,7 +20,7 @@ void AllDiffExplainer::explain(var<int>::Ptr x, int val) {
     int sccOfVal = scc[_c->valNode(val)];
     for (int i = 0; i < _c->_nVar; ++i) {
         if ((scc[i] == sccOfVal) || (val == _c->_match[i])) {
-            for (int v = x->min(); v < x->max() + 1; ++v) {
+            for (int v = x->min(); v < x->max() + 1; ++v) {  // TODO: add domain iterator for variables - this does not work if domain has holes
                 if (v != val)
                     s += "| var_" + std::to_string(i) + " != " + std::to_string(v) + " | ";
             }

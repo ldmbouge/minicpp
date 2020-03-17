@@ -2,8 +2,8 @@
 #define __EXPLAINER_H
 
 #include "handle.hpp"
-// #include "constraint.hpp"
 #include "intvar.hpp"
+// #include "constraint.hpp"
 
 class AllDifferentAC;
 
@@ -14,6 +14,7 @@ public:
     AllDiffExplainer(AllDifferentAC* c)
         : _c(c) {}
     ~AllDiffExplainer() {}
+    void explain(Literal& l) {};
     void explain(var<int>::Ptr x, int val);
 };
 
