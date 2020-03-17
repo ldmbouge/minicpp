@@ -20,6 +20,7 @@
 #include "trailable.hpp"
 
 class CPSolver;
+class Literal;
 
 class Constraint {
    bool _scheduled;
@@ -30,6 +31,7 @@ public:
    virtual ~Constraint() {}
    virtual void post() = 0;
    virtual void propagate() {}
+   virtual void explain(Literal& l) {}
    virtual void print(std::ostream& os) const {}
    void setScheduled(bool s) { _scheduled = s;}
    bool isScheduled() const  { return _scheduled;}

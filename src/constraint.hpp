@@ -222,6 +222,7 @@ public:
     ~AllDifferentAC() {}
     void post() override;
     void propagate() override;
+    void explain(Literal& l) override { _ex.explain(l);} 
 };
 
 class Circuit :public Constraint {
