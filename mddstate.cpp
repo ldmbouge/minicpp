@@ -412,6 +412,79 @@ namespace Factory {
       spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) { out.set(pnb,l.at(pnb));});
    }
 
+  void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
+   {
+     // This version tests whether we can update the state variables as well (eqns (6) and (8) in JAIR paper)
+      int minFIdx = 0,minLIdx = len-1;
+      int maxFIdx = len,maxLIdx = len*2-1;
+      int nb = len*2;
+      spec.append(vars);
+      ValueSet values(rawValues);
+      auto& desc = spec.makeConstraintDescriptor(vars,"seqMDD");
+      std::vector<int> ps(nb+1);
+      for(int i = minFIdx;i < nb;i++)
+         ps[i] = spec.addState(desc,0,len);       // init @ 0, largest value is length of window. 
+      ps[nb] = spec.addState(desc,0,INT_MAX); // init @ 0, largest value is number of variables. 
+
+      const int minL = ps[minLIdx];
+      const int maxF = ps[maxFIdx];
+      const int minF = ps[minFIdx];
+      const int maxL = ps[maxLIdx];
+      const int pnb  = ps[nb];
+
+      spec.addTransitions(toDict(minF,minL-1,
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+      spec.addTransitions(toDict(maxF,maxL-1,
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+      spec.addTransition(minL,[values,minL](auto& out,const auto& p,auto x,int v) { out.set(minL,p.at(minL)+values.member(v));});
+      spec.addTransition(maxL,[values,maxL](auto& out,const auto& p,auto x,int v) { out.set(maxL,p.at(maxL)+values.member(v));});
+      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v) {
+                                out.set(pnb,p.at(pnb)+1);
+                             });
+
+      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v) -> bool {
+                          bool inS = values.member(v);
+                          if (p.at(pnb) >= len - 1) {
+                             bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
+                             bool c1 = p.at(minL) + inS - p.at(maxF) <= ub;
+                             bool c2 = p.at(minL) + inS >= p.at(minF) + lb;
+                             bool c3 = p.at(maxL) + inS <= p.at(maxF) + ub;
+                             return c0 && c1 && c2 && c3;
+                          } else {
+                             bool c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
+                             bool c1 = p.at(minL) + inS <= ub;
+                             bool c2 = len - (p.at(pnb)+1) + p.at(minL) + inS >= lb;
+                             bool c3 = p.at(maxL) + inS <= ub;
+                             return c0 && c1 && c2 && c3;
+                          }
+                       });      
+      
+      for(int i = minFIdx; i < minLIdx; i++)
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
+
+      spec.addRelaxation(minL,[minL,minF,lb,len,pnb](auto& out,const auto& l,const auto& r) {
+	  int minVal = std::min(l.at(minL),r.at(minL));
+	  if (l.at(pnb) >= len - 1) {
+	    minVal = std::max(minVal, lb + std::min(l.at(minF),r.at(minF)));
+	  }
+	  else {
+	    minVal = std::max(minVal, lb - (len - (l.at(pnb)+1)) + std::min(l.at(minF),r.at(minF)));
+	  }
+	  out.set(minL, minVal);
+	});
+      
+      for(int i = maxFIdx; i < maxLIdx; i++)
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
+      spec.addRelaxation(maxL,[maxL,maxF,ub](auto& out,const auto& l,const auto& r) {
+	  int maxVal = std::max(l.at(maxL),r.at(maxL));
+	  // add len-test for bottom-up information
+	  maxVal = std::min(maxVal, ub + std::max(l.at(maxF),r.at(maxF)));
+	  out.set(maxL, maxVal);
+	});
+
+      spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) { out.set(pnb,l.at(pnb));});
+   }
+
    void gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       spec.append(vars);

@@ -124,6 +124,37 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       
   }
   else if (mode == 1) {
+
+    cout << "seqMDD encoding" << endl;
+    
+    auto mdd = new MDDRelax(cp,relaxSize);
+  
+    //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
+    Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 14, {0});
+
+    //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
+    Factory::seqMDD(mdd->getSpec(), vars, 28, 20, 28, {1,2,3});
+  
+    //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
+    Factory::seqMDD(mdd->getSpec(), vars, 14, 1, 4, {3});
+    
+    //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
+    Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 8, {2});
+    
+    //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
+    Factory::seqMDD(mdd->getSpec(), vars, 2, 0, 1, {3});
+    
+    //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
+    Factory::seqMDD(mdd->getSpec(), vars, 7, 2, 4, {2,3});
+    
+    //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
+    Factory::seqMDD(mdd->getSpec(), vars, 7, 0, 6, {1,2,3});
+    
+    cp->post(mdd);
+  }
+  else if (mode == 2) {
+
+    cout << "seqMDD2 encoding" << endl;
   
     auto mdd = new MDDRelax(cp,relaxSize);
   
@@ -147,6 +178,35 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     
     //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
     Factory::seqMDD2(mdd->getSpec(), vars, 7, 0, 6, {1,2,3});
+    
+    cp->post(mdd);
+  }
+  else if (mode == 3) {
+
+    cout << "seqMDD3 encoding" << endl;
+
+    auto mdd = new MDDRelax(cp,relaxSize);
+  
+    //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
+    Factory::seqMDD3(mdd->getSpec(), vars, 14, 4, 14, {0});
+
+    //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
+    Factory::seqMDD3(mdd->getSpec(), vars, 28, 20, 28, {1,2,3});
+  
+    //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
+    Factory::seqMDD3(mdd->getSpec(), vars, 14, 1, 4, {3});
+    
+    //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
+    Factory::seqMDD3(mdd->getSpec(), vars, 14, 4, 8, {2});
+    
+    //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
+    Factory::seqMDD3(mdd->getSpec(), vars, 2, 0, 1, {3});
+    
+    //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
+    Factory::seqMDD3(mdd->getSpec(), vars, 7, 2, 4, {2,3});
+    
+    //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
+    Factory::seqMDD3(mdd->getSpec(), vars, 7, 0, 6, {1,2,3});
     
     cp->post(mdd);
   }
@@ -187,8 +247,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   search.onSolution([&vars,&cnt]() {
       cnt++;
       std::cout << "\rNumber of solutions = " << cnt << std::flush;
-      //std::cout << "Assignment:" << std::endl;
-      //std::cout << "vars = " << " " << vars << std::endl;
+      std::cout << "Assignment:" << std::endl;
+      std::cout << "vars = " << " " << vars << std::endl;
     });
 
   auto start = RuntimeMonitor::cputime();
