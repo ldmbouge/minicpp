@@ -267,13 +267,14 @@ double MDDSpec::similarity(const MDDState& a,const MDDState& b)
 
 void MDDSpec::relaxation(MDDState& a,const MDDState& b)
 {
+   bool aRelax = a.isRelaxed();
   a.clear();
   MDDState orig(this,(char*)alloca(layoutSize()));
   orig.copyState(a);
   for(auto& cstr : constraints)
      for(auto p : cstr.relaxations()) 
         _relaxation[p](a,a,b);
-  a.relax(a.stateChange(orig));
+  a.relax(aRelax || a.stateChange(orig));
 }
 
 MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b)

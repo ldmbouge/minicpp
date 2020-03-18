@@ -242,7 +242,7 @@ void MDDRelax::trimLayer(unsigned int layer)
 
 bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
-   MDDState ms;
+   MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    bool first = true;
    assert(n->getNumParents() > 0);
    for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
@@ -252,7 +252,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       cs.copyState(n->getState());
       _mddspec.createState(cs,p->getState(),l-1,x[l-1],v);
       if (first)
-         ms = std::move(cs);
+         ms.copyState(cs);
       else
          _mddspec.relaxation(ms,cs);
       first = false;

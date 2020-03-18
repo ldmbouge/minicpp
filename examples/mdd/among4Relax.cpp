@@ -48,7 +48,7 @@ int main(int argc,char* argv[])
    auto dur = RuntimeMonitor::elapsedSince(start);
    //   mdd->saveGraph();
    std::cout << "Time : " << dur << std::endl;
-
+  
    if(useSearch){
       DFSearch search(cp,[=]() {
          unsigned i;
