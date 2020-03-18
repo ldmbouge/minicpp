@@ -134,7 +134,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
    std::cout << "NbCliques = " << NbCliques << std::endl;      
 
    auto vars = Factory::intVarArray(cp, N, 0, D-1);
-
+   MDDRelax* mdd = nullptr;
    if (mode == 0) {
      for (int i=0; i<NbCliques; i++) {
        auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
@@ -148,7 +148,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
      }
    }
    if ((mode == 2) || (mode==3)) {
-     auto mdd = new MDDRelax(cp,relaxSize);
+     mdd = new MDDRelax(cp,relaxSize);
      for (int i=0; i<NbCliques; i++) {
        auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
        Factory::allDiffMDD(mdd->getSpec(),adv);
@@ -170,7 +170,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       */   
        if (x) {
 	 int c = x->min();
-
+          int i = x->getId();
+          
          return  [=] {
                     //cout << tab(i) << "?x(" << i << ") == " << c << endl;
                     cp->post(x == c);

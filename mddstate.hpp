@@ -34,7 +34,8 @@ class MDDConstraintDescriptor {
    std::vector<int> _tid; // transition ids
    std::vector<int> _rid; // relaxation ids
    std::vector<int> _sid; // similarity ids
-public :
+   std::vector<int> _utid; // up transition ids
+public:
    MDDConstraintDescriptor(const Factory::Veci& vars, const char* name);
    MDDConstraintDescriptor(const MDDConstraintDescriptor&);
    void addProperty(int p) {_properties.push_back(p);}
@@ -42,12 +43,14 @@ public :
       auto at = std::find(_properties.begin(),_properties.end(),p);
       return at != _properties.end();
    }
-   const std::vector<int>& transitions() const { return _tid;}
-   const std::vector<int>& relaxations() const { return _rid;}
+   const std::vector<int>& transitions() const  { return _tid;}
+   const std::vector<int>& relaxations() const  { return _rid;}
    const std::vector<int>& similarities() const { return _sid;}
+   const std::vector<int>& uptrans() const      { return _utid;}
    void registerTransition(int t) { _tid.emplace_back(t);}
    void registerRelaxation(int t) { _rid.emplace_back(t);}
    void registerSimilarity(int t) { _sid.emplace_back(t);}
+   void registerUp(int t)         { _utid.emplace_back(t);}
    bool inScope(var<int>::Ptr x) const { return _vset.member(x->getId());}
    const Factory::Veci& vars() const { return _vars;}
    std::vector<int>& properties() { return _properties;}
@@ -160,7 +163,8 @@ public:
    MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs),_d(p._d) {}
    MDDProperty(short id,unsigned short ofs,enum Direction dir = Down) : _id(id),_ofs(ofs),_d(dir) {}
    MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _d = p._d;return *this;}
-   int size() const { return storageSize() >> 3;}
+   size_t size() const { return storageSize() >> 3;}
+   bool isUp() const { return _d == Up;}
    virtual void init(char* buf) const              {}
    virtual int get(char* buf) const                { return 0;}
    virtual MDDBSValue getBS(char* buf) const       { return MDDBSValue(nullptr,0,0);}
@@ -388,6 +392,12 @@ public:
       _flags = s._flags;
       _rip  = s._rip;
    }
+   void copyState(const MDDState& s) {
+      auto sz = _spec->layoutSize();
+      memcpy(_mem,s._mem,sz);
+      _flags = s._flags;
+      _rip = s._rip;      
+   }
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
       auto sz = _spec->layoutSize();
       char* block = (char*)mem->allocate(sizeof(char)* sz);//new (mem) char[sz];
@@ -422,7 +432,7 @@ public:
    void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
    MDDBSValue setBS(int i,const MDDBSValue& val) { return _spec->_attrs[i]->setBS(_mem,val);}
    void setProp(int i,const MDDState& from) { _spec->_attrs[i]->setProp(_mem,from._mem);}
-   int byteSize(int i) const   { return _spec->_attrs[i]->size();}
+   int byteSize(int i) const   { return (int)_spec->_attrs[i]->size();}
    void clear()                { _flags._ripped = false;_flags._relaxed = false;}
    bool isRelaxed() const      { return _flags._relaxed;}
    void relax(bool r = true)   { _flags._relaxed = r;}
@@ -456,6 +466,9 @@ public:
       while(nlb-- > 0)
          ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
       return ttl;
+   }
+   bool stateChange(const MDDState& b) const {
+      return memcmp(_mem,b._mem,_spec->layoutSize())!=0;
    }
    bool operator==(const MDDState& s) const {    // equality test likely O(1) when different.
       return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _flags._relaxed == s._flags._relaxed;

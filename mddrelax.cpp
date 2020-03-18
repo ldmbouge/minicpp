@@ -50,7 +50,8 @@ void MDDRelax::buildDiagram()
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
-   sink = new (mem) MDDNode(_lastNid++,mem, trail, (int) numVariables, 0);
+   auto sinkState = _mddspec.rootState(mem);
+   sink = new (mem) MDDNode(_lastNid++,mem, trail, sinkState, 0,(int) numVariables, 0);
    root = new (mem) MDDNode(_lastNid++,mem, trail, rootState, x[0]->size(),0, 0);
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
@@ -247,11 +248,13 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();
-      MDDState cs = _mddspec.createState(mem,p->getState(),l-1,x[l-1],v);
+      MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+      cs.copyState(n->getState());
+      _mddspec.createState(cs,p->getState(),l-1,x[l-1],v);
       if (first)
          ms = std::move(cs);
       else
-         ms = _mddspec.relaxation(mem,ms,cs);
+         _mddspec.relaxation(ms,cs);
       first = false;
    }
    bool changed = n->getState() != ms;
@@ -386,11 +389,6 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
 
    return delta;
 }
-/*
-struct MDDStateHash {
-   std::size_t operator()(MDDState* s)  const noexcept { return s->getHash();}
-};
-*/
 
 struct MDDStateEqual {
    bool operator()(const MDDState* s1,const MDDState* s2) const { return *s1 == *s2;}
@@ -437,14 +435,10 @@ void MDDRelax::delState(MDDNode* node,int l)
       }
       node->clearChildren();
    }
-   //assert(node->getNumParents()==0);  // Can't use the assert since I don't "remove" from node.
-   //assert(node->getNumChildren()==0);
 }
 
 void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,unsigned int l)
 {
-   //if (delta.size() == 0) return;
-
    using namespace std;
    // cout << "SP[" << l <<"] = " << layers[l].size();
    // for(unsigned i=0u;i < layers[l].size();i++) {
@@ -469,6 +463,14 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
             out.insert(n);
          }
       }
+      for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) { //auto& arc : n->getChilren()) {
+         auto arc = *i;
+         if (!_mddspec.exist(n->getState(),arc->getChild()->getState(),x[l],arc->getValue())) {
+            n->unhook(arc);
+            arc->getChild()->markDirty();
+            delSupport(l,arc->getValue());
+         }
+      }
       cl.insert({n->getState().inner(refDir),n});
    }
    
@@ -481,10 +483,9 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
       //std::cout << "spawn:" << n << (n->isActive() ? " AAA" : "  NA") << std::endl;
       const MDDState& state = n->getState();
       MDDState psi(&_mddspec,buf);
-      for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
-         MDDState childState; // there is none yet. We are trying to build it (down pass)
+      for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {         
          if (!x[l-1]->contains(v)) continue;
-         if (!_mddspec.exist(state,childState,x[l-1],v)) continue;
+         if (!_mddspec.exist(state,sink->getState(),x[l-1],v)) continue;
          if (l == numVariables) {
             addSupport(l-1,v);
             n->addArc(mem,sink,v);
@@ -502,7 +503,7 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
                   reuse->activate();
                   reuse->setState(psi.clone(mem), mem);
                   recycled.pop_back();
-                  reuse->setPosition(layer.size(), mem);
+                  reuse->setPosition((int)layer.size(), mem);
                   layer.push_back(reuse, mem);
                   addSupport(l-1, v);
                   n->addArc(mem,reuse,v);
@@ -587,14 +588,15 @@ void MDDRelax::trimDomains()
 
 void MDDRelax::computeUp()
 {
-   for(auto i = numVariables - 1;i >= 0;i--) {
+   for(auto i = numVariables - 1;i > 0;i--) {
       for(auto& n : layers[i]) {
          bool first = true;
+         MDDState temp(n->getState());  // This is a direct reference to the internals of n->getState()
          for(auto& arcToKid : n->getChildren()) {
-            MDDNode* kid = arc->getChild(); 
-           _mddspec.updateState(first,n->getState(),kid->getState(),x[i],arc->getValue());
+            MDDNode* kid = arcToKid->getChild();
+            _mddspec.updateState(first,temp,kid->getState(),x[i],arcToKid->getValue());
             first = false;
-         }
+         }         
       }
    }
 }
@@ -606,6 +608,7 @@ void MDDRelax::propagate()
       MDD::propagate();
       rebuild();
       trimDomains();
+      computeUp();
       _lowest = (int)numVariables - 1;      
    } catch(Status s) {
       queue.clear();

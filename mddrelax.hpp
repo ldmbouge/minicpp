@@ -29,6 +29,7 @@ class MDDRelax : public MDD {
    MDDNode* findSimilar(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
    MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);
    void delState(MDDNode* state,int l);
+   void computeUp();
 public:
    MDDRelax(CPSolver::Ptr cp,int width = 32);
    void trimDomains() override;

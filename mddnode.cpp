@@ -25,8 +25,8 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
      _active(true),
      _dirty(false),
      layer(layer),
-     children(t,mem,dsz),
-     parents(t,mem,dsz),
+     children(t,mem,std::max(dsz,1)),
+     parents(t,mem,std::max(dsz,1)),
      state(state)
 {}
 
