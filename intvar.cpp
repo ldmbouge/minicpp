@@ -36,10 +36,11 @@ IntVarImpl::IntVarImpl(CPSolver::Ptr& cps,int min,int max)
       _domListener(new (cps) DomainListener(this))
 {}
 
-IntVarImpl::~IntVarImpl()
+/*IntVarImpl::~IntVarImpl()
 {
     std::cout << "IntVarImpl::~IntVarImpl called ?" << std::endl;
 }
+*/
 
 class ClosureConstraint : public Constraint {
     std::function<void(void)> _f;

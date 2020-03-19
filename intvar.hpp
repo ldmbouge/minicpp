@@ -77,9 +77,9 @@ class IntVarImpl :public var<int> {
    };
    DomainListener*       _domListener;
 public:
-    IntVarImpl(CPSolver::Ptr& cps,int min,int max);
-    IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
-   ~IntVarImpl();
+   IntVarImpl(CPSolver::Ptr& cps,int min,int max);
+   IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
+   //~IntVarImpl();
    Storage::Ptr getStore() override   { return _solver->getStore();}
    CPSolver::Ptr getSolver() override { return _solver;}
    int min() const override { return _dom->min();}

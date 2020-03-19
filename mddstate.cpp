@@ -146,23 +146,19 @@ void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
                    return (!d.inScope(var) || a(p,c,var, val)) && b(p,c, var, val);
                 };
 }
-void MDDSpec::addUpTransition(int p,lambdaTrans t)
-{
-   for(auto& cd : constraints)
-      if (cd.ownsProperty(p)) {
-         cd.registerUp((int)_uptrans.size());
-         break;
-      }  
-   _uptrans.emplace_back(std::move(t));
-}
 void MDDSpec::addTransition(int p,lambdaTrans t)
-{
+{   
    for(auto& cd : constraints)
       if (cd.ownsProperty(p)) {
-         cd.registerTransition((int)_transition.size());
+         if (isUp(p)) {
+            cd.registerUp((int)_uptrans.size());
+            _uptrans.emplace_back(std::move(t));
+         } else {
+            cd.registerTransition((int)_transition.size());
+            _transition.emplace_back(std::move(t));
+         }
          break;
       }  
-   _transition.emplace_back(std::move(t));
 }
 void MDDSpec::addRelaxation(int p,lambdaRelax r)
 {
@@ -346,10 +342,10 @@ namespace Factory {
                                 out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
       mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val) { out.set(len,in.at(len) + 1);});
-      mdd.addUpTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,int val) {
+      mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,int val) {
                                   out.setBS(allu,in.getBS(allu)).set(val - minDom);
                                });
-      mdd.addUpTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,int val) {
+      mdd.addTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,int val) {
                                   out.setBS(someu,in.getBS(someu)).set(val - minDom);
                                });
       

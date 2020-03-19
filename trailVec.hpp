@@ -43,7 +43,7 @@ public:
          *_at  = nv;
          return *this;
       }
-      operator T() const { return *_at;}
+      operator T() const noexcept   { return *_at;}
       T operator->() const noexcept { return *_at;}
    };
    template <class U> class TrailEntry : public Entry {
@@ -51,7 +51,7 @@ public:
       U  _old;
    public:
       TrailEntry(U* ptr) : _at(ptr),_old(*ptr) {}
-      void restore() { *_at = _old;}
+      void restore() noexcept { *_at = _old;}
    };
    TVec() : _t(nullptr),_sz(0),_msz(0),_data(nullptr) {}
    TVec(Trailer::Ptr t,Storage::Ptr mem,SZT s)
@@ -100,9 +100,9 @@ public:
       _sz -= 1;
       return _sz;
    }
-   T get(SZT i) const                { return _data[i];}
-   T operator[](SZT i) const         { return _data[i];}
-   TVecSetter operator[](SZT i)      { return TVecSetter(_t,_data+i);}
+   const T get(SZT i) const noexcept           { return _data[i];}
+   const T operator[](SZT i) const noexcept    { return _data[i];}
+   TVecSetter operator[](SZT i) noexcept { return TVecSetter(_t,_data+i);}
    void at(SZT i,const T& nv) {
       _t->trail(new (_t) TrailEntry<T>(_data+i));
       _data[i] = nv;
@@ -121,11 +121,29 @@ public:
       T& operator*() const {return _data[_num];}
       friend class TVec;
    };
+   class const_iterator: public std::iterator<std::input_iterator_tag,T,long> {
+      T*    _data;
+      long   _num;
+      const_iterator(T* d,long num = 0) : _data(d),_num(num) {}
+   public:
+      const_iterator& operator++()   { _num = _num + 1; return *this;}
+      const_iterator operator++(int) { const_iterator retval = *this; ++(*this); return retval;}
+      const_iterator& operator--()   { _num = _num - 1; return *this;}
+      const_iterator operator--(int) { const_iterator retval = *this; --(*this); return retval;}
+      bool operator==(const_iterator other) const {return _num == other._num;}
+      bool operator!=(const_iterator other) const {return !(*this == other);}
+      const T operator*() const {return _data[_num];}
+      friend class TVec;
+   };
    using reverse_iterator = std::reverse_iterator<iterator>;
    iterator begin() const { return iterator(_data,0);}
    iterator end()   const { return iterator(_data,_sz);}
    reverse_iterator rbegin() const { return reverse_iterator(end());}
    reverse_iterator rend()   const { return reverse_iterator(begin());}
+   const_iterator cbegin() const { return const_iterator(_data,0);}
+   const_iterator cend()   const { return const_iterator(_data,_sz);}
+   reverse_iterator crbegin() const { return reverse_iterator(cend());}
+   reverse_iterator crend()   const { return reverse_iterator(cbegin());}
 };
 
 #endif

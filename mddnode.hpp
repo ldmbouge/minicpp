@@ -23,7 +23,7 @@ public:
       U  _old;
    public:
       TrailEntry(U* ptr) : _at(ptr),_old(*ptr) {}
-      void restore() { *_at = _old;}
+      void restore() noexcept { *_at = _old;}
    };
    typedef handle_ptr<MDDEdge> Ptr;
    MDDEdge(MDDNode* parent, MDDNode* child, int value, unsigned short childPosition,unsigned int parentPosition)
@@ -60,7 +60,7 @@ class MDDNode {
       U  _old;
    public:
       TrailEntry(U* ptr) : _at(ptr),_old(*ptr) {}
-      void restore() { *_at = _old;}
+      void restore() noexcept { *_at = _old;}
    };
 public:
    MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id);
