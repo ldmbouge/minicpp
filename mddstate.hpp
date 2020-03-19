@@ -327,6 +327,7 @@ public:
    bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
    auto size() const noexcept { return _attrs.size();}
    virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
+   virtual int addStateUp(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
    virtual int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init);
    virtual int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init);
    std::vector<int> addStates(MDDConstraintDescriptor&d,int from, int to, int max,std::function<int(int)> clo);
@@ -494,6 +495,7 @@ public:
    MDDConstraintDescriptor& makeConstraintDescriptor(const Factory::Veci&, const char*);
    void varOrder() override;
    int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
+   int addStateUp(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
    int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;

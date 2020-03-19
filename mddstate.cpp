@@ -89,6 +89,13 @@ int MDDStateSpec::addState(MDDConstraintDescriptor& d, int init,int max)
    d.addProperty(aid);
    return aid;
 }
+int MDDStateSpec::addStateUp(MDDConstraintDescriptor& d, int init,int max)
+{
+   int aid = (int)_attrs.size();
+   _attrs.push_back(Factory::makeProperty(MDDProperty::Up,aid, 0, init, max));
+   d.addProperty(aid);
+   return aid;
+}
 int MDDStateSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
 {
    int aid = (int)_attrs.size();
@@ -122,6 +129,11 @@ std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor& d,int max, std
 int MDDSpec::addState(MDDConstraintDescriptor& d,int init,int max)
 {
    auto rv = MDDStateSpec::addState(d,init,max);
+   return rv;
+}
+int MDDSpec::addStateUp(MDDConstraintDescriptor& d,int init,int max)
+{
+   auto rv = MDDStateSpec::addStateUp(d,init,max);
    return rv;
 }
 int MDDSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
@@ -550,9 +562,9 @@ namespace Factory {
       mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val) {
 	  out.set(maxW, p.at(maxW) + array[p.at(len)]*val);});
 
-      mdd.addUpTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
+      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
 	  out.set(minWup, in.at(minWup) + array[out.at(len)]*val);});
-      mdd.addUpTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val) {
+      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val) {
 	  out.set(maxWup, in.at(maxWup) + array[out.at(len)]*val);});
 
       mdd.addTransition(len, [len] (auto& out,const auto& p,auto var, int val) {
