@@ -109,6 +109,14 @@ void MDD::buildNextLayer(unsigned int i)
    //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
 }
 
+void MDD::addNodeToLayer(int layer,MDDNode* n,int forValue)
+{
+   n->activate();
+   n->setPosition((int)layers[layer].size(),mem);
+   layers[layer].push_back(n,mem);
+   addSupport(layer-1,forValue);
+}
+
 void MDD::trimDomains()
 {
    for(auto i = 1u; i < numVariables;i++) {

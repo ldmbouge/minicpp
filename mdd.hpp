@@ -39,6 +39,7 @@ protected:
    void hookupPropagators();
    void buildNextLayer(unsigned int i);
    virtual void buildDiagram();
+   void addNodeToLayer(int layer,MDDNode* n,int forValue);
    int _lastNid;
    Trailer::Ptr trail;
    CPSolver::Ptr cp;
