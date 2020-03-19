@@ -462,7 +462,7 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
          auto arc = *i;
          MDDNode* child = arc->getChild();
          int v = arc->getValue();
-         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v)) {
+         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
             n->unhook(arc);
             child->markDirty();
             delSupport(l,v);
@@ -479,7 +479,7 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
       MDDState psi(&_mddspec,buf);
       for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {         
          if (!x[l-1]->contains(v)) continue;
-         if (!_mddspec.exist(state,sink->getState(),x[l-1],v)) continue;
+         if (!_mddspec.exist(state,sink->getState(),x[l-1],v,false)) continue;
          if (l == numVariables) {
             addSupport(l-1,v);
             n->addArc(mem,sink,v);

@@ -84,7 +84,7 @@ void MDD::buildNextLayer(unsigned int i)
    for(int v = x[i]->min(); v <= x[i]->max(); v++) {
       if(!x[i]->contains(v)) continue;
       for(auto parent : layers[i]) { 
-         if (!_mddspec.exist(parent->getState(),sink->getState(),x[i],v)) continue;
+         if (!_mddspec.exist(parent->getState(),sink->getState(),x[i],v,false)) continue;
          if(i < numVariables - 1){
             MDDState state = _mddspec.createState(mem,parent->getState(),i, x[i], v);
             auto found = umap.find(&state);

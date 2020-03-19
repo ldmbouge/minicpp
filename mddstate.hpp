@@ -18,7 +18,7 @@
 #include <bitset>
 
 class MDDState;
-typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int)> ArcFun;
+typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
 typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
@@ -504,7 +504,7 @@ public:
    void addRelaxation(int,lambdaRelax);
    void addSimilarity(int,lambdaSim);
    void addTransitions(const lambdaMap& map);
-   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v);
+   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up);
    double similarity(const MDDState& a,const MDDState& b);
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
    MDDState createState(Storage::Ptr& mem,const MDDState& state,unsigned l,var<int>::Ptr var, int v);

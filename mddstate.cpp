@@ -150,12 +150,12 @@ int MDDSpec::addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init)
 void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
     auto& b = _exist;
     if(_exist == nullptr)
-       _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
-                   return (!d.inScope(var) || a(p,c, var, val));
+       _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
+                   return (!d.inScope(var) || a(p,c, var, val,up));
                 };
     else
-       _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
-                   return (!d.inScope(var) || a(p,c,var, val)) && b(p,c, var, val);
+       _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
+                   return (!d.inScope(var) || a(p,c,var, val,up)) && b(p,c, var, val,up);
                 };
 }
 void MDDSpec::addTransition(int p,lambdaTrans t)
@@ -204,9 +204,9 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
    return rootState;
 }
 
-bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v)
+bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up)
 {
-   return _exist(a,c,x,v);
+   return _exist(a,c,x,v,up);
 }
 
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v)
@@ -316,7 +316,7 @@ namespace Factory {
       const int maxC = mdd.addState(d,0,x.size());
       const int rem  = mdd.addState(d,(int)x.size(),x.size());
 
-      mdd.addArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, int val) -> bool {
+      mdd.addArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool) -> bool {
          return (p.at(minC) + values.member(val) <= ub) &&
                 ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
       });
@@ -375,7 +375,7 @@ namespace Factory {
                                 out.getBS(someu).setBinOR(l.getBS(someu),r.getBS(someu));
                             });
 
-      mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,int val) -> bool  {
+      mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,int val,bool) -> bool  {
                       bool notOk = p.getBS(all).getBit(val - minDom) ||
                          (p.getBS(some).cardinality() == (unsigned)p.at(len)  && p.getBS(some).getBit(val - minDom));
                       bool upNotOk = c.getBS(allu).getBit(val - minDom) ||
@@ -419,7 +419,7 @@ namespace Factory {
       const int pmaxF = ps[maxFIdx];
       const int pmin = ps[minFIdx];
       const int pmax = ps[maxLIdx];
-      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v) -> bool {
+      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           int minv = p.at(pmax) - p.at(pmin) + inS;
                           return (p.at(p0) < 0 &&  minv >= lb && p.at(pminL) + inS               <= ub)
@@ -475,7 +475,7 @@ namespace Factory {
                                 out.set(pnb,p.at(pnb)+1);
                              });
 
-      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v) -> bool {
+      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           if (p.at(pnb) >= len - 1) {
                              bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
@@ -509,7 +509,7 @@ namespace Factory {
 
       std::vector<int> ps = spec.addStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
 
-      spec.addArc(desc,[=](const auto& p,const auto& c,auto x,int v)->bool{
+      spec.addArc(desc,[=](const auto& p,const auto& c,auto x,int v,bool)->bool{
                           return p.at(ps[v-min]) < values[v];
                        });
 
@@ -552,10 +552,10 @@ namespace Factory {
       const int len  = mdd.addState(d, 0, vars.size());
 
       // The lower bound needs the bottom-up state information to be effective.
-      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val) -> bool {
+      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
 	  if (upPass==true) {
-	    return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
-		    (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
+             return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
+                     (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
 	  } else {
 	    return ((p.at(minW) + val*array[p.at(len)]  <= ub) );
 	  }
