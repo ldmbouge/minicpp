@@ -533,8 +533,8 @@ namespace Factory {
       // Define the states: minimum and maximum weighted value (initialize at 0, maximum is INT_MAX (when negative values are allowed).
       const int minW = mdd.addState(d, 0, INT_MAX);
       const int maxW = mdd.addState(d, 0, INT_MAX);
-      const int minWup = mdd.addState(d, 0, INT_MAX);
-      const int maxWup = mdd.addState(d, 0, INT_MAX);
+      const int minWup = mdd.addStateUp(d, 0, INT_MAX);
+      const int maxWup = mdd.addStateUp(d, 0, INT_MAX);
 
       // State 'len' is needed to capture the index i, to express array[i]*val when vars[i]=val.
       const int len  = mdd.addState(d, 0, vars.size());
@@ -550,10 +550,16 @@ namespace Factory {
       mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val) {
 	  out.set(maxW, p.at(maxW) + array[p.at(len)]*val);});
 
-      mdd.addUpTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
-	  out.set(minWup, in.at(minWup) + array[out.at(len)]*val);});
-      mdd.addUpTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val) {
-	  out.set(maxWup, in.at(maxWup) + array[out.at(len)]*val);});
+      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
+	  if (in.at(len) >= 1) {
+	    out.set(minWup, in.at(minWup) + array[in.at(len)-1]*val);
+	  }
+	});
+      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val) {
+	  if (in.at(len) >= 1) {
+	    out.set(maxWup, in.at(maxWup) + array[in.at(len)-1]*val);
+	  }
+	});
 
       mdd.addTransition(len, [len] (auto& out,const auto& p,auto var, int val) {
 	  out.set(len,  p.at(len) + 1);});      
