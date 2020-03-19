@@ -324,6 +324,7 @@ public:
    auto layoutSize() const noexcept { return _lsz;}
    void layout();
    virtual void varOrder() {}
+   bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
    auto size() const noexcept { return _attrs.size();}
    virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
    virtual int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init);
@@ -498,7 +499,6 @@ public:
    int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
    void addArc(const MDDConstraintDescriptor& d,ArcFun a);
    void addTransition(int,lambdaTrans);
-   void addUpTransition(int,lambdaTrans);
    void addRelaxation(int,lambdaRelax);
    void addSimilarity(int,lambdaSim);
    void addTransitions(const lambdaMap& map);
