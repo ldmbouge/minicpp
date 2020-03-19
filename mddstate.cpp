@@ -534,33 +534,44 @@ namespace Factory {
      
       auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
-      // Define the states: minimum and maximum weighted value (initialize at 0, maximum is ub).
-      // The 'rem' state (for capturing remaining value) is not effective -- instead, use bottom-up state information (when available).
-      const int minW = mdd.addState(d, 0, ub);
-      const int maxW = mdd.addState(d, 0, ub);
+      // Define the states: minimum and maximum weighted value (initialize at 0, maximum is INT_MAX (when negative values are allowed).
+      const int minW = mdd.addState(d, 0, INT_MAX);
+      const int maxW = mdd.addState(d, 0, INT_MAX);
+      const int minWup = mdd.addState(d, 0, INT_MAX);
+      const int maxWup = mdd.addState(d, 0, INT_MAX);
 
       // State 'len' is needed to capture the index i, to express array[i]*val when vars[i]=val.
       const int len  = mdd.addState(d, 0, vars.size());
 
       // The lower bound needs the bottom-up state information to be effective.
       mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val) -> bool {
-	    return (p.at(minW) + val*array[p.at(len)] <= ub);// &&
-	    //	         (p.at(maxW) + val*array[len] >= lb);
+	  return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
+		  (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
       });
 
       mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val) {
 	  out.set(minW, p.at(minW) + array[p.at(len)]*val);});
       mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val) {
 	  out.set(maxW, p.at(maxW) + array[p.at(len)]*val);});
-      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val) {
+
+      mdd.addUpTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
+	  out.set(minWup, in.at(minWup) + array[out.at(len)]*val);});
+      mdd.addUpTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val) {
+	  out.set(maxWup, in.at(maxWup) + array[out.at(len)]*val);});
+
+      mdd.addTransition(len, [len] (auto& out,const auto& p,auto var, int val) {
 	  out.set(len,  p.at(len) + 1);});      
 
       mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.set(minW,std::min(l.at(minW), r.at(minW)));});
       mdd.addRelaxation(maxW,[maxW](auto& out,const auto& l,const auto& r) { out.set(maxW,std::max(l.at(maxW), r.at(maxW)));});
+      mdd.addRelaxation(minWup,[minWup](auto& out,const auto& l,const auto& r) { out.set(minWup,std::min(l.at(minWup), r.at(minWup)));});
+      mdd.addRelaxation(maxWup,[maxWup](auto& out,const auto& l,const auto& r) { out.set(maxWup,std::max(l.at(maxWup), r.at(maxWup)));});
       mdd.addRelaxation(len, [len](auto& out,const auto& l,const auto& r)  { out.set(len,l.at(len));});
 
       mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
       mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
+      mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l.at(minWup) - r.at(minWup)); });
+      mdd.addSimilarity(maxWup,[maxWup](auto l,auto r) -> double { return abs(l.at(maxWup) - r.at(maxWup)); });
       mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
   }
 }

@@ -28,16 +28,24 @@ int main(int argc,char* argv[])
 {
    using namespace std;
    using namespace Factory;
+
+   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
+   //   int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
+
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto vars = Factory::intVarArray(cp, 5, 0, 2);
 
-   auto mdd = new MDD(cp);
-   //auto mdd = new MDDRelax(cp,1);
+   //auto mdd = new MDD(cp);
+   auto mdd = new MDDRelax(cp,width);
    
-   vector<int> vals {1,2,3,4,5};
+   vector<int> vals {1,1,1,1,1};
+   Factory::sumMDD(mdd->getSpec(),vars, vals, 2, 4);
 
-   Factory::sumMDD(mdd->getSpec(),vars, vals, 15, 15);
+   // vector<int> vals2 {5, 4, 3, 2, 1};
+   // Factory::sumMDD(mdd->getSpec(),vars, vals2, 10, 10);
    cp->post(mdd);
+  mdd->saveGraph();
+
    
      DFSearch search(cp,[=]() {
 
