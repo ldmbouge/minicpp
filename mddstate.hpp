@@ -510,7 +510,7 @@ public:
    void relaxation(MDDState& a,const MDDState& b);
    MDDState relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b);
    MDDState rootState(Storage::Ptr& mem);
-
+   bool usesUp() const { return _uptrans.size() > 0;}
    void append(const Factory::Veci& x);
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {

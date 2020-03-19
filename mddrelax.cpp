@@ -446,6 +446,7 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
    //         << layers[l][i]->getState().inner(_refs[l]) << endl;
    // }
 
+
    const MDDState& refDir = _refs[l];
    std::set<MDDNode*,MDDNodePtrOrder> out;
    std::multimap<float,MDDNode*,std::less<float> > cl;
@@ -588,15 +589,17 @@ void MDDRelax::trimDomains()
 
 void MDDRelax::computeUp()
 {
-   for(auto i = numVariables - 1;i > 0;i--) {
-      for(auto& n : layers[i]) {
-         bool first = true;
-         MDDState temp(n->getState());  // This is a direct reference to the internals of n->getState()
-         for(auto& arcToKid : n->getChildren()) {
-            MDDNode* kid = arcToKid->getChild();
-            _mddspec.updateState(first,temp,kid->getState(),x[i],arcToKid->getValue());
-            first = false;
-         }         
+   if (_mddspec.usesUp()) {
+      for(auto i = numVariables - 1;i > 0;i--) {
+         for(auto& n : layers[i]) {
+            bool first = true;
+            MDDState temp(n->getState());  // This is a direct reference to the internals of n->getState()
+            for(auto& arcToKid : n->getChildren()) {
+               MDDNode* kid = arcToKid->getChild();
+               _mddspec.updateState(first,temp,kid->getState(),x[i],arcToKid->getValue());
+               first = false;
+            }         
+         }
       }
    }
 }
