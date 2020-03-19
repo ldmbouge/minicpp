@@ -553,8 +553,12 @@ namespace Factory {
 
       // The lower bound needs the bottom-up state information to be effective.
       mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val) -> bool {
-	  return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
-		  (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
+	  if (upPass==true) {
+	    return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
+		    (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
+	  } else {
+	    return ((p.at(minW) + val*array[p.at(len)]  <= ub) );
+	  }
       });
 
       mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val) {
