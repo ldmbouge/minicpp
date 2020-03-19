@@ -321,10 +321,10 @@ protected:
    size_t _lsz;
 public:
    MDDStateSpec() {}
-   auto layoutSize() const { return _lsz;}
+   auto layoutSize() const noexcept { return _lsz;}
    void layout();
    virtual void varOrder() {}
-   auto size() const { return _attrs.size();}
+   auto size() const noexcept { return _attrs.size();}
    virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
    virtual int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init);
    virtual int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init);
@@ -366,7 +366,7 @@ class MDDState {  // An actual state of an MDDNode.
          _f = _at->_flags;
          _ip = _at->_rip;
       }
-      void restore() override {
+      void restore() noexcept override {
          memcpy(_at->_mem,_from,_sz);
          _at->_flags = _f;
          _at->_rip   = _ip;
@@ -423,19 +423,19 @@ public:
       if (_spec)  memcpy(block,_mem,_spec->layoutSize());
       return MDDState(_spec,block,/*_hash,*/_flags._relaxed,_rip,_flags._ripped);
    }
-   bool valid() const          { return _mem != nullptr;}
-   auto layoutSize() const     { return _spec->layoutSize();}   
-   void init(int i) const      { _spec->_attrs[i]->init(_mem);}
-   int at(int i) const         { return _spec->_attrs[i]->get(_mem);}
-   MDDBSValue getBS(int i) const    { return _spec->_attrs[i]->getBS(_mem);}
-   int operator[](int i) const { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
-   void set(int i,int val)     { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
-   MDDBSValue setBS(int i,const MDDBSValue& val) { return _spec->_attrs[i]->setBS(_mem,val);}
-   void setProp(int i,const MDDState& from) { _spec->_attrs[i]->setProp(_mem,from._mem);}
-   int byteSize(int i) const   { return (int)_spec->_attrs[i]->size();}
-   void clear()                { _flags._ripped = false;_flags._relaxed = false;}
-   bool isRelaxed() const      { return _flags._relaxed;}
-   void relax(bool r = true)   { _flags._relaxed = r;}
+   bool valid() const noexcept         { return _mem != nullptr;}
+   auto layoutSize() const noexcept    { return _spec->layoutSize();}   
+   void init(int i) const  noexcept    { _spec->_attrs[i]->init(_mem);}
+   int at(int i) const noexcept           { return _spec->_attrs[i]->get(_mem);}
+   MDDBSValue getBS(int i) const noexcept { return _spec->_attrs[i]->getBS(_mem);}
+   int operator[](int i) const noexcept   { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
+   void set(int i,int val) noexcept       { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
+   MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return _spec->_attrs[i]->setBS(_mem,val);}
+   void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);}
+   int byteSize(int i) const noexcept   { return (int)_spec->_attrs[i]->size();}
+   void clear() noexcept                { _flags._ripped = false;_flags._relaxed = false;}
+   bool isRelaxed() const noexcept      { return _flags._relaxed;}
+   void relax(bool r = true) noexcept   { _flags._relaxed = r;}
    float inner(const MDDState& s) const {
       if (_flags._ripped) 
          return _rip;

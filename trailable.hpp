@@ -42,7 +42,7 @@ public:
       T  _old;
    public:
       TrailEntry(T* at) : _at(at),_old(*at) {}
-      void restore() { *_at = _old;}
+      void restore() noexcept { *_at = _old;}
    };
 };
 

@@ -23,8 +23,8 @@
 
 class Entry {
 public:
-   virtual void relocate(long) {}
-   virtual void restore() = 0;
+   virtual void relocate(long) noexcept {}
+   virtual void restore() noexcept = 0;
 };
 
 class Trailer :public StateManager {

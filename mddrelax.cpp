@@ -28,7 +28,7 @@ const MDDState& MDDRelax::pickReference(int layer,int layerSize)
    int c = (int)std::floor(v / w);
    int dirIdx = c;
    //std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
-   return layers[layer][dirIdx]->getState();
+   return layers[layer].get(dirIdx)->getState();
 }
 
 MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
@@ -414,10 +414,10 @@ void MDDRelax::delState(MDDNode* node,int l)
    node->deactivate();
    assert(l == node->getLayer());
    const int at = node->getPosition();
-   assert(node == layers[l][at]);
+   assert(node == layers[l].get(at));
    layers[l].remove(at);
    node->setPosition((int)layers[l].size(),mem);
-   layers[l][at]->setPosition(at,mem);
+   layers[l].get(at)->setPosition(at,mem);
    if (node->getNumParents() > 0) {
       for(auto i = node->getParents().rbegin();i != node->getParents().rend();i++) {
          auto arc = *i;
@@ -578,7 +578,7 @@ void MDDRelax::rebuild()
 void MDDRelax::trimDomains()
 {
    for(auto i = _lowest + 1; i < numVariables;i++) {
-      auto& layer = layers[i];
+      const auto& layer = layers[i];      
       for(int j = (int)layer.size() - 1;j >= 0;j--) {
          if(layer[j]->disconnected())
             removeNode(layer[j]);

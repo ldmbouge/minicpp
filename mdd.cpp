@@ -83,8 +83,7 @@ void MDD::buildNextLayer(unsigned int i)
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
    for(int v = x[i]->min(); v <= x[i]->max(); v++) {
       if(!x[i]->contains(v)) continue;
-      for(auto pidx = 0u; pidx < layers[i].size(); pidx++) {
-         MDDNode* parent = layers[i][pidx];
+      for(auto parent : layers[i]) { 
          if (!_mddspec.exist(parent->getState(),sink->getState(),x[i],v)) continue;
          if(i < numVariables - 1){
             MDDState state = _mddspec.createState(mem,parent->getState(),i, x[i], v);
@@ -113,7 +112,7 @@ void MDD::buildNextLayer(unsigned int i)
 void MDD::trimDomains()
 {
    for(auto i = 1u; i < numVariables;i++) {
-      auto& layer = layers[i];
+      const auto& layer = layers[i];
       for(int j = (int)layer.size() - 1;j >= 0;j--) {
          if(layer[j]->disconnected())
             removeNode(layer[j]);
@@ -160,8 +159,11 @@ void MDD::trimLayer(unsigned int layer)
       _firstTime = false;
       queue.clear();
    }
-   for(int i = (int) layers[layer].size() - 1; i >= 0; i--)
-      layers[layer][i]->trim(this,x[layer]);
+   //for(int i = (int) layers[layer].size() - 1; i >= 0; i--)
+   //layers[layer][i]->trim(this,x[layer]);
+   for(auto i = layers[layer].cbegin(); i != layers[layer].cend();i++) {
+      (*i)->trim(this,x[layer]);
+   }
 }
 
 /*
@@ -175,13 +177,13 @@ void MDD::scheduleRemoval(MDDNode* node)
    }
    queue.push_front(node);
    assert(node->isActive());
-   assert(layers[node->getLayer()][node->getPosition()] == node);
+   assert(layers[node->getLayer()].get(node->getPosition()) == node);
 }
 
 void MDD::removeNode(MDDNode* node)
 {
    if(node->isActive()){
-      assert(layers[node->getLayer()][node->getPosition()] == node);
+      assert(layers[node->getLayer()].get(node->getPosition()) == node);
       node->remove(this);
       node->deactivate();
       //swap nodes in layer and decrement size of layer
@@ -189,7 +191,7 @@ void MDD::removeNode(MDDNode* node)
       const int nodeID = node->getPosition();
       layers[l].remove(nodeID);
       node->setPosition((int)layers[l].size(),mem);
-      layers[l][nodeID]->setPosition(nodeID,mem);
+      layers[l].get(nodeID)->setPosition(nodeID,mem);
       assert(node->getNumParents()==0);
       assert(node->getNumChildren()==0);
    }
