@@ -33,18 +33,23 @@ int main(int argc,char* argv[])
    //   int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
 
    CPSolver::Ptr cp  = Factory::makeSolver();
-   auto vars = Factory::intVarArray(cp, 5, 0, 2);
+   auto vars = Factory::intVarArray(cp, 5, 0, 5);
 
    //auto mdd = new MDD(cp);
    auto mdd = new MDDRelax(cp,width);
    
    vector<int> vals {1,2,3,4,5};
-   Factory::sumMDD(mdd->getSpec(), vars, vals, 10, 11);
+   Factory::sumMDD(mdd->getSpec(), vars, vals, 18, 19);
 
-   // vector<int> vals2 {5, 4, 3, 2, 1};
-   // Factory::sumMDD(mdd->getSpec(), vars, vals2, 10, 10);
+   vector<int> vals2 {5, 4, 3, 2, 1};
+   Factory::sumMDD(mdd->getSpec(), vars, vals2, 18, 19);
+
+   vector<int> vals3 {7, 8, 11, 15, 4};
+   Factory::sumMDD(mdd->getSpec(), vars, vals3, 50, 65);
+
+
    cp->post(mdd);
-   mdd->saveGraph();
+   // mdd->saveGraph();
 
    
      DFSearch search(cp,[=]() {
@@ -65,14 +70,22 @@ int main(int argc,char* argv[])
       } else return Branches({});
        });
       
-     search.onSolution([&vars,vals]() {
+     search.onSolution([&vars,vals,vals2,vals3]() {
 	 std::cout << "Assignment:" << vars;
 
 	 int value = 0;
 	 for (unsigned int i=0; i<vars.size(); i++)
 	   value += vals[i]*vars[i]->min();
 
-	 std::cout << " with value = " << value << std::endl;
+	 int value2 = 0;
+	 for (unsigned int i=0; i<vars.size(); i++)
+	   value2 += vals2[i]*vars[i]->min();
+
+	 int value3 = 0;
+	 for (unsigned int i=0; i<vars.size(); i++)
+	   value3 += vals3[i]*vars[i]->min();
+
+	 std::cout << " with values: " << value << ", " << value2 << ", " << value3 << std::endl;
        });
       
       

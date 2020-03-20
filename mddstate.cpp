@@ -545,25 +545,14 @@ namespace Factory {
       // from layers i+1 through n.      
       int nbVars = vars.size();
       std::vector<int> Lproxy(nbVars, 0);
-      std::vector<int> Uproxy(nbVars, 0);      
+      std::vector<int> Uproxy(nbVars, 0);
       Lproxy[nbVars-1] = 0;
       Uproxy[nbVars-1] = 0;
       for (int i=nbVars-2; i>=0; i--) {
 	Lproxy[i] = Lproxy[i+1] + array[i+1]*vars[i+1]->min();
 	Uproxy[i] = Uproxy[i+1] + array[i+1]*vars[i+1]->max();	
       }
-
-      // std::cout << "Lproxy = ";
-      // for (int i=0; i<nbVars; i++) {
-      // 	std::cout << Lproxy[i] << " ";
-      // }
-      // std::cout << std::endl;
-      // std::cout << "Uproxy = ";
-      // for (int i=0; i<nbVars; i++) {
-      // 	std::cout << Uproxy[i] << " ";
-      // }
-      // std::cout << std::endl;
-      
+     
       auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
       // Define the states: minimum and maximum weighted value (initialize at 0, maximum is INT_MAX (when negative values are allowed).
@@ -577,7 +566,6 @@ namespace Factory {
 
       // The lower bound needs the bottom-up state information to be effective.
       mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
-	  std::cout << "upPass = " << upPass << std::endl;
 	  if (upPass==true) {
 	    return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
 		    (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
