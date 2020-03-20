@@ -38,9 +38,9 @@ int main(int argc,char* argv[])
    //auto mdd = new MDD(cp);
    auto mdd = new MDDRelax(cp,width);
 
-   // constants (lb, ub) as RHS  
-   // vector<int> vals {1,2,3,4,5};
-   // Factory::sumMDD(mdd->getSpec(), vars, vals, 18, 19);
+   // Test 1: constants (lb, ub) as RHS  
+   // vector<int> vals1 {1,2,3,4,5};
+   // Factory::sumMDD(mdd->getSpec(), vars, vals1, 18, 19);
 
    // vector<int> vals2 {5, 4, 3, 2, 1};
    // Factory::sumMDD(mdd->getSpec(), vars, vals2, 18, 19);
@@ -48,18 +48,56 @@ int main(int argc,char* argv[])
    // vector<int> vals3 {7, 8, 11, 15, 4};
    // Factory::sumMDD(mdd->getSpec(), vars, vals3, 50, 65);
 
-   // variables as RHS
-  
-   vector<int> vals {1,2,3,4,5};
-   Factory::sumMDD(mdd->getSpec(), vars, vals, 18, 19);
+   // Test 2: variables as RHS
+   auto z1 = Factory::makeIntVar(cp, 18, 19);  
+   vector<int> vals1 {1,2,3,4,5};
+   Factory::sumMDD(mdd->getSpec(), vars, vals1, z1);
 
+   auto z2 = Factory::makeIntVar(cp, 18, 19);
    vector<int> vals2 {5, 4, 3, 2, 1};
-   Factory::sumMDD(mdd->getSpec(), vars, vals2, 18, 19);
+   Factory::sumMDD(mdd->getSpec(), vars, vals2, z2);
 
+   auto z3 = Factory::makeIntVar(cp, 50, 65);
    vector<int> vals3 {7, 8, 11, 15, 4};
-   Factory::sumMDD(mdd->getSpec(), vars, vals3, 50, 65);
+   Factory::sumMDD(mdd->getSpec(), vars, vals3, z3);
 
+   // Test 3: variable RHS with matrix (element) summation
+   // auto z1 = Factory::makeIntVar(cp, 18, 19);  
+   // vector<int> vals1 {1,2,3,4,5};
+   // vector< vector<int> > valMatrix1;
+   // for (unsigned int i=0; i<vars.size(); i++) {
+   //   vector<int> tmpVals;
+   //   for (int j=0; j<=5; j++) {
+   //     tmpVals.push_back(j*vals1[i]);
+   //   }
+   //   valMatrix1.push_back(tmpVals);
+   // }
+   // Factory::sumMDD(mdd->getSpec(), vars, valMatrix1, z1);
 
+   // auto z2 = Factory::makeIntVar(cp, 18, 19);  
+   // vector<int> vals2 {5, 4, 3, 2, 1};
+   // vector< vector<int> > valMatrix2;
+   // for (unsigned int i=0; i<vars.size(); i++) {
+   //   vector<int> tmpVals;
+   //   for (int j=0; j<=5; j++) {
+   //     tmpVals.push_back(j*vals2[i]);
+   //   }
+   //   valMatrix2.push_back(tmpVals);
+   // }
+   // Factory::sumMDD(mdd->getSpec(), vars, valMatrix2, z2);
+
+   // auto z3 = Factory::makeIntVar(cp, 50, 65);
+   // vector<int> vals3 {7, 8, 11, 15, 4};
+   // vector< vector<int> > valMatrix3;
+   // for (unsigned int i=0; i<vars.size(); i++) {
+   //   vector<int> tmpVals;
+   //   for (int j=0; j<=5; j++) {
+   //     tmpVals.push_back(j*vals3[i]);
+   //   }
+   //   valMatrix3.push_back(tmpVals);
+   // }
+   // Factory::sumMDD(mdd->getSpec(), vars, valMatrix3, z3);
+   
    cp->post(mdd);
    // mdd->saveGraph();
 
@@ -82,12 +120,12 @@ int main(int argc,char* argv[])
       } else return Branches({});
        });
       
-     search.onSolution([&vars,vals,vals2,vals3]() {
+     search.onSolution([&vars,vals1,vals2,vals3]() {
 	 std::cout << "Assignment:" << vars;
 
-	 int value = 0;
+	 int value1 = 0;
 	 for (unsigned int i=0; i<vars.size(); i++)
-	   value += vals[i]*vars[i]->min();
+	   value1 += vals1[i]*vars[i]->min();
 
 	 int value2 = 0;
 	 for (unsigned int i=0; i<vars.size(); i++)
@@ -97,7 +135,7 @@ int main(int argc,char* argv[])
 	 for (unsigned int i=0; i<vars.size(); i++)
 	   value3 += vals3[i]*vars[i]->min();
 
-	 std::cout << " with values: " << value << ", " << value2 << ", " << value3 << std::endl;
+	 std::cout << " with values: " << value1 << ", " << value2 << ", " << value3 << std::endl;
        });
       
       
