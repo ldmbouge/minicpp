@@ -55,6 +55,7 @@ protected:
    MDDNode* sink = nullptr;
    var<int>::Ptr objective = nullptr;
    MDDSpec _mddspec;
+   bool    _posting;
 };
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.

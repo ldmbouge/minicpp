@@ -458,14 +458,16 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
          if (refreshNode(n,l)) 
             out.insert(n);        
       }
-      for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) { 
-         auto arc = *i;
-         MDDNode* child = arc->getChild();
-         int v = arc->getValue();
-         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
-            n->unhook(arc);
-            child->markDirty();
-            delSupport(l,v);
+      if (!_posting) {
+         for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) { 
+            auto arc = *i;
+            MDDNode* child = arc->getChild();
+            int v = arc->getValue();
+            if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,!_posting)) {
+               n->unhook(arc);
+               child->markDirty();
+               delSupport(l,v);
+            }
          }
       }
       cl.insert({n->getState().inner(refDir),n});

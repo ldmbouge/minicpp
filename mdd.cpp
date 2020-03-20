@@ -34,6 +34,7 @@ MDD::MDD(CPSolver::Ptr cp)
 {
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
+   _posting = true;
 }
 
 /*
@@ -57,6 +58,7 @@ void MDD::post()
       oft.push_back(x[i]->min());
    }
    this->buildDiagram();
+   _posting = false;
 }
 
 void MDD::propagate()
@@ -99,8 +101,13 @@ void MDD::buildNextLayer(unsigned int i)
                //std::cout << "LINKING: " << state << " @ " << child->getPosition() << std::endl;
             }
             parent->addArc(mem,child, v);
-         } else
+         } else {
+            MDDState sinkState(sink->getState());
+            MDDState temp(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+            _mddspec.createState(temp, parent->getState(), i, x[i], v);
+            _mddspec.relaxation(sinkState, temp);
             parent->addArc(mem,sink, v);
+         }
          addSupport(i, v);
       }
       if (getSupport(i,v) == 0)
@@ -146,7 +153,8 @@ void MDD::buildDiagram()
    _mddspec.layout();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
-   sink = new (mem) MDDNode(_lastNid++,mem, trail, (int) numVariables, 0);
+   auto sinkState = _mddspec.rootState(mem);
+   sink = new (mem) MDDNode(_lastNid++,mem, trail, sinkState, 0,(int) numVariables, 0);
    root = new (mem) MDDNode(_lastNid++,mem, trail, rootState, x[0]->size(),0, 0);
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
