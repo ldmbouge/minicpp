@@ -38,13 +38,13 @@ int main(int argc,char* argv[])
    //auto mdd = new MDD(cp);
    auto mdd = new MDDRelax(cp,width);
    
-   vector<int> vals {1,1,1,1,1};
-   Factory::sumMDD(mdd->getSpec(),vars, vals, 2, 4);
+   vector<int> vals {1,2,3,4,5};
+   Factory::sumMDD(mdd->getSpec(), vars, vals, 10, 29);
 
    // vector<int> vals2 {5, 4, 3, 2, 1};
-   // Factory::sumMDD(mdd->getSpec(),vars, vals2, 10, 10);
+   // Factory::sumMDD(mdd->getSpec(), vars, vals2, 10, 10);
    cp->post(mdd);
-  mdd->saveGraph();
+   mdd->saveGraph();
 
    
      DFSearch search(cp,[=]() {
