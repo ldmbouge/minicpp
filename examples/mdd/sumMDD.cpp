@@ -39,7 +39,7 @@ int main(int argc,char* argv[])
    auto mdd = new MDDRelax(cp,width);
    
    vector<int> vals {1,2,3,4,5};
-   Factory::sumMDD(mdd->getSpec(), vars, vals, 10, 29);
+   Factory::sumMDD(mdd->getSpec(), vars, vals, 10, 11);
 
    // vector<int> vals2 {5, 4, 3, 2, 1};
    // Factory::sumMDD(mdd->getSpec(), vars, vals2, 10, 10);
