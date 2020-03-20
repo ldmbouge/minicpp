@@ -577,10 +577,10 @@ namespace Factory {
 
       // The lower bound needs the bottom-up state information to be effective.
       mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
-	  // std::cout << "upPass = " << upPass << std::endl;
+	  std::cout << "upPass = " << upPass << std::endl;
 	  if (upPass==true) {
-             return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
-                     (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
+	    return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
+		    (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
 	  } else {
 	    return ((p.at(minW) + val*array[p.at(len)] + Lproxy[p.at(len)] <= ub) && 
 		    (p.at(maxW) + val*array[p.at(len)] + Uproxy[p.at(len)] >= lb));
