@@ -628,12 +628,9 @@ namespace Factory {
 
       auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
-      // Define the states: minimum and maximum weighted value (initialize at 0, maximum is ub).
-      // The 'rem' state (for capturing remaining value) is not effective -- instead, use bottom-up state information (when available).
-      int ub = z->max();
-      
-      const int minW = mdd.addState(d, 0, ub);
-      const int maxW = mdd.addState(d, 0, ub);
+      // Define the states
+      const int minW = mdd.addState(d, 0, INT_MAX);
+      const int maxW = mdd.addState(d, 0, INT_MAX);
       const int minWup = mdd.addStateUp(d, 0, INT_MAX);
       const int maxWup = mdd.addStateUp(d, 0, INT_MAX);
 
@@ -712,13 +709,9 @@ namespace Factory {
       
       auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
-      int ub = z->max();
-
-      // Define the states: minimum and maximum weighted value (initialize at 0, maximum is ub).
-      // The 'rem' state (for capturing remaining value) is not effective -- instead, use bottom-up state information (when available).
-      
-      const int minW = mdd.addState(d, 0, ub);
-      const int maxW = mdd.addState(d, 0, ub);
+      // Define the states
+      const int minW = mdd.addState(d, 0, INT_MAX);
+      const int maxW = mdd.addState(d, 0, INT_MAX);
       const int minWup = mdd.addStateUp(d, 0, INT_MAX);
       const int maxWup = mdd.addStateUp(d, 0, INT_MAX);
 
