@@ -462,7 +462,7 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
          auto arc = *i;
          MDDNode* child = arc->getChild();
          int v = arc->getValue();
-         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
+         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,!_posting)) {
             n->unhook(arc);
             child->markDirty();
             delSupport(l,v);
