@@ -607,4 +607,165 @@ namespace Factory {
       mdd.addSimilarity(maxWup,[maxWup](auto l,auto r) -> double { return abs(l.at(maxWup) - r.at(maxWup)); });
       mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
   }
+
+  void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, var<int>::Ptr z) {
+      // Enforce MDD bounds consistency on
+      //   sum(i, array[i]*vars[i]) == z 
+      mdd.append(vars);
+     
+      // Create lower and upper bounds as proxy for bottom-up values.
+      // At layer i, the proxy sums the minimum (resp. maximum) value
+      // from layers i+1 through n.      
+      int nbVars = vars.size();
+      std::vector<int> Lproxy(nbVars, 0);
+      std::vector<int> Uproxy(nbVars, 0);
+      Lproxy[nbVars-1] = 0;
+      Uproxy[nbVars-1] = 0;
+      for (int i=nbVars-2; i>=0; i--) {
+	Lproxy[i] = Lproxy[i+1] + array[i+1]*vars[i+1]->min();
+	Uproxy[i] = Uproxy[i+1] + array[i+1]*vars[i+1]->max();	
+      }
+
+      auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
+
+      // Define the states: minimum and maximum weighted value (initialize at 0, maximum is ub).
+      // The 'rem' state (for capturing remaining value) is not effective -- instead, use bottom-up state information (when available).
+      int ub = z->max();
+      
+      const int minW = mdd.addState(d, 0, ub);
+      const int maxW = mdd.addState(d, 0, ub);
+      const int minWup = mdd.addStateUp(d, 0, INT_MAX);
+      const int maxWup = mdd.addStateUp(d, 0, INT_MAX);
+
+      // State 'len' is needed to capture the index i, to express array[i]*val when vars[i]=val.
+      const int len  = mdd.addState(d, 0, vars.size());
+
+      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
+	  if (upPass==true) {
+	    return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= z->max()) &&
+		    (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= z->min()));
+	  } else {
+	    return ((p.at(minW) + val*array[p.at(len)] + Lproxy[p.at(len)] <= z->max()) && 
+		    (p.at(maxW) + val*array[p.at(len)] + Uproxy[p.at(len)] >= z->min()));
+	  }
+	});
+
+      
+      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val) {
+	  out.set(minW, p.at(minW) + array[p.at(len)]*val);});
+      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val) {
+	  out.set(maxW, p.at(maxW) + array[p.at(len)]*val);});
+
+      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
+	  if (in.at(len) >= 1) {
+	    out.set(minWup, in.at(minWup) + array[in.at(len)-1]*val);
+	  }
+	});
+      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val) {
+	  if (in.at(len) >= 1) {
+	    out.set(maxWup, in.at(maxWup) + array[in.at(len)-1]*val);
+	  }
+	});
+
+      
+      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val) {
+	  out.set(len,  p.at(len) + 1);});      
+
+      mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.set(minW,std::min(l.at(minW), r.at(minW)));});
+      mdd.addRelaxation(maxW,[maxW](auto& out,const auto& l,const auto& r) { out.set(maxW,std::max(l.at(maxW), r.at(maxW)));});
+      mdd.addRelaxation(minWup,[minWup](auto& out,const auto& l,const auto& r) { out.set(minWup,std::min(l.at(minWup), r.at(minWup)));});
+      mdd.addRelaxation(maxWup,[maxWup](auto& out,const auto& l,const auto& r) { out.set(maxWup,std::max(l.at(maxWup), r.at(maxWup)));});
+      mdd.addRelaxation(len, [len](auto& out,const auto& l,const auto& r)  { out.set(len,l.at(len));});
+
+      mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
+      mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
+      mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l.at(minWup) - r.at(minWup)); });
+      mdd.addSimilarity(maxWup,[maxWup](auto l,auto r) -> double { return abs(l.at(maxWup) - r.at(maxWup)); });
+      mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
+  }  
+
+  void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z) {
+      // Enforce MDD bounds consistency on
+      //   sum(i, matrix[i][vars[i]]) == z 
+      mdd.append(vars);
+
+      // Create lower and upper bounds as proxy for bottom-up values.
+      // At layer i, the proxy sums the minimum (resp. maximum) value
+      // from layers i+1 through n.      
+      int nbVars = vars.size();
+      std::vector<int> Lproxy(nbVars, 0);
+      std::vector<int> Uproxy(nbVars, 0);
+      Lproxy[nbVars-1] = 0;
+      Uproxy[nbVars-1] = 0;
+      for (int i=nbVars-2; i>=0; i--) {
+	int tmpMin = INT_MAX;
+	int tmpMax = -INT_MAX;
+	for (int j=vars[i+1]->min(); j<=vars[i+1]->max(); j++) {
+	  if (vars[i]->contains(j)) {
+	    if (matrix[i+1][j] < tmpMin) { tmpMin = matrix[i+1][j]; }
+	    if (matrix[i+1][j] > tmpMax) { tmpMax = matrix[i+1][j]; }
+	  }
+	}
+	Lproxy[i] = Lproxy[i+1] + tmpMin;
+	Uproxy[i] = Uproxy[i+1] + tmpMax;
+      }
+      
+      auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
+
+      int ub = z->max();
+
+      // Define the states: minimum and maximum weighted value (initialize at 0, maximum is ub).
+      // The 'rem' state (for capturing remaining value) is not effective -- instead, use bottom-up state information (when available).
+      
+      const int minW = mdd.addState(d, 0, ub);
+      const int maxW = mdd.addState(d, 0, ub);
+      const int minWup = mdd.addStateUp(d, 0, INT_MAX);
+      const int maxWup = mdd.addStateUp(d, 0, INT_MAX);
+
+      // State 'len' is needed to capture the index i, to express matrix[i][vars[i]]
+      const int len  = mdd.addState(d, 0, vars.size());
+
+      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
+	  if (upPass==true) {
+	    return ((p.at(minW) + matrix[p.at(len)][val] + c.at(minWup) <= z->max()) &&
+		    (p.at(maxW) + matrix[p.at(len)][val] + c.at(maxWup) >= z->min()));
+	  } else {
+	    return ((p.at(minW) + matrix[p.at(len)][val] + Lproxy[p.at(len)] <= z->max()) && 
+		    (p.at(maxW) + matrix[p.at(len)][val] + Uproxy[p.at(len)] >= z->min()));
+	  }
+	});
+      
+      mdd.addTransition(minW,[minW,matrix,len] (auto& out,const auto& p,auto var, int val) {
+	  out.set(minW, p.at(minW) + matrix[p.at(len)][val]);});
+      mdd.addTransition(maxW,[maxW,matrix,len] (auto& out,const auto& p,auto var, int val) {
+	  out.set(maxW, p.at(maxW) + matrix[p.at(len)][val]);});
+
+      mdd.addTransition(minWup,[minWup,matrix,len] (auto& out,const auto& in,auto var, int val) {
+	  if (in.at(len) >= 1) {
+	    out.set(minWup, in.at(minWup) + matrix[in.at(len)-1][val]);
+	  }
+	});
+      mdd.addTransition(maxWup,[maxWup,matrix,len] (auto& out,const auto& in,auto var, int val) {
+	  if (in.at(len) >= 1) {
+	    out.set(maxWup, in.at(maxWup) + matrix[in.at(len)-1][val]);
+	  }
+	});
+      
+      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val) {
+	  out.set(len,  p.at(len) + 1);});      
+
+      mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.set(minW,std::min(l.at(minW), r.at(minW)));});
+      mdd.addRelaxation(maxW,[maxW](auto& out,const auto& l,const auto& r) { out.set(maxW,std::max(l.at(maxW), r.at(maxW)));});
+      mdd.addRelaxation(minWup,[minWup](auto& out,const auto& l,const auto& r) { out.set(minWup,std::min(l.at(minWup), r.at(minWup)));});
+      mdd.addRelaxation(maxWup,[maxWup](auto& out,const auto& l,const auto& r) { out.set(maxWup,std::max(l.at(maxWup), r.at(maxWup)));});
+      mdd.addRelaxation(len, [len](auto& out,const auto& l,const auto& r)  { out.set(len,l.at(len));});
+
+      mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
+      mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
+      mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l.at(minWup) - r.at(minWup)); });
+      mdd.addSimilarity(maxWup,[maxWup](auto l,auto r) -> double { return abs(l.at(maxWup) - r.at(maxWup)); });
+      mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
+  }  
+
+
 }

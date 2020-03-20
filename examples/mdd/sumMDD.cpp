@@ -37,7 +37,19 @@ int main(int argc,char* argv[])
 
    //auto mdd = new MDD(cp);
    auto mdd = new MDDRelax(cp,width);
-   
+
+   // constants (lb, ub) as RHS  
+   // vector<int> vals {1,2,3,4,5};
+   // Factory::sumMDD(mdd->getSpec(), vars, vals, 18, 19);
+
+   // vector<int> vals2 {5, 4, 3, 2, 1};
+   // Factory::sumMDD(mdd->getSpec(), vars, vals2, 18, 19);
+
+   // vector<int> vals3 {7, 8, 11, 15, 4};
+   // Factory::sumMDD(mdd->getSpec(), vars, vals3, 50, 65);
+
+   // variables as RHS
+  
    vector<int> vals {1,2,3,4,5};
    Factory::sumMDD(mdd->getSpec(), vars, vals, 18, 19);
 
