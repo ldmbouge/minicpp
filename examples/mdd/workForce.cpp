@@ -197,7 +197,8 @@ std::string tab(int d) {
 void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize,int over)
 {
    using namespace std;
-   int nbE = (int) compat.size();
+   int nbJ = (int) compat.size();
+   int nbE = (int) compat[0].size();
    set<set<int>> cliques = sweep(jobs);
    vector<set<int>> cv;
    std::copy(cliques.begin(),cliques.end(),std::inserter(cv,cv.end()));
@@ -230,6 +231,18 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       ss += chosen.size();
    }
    
+   // Test: add objective to each MDD
+   int zUB = 0;
+   for (unsigned int i=0; i<emp.size(); i++) {
+     int tmpMax = 0;
+     for (unsigned int j=emp[i]->min(); j<=emp[i]->max(); j++) {
+       if (compat[i][j] > tmpMax) { tmpMax = compat[i][j]; }
+     }
+     zUB += tmpMax;
+   }
+   cout << "zUB = " << zUB << endl;
+   auto z = Factory::makeIntVar(cp, 0, zUB);
+
    assert(ss == cv.size());
    //MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
@@ -242,23 +255,39 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          Factory::allDiffMDD(mdd->getSpec(),adv);
          //cp->post(Factory::allDifferent(adv));
       }
+      // add objective to MDD
+      Factory::sumMDD(mdd->getSpec(), emp, compat, z);
       cp->post(mdd);
       //theOne = mdd;
       //mdd->saveGraph();
    }
 
-   auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});      
-   Objective::Ptr obj = Factory::maximize(Factory::sum(sm));
-  
+     // auto sm = Factory::intVarArray(cp,nbJ,[&](int i) { return Factory::element(compat[i],emp[i]);});
+     // Objective::Ptr obj = Factory::maximize(Factory::sum(sm));
+
+        // obj: 981
+     	// #choice   : 5748
+	// #fail     : 2875
+	// #sols     : 5
+	// completed : 0
+     
+
+   // Add separate MDD for objective
+   // auto mddSum = new MDDRelax(cp,relaxSize);
+   // Factory::sumMDD(mddSum->getSpec(), emp, compat, z);
+   // cp->post(mddSum);
+
+   Objective::Ptr obj = Factory::maximize(z);
+   
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
                          auto x = selectMin(emp,
                                              [](const auto& x) { return x->size() > 1;},
                                              [](const auto& x) { return x->size();});
                                                   
-                         int depth = 0;
-                         for(int i=0;i < nbE;i++) 
-                            depth += emp[i]->size() == 1;
+                         // int depth = 0;
+                         // for(int i=0;i < nbE;i++) 
+                         //    depth += emp[i]->size() == 1;
 
       // unsigned i;      
       // for(i=0u;i< emp.size();i++) 
@@ -290,7 +319,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    });
 
    SearchStatistics stat;
-   search.onSolution([&emp,obj,&stat/*,&cliques,&compat*/]() {
+   search.onSolution([&emp,obj,z,&stat/*,&cliques,&compat*/]() {
+       cout << "z->min() : " << z->min() << ", z->max() : " << z->max() << endl;
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;
                         //exit(1);

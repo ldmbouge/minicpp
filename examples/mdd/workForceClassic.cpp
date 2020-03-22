@@ -192,41 +192,47 @@ std::string tab(int d) {
    return s;
 }
 
-void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
+void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int mode)
 {
    using namespace std;
-   int nbE = (int) compat.size();
+   int nbJ = (int) compat.size();
+   int nbE = (int) compat[0].size();
    set<set<int>> cliques = sweep(jobs);
    auto emp = Factory::intVarArray(cp,(int) jobs.size(), 0, nbE-1);
    
    for(auto& c : cliques) {
       std::cout << "Clique: " << c << std::endl;
       auto adv = all(cp, c, [&emp](int i) {return emp[i];});
+      if (mode == 0) {
       cp->post(Factory::allDifferent(adv));
+      } else {
+	cp->post(Factory::allDifferentAC(adv));
+      }
    }
 
    
-   auto sm = Factory::intVarArray(cp,nbE,[&](int i) { return Factory::element(compat[i],emp[i]);});
+   auto sm = Factory::intVarArray(cp,nbJ,[&](int i) { return Factory::element(compat[i],emp[i]);});
    Objective::Ptr obj = Factory::maximize(Factory::sum(sm));
   
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
-                         /*                         auto x = selectMin(emp,
-                                            [](const auto& x) { return x->size() > 1;},
-                                            [](const auto& x) { return x->size();});
-                         */
-                         int depth = 0;
-                         for(int i=0;i < nbE;i++) 
-                            depth += emp[i]->size() == 1;
+       auto x = selectMin(emp,
+			  [](const auto& x) { return x->size() > 1;},
+			  [](const auto& x) { return x->size();});
+       
+
+      //  int depth = 0;
+      //  for(int i=0;i < nbE;i++) 
+      // 	 depth += emp[i]->size() == 1;
                                                                         
-      unsigned i;      
-      // for(i=0u;i< emp.size();i++)
-      //    cout << emp[i] << endl;
-      for(i=0u;i< emp.size();i++) 
-         if (emp[i]->size() > 1)
-            break;     
-      auto x = i < emp.size() ? emp[i] : nullptr;                                                
-      // cout << "picked: " << i << endl;
+      // unsigned i;      
+      // // for(i=0u;i< emp.size();i++)
+      // //    cout << emp[i] << endl;
+      // for(i=0u;i< emp.size();i++) 
+      //    if (emp[i]->size() > 1)
+      //       break;     
+      // auto x = i < emp.size() ? emp[i] : nullptr;                                                
+      // // cout << "picked: " << i << endl;
                          
                          
       if (x) {
@@ -265,8 +271,12 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat)
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce9-jobs.csv";
-   const char* compatFile = "data/workforce9.csv";
+   // mode = 0: pairwise not-equal, mode = 1: arc consistent alldiff
+   int mode = (argc >= 2 && strncmp(argv[1],"-m",2)==0) ? atoi(argv[1]+2) : 1;  
+   cout << "mode = " << mode << endl;
+   
+   const char* jobsFile = "data/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce100.csv";
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);
@@ -274,7 +284,7 @@ int main(int argc,char* argv[])
       for (auto& j : jobs)
          cout << j << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp,jobs,compat);
+      buildModel(cp,jobs,compat,mode);
    } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << std::endl;
    }
