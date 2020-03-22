@@ -150,6 +150,8 @@ int main(int argc,char* argv[])
    }
    mdd->saveGraph();
 
+   cp->post(vars[0] == 0);
+   cp->post(vars[1] == 2);
    
    DFSearch search(cp,[=]() {
 
@@ -157,14 +159,17 @@ int main(int argc,char* argv[])
       for(i=0u;i < vars.size();i++)
 	if (vars[i]->size()> 1) break;
       auto x = i< vars.size() ? vars[i] : nullptr;
-          
+      cout << "branch on vars[" << i << "]:";
+      
       if (x) {
 	
 	int c = x->min();
 	
 	return  [=] {
+	  cout << " == " << c << endl;
 	  cp->post(x == c);}
 	| [=] {
+	  cout << " != " << c << endl;
 	  cp->post(x != c);};
       } else return Branches({});
        });
