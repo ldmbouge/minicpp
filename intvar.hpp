@@ -305,7 +305,7 @@ namespace Factory {
    Veci intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
    Veci intVarArray(CPSolver::Ptr cps,int sz,int n);
    Veci intVarArray(CPSolver::Ptr cps,int sz);
-   Vecb boolVarArray(CPSolver::Ptr cps,int sz);
+   Vecb boolVarArray(CPSolver::Ptr cps,int sz,bool createVar = true);
    template<typename Fun> Veci intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
       for(auto i=0u;i < x.size();i++)

@@ -20,6 +20,7 @@
 #include "search.hpp"
 #include "mdd.hpp"
 #include "RuntimeMonitor.hpp"
+#include "mddConstraints.hpp"
 
 #include <iostream>
 #include <iomanip>

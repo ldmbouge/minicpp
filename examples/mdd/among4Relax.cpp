@@ -21,6 +21,7 @@
 #include "mdd.hpp"
 #include "RuntimeMonitor.hpp"
 #include "mddrelax.hpp"
+#include "mddConstraints.hpp"
 
 #include <iostream>
 #include <iomanip>

@@ -22,6 +22,7 @@
 #include "search.hpp"
 #include "mdd.hpp"
 #include "mddrelax.hpp"
+#include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 
 int main(int argc,char* argv[])
@@ -102,7 +103,7 @@ int main(int argc,char* argv[])
    // mdd->saveGraph();
 
    
-     DFSearch search(cp,[=]() {
+   DFSearch search(cp,[=]() {
 
       unsigned i = 0u;
       for(i=0u;i < vars.size();i++)

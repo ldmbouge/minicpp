@@ -79,6 +79,48 @@ void EQTernBC::post()
    }
 }
 
+void EQTernBCbool::post()
+{
+   // x == y + b
+   if (_x->isBound() && _y->isBound()) {
+     if (_x->min() - _y->min() == 1) {
+       _b->assign(true);
+     }
+     else if (_x->min() - _y->min() == 0) {
+       _b->assign(false);
+     } else {
+       // WVH: I assume this is how to enforce a failure and backtrack?
+       throw Failure;
+     }
+   }
+   else if (_x->isBound() && _b->isTrue())
+     _y->assign(_x->min() - 1);
+   else if (_x->isBound() && _b->isFalse())
+     _y->assign(_x->min());
+   else if (_y->isBound() && _b->isTrue())
+      _x->assign(_y->min() + 1);
+   else if (_y->isBound() && _b->isFalse())
+     _x->assign(_y->min());
+   else {
+      _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
+      _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
+      _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+      
+      _x->whenBoundsChange([this] {
+	  _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
+	  _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+                           });
+      _y->whenBoundsChange([this] {
+	  _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
+	  _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+                           });
+      _b->whenBoundsChange([this] {
+	  _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
+	  _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
+	});
+   }
+}
+
 
 void NEQBinBC::print(std::ostream& os) const
 {
@@ -232,6 +274,68 @@ void IsEqual::propagate()
         setActive(false);
     }
 }
+
+void IsMember::post() 
+{
+    propagate();
+    if (isActive()) {
+        _x->propagateOnDomainChange(this);
+        _b->propagateOnBind(this);
+    }
+}
+
+void IsMember::propagate() 
+{
+    if (_b->isTrue()) {
+      int xMin = _x->min(), xMax = _x->max();
+      for (int v=xMin; v<=xMax; v++) {
+  	// if v is not in S: remove from domain of x
+	if (_x->contains(v) && (_S.find(v) == _S.end()))
+	  _x->remove(v);
+      }
+      setActive(false);
+    } else if (_b->isFalse()) {
+      // remove all elements in S from domain of x
+      for (std::set<int>::iterator it=_S.begin(); it!=_S.end(); ++it) {
+	_x->remove(*it);
+      }
+      setActive(false);
+    } else if (_x->isBound()) {
+      int v = _x->min();
+      if (_S.find(v)!=_S.end())
+	_b->assign(true);
+      else
+	_b->assign(false);
+      setActive(false);
+    } else {
+      // both b and x are not bound: check if x still has value in S and a value not in S
+      bool hasMemberInS = false;
+      bool hasMemberOutS = false;
+
+      int xMin = _x->min(), xMax = _x->max();
+      for (int v=xMin; v<=xMax; v++) {
+	if (_x->contains(v)) {
+	  if (_S.find(v) == _S.end()) {
+	    hasMemberOutS = true;
+	  }
+	  else {
+	    hasMemberInS = true;
+	  }
+	}
+	if ((hasMemberInS == true) && (hasMemberOutS == true))
+	  break;
+      }
+      if (hasMemberInS==false) {
+	_b->assign(false);
+	setActive(false);
+      }
+      else if (hasMemberOutS==false) {
+	_b->assign(true);
+	setActive(false);
+      }
+    }
+}
+
 
 void IsLessOrEqual::post()
 {

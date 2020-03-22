@@ -29,6 +29,8 @@
 #include "search.hpp"
 #include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
+#include "mddConstraints.hpp"
+
 #include "matrix.hpp"
 
 

@@ -35,6 +35,7 @@
 #include "mdd.hpp"
 #include "RuntimeMonitor.hpp"
 #include "mddrelax.hpp"
+#include "mddConstraints.hpp"
 #include "matrix.hpp"
 
 using namespace Factory;
@@ -48,6 +49,34 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
       res[i++] = clo(e);
    }
    return res;
+}
+
+
+void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
+
+  int H = vars.size();
+  
+  auto cumul = Factory::intVarArray(cp, H+1, 0, H); 
+  cp->post(cumul[0] == 0);
+    
+  // std::vector<var<bool>::Ptr> boolVar(H);
+  // for (int i=0; i<H; i++) {
+  //   boolVar[i] = isMember(vars[i], S);
+  // }
+  auto boolVar = Factory::boolVarArray(cp, H);
+  for (int i=0; i<H; i++) {
+    cp->post(isMember(boolVar[i], vars[i], S));
+  }
+    
+  for (int i=0; i<H; i++) {
+    cp->post(equal(cumul[i+1], cumul[i], boolVar[i]));
+  }
+    
+  for (int i=0; i<H-N+1; i++) {
+    cp->post(cumul[i+N] <= cumul[i] + U);
+    cp->post(cumul[i+N] >= cumul[i] + L);
+  }
+  
 }
 
 
@@ -195,11 +224,11 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
     // constraint 1
     cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
-    Factory::seqMDD2(mdd->getSpec(), vars, N1, L1, U1, workDay);
+    Factory::seqMDD3(mdd->getSpec(), vars, N1, L1, U1, workDay);
 
     // constraint 2
     cout << "Sequence(vars," << N2 << "," << L2 << "," << U2 << ",{1})" << std::endl;
-    Factory::seqMDD2(mdd->getSpec(), vars, N2, L2, U2, workDay);
+    Factory::seqMDD3(mdd->getSpec(), vars, N2, L2, U2, workDay);
 
     // constraint 3
     cout << "Constraint type 3" << endl;
@@ -218,6 +247,36 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       }
     }
     cp->post(mdd);
+  }
+  else if (mode == 3) {
+    cout << "Cumulative Sums with isMember encoding" << endl;
+
+    // constraint 1
+    cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
+    addCumulSeq(cp, vars, N1, L1, U1, workDay);
+    
+    // constraint 2
+    cout << "Sequence(vars," << N2 << "," << L2 << "," << U2 << ",{1})" << std::endl;
+    addCumulSeq(cp, vars, N2, L2, U2, workDay);
+
+
+    // constraint type 3
+    for (int i=0; i<H/N3; i++) {
+      cout << "Sum for week " << i << ": ";
+      if (7*i+7<H) {
+	set<int> weekVars;
+	for (int j=7*i; j<7*i+7; j++) {
+	  weekVars.insert(j);    
+	  cout << j << " ";
+	}
+	cout << endl;
+	
+	auto adv = all(cp, weekVars, [&vars](int i) {return vars[i];});
+	// post as simple sums (baseline model in [Van Hoeve 2009])
+	cp->post(sum(adv) >= L3);
+	cp->post(sum(adv) <= U3);
+      }
+    }    
   }
   
   
@@ -240,9 +299,12 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	  cp->post(x != c);};
       } else return Branches({});
     });
-  
-  search.onSolution([&vars]() {
-                       std::cout << "Assignment:" << vars << std::endl;
+
+  int cnt = 0;
+  search.onSolution([&vars,&cnt]() {
+      cnt++;
+      std::cout << "\rNumber of solutions:" << cnt << std::flush;
+      //std::cout << "Assignment:" << vars << std::endl;
     });
 
   auto start = RuntimeMonitor::cputime();
@@ -262,8 +324,9 @@ int main(int argc,char* argv[])
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
 
-   // mode: 0 (Cumulative sums),  1 (MDD), 2 (Sequence MDD)
-
+   // mode: 0 (Cumulative sums),  1 (Among MDD), 2 (Sequence MDD)
+   // mode: 3 (Cumulative Sums with isMember constraint)
+   
    std::cout << "width = " << width << std::endl;
    std::cout << "mode = " << mode << std::endl;
    try {

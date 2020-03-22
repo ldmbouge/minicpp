@@ -35,6 +35,7 @@
 #include "mdd.hpp"
 #include "RuntimeMonitor.hpp"
 #include "mddrelax.hpp"
+#include "mddConstraints.hpp"
 #include "matrix.hpp"
 
 using namespace Factory;
@@ -51,39 +52,83 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
 }
 
 
+void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
+
+  int H = vars.size();
+  
+  auto cumul = Factory::intVarArray(cp, H+1, 0, H); 
+  cp->post(cumul[0] == 0);
+    
+  auto boolVar = Factory::boolVarArray(cp, H);
+  for (int i=0; i<H; i++) {
+    cp->post(isMember(boolVar[i], vars[i], S));
+  }
+    
+  for (int i=0; i<H; i++) {
+    cp->post(equal(cumul[i+1], cumul[i], boolVar[i]));
+  }
+    
+  for (int i=0; i<H-N+1; i++) {
+    cp->post(cumul[i+N] <= cumul[i] + U);
+    cp->post(cumul[i+N] >= cumul[i] + L);
+  }
+  
+}
+
+
 void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 {
 
-  auto vars = Factory::intVarArray(cp, 10, 0, 1); 
+  auto vars = Factory::intVarArray(cp, 7, 0, 1); 
 
-  auto mdd = new MDDRelax(cp,relaxSize);
-
+  int Q = 3;
+  int L = 1;
+  int U = 2;
   std::set<int> S = {1};
 
-  // This sequence constraint gives no error: 
-  //Factory::seqMDD(mdd->getSpec(), vars, 5, 2, 3, S);
-
-  // But this one gives an infeasible during post (irrespective of S).
-  // There is something wrong with the lower bound: 
-  //Factory::seqMDD(mdd->getSpec(), vars, 5, 3, 3, S);
+  //cp->post( vars[2] == 0 );
   
-  Factory::seqMDD2(mdd->getSpec(), vars, 5, 2, 3, S);
+  if (mode == 0) {
+    cout << "Cumulative Sums encoding" << endl; 
+    addCumulSeq(cp, vars, Q, L, U, S);
+  }
+  else if (mode == 1) {
+    cout << "SeqMDD1 encoding" << endl; 
+ 
+    auto mdd = new MDDRelax(cp,relaxSize);
+    Factory::seqMDD(mdd->getSpec(), vars, Q, L, U, S);
 
-  cp->post(mdd);
-  mdd->saveGraph();
+    cp->post(mdd);
+    mdd->saveGraph();
+  }
+  else if (mode == 2) {
+    cout << "SeqMDD2 encoding" << endl; 
+ 
+    auto mdd = new MDDRelax(cp,relaxSize);
+    Factory::seqMDD2(mdd->getSpec(), vars, Q, L, U, S);
+
+    cp->post(mdd);
+    mdd->saveGraph();
+  }
+  else if (mode == 3) {
+    cout << "SeqMDD3 encoding" << endl; 
+ 
+    auto mdd = new MDDRelax(cp,relaxSize);
+    Factory::seqMDD3(mdd->getSpec(), vars, Q, L, U, S);
+
+    cp->post(mdd);
+    mdd->saveGraph();
+  }
   
   DFSearch search(cp,[=]() {
 
-                        unsigned i;
-                        for(i=0u;i< vars.size();i++)
-                           if (vars[i]->size() > 1)
-                              break;
-                        auto x = i < vars.size() ? vars[i] : nullptr;
-                        /*                        
-      auto x = selectMin(vars,
-			 [](const auto& x) { return x->size() > 1;},
-			 [](const auto& x) { return x->size();});
-                        */
+      unsigned i;
+      for(i=0u;i< vars.size();i++)
+	if (vars[i]->size() > 1)
+	  break;
+
+      auto x = i < vars.size() ? vars[i] : nullptr;
+
       if (x) {
 	int c = x->min();
 	
@@ -113,7 +158,7 @@ int main(int argc,char* argv[])
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
 
-   // mode: 0 (standard summations), 1 (MDD)
+   // mode: 0 (cumulative sums), 1 (MDD)
    
    std::cout << "width = " << width << std::endl;
    std::cout << "mode = " << mode << std::endl;

@@ -28,6 +28,8 @@
 #include "constraint.hpp"
 #include "search.hpp"
 #include "mddrelax.hpp"
+#include "mddConstraints.hpp"
+
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
 

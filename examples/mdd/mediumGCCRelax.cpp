@@ -21,6 +21,8 @@
 #include "constraint.hpp"
 #include "search.hpp"
 #include "mddrelax.hpp"
+#include "mddConstraints.hpp"
+
 #include "RuntimeMonitor.hpp"
 
 #define SZ_VAR 50

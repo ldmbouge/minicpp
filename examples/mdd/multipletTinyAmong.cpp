@@ -21,6 +21,8 @@
 #include "constraint.hpp"
 #include "search.hpp"
 #include "mdd.hpp"
+#include "mddConstraints.hpp"
+
 #include "RuntimeMonitor.hpp"
 
 int main(int argc,char* argv[])
