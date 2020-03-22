@@ -224,11 +224,11 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
     // constraint 1
     cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
-    Factory::seqMDD3(mdd->getSpec(), vars, N1, L1, U1, workDay);
+    Factory::seqMDD2(mdd->getSpec(), vars, N1, L1, U1, workDay);
 
     // constraint 2
     cout << "Sequence(vars," << N2 << "," << L2 << "," << U2 << ",{1})" << std::endl;
-    Factory::seqMDD3(mdd->getSpec(), vars, N2, L2, U2, workDay);
+    Factory::seqMDD2(mdd->getSpec(), vars, N2, L2, U2, workDay);
 
     // constraint 3
     cout << "Constraint type 3" << endl;

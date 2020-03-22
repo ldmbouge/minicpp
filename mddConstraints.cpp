@@ -14,7 +14,7 @@
  */
 
 #include "mddConstraints.hpp"
-
+#include <limits.h>
 
 namespace Factory {
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
