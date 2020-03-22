@@ -306,7 +306,7 @@ void removeMatch(std::multimap<float,MDDNode*>& layer,float key,MDDNode* n)
 }
 
 
-std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
+MDDNodeSet MDDRelax::split(TVec<MDDNode*>& layer,int l)
 {
    using namespace std;
    std::multimap<float,MDDNode*,std::less<float> > cl;
@@ -319,7 +319,7 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
    //         << layers[l][i]->getState().inner(_refs[l]) << endl;
    // }
 
-   std::set<MDDNode*,MDDNodePtrOrder> delta;
+   MDDNodeSet delta(_width+1);
    bool xb = x[l-1]->isBound();
    // cout << "startSplit(" << l << ")" << (xb ? "T" : "F") << " " << layer.size() << endl;
    for(auto i = layer.rbegin();i != layer.rend() && (xb || layer.size() < _width);i++) {
@@ -386,7 +386,6 @@ std::set<MDDNode*,MDDNodePtrOrder> MDDRelax::split(TVec<MDDNode*>& layer,int l)
    //    cout << "   " << layers[l][i]->getState() << ":"
    //         << layers[l][i]->getState().inner(_refs[l]) << endl;
    // }
-
    return delta;
 }
 
@@ -435,7 +434,7 @@ void MDDRelax::delState(MDDNode* node,int l)
    }
 }
 
-void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& layer,unsigned int l)
+void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
 {
    using namespace std;
    // cout << "SP[" << l <<"] = " << layers[l].size();
@@ -444,7 +443,8 @@ void MDDRelax::spawn(std::set<MDDNode*,MDDNodePtrOrder>& delta,TVec<MDDNode*>& l
    //         << layers[l][i]->getState().inner(_refs[l]) << endl;
    // }
    const MDDState& refDir = _refs[l];
-   std::set<MDDNode*,MDDNodePtrOrder> out;
+   //std::set<MDDNode*,MDDNodePtrOrder> out;
+   MDDNodeSet out(_width+1);
    std::multimap<float,MDDNode*,std::less<float> > cl;
    std::vector<MDDNode*> recycled;
    for(auto i = layer.rbegin();i != layer.rend() && l != numVariables;i++) {
@@ -550,15 +550,15 @@ void MDDRelax::rebuild()
 {
    // std::cout << "MDDRelax::rebuild(lowest="
    //           << _lowest+1 <<  " -> " << numVariables << ")" << std::endl;
-   std::set<MDDNode*,MDDNodePtrOrder> delta;
+   MDDNodeSet delta(2 * _width);
    for(unsigned l = _lowest + 1; l < numVariables;l++) {
-      // First refresh the down information in the nodes of layer l based on whether those are dirty.
-      
-      std::set<MDDNode*,MDDNodePtrOrder> splitNodes = split(layers[l],l);
-      for(auto n : splitNodes) {
-         assert(n->isActive());
-         delta.insert(n);
-      }
+      // First refresh the down information in the nodes of layer l based on whether those are dirty.      
+      MDDNodeSet splitNodes = split(layers[l],l);
+      delta.unionWith(splitNodes);
+      // for(auto n : splitNodes) {
+      //    assert(n->isActive());
+      //    delta.insert(n);
+      // }
       spawn(delta,layers[l+1],l+1);
    }
 }
