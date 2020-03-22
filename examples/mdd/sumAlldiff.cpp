@@ -145,13 +145,14 @@ int main(int argc,char* argv[])
      Factory::allDiffMDD(mdd->getSpec(),adv);
    }
 
+   cp->post(vars[0] == 0);
+   cp->post(vars[1] == 2);
+
    if (mode != 0) {
      cp->post(mdd);
    }
    mdd->saveGraph();
 
-   cp->post(vars[0] == 0);
-   cp->post(vars[1] == 2);
    
    DFSearch search(cp,[=]() {
 
