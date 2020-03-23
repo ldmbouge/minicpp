@@ -28,6 +28,14 @@
 using namespace std;
 using namespace Factory;
 
+std::string tab(int d) {
+   std::string s = "";
+   while (d--!=0)
+      s = s + "  ";
+   return s;
+}
+
+
 Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)> clo)
 {
    auto res = Factory::intVarArray(cp, (int) over.size());
@@ -59,15 +67,15 @@ int main(int argc,char* argv[])
 
    if (mode == 0) {
      cout << "domain encoding with constant (lb,ub) right-hand sides" << endl;
-     auto sm1 = Factory::intVarArray(cp,vars.size(),[&](int i) { return vals1[i]*vars[i];});
+     auto sm1 = Factory::intVarArray(cp,(int)vars.size(),[&](int i) { return vals1[i]*vars[i];});
      cp->post(Factory::sum(sm1) >= 18);
      cp->post(Factory::sum(sm1) <= 19);
 
-     auto sm2 = Factory::intVarArray(cp,vars.size(),[&](int i) { return vals2[i]*vars[i];});
+     auto sm2 = Factory::intVarArray(cp,(int)vars.size(),[&](int i) { return vals2[i]*vars[i];});
      cp->post(Factory::sum(sm2) >= 18);
      cp->post(Factory::sum(sm2) <= 19);
 
-     auto sm3 = Factory::intVarArray(cp,vars.size(),[&](int i) { return vals3[i]*vars[i];});
+     auto sm3 = Factory::intVarArray(cp,(int)vars.size(),[&](int i) { return vals3[i]*vars[i];});
      cp->post(Factory::sum(sm3) >= 50);
      cp->post(Factory::sum(sm3) <= 65);
    }
@@ -145,13 +153,15 @@ int main(int argc,char* argv[])
      Factory::allDiffMDD(mdd->getSpec(),adv);
    }
 
-   cp->post(vars[0] == 0);
-   cp->post(vars[1] == 2);
+   //cp->post(vars[0] == 0);
+   //cp->post(vars[1] != 1);
+   //cp->post(vars[1] != 2);
 
    if (mode != 0) {
      cp->post(mdd);
    }
    mdd->saveGraph();
+   std::cout << vars << std::endl;
 
    
    DFSearch search(cp,[=]() {
@@ -159,21 +169,24 @@ int main(int argc,char* argv[])
       unsigned i = 0u;
       for(i=0u;i < vars.size();i++)
 	if (vars[i]->size()> 1) break;
-      auto x = i< vars.size() ? vars[i] : nullptr;
-      cout << "branch on vars[" << i << "]:";
-      
+      auto x = i< vars.size() ? vars[i] : nullptr;      
       if (x) {
 	
 	int c = x->min();
+          
+        return  [=] {
+                   //cout << tab(i) << "?x(" << i << ") == " << c << endl;
+                   cp->post(x == c);
+                   //cout << tab(i) << "!x(" << i << ") == " << c << endl;
+                 }
+            | [=] {
+                 //cout << tab(i) << "?x(" << i << ") != " << c << " FAIL" << endl;
+                 cp->post(x != c);
+                 //cout << tab(i) << "!x(" << i << ") != " << c << endl;
+              };
 	
-	return  [=] {
-	  cout << " == " << c << endl;
-	  cp->post(x == c);}
-	| [=] {
-	  cout << " != " << c << endl;
-	  cp->post(x != c);};
       } else return Branches({});
-       });
+                      });
       
      search.onSolution([&vars,vals1,vals2,vals3]() {
 	 std::cout << "Assignment:" << vars;

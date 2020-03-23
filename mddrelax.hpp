@@ -82,10 +82,10 @@ class MDDRelax : public MDD {
    std::uniform_real_distribution<double> _sampler;
    std::vector<MDDState> _refs;
    const MDDState& pickReference(int layer,int layerSize); 
-   void rebuild();
+   bool rebuild();
    bool refreshNode(MDDNode* n,int l);
    MDDNodeSet split(TVec<MDDNode*>& layer,int l);
-   void spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l);
+   bool spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l);
    MDDNode* findSimilar(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
    MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);
    void delState(MDDNode* state,int l);

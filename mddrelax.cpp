@@ -259,16 +259,21 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    }
    bool changed = n->getState() != ms;
    if (changed) {
+      n->setState(ms,mem);
       for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) {
-         n->unhook(*i);
-         (*i)->getChild()->markDirty();
-         delSupport(l,(*i)->getValue());
+         MDDNode* child = (*i)->getChild();
+         int      v  = (*i)->getValue();         
+         child->markDirty();
+         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
+            n->unhook(*i);
+            delSupport(l,v);
+         }
       }
       // std::cout << "refresh[" << l << "]@" << n->getPosition() << " : "
       //           << n->getState() << " to " << ms << std::endl;
-      n->setState(ms,mem);
    } else n->clearDirty();
-   return changed;
+   //return changed;
+   return false;
 }
 
 MDDNode* MDDRelax::findSimilar(const std::multimap<float,MDDNode*>& layer,
@@ -320,6 +325,7 @@ MDDNodeSet MDDRelax::split(TVec<MDDNode*>& layer,int l)
    // }
 
    MDDNodeSet delta(_width+1);
+   if (l==0) return delta;
    bool xb = x[l-1]->isBound();
    // cout << "startSplit(" << l << ")" << (xb ? "T" : "F") << " " << layer.size() << endl;
    for(auto i = layer.rbegin();i != layer.rend() && (xb || layer.size() < _width);i++) {
@@ -434,7 +440,7 @@ void MDDRelax::delState(MDDNode* node,int l)
    }
 }
 
-void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
+bool MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
 {
    using namespace std;
    // cout << "SP[" << l <<"] = " << layers[l].size();
@@ -458,16 +464,14 @@ void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
          if (refreshNode(n,l)) 
             out.insert(n);        
       }
-      if (!_posting) {
-         for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) { 
-            auto arc = *i;
-            MDDNode* child = arc->getChild();
-            int v = arc->getValue();
-            if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,!_posting)) {
-               n->unhook(arc);
-               child->markDirty();
-               delSupport(l,v);
-            }
+      for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
+         auto arc = *i;
+         MDDNode* child = arc->getChild();
+         int v = arc->getValue();
+         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
+            n->unhook(arc);
+            child->markDirty();
+            delSupport(l,v);
          }
       }
       cl.insert({n->getState().inner(refDir),n});
@@ -533,11 +537,15 @@ void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
       if (n->getNumChildren() == 0) 
          delState(n,l-1); // delete is in the layer above. cl contain nodes from layer *l*      
    }
+   bool change = false;
    for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {
-      if (x[l-1]->contains(v) && getSupport(l-1,v)==0)
+      if (x[l-1]->contains(v) && getSupport(l-1,v)==0) {
          x[l-1]->remove(v);
+         change |= true;
+      }
    }
    delta = out;
+   return change;
    // cout << "EP[" << l <<"] = " << layers[l].size();
    // for(unsigned i=0u;i < layers[l].size();i++) {
    //    cout << "   " << layers[l][i]->getState() << ":"
@@ -546,26 +554,25 @@ void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
 
 }
 
-void MDDRelax::rebuild()
+bool MDDRelax::rebuild()
 {
    // std::cout << "MDDRelax::rebuild(lowest="
    //           << _lowest+1 <<  " -> " << numVariables << ")" << std::endl;
    MDDNodeSet delta(2 * _width);
+   bool changed = false;
    for(unsigned l = _lowest + 1; l < numVariables;l++) {
       // First refresh the down information in the nodes of layer l based on whether those are dirty.      
       MDDNodeSet splitNodes = split(layers[l],l);
       delta.unionWith(splitNodes);
-      // for(auto n : splitNodes) {
-      //    assert(n->isActive());
-      //    delta.insert(n);
-      // }
-      spawn(delta,layers[l+1],l+1);
+      bool spawned = spawn(delta,layers[l+1],l+1);
+      changed |= spawned;
    }
+   return changed;
 }
 
 void MDDRelax::trimDomains()
 {
-   for(auto i = _lowest + 1; i < numVariables;i++) {
+   for(auto i = std::max(1u,_lowest + 1); i < numVariables;i++) {
       const auto& layer = layers[i];      
       for(int j = (int)layer.size() - 1;j >= 0;j--) {
          if(layer[j]->disconnected())
@@ -596,10 +603,14 @@ void MDDRelax::propagate()
 {
    try {      
       MDD::propagate();
-      rebuild();
-      trimDomains();
-      computeUp();
-      _lowest = (int)numVariables - 1;      
+      bool change = false;
+      do {
+         computeUp();
+         change = rebuild();
+         trimDomains();
+         _lowest = -1;
+      } while (change);
+      _lowest = (int)numVariables - 1;
    } catch(Status s) {
       queue.clear();
       throw s;

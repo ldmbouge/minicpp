@@ -192,7 +192,8 @@ inline std::ostream& operator<<(std::ostream& os,const enum MDDProperty::Directi
 }
 
 namespace Factory {
-   inline MDDProperty::Ptr makeProperty(enum MDDProperty::Direction dir,short id,unsigned short ofs,int init,int max=0x7fffffff);
+   inline MDDProperty::Ptr makeProperty(enum MDDProperty::Direction dir,short id,
+                                        unsigned short ofs,int init,int max=0x7fffffff);
 }
 
 class MDDPInt :public MDDProperty {

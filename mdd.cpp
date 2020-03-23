@@ -242,7 +242,7 @@ void MDD::saveGraph()
             if (l == 0)
                std::cout << "src" << " ->" << "\"" << *(layers[l+1][count]) <<"\"";
             else if(l+1 == numVariables)
-               std::cout << "\"" << *(layers[l][i]) << "\" ->" << "sink";
+               std::cout << "\"" << *(layers[l][i]) << "\" ->" << "\"" << *(layers[l+1][count]) << "\"";
             else {
                assert(layers[l+1][count] == ch[j]->getChild());
                std::cout << "\"" << *(layers[l][i]) << "\" ->"

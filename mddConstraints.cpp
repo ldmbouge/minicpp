@@ -54,7 +54,7 @@ namespace Factory {
       const int some = mdd.addBSState(d,udom.second - udom.first + 1,0);
       const int len  = mdd.addState(d,0,vars.size());
       const int allu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
-      const int someu = mdd.addBSStateUp(d,udom.second - udom.first + 1,1);
+      const int someu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
       
       mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,int val) {
                                out.setBS(all,in.getBS(all)).set(val - minDom);
@@ -84,15 +84,18 @@ namespace Factory {
                                 out.getBS(someu).setBinOR(l.getBS(someu),r.getBS(someu));
                             });
 
-      mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,int val,bool) -> bool  {
+      mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,int val,bool up) -> bool  {
                       bool notOk = p.getBS(all).getBit(val - minDom) ||
                          (p.getBS(some).cardinality() == (unsigned)p.at(len)  && p.getBS(some).getBit(val - minDom));
-                      bool upNotOk = c.getBS(allu).getBit(val - minDom) ||
-                         (c.getBS(someu).cardinality() == n - c.at(len) && c.getBS(someu).getBit(val - minDom));
-                      MDDBSValue suV = c.getBS(someu);
-                      MDDBSValue both((char*)alloca(sizeof(unsigned long long)*suV.nbWords()),suV.nbWords(),suV.bitLen());
-                      both.setBinOR(suV,p.getBS(some)).set(val-minDom);
-                      bool mixNotOk = both.cardinality() < n;
+                      bool upNotOk = false,mixNotOk = false;
+                      if (up) {
+                         upNotOk = c.getBS(allu).getBit(val - minDom) ||
+                            (c.getBS(someu).cardinality() == n - c.at(len) && c.getBS(someu).getBit(val - minDom));
+                         MDDBSValue suV = c.getBS(someu);
+                         MDDBSValue both((char*)alloca(sizeof(unsigned long long)*suV.nbWords()),suV.nbWords(),suV.bitLen());
+                         both.setBinOR(suV,p.getBS(some)).set(val-minDom);
+                         mixNotOk = both.cardinality() < n;
+                      }
                       return !notOk && !upNotOk && !mixNotOk;
                    });
       mdd.addSimilarity(all,[all](const auto& l,const auto& r) -> double {
