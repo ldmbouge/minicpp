@@ -368,13 +368,10 @@ MDDNode* MDDRelax::resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l)
    addSupport(l-1,v);
    from->addArc(mem,to,v);
    for(auto i = to->getChildren().rbegin();i != to->getChildren().rend();i++) {
-      MDDNode* child = (*i)->getChild();
-      int v  = (*i)->getValue();
-      child->markDirty();
-      if (!_mddspec.exist(to->getState(),child->getState(),x[l],v,true)) {
-         to->unhook(*i);
-         delSupport(l,v);
-      }
+      auto arc = *i;
+      to->unhook(arc);
+      arc->getChild()->markDirty();
+      delSupport(l,arc->getValue());
    }
    return to;
 }
@@ -490,8 +487,7 @@ bool MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
                   n->addArc(mem,psiSim,v);
                } else {
                   auto nh = cl.extract(psiSimState.inner(refDir));
-                  //out.insert(resetState(n,psiSim,ns,v,l));
-                  resetState(n,psiSim,ns,v,l);
+                  out.insert(resetState(n,psiSim,ns,v,l));
                   if (!nh.empty()) {
                      nh.key() = psiSimState.inner(refDir);
                      cl.insert(std::move(nh));
