@@ -105,7 +105,11 @@ void MDD::buildNextLayer(unsigned int i)
             MDDState sinkState(sink->getState());
             MDDState temp(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
             _mddspec.createState(temp, parent->getState(), i, x[i], v);
-            _mddspec.relaxation(sinkState, temp);
+            if (sink->getNumParents() == 0) {
+               sinkState.copyState(temp);
+            } else {
+               _mddspec.relaxation(sinkState, temp);
+            }
             parent->addArc(mem,sink, v);
          }
          addSupport(i, v);

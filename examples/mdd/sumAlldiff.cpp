@@ -153,8 +153,8 @@ int main(int argc,char* argv[])
      Factory::allDiffMDD(mdd->getSpec(),adv);
    }
 
-   //cp->post(vars[0] == 0);
-   //cp->post(vars[1] != 1);
+   cp->post(vars[0] == 0);
+   cp->post(vars[1] != 1);
    //cp->post(vars[1] != 2);
 
    if (mode != 0) {
