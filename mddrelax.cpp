@@ -158,19 +158,9 @@ void MDDRelax::relaxLayer(int i)
    for(auto& n : layers[i])
       cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
 
-
-   // std::cout << "before SORT" << std::endl;
-   // for(auto p : cl) {
-   //    std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
-   // }
    std::stable_sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
                                            return std::get<0>(p1) < std::get<0>(p2);
                                         });
-
-   // std::cout << "after SORT" << std::endl;
-   // for(auto p : cl) {
-   //    std::cout << std::get<0>(p) << "," << std::get<1>(p)->getId() << ':' << std::get<1>(p)->getState() << std::endl;
-   // }
 
    const int bucketSize = iSize / _width;
    int   rem = iSize % _width;
@@ -188,16 +178,7 @@ void MDDRelax::relaxLayer(int i)
       acc.initState(target->getState());
       for(from++; from < lim;from++) {
          MDDNode* strip = std::get<1>(cl[from]);
-
-
-         // std::cout << acc << std::endl;
-         // std::cout << strip->getId() << ':' << strip->getState() << std::endl;
-         
          _mddspec.relaxation(acc,strip->getState());
-
-         // std::cout << "yields..." << std::endl;
-         // std::cout << acc << std::endl;
-         
          for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
             auto arc = *i;
             arc->moveTo(target,trail,mem);
@@ -316,30 +297,18 @@ MDDNodeSet MDDRelax::split(TVec<MDDNode*>& layer,int l)
    using namespace std;
    std::multimap<float,MDDNode*,std::less<float> > cl;
    const MDDState& refDir = _refs[l];
-
-
-   // cout << "S[" << l <<"] = " << layers[l].size();
-   // for(unsigned i=0u;i < layers[l].size();i++) {
-   //    cout << "   " << layers[l][i]->getState() << ":"
-   //         << layers[l][i]->getState().inner(_refs[l]) << endl;
-   // }
-
    MDDNodeSet delta(_width+1);
    if (l==0) return delta;
    bool xb = x[l-1]->isBound();
-   // cout << "startSplit(" << l << ")" << (xb ? "T" : "F") << " " << layer.size() << endl;
    for(auto i = layer.rbegin();i != layer.rend() && (xb || layer.size() < _width);i++) {
-
       if (cl.size()==0) {
          int nbR=0;
          for(auto& n : layer) nbR += n->getState().isRelaxed();
          if (nbR==0) break;
          for(auto& n : layer) cl.insert({n->getState().inner(refDir),n});        
-      }
-      
+      }     
       auto n = *i;
-      // cout << "split[" << l << "]@" << n->getPosition() << " : " << n->getState() << endl;
-         
+      // cout << "split[" << l << "]@" << n->getPosition() << " : " << n->getState() << endl;         
       if (n->getNumParents() == 0) {
         delState(n,l);
         removeMatch(cl,n->getState().inner(refDir),n);
@@ -386,12 +355,6 @@ MDDNodeSet MDDRelax::split(TVec<MDDNode*>& layer,int l)
          }
       }
    }
-
-   // cout << "DS[" << l <<"] = " << layers[l].size();
-   // for(unsigned i=0u;i < layers[l].size();i++) {
-   //    cout << "   " << layers[l][i]->getState() << ":"
-   //         << layers[l][i]->getState().inner(_refs[l]) << endl;
-   // }
    return delta;
 }
 
@@ -443,13 +406,7 @@ void MDDRelax::delState(MDDNode* node,int l)
 bool MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
 {
    using namespace std;
-   // cout << "SP[" << l <<"] = " << layers[l].size();
-   // for(unsigned i=0u;i < layers[l].size();i++) {
-   //    cout << "   " << layers[l][i]->getState() << ":"
-   //         << layers[l][i]->getState().inner(_refs[l]) << endl;
-   // }
    const MDDState& refDir = _refs[l];
-   //std::set<MDDNode*,MDDNodePtrOrder> out;
    MDDNodeSet out(_width+1);
    std::multimap<float,MDDNode*,std::less<float> > cl;
    std::vector<MDDNode*> recycled;
@@ -546,12 +503,6 @@ bool MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
    }
    delta = out;
    return change;
-   // cout << "EP[" << l <<"] = " << layers[l].size();
-   // for(unsigned i=0u;i < layers[l].size();i++) {
-   //    cout << "   " << layers[l][i]->getState() << ":"
-   //         << layers[l][i]->getState().inner(_refs[l]) << endl;
-   // }
-
 }
 
 bool MDDRelax::rebuild()
