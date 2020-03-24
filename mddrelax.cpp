@@ -368,10 +368,13 @@ MDDNode* MDDRelax::resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l)
    addSupport(l-1,v);
    from->addArc(mem,to,v);
    for(auto i = to->getChildren().rbegin();i != to->getChildren().rend();i++) {
-      auto arc = *i;
-      to->unhook(arc);
-      arc->getChild()->markDirty();
-      delSupport(l,arc->getValue());
+      MDDNode* child = (*i)->getChild();
+      int v  = (*i)->getValue();
+      child->markDirty();
+      if (!_mddspec.exist(to->getState(),child->getState(),x[l],v,true)) {
+         to->unhook(*i);
+         delSupport(l,v);
+      }
    }
    return to;
 }
@@ -420,15 +423,16 @@ bool MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
       if (n->isDirty()) {
          if (refreshNode(n,l)) 
             out.insert(n);        
-      }
-      for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
-         auto arc = *i;
-         MDDNode* child = arc->getChild();
-         int v = arc->getValue();
-         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
-            n->unhook(arc);
-            child->markDirty();
-            delSupport(l,v);
+      } else {
+         for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
+            auto arc = *i;
+            MDDNode* child = arc->getChild();
+            int v = arc->getValue();
+            if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
+               n->unhook(arc);
+               child->markDirty();
+               delSupport(l,v);
+            }
          }
       }
       cl.insert({n->getState().inner(refDir),n});
@@ -443,12 +447,17 @@ bool MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
       for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {         
          if (!x[l-1]->contains(v)) continue;
          if (!_mddspec.exist(state,sink->getState(),x[l-1],v,false)) continue;
+         _mddspec.createState(psi,state,l-1,x[l-1],v);
          if (l == numVariables) {
+            assert(sink->getNumParents() > 0);
             addSupport(l-1,v);
             n->addArc(mem,sink,v);
+            MDDState ssCopy(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+            ssCopy.copyState(sink->getState());
+            _mddspec.relaxation(ssCopy,psi);
+            sink->setState(ssCopy,mem);
             continue;
          }
-         _mddspec.createState(psi,state,l-1,x[l-1],v);
          MDDNode* child = findMatch(cl,psi,refDir);
          if (child) {
             addSupport(l-1,v);
@@ -481,7 +490,8 @@ bool MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
                   n->addArc(mem,psiSim,v);
                } else {
                   auto nh = cl.extract(psiSimState.inner(refDir));
-                  out.insert(resetState(n,psiSim,ns,v,l));
+                  //out.insert(resetState(n,psiSim,ns,v,l));
+                  resetState(n,psiSim,ns,v,l);
                   if (!nh.empty()) {
                      nh.key() = psiSimState.inner(refDir);
                      cl.insert(std::move(nh));

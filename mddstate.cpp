@@ -31,7 +31,7 @@ namespace Factory {
 
 
 MDDConstraintDescriptor::MDDConstraintDescriptor(const Factory::Veci& vars, const char* name)
-: _vars(vars), _vset(vars), _name(name){}
+   : _vars(vars), _vset(vars), _name(name){}
 
 MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& d)
    : _vars(d._vars), _vset(d._vset), _name(d._name),
@@ -48,10 +48,10 @@ MDDSpec::MDDSpec()
 
 void MDDSpec::append(const Factory::Veci& y)
 {
-    for(auto e : y)
-       if(std::find(x.cbegin(),x.cend(),e) == x.cend())
-          x.push_back(e);
-    std::cout << "size of x: " << x.size() << std::endl;
+   for(auto e : y)
+      if(std::find(x.cbegin(),x.cend(),e) == x.cend())
+         x.push_back(e);
+   std::cout << "size of x: " << x.size() << std::endl;
 }
 
 void MDDSpec::varOrder()
@@ -148,15 +148,15 @@ int MDDSpec::addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init)
 }
 
 void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
-    auto& b = _exist;
-    if(_exist == nullptr)
-       _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
-                   return (!d.inScope(var) || a(p,c, var, val,up));
-                };
-    else
-       _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
-                   return (!d.inScope(var) || a(p,c,var, val,up)) && b(p,c, var, val,up);
-                };
+   auto& b = _exist;
+   if(_exist == nullptr)
+      _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
+                  return (!d.inScope(var) || a(p,c, var, val,up));
+               };
+   else
+      _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
+                  return (!d.inScope(var) || a(p,c,var, val,up)) && b(p,c, var, val,up);
+               };
 }
 void MDDSpec::addTransition(int p,lambdaTrans t)
 {   
@@ -174,7 +174,7 @@ void MDDSpec::addTransition(int p,lambdaTrans t)
 }
 void MDDSpec::addRelaxation(int p,lambdaRelax r)
 {
-    for(auto& cd : constraints)
+   for(auto& cd : constraints)
       if (cd.ownsProperty(p)) {
          cd.registerRelaxation((int)_relaxation.size());
          break;
@@ -183,7 +183,7 @@ void MDDSpec::addRelaxation(int p,lambdaRelax r)
 }
 void MDDSpec::addSimilarity(int p,lambdaSim s)
 {
-    for(auto& cd : constraints)
+   for(auto& cd : constraints)
       if (cd.ownsProperty(p)) {
          cd.registerSimilarity((int)_similarity.size());
          break;
@@ -211,16 +211,16 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bo
 
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v)
 {
-  result.clear();
-  for(auto& c :constraints) {
-     if(c.inScope(var))
-        for(auto i : c.transitions()) 
-           _transition[i](result,parent,var,v);
-     else
-        for(auto i : c) 
-           result.setProp(i,parent);
-  }
-  result.relax(parent.isRelaxed());
+   result.clear();
+   for(auto& c :constraints) {
+      if(c.inScope(var))
+         for(auto i : c.transitions()) 
+            _transition[i](result,parent,var,v);
+      else
+         for(auto i : c) 
+            result.setProp(i,parent);
+   }
+   result.relax(parent.isRelaxed());
 }
 
 MDDState MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,unsigned l,var<int>::Ptr var, int v)
@@ -263,36 +263,36 @@ void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,var<i
 
 double MDDSpec::similarity(const MDDState& a,const MDDState& b) 
 {
-  double dist = 0;
-  for(auto& cstr : constraints) {
-     for(auto p : cstr.similarities()) {
-        double abSim = _similarity[p](a,b);
-        dist += abSim;
-     }
-  }
-  return dist;
+   double dist = 0;
+   for(auto& cstr : constraints) {
+      for(auto p : cstr.similarities()) {
+         double abSim = _similarity[p](a,b);
+         dist += abSim;
+      }
+   }
+   return dist;
 }
 
 void MDDSpec::relaxation(MDDState& a,const MDDState& b)
 {
    bool aRelax = a.isRelaxed();
-  a.clear();
-  MDDState orig(this,(char*)alloca(layoutSize()));
-  orig.copyState(a);
-  for(auto& cstr : constraints)
-     for(auto p : cstr.relaxations()) 
-        _relaxation[p](a,a,b);
-  a.relax(aRelax || a.stateChange(orig));
+   a.clear();
+   MDDState orig(this,(char*)alloca(layoutSize()));
+   orig.copyState(a);
+   for(auto& cstr : constraints)
+      for(auto p : cstr.relaxations()) 
+         _relaxation[p](a,a,b);
+   a.relax(aRelax || a.stateChange(orig));
 }
 
 MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b)
 {
-  MDDState result(this,(char*)mem->allocate(layoutSize()));
-  for(auto& cstr : constraints) 
-     for(auto p : cstr.relaxations()) 
-        _relaxation[p](result,a,b);       
-  result.relax();
-  return result;
+   MDDState result(this,(char*)mem->allocate(layoutSize()));
+   for(auto& cstr : constraints) 
+      for(auto p : cstr.relaxations()) 
+         _relaxation[p](result,a,b);       
+   result.relax();
+   return result;
 }
 
 std::pair<int,int> domRange(const Factory::Veci& vars)
