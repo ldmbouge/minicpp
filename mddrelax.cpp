@@ -446,7 +446,6 @@ bool MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
          if (!_mddspec.exist(state,sink->getState(),x[l-1],v,false)) continue;
          _mddspec.createState(psi,state,l-1,x[l-1],v);
          if (l == numVariables) {
-            assert(sink->getNumParents() > 0);
             addSupport(l-1,v);
             n->addArc(mem,sink,v);
             MDDState ssCopy(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
