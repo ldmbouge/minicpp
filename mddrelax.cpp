@@ -564,9 +564,9 @@ void MDDRelax::propagate()
       do {
          computeUp();
          change = rebuild();
-         trimDomains();
          _lowest = -1;
       } while (change);
+      trimDomains();
       _lowest = (int)numVariables - 1;
    } catch(Status s) {
       queue.clear();
