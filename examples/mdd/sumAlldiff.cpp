@@ -153,7 +153,7 @@ int main(int argc,char* argv[])
      Factory::allDiffMDD(mdd->getSpec(),adv);
    }
 
-   //cp->post(vars[0] == 0);
+   //cp->post(vars[0] == 1);
    //cp->post(vars[1] != 1);
    //cp->post(vars[1] != 2);
 
@@ -175,14 +175,14 @@ int main(int argc,char* argv[])
 	int c = x->min();
           
         return  [=] {
-                   //cout << tab(i) << "?x(" << i << ") == " << c << endl;
+                   cout << tab(i) << "?x(" << i << ") == " << c << endl;
                    cp->post(x == c);
-                   //cout << tab(i) << "!x(" << i << ") == " << c << endl;
+                   cout << tab(i) << "!x(" << i << ") == " << c << endl;
                  }
             | [=] {
-                 //cout << tab(i) << "?x(" << i << ") != " << c << " FAIL" << endl;
+                 cout << tab(i) << "?x(" << i << ") != " << c << " FAIL" << endl;
                  cp->post(x != c);
-                 //cout << tab(i) << "!x(" << i << ") != " << c << endl;
+                 cout << tab(i) << "!x(" << i << ") != " << c << endl;
               };
 	
       } else return Branches({});

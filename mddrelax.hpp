@@ -37,6 +37,11 @@ public:
          _data[_sz++] = n;
       }
    }
+   MDDNode* pop() noexcept {
+      assert(_sz > 0);
+      MDDNode* retVal = _data[--_sz];
+      return retVal;
+   }
    MDDNodeSet& operator=(const MDDNodeSet& other) {
       _sz = other._sz;
       memcpy(_data,other._data,sizeof(MDDNode*)*other._sz);
@@ -84,8 +89,10 @@ class MDDRelax : public MDD {
    const MDDState& pickReference(int layer,int layerSize); 
    bool rebuild();
    bool refreshNode(MDDNode* n,int l);
-   MDDNodeSet split(TVec<MDDNode*>& layer,int l);
-   bool spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l);
+   bool trimVariable(int i);
+   MDDNodeSet filter(TVec<MDDNode*>& layer,int l);
+   MDDNodeSet split(MDDNodeSet& pool,TVec<MDDNode*>& layer,int l);
+   void spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l);
    MDDNode* findSimilar(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
    MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);
    void delState(MDDNode* state,int l);

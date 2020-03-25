@@ -244,7 +244,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    auto z = Factory::makeIntVar(cp, 0, zUB);
 
    assert(ss == cv.size());
-   //MDDRelax* theOne = nullptr;
+   MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
       //auto mdd = new MDD(cp);
       auto mdd = new MDDRelax(cp,relaxSize);
@@ -258,7 +258,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       // add objective to MDD
       Factory::sumMDD(mdd->getSpec(), emp, compat, z);
       cp->post(mdd);
-      //theOne = mdd;
+      theOne = mdd;
       //mdd->saveGraph();
    }
 
@@ -284,15 +284,15 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
                          auto x = selectMin(emp,
                                              [](const auto& x) { return x->size() > 1;},
                                              [](const auto& x) { return x->size();});
-                                                  
+                                         
                          // int depth = 0;
-                         // for(int i=0;i < nbE;i++) 
+                         // for(int i=0;i < emp.size();i++)
                          //    depth += emp[i]->size() == 1;
 
-      // unsigned i;      
-      // for(i=0u;i< emp.size();i++) 
-      //    if (emp[i]->size() > 1)
-      //       break;     
+      // unsigned i;
+      // for(i=0u;i< emp.size();i++)
+      //     if (emp[i]->size() > 1)
+      //        break;
       // auto x = i < emp.size() ? emp[i] : nullptr;                                                
                          
       if (x) {
@@ -319,7 +319,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    });
 
    SearchStatistics stat;
-   search.onSolution([&emp,obj,z,&stat/*,&cliques,&compat*/]() {
+   search.onSolution([theOne,&emp,obj,z,&stat/*,&cliques,&compat*/]() {
        cout << "z->min() : " << z->min() << ", z->max() : " << z->max() << endl;
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;

@@ -26,11 +26,11 @@
 
 class MDDState;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
+typedef std::function<void(const MDDState&)> FixFun;
 typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::map<int,lambdaTrans> lambdaMap;
-
 class MDDStateSpec;
 
 class MDDConstraintDescriptor {
@@ -67,12 +67,13 @@ public:
 };
 
 class MDDBSValue {
-   unsigned long long* const _buf;
+   unsigned long long*       _buf;
    const unsigned short      _nbw;
    const int                _bLen;
 public:
    MDDBSValue(char* buf,short nbw,int nbb)
       : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw),_bLen(nbb) {}
+   MDDBSValue(MDDBSValue&& v) : _buf(v._buf),_nbw(v._nbw),_bLen(v._bLen) { v._buf = nullptr;}
    short nbWords() const { return _nbw;}
    int  bitLen() const { return _bLen;}
    MDDBSValue& operator=(const MDDBSValue& v) {
@@ -82,27 +83,27 @@ public:
       assert(_nbw == v._nbw);
       return *this;
    }
-   bool getBit(int ofs) const {
-      const int wIdx = ofs / 64;
-      const int bOfs = ofs % 64;
+   bool getBit(const int ofs) const noexcept {
+      const int wIdx = ofs >> 6;
+      const int bOfs = ofs & ((1<<6) - 1);
       const unsigned long long bmask = 0x1ull << bOfs;
       return (_buf[wIdx] & bmask) == bmask;
    }
-   void clear(int ofs) {
-      const int wIdx = ofs / 64;
-      const int bOfs = ofs % 64;
+   void clear(const int ofs) noexcept {
+      const int wIdx = ofs >> 6;
+      const int bOfs = ofs & ((1<<6) - 1);
       const unsigned long long bmask = 0x1ull << bOfs;
       _buf[wIdx] &= ~bmask;
    }
-   void set(int ofs) {
-      const int wIdx = ofs / 64;
-      const int bOfs = ofs % 64;
+   void set(const int ofs) {
+      const int wIdx = ofs >> 6;
+      const int bOfs = ofs & ((1<<6)-1);
       const unsigned long long bmask = 0x1ull << bOfs;
       _buf[wIdx] |= bmask;      
    }
-   unsigned long long cardinality() const {
-      unsigned long long nbb = 0;
-      for(unsigned i = 0;i < _nbw;i++) 
+   int cardinality() const {
+      int nbb = 0;
+      for(int i = (int)_nbw-1;i >= 0;--i) 
          nbb += __builtin_popcountl(_buf[i]);      
       return nbb;
    }
@@ -500,8 +501,8 @@ public:
 class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
+   // End-user API to define an ADD
    MDDConstraintDescriptor& makeConstraintDescriptor(const Factory::Veci&, const char*);
-   void varOrder() override;
    int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
    int addStateUp(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
@@ -512,8 +513,11 @@ public:
    void addRelaxation(int,lambdaRelax);
    void addSimilarity(int,lambdaSim);
    void addTransitions(const lambdaMap& map);
-   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up);
    double similarity(const MDDState& a,const MDDState& b);
+   void onFixpoint(FixFun onFix);
+   // Internal methods.
+   void varOrder() override;
+   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up);
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
    MDDState createState(Storage::Ptr& mem,const MDDState& state,unsigned l,var<int>::Ptr var, int v);
    void updateState(bool set,MDDState& target,const MDDState& source,var<int>::Ptr var,int v);
@@ -522,6 +526,7 @@ public:
    MDDState rootState(Storage::Ptr& mem);
    bool usesUp() const { return _uptrans.size() > 0;}
    void append(const Factory::Veci& x);
+   void reachedFixpoint(const MDDState& sink);
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
       os << "Spec(";
@@ -539,6 +544,7 @@ private:
    std::vector<lambdaRelax> _relaxation;
    std::vector<lambdaSim>   _similarity;
    std::vector<lambdaTrans> _uptrans;
+   std::vector<FixFun>        _onFix;
 };
 
 
