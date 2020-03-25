@@ -206,6 +206,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       if (mode == 0) {
       cp->post(Factory::allDifferent(adv));
       } else {
+	cout << "Arc Consistent AllDiff" << endl;
 	cp->post(Factory::allDifferentAC(adv));
       }
    }

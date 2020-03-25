@@ -249,35 +249,27 @@ namespace Factory {
                                  [](int i) { return [i](auto& out,const auto& c,auto x,int v) { out.set(i,c.at(i+1));};}));
       spec.addTransitions(toDict(maxFup,maxLup-1,
                                  [](int i) { return [i](auto& out,const auto& c,auto x,int v) { out.set(i,c.at(i+1));};}));
-      spec.addTransition(minLup,[values,minLup](auto& out,const auto& c,auto x,int v) { out.set(minL,p.at(minL)+values.member(v));});
-      spec.addTransition(maxLup,[values,maxLup](auto& out,const auto& c,auto x,int v) { out.set(maxL,p.at(maxL)+values.member(v));});
+      spec.addTransition(minLup,[values,minLup](auto& out,const auto& c,auto x,int v) { out.set(minLup,out.at(minLup)+values.member(v));});
+      spec.addTransition(maxLup,[values,maxLup](auto& out,const auto& c,auto x,int v) { out.set(maxLup,out.at(maxLup)+values.member(v));});
 
       spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v) {
                                 out.set(pnb,p.at(pnb)+1);
                              });
-
-      
-      // mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
-      // 	  if (in.at(len) >= 1) {
-      // 	    out.set(minWup, in.at(minWup) + array[in.at(len)-1]*val);
-      // 	  }
-      // 	});
-
       
       spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           if (p.at(pnb) >= len - 1) {
                              bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
                              bool c1 = p.at(minL) + inS - p.at(maxF) <= ub;
-                             bool c2 = p.at(minL) + inS >= p.at(minF) + lb;
-                             bool c3 = p.at(maxL) + inS <= p.at(maxF) + ub;
-                             return c0 && c1 && c2 && c3;
+                             // bool c2 = p.at(minL) + inS >= p.at(minF) + lb;
+                             // bool c3 = p.at(maxL) + inS <= p.at(maxF) + ub;
+                             return c0 && c1; // && c2 && c3;
                           } else {
                              bool c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
                              bool c1 = p.at(minL) + inS <= ub;
-                             bool c2 = len - (p.at(pnb)+1) + p.at(minL) + inS >= lb;
-                             bool c3 = p.at(maxL) + inS <= ub;
-                             return c0 && c1 && c2 && c3;
+                             // bool c2 = len - (p.at(pnb)+1) + p.at(minL) + inS >= lb;
+                             // bool c3 = p.at(maxL) + inS <= ub;
+                             return c0 && c1; // && c2 && c3;
                           }
                        });      
       
@@ -299,7 +291,6 @@ namespace Factory {
          spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
       spec.addRelaxation(maxL,[maxL,maxF,ub](auto& out,const auto& l,const auto& r) {
 	  int maxVal = std::max(l.at(maxL),r.at(maxL));
-	  // add len-test for bottom-up information
 	  maxVal = std::min(maxVal, ub + std::max(l.at(maxF),r.at(maxF)));
 	  out.set(maxL, maxVal);
 	});
@@ -307,6 +298,66 @@ namespace Factory {
       spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) { out.set(pnb,std::min(l.at(pnb),r.at(pnb)));});
    }
 
+   void seqMDD4(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
+   {
+      int minFIdx = 0,minLIdx = len-1;
+      int maxFIdx = len,maxLIdx = len*2-1;
+      int nb = len*2;
+      spec.append(vars);
+      ValueSet values(rawValues);
+      auto& desc = spec.makeConstraintDescriptor(vars,"seqMDD");
+      std::vector<int> ps(nb+1);
+      for(int i = minFIdx;i < nb;i++)
+         ps[i] = spec.addState(desc,0,len);       // init @ 0, largest value is length of window. 
+      ps[nb] = spec.addState(desc,0,INT_MAX); // init @ 0, largest value is number of variables. 
+
+      const int minL = ps[minLIdx];
+      const int maxF = ps[maxFIdx];
+      const int minF = ps[minFIdx];
+      const int maxL = ps[maxLIdx];
+      const int pnb  = ps[nb];
+
+      spec.addTransitions(toDict(minF,minL-1,
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+      spec.addTransitions(toDict(maxF,maxL-1,
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+      spec.addTransition(minL,[values,minL,minF,len,pnb](auto& out,const auto& p,auto x,int v) {
+	  int minVal = p.at(minL)+values.member(v);
+	  out.set(minL,minVal);
+	});
+      spec.addTransition(maxL,[values,maxL,pnb,len,minF,ub](auto& out,const auto& p,auto x,int v) {
+	  int maxVal = p.at(maxL)+values.member(v);
+	  if (p.at(maxL)+values.member(v)-p.at(minF) > ub) {
+	    maxVal = std::min(maxVal, p.at(minF)+ub);
+	  }
+	  out.set(maxL,maxVal);
+	});
+      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v) {
+                                out.set(pnb,p.at(pnb)+1);
+                             });
+
+      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
+                          bool inS = values.member(v);
+                          if (p.at(pnb) >= len - 1) {
+                             bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
+                             bool c1 = p.at(minL) + inS - p.at(maxF) <= ub;
+                             return c0 && c1;
+                          } else {
+                             bool c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
+                             bool c1 = p.at(minL) + inS <= ub;
+                             return c0 && c1;
+                          }
+                       });      
+      
+      for(int i = minFIdx; i <= minLIdx; i++)
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
+      for(int i = maxFIdx; i <= maxLIdx; i++)
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
+      spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) { out.set(pnb,std::min(l.at(pnb),r.at(pnb)));});
+   }
+
+
+  
    void gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       spec.append(vars);
