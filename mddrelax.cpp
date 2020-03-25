@@ -298,7 +298,9 @@ MDDNodeSet MDDRelax::filter(TVec<MDDNode*>& layer,int l)
    for(auto i = layer.rbegin();i != layer.rend();i++) {
       auto n = *i; // This is a _destination_ node into layer `l`
       if (n->getNumParents()==0 && l > 0) {
-         assert(l != numVariables); // should never be recycling the sink
+         //assert(l != numVariables); // should never be recycling the sink
+         if (l == numVariables)
+            failNow();
          pool.insert(n);
          delState(n,l);
          continue;

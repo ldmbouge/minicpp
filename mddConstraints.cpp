@@ -85,15 +85,15 @@ namespace Factory {
                             });
 
       mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,int val,bool up) -> bool  {
-                      bool notOk = p.getBS(all).getBit(val - minDom) ||
-                         (p.getBS(some).cardinality() == (unsigned)p.at(len)  && p.getBS(some).getBit(val - minDom));
+                      MDDBSValue sbs = p.getBS(some);
+                      const int ofs = val - minDom;
+                      const bool notOk = p.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == p.at(len));
                       bool upNotOk = false,mixNotOk = false;
                       if (up) {
-                         upNotOk = c.getBS(allu).getBit(val - minDom) ||
-                            (c.getBS(someu).cardinality() == n - c.at(len) && c.getBS(someu).getBit(val - minDom));
-                         MDDBSValue suV = c.getBS(someu);
-                         MDDBSValue both((char*)alloca(sizeof(unsigned long long)*suV.nbWords()),suV.nbWords(),suV.bitLen());
-                         both.setBinOR(suV,p.getBS(some)).set(val-minDom);
+                         MDDBSValue subs = c.getBS(someu);
+                         upNotOk = c.getBS(allu).getBit(ofs) || (subs.getBit(ofs) && subs.cardinality() == n - c.at(len));
+                         MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords(),subs.bitLen());
+                         both.setBinOR(subs,sbs).set(ofs);
                          mixNotOk = both.cardinality() < n;
                       }
                       return !notOk && !upNotOk && !mixNotOk;

@@ -82,27 +82,27 @@ public:
       assert(_nbw == v._nbw);
       return *this;
    }
-   bool getBit(int ofs) const {
-      const int wIdx = ofs / 64;
-      const int bOfs = ofs % 64;
+   bool getBit(const int ofs) const noexcept {
+      const int wIdx = ofs >> 6;
+      const int bOfs = ofs & ((1<<6) - 1);
       const unsigned long long bmask = 0x1ull << bOfs;
       return (_buf[wIdx] & bmask) == bmask;
    }
-   void clear(int ofs) {
-      const int wIdx = ofs / 64;
-      const int bOfs = ofs % 64;
+   void clear(const int ofs) noexcept {
+      const int wIdx = ofs >> 6;
+      const int bOfs = ofs & ((1<<6) - 1);
       const unsigned long long bmask = 0x1ull << bOfs;
       _buf[wIdx] &= ~bmask;
    }
-   void set(int ofs) {
-      const int wIdx = ofs / 64;
-      const int bOfs = ofs % 64;
+   void set(const int ofs) {
+      const int wIdx = ofs >> 6;
+      const int bOfs = ofs & ((1<<6)-1);
       const unsigned long long bmask = 0x1ull << bOfs;
       _buf[wIdx] |= bmask;      
    }
-   unsigned long long cardinality() const {
-      unsigned long long nbb = 0;
-      for(unsigned i = 0;i < _nbw;i++) 
+   int cardinality() const {
+      int nbb = 0;
+      for(int i = (int)_nbw-1;i >= 0;--i) 
          nbb += __builtin_popcountl(_buf[i]);      
       return nbb;
    }
