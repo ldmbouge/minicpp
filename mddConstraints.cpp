@@ -210,21 +210,32 @@ namespace Factory {
   void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
      // This version tests whether we can update the state variables as well (eqns (6) and (8) in JAIR paper)
-      int minFIdx = 0,minLIdx = len-1;
-      int maxFIdx = len,maxLIdx = len*2-1;
-      int nb = len*2;
+      int minFIdx = 0,       minLIdx = len-1;
+      int maxFIdx = len,     maxLIdx = 2*len-1;
+      int minFIdxUp = 2*len, minLIdxUp = 3*len-1;
+      int maxFIdxUp = 3*len, maxLIdxUp = 4*len-1;
+      int nb = 4*len;
+      
       spec.append(vars);
       ValueSet values(rawValues);
+
       auto& desc = spec.makeConstraintDescriptor(vars,"seqMDD");
+
       std::vector<int> ps(nb+1);
-      for(int i = minFIdx;i < nb;i++)
-         ps[i] = spec.addState(desc,0,len);       // init @ 0, largest value is length of window. 
+      for(int i = minFIdx;i < minFIdxUp;i++)
+         ps[i] = spec.addState(desc,0,len);       // init @ 0, largest value is length of window.
+      for(int i = minFIdxUp;i < nb;i++)
+         ps[i] = spec.addStateUp(desc,0,len);     // init @ 0, largest value is length of window.      
       ps[nb] = spec.addState(desc,0,INT_MAX); // init @ 0, largest value is number of variables. 
 
+      const int minF = ps[minFIdx];
       const int minL = ps[minLIdx];
       const int maxF = ps[maxFIdx];
-      const int minF = ps[minFIdx];
       const int maxL = ps[maxLIdx];
+      const int minFup = ps[minFIdxUp];
+      const int minLup = ps[minLIdxUp];
+      const int maxFup = ps[maxFIdxUp];
+      const int maxLup = ps[maxLIdxUp];
       const int pnb  = ps[nb];
 
       spec.addTransitions(toDict(minF,minL-1,
@@ -233,10 +244,26 @@ namespace Factory {
                                  [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
       spec.addTransition(minL,[values,minL](auto& out,const auto& p,auto x,int v) { out.set(minL,p.at(minL)+values.member(v));});
       spec.addTransition(maxL,[values,maxL](auto& out,const auto& p,auto x,int v) { out.set(maxL,p.at(maxL)+values.member(v));});
+
+      spec.addTransitions(toDict(minFup,minLup-1,
+                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v) { out.set(i,c.at(i+1));};}));
+      spec.addTransitions(toDict(maxFup,maxLup-1,
+                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v) { out.set(i,c.at(i+1));};}));
+      spec.addTransition(minLup,[values,minLup](auto& out,const auto& c,auto x,int v) { out.set(minL,p.at(minL)+values.member(v));});
+      spec.addTransition(maxLup,[values,maxLup](auto& out,const auto& c,auto x,int v) { out.set(maxL,p.at(maxL)+values.member(v));});
+
       spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v) {
                                 out.set(pnb,p.at(pnb)+1);
                              });
 
+      
+      // mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
+      // 	  if (in.at(len) >= 1) {
+      // 	    out.set(minWup, in.at(minWup) + array[in.at(len)-1]*val);
+      // 	  }
+      // 	});
+
+      
       spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           if (p.at(pnb) >= len - 1) {

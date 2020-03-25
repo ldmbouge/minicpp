@@ -120,7 +120,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   auto mdd = new MDDRelax(cp,relaxSize);
 
   if (mode == 0) {
-   
+    cout << "domain encoding of cumulative sums" << endl;
+    
     // constraint type 1
     auto cumul = Factory::intVarArray(cp, H+1, 0, H); // cumulative sum: cumul[i+1] = vars[0] + ... + vars[i]
     cp->post(cumul[0] == 0);
