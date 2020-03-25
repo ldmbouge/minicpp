@@ -67,12 +67,13 @@ public:
 };
 
 class MDDBSValue {
-   unsigned long long* const _buf;
+   unsigned long long*       _buf;
    const unsigned short      _nbw;
    const int                _bLen;
 public:
    MDDBSValue(char* buf,short nbw,int nbb)
       : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw),_bLen(nbb) {}
+   MDDBSValue(MDDBSValue&& v) : _buf(v._buf),_nbw(v._nbw),_bLen(v._bLen) { v._buf = nullptr;}
    short nbWords() const { return _nbw;}
    int  bitLen() const { return _bLen;}
    MDDBSValue& operator=(const MDDBSValue& v) {

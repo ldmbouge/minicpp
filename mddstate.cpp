@@ -263,7 +263,7 @@ void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,var<i
             _uptrans[l](temp,source,var,v);
       else
          for(auto i : c)
-            if (_attrs[i]->isUp())
+            if (isUp(i))
                temp.setProp(i,source);
    }   
    if (set)
