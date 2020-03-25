@@ -538,6 +538,10 @@ namespace Factory {
       mdd.addRelaxation(maxWup,[maxWup](auto& out,const auto& l,const auto& r) { out.set(maxWup,std::max(l.at(maxWup), r.at(maxWup)));});
       mdd.addRelaxation(len, [len](auto& out,const auto& l,const auto& r)  { out.set(len,std::max(l.at(len),r.at(len)));});
 
+      mdd.onFixpoint([z,minW,maxW](const auto& sink) {
+                        z->updateBounds(sink.at(minW),sink.at(maxW));
+                     });
+
       mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
       mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
       mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l.at(minWup) - r.at(minWup)); });

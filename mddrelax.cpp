@@ -298,6 +298,7 @@ MDDNodeSet MDDRelax::filter(TVec<MDDNode*>& layer,int l)
    for(auto i = layer.rbegin();i != layer.rend();i++) {
       auto n = *i; // This is a _destination_ node into layer `l`
       if (n->getNumParents()==0 && l > 0) {
+         assert(l != numVariables); // should never be recycling the sink
          pool.insert(n);
          delState(n,l);
          continue;
@@ -423,7 +424,7 @@ void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
    if (l <= numVariables) {
       const MDDState& refDir = _refs[l];
       std::multimap<float,MDDNode*,std::less<float> > cl;
-      MDDNodeSet recycled = filter(layer,l);
+      MDDNodeSet recycled(_width+1); // we cannot filter here since the layer may be disconnected temporarily.
       for(auto n : layer)
          cl.insert({n->getState().inner(refDir),n});
          
@@ -566,6 +567,8 @@ void MDDRelax::propagate()
          trimDomains();
       } while (change);
       _lowest = (int)numVariables - 1;
+      assert(layers[numVariables].size() == 1);
+      _mddspec.reachedFixpoint(sink->getState());
    } catch(Status s) {
       queue.clear();
       throw s;

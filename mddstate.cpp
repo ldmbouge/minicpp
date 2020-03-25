@@ -147,6 +147,11 @@ int MDDSpec::addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init)
    return rv;   
 }
 
+void MDDSpec::onFixpoint(std::function<void(const MDDState&)> onFix)
+{
+   _onFix.emplace_back(onFix);
+}
+
 void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
    auto& b = _exist;
    if(_exist == nullptr)
@@ -202,6 +207,13 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
       rootState.init(k);
    std::cout << "ROOT:" << rootState << std::endl;
    return rootState;
+}
+
+
+void MDDSpec::reachedFixpoint(const MDDState& sink)
+{
+   for(auto& fix : _onFix)
+      fix(sink);
 }
 
 bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up)
