@@ -163,19 +163,6 @@ tinyGCC/fast:
 .PHONY : tinyGCC/fast
 
 #=============================================================================
-# Target rules for targets named tinyAllDiff
-
-# Build rule for target.
-tinyAllDiff: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 tinyAllDiff
-.PHONY : tinyAllDiff
-
-# fast build rule for target.
-tinyAllDiff/fast:
-	$(MAKE) -f CMakeFiles/tinyAllDiff.dir/build.make CMakeFiles/tinyAllDiff.dir/build
-.PHONY : tinyAllDiff/fast
-
-#=============================================================================
 # Target rules for targets named sumMDD
 
 # Build rule for target.
@@ -200,6 +187,19 @@ sumAlldiff: cmake_check_build_system
 sumAlldiff/fast:
 	$(MAKE) -f CMakeFiles/sumAlldiff.dir/build.make CMakeFiles/sumAlldiff.dir/build
 .PHONY : sumAlldiff/fast
+
+#=============================================================================
+# Target rules for targets named sequenceNurse
+
+# Build rule for target.
+sequenceNurse: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 sequenceNurse
+.PHONY : sequenceNurse
+
+# fast build rule for target.
+sequenceNurse/fast:
+	$(MAKE) -f CMakeFiles/sequenceNurse.dir/build.make CMakeFiles/sequenceNurse.dir/build
+.PHONY : sequenceNurse/fast
 
 #=============================================================================
 # Target rules for targets named adac
@@ -265,19 +265,6 @@ stablemarriage: cmake_check_build_system
 stablemarriage/fast:
 	$(MAKE) -f CMakeFiles/stablemarriage.dir/build.make CMakeFiles/stablemarriage.dir/build
 .PHONY : stablemarriage/fast
-
-#=============================================================================
-# Target rules for targets named sequenceNurse
-
-# Build rule for target.
-sequenceNurse: cmake_check_build_system
-	$(MAKE) -f CMakeFiles/Makefile2 sequenceNurse
-.PHONY : sequenceNurse
-
-# fast build rule for target.
-sequenceNurse/fast:
-	$(MAKE) -f CMakeFiles/sequenceNurse.dir/build.make CMakeFiles/sequenceNurse.dir/build
-.PHONY : sequenceNurse/fast
 
 #=============================================================================
 # Target rules for targets named qaplns
@@ -733,6 +720,32 @@ multipletTinyAmong: cmake_check_build_system
 multipletTinyAmong/fast:
 	$(MAKE) -f CMakeFiles/multipletTinyAmong.dir/build.make CMakeFiles/multipletTinyAmong.dir/build
 .PHONY : multipletTinyAmong/fast
+
+#=============================================================================
+# Target rules for targets named tinyAllDiff
+
+# Build rule for target.
+tinyAllDiff: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 tinyAllDiff
+.PHONY : tinyAllDiff
+
+# fast build rule for target.
+tinyAllDiff/fast:
+	$(MAKE) -f CMakeFiles/tinyAllDiff.dir/build.make CMakeFiles/tinyAllDiff.dir/build
+.PHONY : tinyAllDiff/fast
+
+#=============================================================================
+# Target rules for targets named sequence3Test
+
+# Build rule for target.
+sequence3Test: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 sequence3Test
+.PHONY : sequence3Test
+
+# fast build rule for target.
+sequence3Test/fast:
+	$(MAKE) -f CMakeFiles/sequence3Test.dir/build.make CMakeFiles/sequence3Test.dir/build
+.PHONY : sequence3Test/fast
 
 RuntimeMonitor.o: RuntimeMonitor.cpp.o
 
@@ -1516,6 +1529,33 @@ examples/mdd/multipletTinyAmong.s: examples/mdd/multipletTinyAmong.cpp.s
 examples/mdd/multipletTinyAmong.cpp.s:
 	$(MAKE) -f CMakeFiles/multipletTinyAmong.dir/build.make CMakeFiles/multipletTinyAmong.dir/examples/mdd/multipletTinyAmong.cpp.s
 .PHONY : examples/mdd/multipletTinyAmong.cpp.s
+
+examples/mdd/sequence3Test.o: examples/mdd/sequence3Test.cpp.o
+
+.PHONY : examples/mdd/sequence3Test.o
+
+# target to build an object file
+examples/mdd/sequence3Test.cpp.o:
+	$(MAKE) -f CMakeFiles/sequence3Test.dir/build.make CMakeFiles/sequence3Test.dir/examples/mdd/sequence3Test.cpp.o
+.PHONY : examples/mdd/sequence3Test.cpp.o
+
+examples/mdd/sequence3Test.i: examples/mdd/sequence3Test.cpp.i
+
+.PHONY : examples/mdd/sequence3Test.i
+
+# target to preprocess a source file
+examples/mdd/sequence3Test.cpp.i:
+	$(MAKE) -f CMakeFiles/sequence3Test.dir/build.make CMakeFiles/sequence3Test.dir/examples/mdd/sequence3Test.cpp.i
+.PHONY : examples/mdd/sequence3Test.cpp.i
+
+examples/mdd/sequence3Test.s: examples/mdd/sequence3Test.cpp.s
+
+.PHONY : examples/mdd/sequence3Test.s
+
+# target to generate assembly for a file
+examples/mdd/sequence3Test.cpp.s:
+	$(MAKE) -f CMakeFiles/sequence3Test.dir/build.make CMakeFiles/sequence3Test.dir/examples/mdd/sequence3Test.cpp.s
+.PHONY : examples/mdd/sequence3Test.cpp.s
 
 examples/mdd/sequenceNurse.o: examples/mdd/sequenceNurse.cpp.o
 
@@ -2474,15 +2514,14 @@ help:
 	@echo "... edit_cache"
 	@echo "... tinySeq"
 	@echo "... tinyGCC"
-	@echo "... tinyAllDiff"
 	@echo "... sumMDD"
 	@echo "... sumAlldiff"
+	@echo "... sequenceNurse"
 	@echo "... adac"
 	@echo "... sequenceTest"
 	@echo "... amongNurse"
 	@echo "... tinySeqRelax"
 	@echo "... stablemarriage"
-	@echo "... sequenceNurse"
 	@echo "... qaplns"
 	@echo "... tsp"
 	@echo "... qap"
@@ -2518,6 +2557,8 @@ help:
 	@echo "... mediumSeqRelax"
 	@echo "... mediumGCC"
 	@echo "... multipletTinyAmong"
+	@echo "... tinyAllDiff"
+	@echo "... sequence3Test"
 	@echo "... RuntimeMonitor.o"
 	@echo "... RuntimeMonitor.i"
 	@echo "... RuntimeMonitor.s"
@@ -2605,6 +2646,9 @@ help:
 	@echo "... examples/mdd/multipletTinyAmong.o"
 	@echo "... examples/mdd/multipletTinyAmong.i"
 	@echo "... examples/mdd/multipletTinyAmong.s"
+	@echo "... examples/mdd/sequence3Test.o"
+	@echo "... examples/mdd/sequence3Test.i"
+	@echo "... examples/mdd/sequence3Test.s"
 	@echo "... examples/mdd/sequenceNurse.o"
 	@echo "... examples/mdd/sequenceNurse.i"
 	@echo "... examples/mdd/sequenceNurse.s"

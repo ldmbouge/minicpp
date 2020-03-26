@@ -302,40 +302,83 @@ namespace Factory {
    {
       int minFIdx = 0,minLIdx = len-1;
       int maxFIdx = len,maxLIdx = len*2-1;
-      int nb = len*2;
+      int minFIdxUp = len*3,minLIdxUp = len*3-1;
+      int maxFIdxUp = len*4,maxLIdxUp = len*4-1;
+      int nb = len*4;
       spec.append(vars);
       ValueSet values(rawValues);
       auto& desc = spec.makeConstraintDescriptor(vars,"seqMDD");
       std::vector<int> ps(nb+1);
-      for(int i = minFIdx;i < nb;i++)
-         ps[i] = spec.addState(desc,0,len);       // init @ 0, largest value is length of window. 
-      ps[nb] = spec.addState(desc,0,INT_MAX); // init @ 0, largest value is number of variables. 
+      for(int i = minFIdx;i < minFIdxUp;i++)
+         ps[i] = spec.addState(desc,0,len);         // init @ 0, largest value is length of window. 
+      for(int i = minFIdxUp;i < nb;i++)
+         ps[i] = spec.addStateUp(desc,0,len);       // init @ 0, largest value is length of window. 
+      ps[nb] = spec.addState(desc,0,vars.size());   // init @ 0, largest value is number of variables. 
 
+      const int minF = ps[minFIdx];
       const int minL = ps[minLIdx];
       const int maxF = ps[maxFIdx];
-      const int minF = ps[minFIdx];
       const int maxL = ps[maxLIdx];
+      const int minFup = ps[minFIdxUp];
+      const int minLup = ps[minLIdxUp];
+      const int maxFup = ps[maxFIdxUp];
+      const int maxLup = ps[maxLIdxUp];
       const int pnb  = ps[nb];
 
+      const int nbVars = vars.size();
+	
+      // down transitions
       spec.addTransitions(toDict(minF,minL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
       spec.addTransitions(toDict(maxF,maxL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
-      spec.addTransition(minL,[values,minL,minF,len,pnb](auto& out,const auto& p,auto x,int v) {
+      spec.addTransition(minL,[values,minL,minF,len,pnb,lb](auto& out,const auto& p,auto x,int v) {
 	  int minVal = p.at(minL)+values.member(v);
+
+	  if (p.at(pnb) >= len-1) {
+	    if (p.at(minL)+values.member(v)-p.at(minF) < lb) { minVal = std::max(minVal, p.at(minF)+lb); }
+	  }
+	  else {
+	    if (p.at(minL)+values.member(v)-p.at(minF) + (len-1-p.at(pnb)) < lb) {
+	      minVal = std::max(minVal, p.at(minF)+lb -(len-1-p.at(pnb)));
+	    }
+	  }
 	  out.set(minL,minVal);
 	});
-      spec.addTransition(maxL,[values,maxL,pnb,len,minF,ub](auto& out,const auto& p,auto x,int v) {
+      spec.addTransition(maxL,[values,maxL,maxF,len,pnb,ub](auto& out,const auto& p,auto x,int v) {
 	  int maxVal = p.at(maxL)+values.member(v);
-	  if (p.at(maxL)+values.member(v)-p.at(minF) > ub) {
-	    maxVal = std::min(maxVal, p.at(minF)+ub);
-	  }
+	  if (p.at(maxL)+values.member(v)-p.at(maxF) > ub) { maxVal = std::min(maxVal, p.at(maxF)+ub); }
 	  out.set(maxL,maxVal);
 	});
       spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v) {
                                 out.set(pnb,p.at(pnb)+1);
                              });
 
+      // up transitions
+      spec.addTransitions(toDict(minFup,minLup-1,
+                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v) { out.set(i,c.at(i+1));};}));
+      spec.addTransitions(toDict(maxFup,maxLup-1,
+                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v) { out.set(i,c.at(i+1));};}));
+      spec.addTransition(minLup,[values,minLup,minFup,len,pnb,lb,nbVars](auto& out,const auto& c,auto x,int v) {
+	  int minVal = c.at(minLup)+values.member(v);
+
+	  if (c.at(pnb) <= nbVars-len+1) {
+	    if (c.at(minLup)+values.member(v)-c.at(minFup) < lb) { minVal = std::max(minVal, c.at(minFup)+lb); }
+	  }
+	  else {
+	    if (c.at(minLup)+values.member(v)-c.at(minFup) + (c.at(pnb)-(nbVars-len+1)) < lb) {
+	      minVal = std::max(minVal, c.at(minFup)+lb - (c.at(pnb)-(nbVars-len+1)));
+	    }
+	  }
+	  out.set(minLup,minVal);
+	});
+      spec.addTransition(maxLup,[values,maxLup,maxFup,len,pnb,ub](auto& out,const auto& c,auto x,int v) {
+	  int maxVal = c.at(maxLup)+values.member(v);
+	  if (c.at(maxLup)+values.member(v)-c.at(maxFup) > ub) { maxVal = std::min(maxVal, c.at(maxFup)+ub); }
+	  out.set(maxLup,maxVal);
+	});
+
+      // arc definitions
       spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           if (p.at(pnb) >= len - 1) {
@@ -349,9 +392,14 @@ namespace Factory {
                           }
                        });      
       
+      // relaxations
       for(int i = minFIdx; i <= minLIdx; i++)
          spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
       for(int i = maxFIdx; i <= maxLIdx; i++)
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
+      for(int i = minFIdxUp; i <= minLIdxUp; i++)
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
+      for(int i = maxFIdxUp; i <= maxLIdxUp; i++)
          spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
       spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) { out.set(pnb,std::min(l.at(pnb),r.at(pnb)));});
    }
