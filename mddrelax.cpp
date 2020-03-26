@@ -223,13 +223,13 @@ void MDDRelax::trimLayer(unsigned int layer)
 
 bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
+   MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    bool first = true;
    assert(n->getNumParents() > 0);
    for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();
-      MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
       cs.copyState(n->getState());
       _mddspec.createState(cs,p->getState(),l-1,x[l-1],v);
       if (first)
