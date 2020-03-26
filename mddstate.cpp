@@ -235,22 +235,6 @@ void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
    result.relax(parent.isRelaxed());
 }
 
-MDDState MDDSpec::createState(Storage::Ptr& mem,const MDDState& parent,unsigned l,var<int>::Ptr var, int v)
-{
-   MDDState result(this,(char*)mem->allocate(layoutSize()));
-   result.copyState(parent);
-   for(auto& c :constraints) {
-      if(c.inScope(var))
-         for(auto i : c.transitions()) 
-            _transition[i](result,parent,var,v);
-      // else
-      //    for(auto i : c) 
-      //       result.setProp(i, parent);
-   }
-   result.relax(parent.isRelaxed());
-   return result;
-}
-
 void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,var<int>::Ptr var,int v)
 {
    // when set is true. compute T^{Up}(source,var,val) and store in target
@@ -287,16 +271,8 @@ double MDDSpec::similarity(const MDDState& a,const MDDState& b)
 
 void MDDSpec::relaxation(MDDState& a,const MDDState& b)
 {
-   ///bool aRelax = a.isRelaxed();
-   //a.clear();
-   //MDDState orig(this,(char*)alloca(layoutSize()));
-   //orig.copyState(a);
-   // for(auto& cstr : constraints)
-   //    for(auto p : cstr.relaxations()) 
-   //       _relaxation[p](a,a,b);
    for(const auto& relax : _relaxation)
       relax(a,a,b);
-   //a.relax(aRelax || a.stateChange(orig));
    a.relax();
 }
 
