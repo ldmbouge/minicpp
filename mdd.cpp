@@ -244,7 +244,7 @@ void MDD::saveGraph()
             int count = ch[j]->getChild()->getPosition();
             assert(ch[j]->getParent() == layers[l][i]);
             if (l == 0)
-               std::cout << "src" << " ->" << "\"" << *(layers[l+1][count]) <<"\"";
+               std::cout << "\"" << *(layers[l][i]) << "\"" << " ->" << "\"" << *(layers[l+1][count]) <<"\"";
             else if(l+1 == numVariables)
                std::cout << "\"" << *(layers[l][i]) << "\" ->" << "\"" << *(layers[l+1][count]) << "\"";
             else {
