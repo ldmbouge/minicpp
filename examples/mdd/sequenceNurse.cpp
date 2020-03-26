@@ -227,7 +227,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       // auto x = selectMin(vars,
       // 			 [](const auto& x) { return x->size() > 1;},
       // 			 [](const auto& x) { return x->size();});
-	 
+     
       if (x) {
 	int c = x->min();
 	
