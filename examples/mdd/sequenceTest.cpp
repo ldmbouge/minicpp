@@ -77,8 +77,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
 
 
 void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
-{
-
+{  
   auto vars = Factory::intVarArray(cp, 4, 0, 1); 
 
   int Q1 = 3;

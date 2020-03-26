@@ -563,9 +563,9 @@ void MDDRelax::propagate()
       bool change = false;
       do {
          MDD::propagate();
+         _lowest = -1;
          computeUp();
          change = rebuild();
-         _lowest = -1;
          trimDomains();
       } while (change);
       _lowest = (int)numVariables - 1;
