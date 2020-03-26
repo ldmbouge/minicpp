@@ -137,17 +137,6 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     cp->post(mdd);
     mdd->saveGraph();
   }
-  else if (mode == 4) {
-    cout << "SeqMDD4 encoding" << endl; 
- 
-    auto mdd = new MDDRelax(cp,relaxSize);
-    Factory::seqMDD4(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    // Factory::seqMDD4(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    // Factory::seqMDD4(mdd->getSpec(), vars, Q3, L3, U3, S3);
-
-    cp->post(mdd);
-    mdd->saveGraph();
-  }
   
   DFSearch search(cp,[=]() {
 
