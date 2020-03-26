@@ -302,8 +302,8 @@ namespace Factory {
    {
       int minFIdx = 0,minLIdx = len-1;
       int maxFIdx = len,maxLIdx = len*2-1;
-      int minFIdxUp = len*3,minLIdxUp = len*3-1;
-      int maxFIdxUp = len*4,maxLIdxUp = len*4-1;
+      int minFIdxUp = len*2,minLIdxUp = len*3-1;
+      int maxFIdxUp = len*3,maxLIdxUp = len*4-1;
       int nb = len*4;
       spec.append(vars);
       ValueSet values(rawValues);
@@ -379,18 +379,78 @@ namespace Factory {
 	});
 
       // arc definitions
-      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
+      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool up) -> bool {
                           bool inS = values.member(v);
-                          if (p.at(pnb) >= len - 1) {
-                             bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
-                             bool c1 = p.at(minL) + inS - p.at(maxF) <= ub;
-                             return c0 && c1;
-                          } else {
-                             bool c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
-                             bool c1 = p.at(minL) + inS <= ub;
-                             return c0 && c1;
-                          }
-                       });      
+
+			  bool c0 = true;
+			  bool c1 = true;
+			  bool c2 = true;
+			  bool c3 = true;
+
+			  if (p.at(pnb) >= len - 1) {
+			    c0 = p.at(maxL) + inS - p.at(minF) >= lb;
+			    c1 = p.at(minL) + inS - p.at(maxF) <= ub;
+			  } else {
+			    c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
+			    c1 = p.at(minL) + inS <= ub;
+			  }
+			  if (up) {
+			    if (c.at(pnb) <= nbVars-len+1) {
+			      c2 = c.at(maxLup) + inS - c.at(minFup) >= lb;
+			      c3 = c.at(minLup) + inS - c.at(maxFup) <= ub;
+			    }
+			    else {
+			      c2 = c.at(maxLup) + inS - c.at(minFup) >= lb - (c.at(pnb)-(nbVars-len+1));
+			      c3 = c.at(minLup) + inS <= ub;
+			    }
+			  }
+			  return c0 && c1 && c2 && c3;
+
+			  // if (!up) {
+			  //   if (p.at(pnb) >= len - 1) {
+			  //     bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
+			  //     bool c1 = p.at(minL) + inS - p.at(maxF) <= ub;
+			  //     return c0 && c1;
+			  //   } else {
+			  //     bool c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
+			  //     bool c1 = p.at(minL) + inS <= ub;
+			  //     return c0 && c1;
+			  //   }
+			  // } else {
+			  //   if (p.at(pnb) >= len - 1) {
+			  //     bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
+			  //     bool c1 = p.at(minL) + inS - p.at(maxF) <= ub;
+
+			  //     bool c2 = true;
+			  //     bool c3 = true;
+			  //     if (c.at(pnb) <= nbVars-len+1) {
+			  // 	c2 = c.at(maxLup) + inS - c.at(minFup) >= lb;
+			  // 	c3 = c.at(minLup) + inS - c.at(maxFup) <= ub;
+			  //     }
+			  //     else {
+			  // 	c2 = c.at(maxLup) + inS - c.at(minFup) >= lb - (c.at(pnb)-(nbVars-len+1));
+			  // 	c3 = c.at(minLup) + inS - c.at(maxFup) <= ub;
+			  //     }
+			  //     return c0 && c1 && c2 && c3;
+			  //   } else {
+			  //     bool c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
+			  //     bool c1 = p.at(minL) + inS <= ub;
+
+			  //     bool c2 = true;
+			  //     bool c3 = true;
+			  //     if (c.at(pnb) <= nbVars-len+1) {
+			  // 	c2 = c.at(maxLup) + inS - c.at(minFup) >= lb;
+			  // 	c3 = c.at(minLup) + inS - c.at(maxFup) <= ub;
+			  //     }
+			  //     else {
+			  // 	c2 = c.at(maxLup) + inS - c.at(minFup) >= lb - (c.at(pnb)-(nbVars-len+1));
+			  // 	c3 = c.at(minLup) + inS - c.at(maxFup) <= ub;
+			  //     }
+
+			  //     return c0 && c1 && c2 && c3;
+			  //   }
+			  // }
+	});      
       
       // relaxations
       for(int i = minFIdx; i <= minLIdx; i++)

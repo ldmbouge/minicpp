@@ -97,7 +97,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   // std::set<int> S3 = {0,1};
 
   
-  cp->post( vars[0] == 0 );
+  cp->post( vars[3] == 0 );
   
   if (mode == 0) {
     cout << "Cumulative Sums encoding" << endl; 
