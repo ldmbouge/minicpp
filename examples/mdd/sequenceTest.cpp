@@ -77,26 +77,40 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
 
 
 void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
-{
+{  
+  auto vars = Factory::intVarArray(cp, 4, 0, 1); 
 
-  auto vars = Factory::intVarArray(cp, 7, 0, 1); 
+  int Q1 = 3;
+  int L1 = 1;
+  int U1 = 1;
+  std::set<int> S1 = {1};
 
-  int Q = 3;
-  int L = 1;
-  int U = 2;
-  std::set<int> S = {1};
+  // int Q2 = 4;
+  // int L2 = 2;
+  // int U2 = 3;
+  // std::set<int> S2 = {1,2};
 
-  //cp->post( vars[2] == 0 );
+  // int Q3 = 3;
+  // int L3 = 1;
+  // int U3 = 2;
+  // std::set<int> S3 = {0,1};
+
+  
+  cp->post( vars[3] == 0 );
   
   if (mode == 0) {
     cout << "Cumulative Sums encoding" << endl; 
-    addCumulSeq(cp, vars, Q, L, U, S);
+    addCumulSeq(cp, vars, Q1, L1, U1, S1);
+    // addCumulSeq(cp, vars, Q2, L2, U2, S2);
+    // addCumulSeq(cp, vars, Q3, L3, U3, S3);
   }
   else if (mode == 1) {
     cout << "SeqMDD1 encoding" << endl; 
  
     auto mdd = new MDDRelax(cp,relaxSize);
-    Factory::seqMDD(mdd->getSpec(), vars, Q, L, U, S);
+    Factory::seqMDD(mdd->getSpec(), vars, Q1, L1, U1, S1);
+    // Factory::seqMDD(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    // Factory::seqMDD(mdd->getSpec(), vars, Q3, L3, U3, S3);
 
     cp->post(mdd);
     mdd->saveGraph();
@@ -105,7 +119,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     cout << "SeqMDD2 encoding" << endl; 
  
     auto mdd = new MDDRelax(cp,relaxSize);
-    Factory::seqMDD2(mdd->getSpec(), vars, Q, L, U, S);
+    Factory::seqMDD2(mdd->getSpec(), vars, Q1, L1, U1, S1);
+    // Factory::seqMDD2(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    // Factory::seqMDD2(mdd->getSpec(), vars, Q3, L3, U3, S3);
 
     cp->post(mdd);
     mdd->saveGraph();
@@ -114,7 +130,20 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     cout << "SeqMDD3 encoding" << endl; 
  
     auto mdd = new MDDRelax(cp,relaxSize);
-    Factory::seqMDD3(mdd->getSpec(), vars, Q, L, U, S);
+    Factory::seqMDD3(mdd->getSpec(), vars, Q1, L1, U1, S1);
+    // Factory::seqMDD3(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    // Factory::seqMDD3(mdd->getSpec(), vars, Q3, L3, U3, S3);
+
+    cp->post(mdd);
+    mdd->saveGraph();
+  }
+  else if (mode == 4) {
+    cout << "SeqMDD4 encoding" << endl; 
+ 
+    auto mdd = new MDDRelax(cp,relaxSize);
+    Factory::seqMDD4(mdd->getSpec(), vars, Q1, L1, U1, S1);
+    // Factory::seqMDD4(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    // Factory::seqMDD4(mdd->getSpec(), vars, Q3, L3, U3, S3);
 
     cp->post(mdd);
     mdd->saveGraph();
