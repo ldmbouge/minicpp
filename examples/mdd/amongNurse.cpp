@@ -221,7 +221,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     cp->post(mdd);
   }
   else if (mode == 2) {
-    cout << "Sequence MDD encoding" << endl;
+    cout << "Sequence MDD2 encoding" << endl;
 
     // constraint 1
     cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
@@ -249,7 +249,36 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     }
     cp->post(mdd);
   }
-  else if (mode == 3) {
+    else if (mode == 3) {
+    cout << "Sequence MDD3 encoding" << endl;
+
+    // constraint 1
+    cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
+    Factory::seqMDD3(mdd->getSpec(), vars, N1, L1, U1, workDay);
+
+    // constraint 2
+    cout << "Sequence(vars," << N2 << "," << L2 << "," << U2 << ",{1})" << std::endl;
+    Factory::seqMDD3(mdd->getSpec(), vars, N2, L2, U2, workDay);
+
+    // constraint 3
+    cout << "Constraint type 3" << endl;
+    for (int i=0; i<H/N3; i++) {
+      cout << "Among for week " << i << ": ";
+      if (7*i+7<H) {
+	set<int> amongVars;
+	for (int j=7*i; j<7*i+7; j++) {
+	  amongVars.insert(j);    
+	  cout << j << " ";
+	}
+	cout << endl;
+	
+	auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+      }
+    }
+    cp->post(mdd);
+  }
+  else if (mode == 4) {
     cout << "Cumulative Sums with isMember encoding" << endl;
 
     // constraint 1

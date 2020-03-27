@@ -77,40 +77,44 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
 
 
 void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
-{  
-  auto vars = Factory::intVarArray(cp, 4, 0, 1); 
+{
 
+  auto vars = Factory::intVarArray(cp, 4, 0, 2);
+
+  /***
+   *  In this example, both domain propagation on cumulative sums and the MDD propagation
+   *  will deduce that vars[3] == 0.  This will trigger more domain propagation (the bounds
+   *  on the cumulative variables get updated, which results in vars[2] == 1.
+   *  The seqMDD3, however, is almost getting there, but somehow the changes in the state
+   *  variables are not triggering a propagation event.  This means that the fixpoint 
+   *  terminates earlier.
+   ***/
+  
   int Q1 = 3;
   int L1 = 1;
-  int U1 = 1;
+  int U1 = 2;
   std::set<int> S1 = {1};
 
-  // int Q2 = 4;
-  // int L2 = 2;
-  // int U2 = 3;
-  // std::set<int> S2 = {1,2};
+  int Q2 = 4;
+  int L2 = 2;
+  int U2 = 3;
+  std::set<int> S2 = {1,2};
 
-  // int Q3 = 3;
-  // int L3 = 1;
-  // int U3 = 2;
-  // std::set<int> S3 = {0,1};
-
-  
-  cp->post( vars[3] == 0 );
+  cp->post( vars[0] == 1 );
+  cp->post( vars[1] == 2 );
+  cp->post( vars[2] != 0 );
   
   if (mode == 0) {
     cout << "Cumulative Sums encoding" << endl; 
     addCumulSeq(cp, vars, Q1, L1, U1, S1);
-    // addCumulSeq(cp, vars, Q2, L2, U2, S2);
-    // addCumulSeq(cp, vars, Q3, L3, U3, S3);
+    addCumulSeq(cp, vars, Q2, L2, U2, S2);
   }
   else if (mode == 1) {
     cout << "SeqMDD1 encoding" << endl; 
  
     auto mdd = new MDDRelax(cp,relaxSize);
     Factory::seqMDD(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    // Factory::seqMDD(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    // Factory::seqMDD(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    Factory::seqMDD(mdd->getSpec(), vars, Q2, L2, U2, S2);
 
     cp->post(mdd);
     mdd->saveGraph();
@@ -120,8 +124,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
  
     auto mdd = new MDDRelax(cp,relaxSize);
     Factory::seqMDD2(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    // Factory::seqMDD2(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    // Factory::seqMDD2(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    Factory::seqMDD2(mdd->getSpec(), vars, Q2, L2, U2, S2);
 
     cp->post(mdd);
     mdd->saveGraph();
@@ -131,8 +134,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
  
     auto mdd = new MDDRelax(cp,relaxSize);
     Factory::seqMDD3(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    // Factory::seqMDD3(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    // Factory::seqMDD3(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    Factory::seqMDD3(mdd->getSpec(), vars, Q2, L2, U2, S2);
 
     cp->post(mdd);
     mdd->saveGraph();
@@ -146,16 +148,20 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	  break;
 
       auto x = i < vars.size() ? vars[i] : nullptr;
-
+      if (x) {
+	std::cout << "vars[" << i << "]";
+      }
       if (x) {
 	int c = x->min();
 	
 	return  [=] {
-                   cp->post(x == c);
-                }
-           | [=] {
-                cp->post(x != c);
-             };
+	  std::cout << " == " << c << std::endl;
+	  cp->post(x == c);
+	}
+	| [=] {
+	  std::cout << " != " << c << std::endl;
+	  cp->post(x != c);
+	};
       } else return Branches({});
     });
   
