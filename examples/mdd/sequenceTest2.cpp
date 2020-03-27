@@ -100,9 +100,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   int U2 = 3;
   std::set<int> S2 = {1,2};
 
-  cp->post( vars[0] == 1 );
-  cp->post( vars[1] == 2 );
-  cp->post( vars[2] != 0 );
+  cp->post( vars[3] == 1 );
+  cp->post( vars[2] == 2 );
+  cp->post( vars[1] != 0 );
   
   if (mode == 0) {
     cout << "Cumulative Sums encoding" << endl; 
