@@ -189,6 +189,19 @@ sumAlldiff/fast:
 .PHONY : sumAlldiff/fast
 
 #=============================================================================
+# Target rules for targets named sequenceTest2
+
+# Build rule for target.
+sequenceTest2: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 sequenceTest2
+.PHONY : sequenceTest2
+
+# fast build rule for target.
+sequenceTest2/fast:
+	$(MAKE) -f CMakeFiles/sequenceTest2.dir/build.make CMakeFiles/sequenceTest2.dir/build
+.PHONY : sequenceTest2/fast
+
+#=============================================================================
 # Target rules for targets named sequenceNurse
 
 # Build rule for target.
@@ -1611,6 +1624,33 @@ examples/mdd/sequenceTest.cpp.s:
 	$(MAKE) -f CMakeFiles/sequenceTest.dir/build.make CMakeFiles/sequenceTest.dir/examples/mdd/sequenceTest.cpp.s
 .PHONY : examples/mdd/sequenceTest.cpp.s
 
+examples/mdd/sequenceTest2.o: examples/mdd/sequenceTest2.cpp.o
+
+.PHONY : examples/mdd/sequenceTest2.o
+
+# target to build an object file
+examples/mdd/sequenceTest2.cpp.o:
+	$(MAKE) -f CMakeFiles/sequenceTest2.dir/build.make CMakeFiles/sequenceTest2.dir/examples/mdd/sequenceTest2.cpp.o
+.PHONY : examples/mdd/sequenceTest2.cpp.o
+
+examples/mdd/sequenceTest2.i: examples/mdd/sequenceTest2.cpp.i
+
+.PHONY : examples/mdd/sequenceTest2.i
+
+# target to preprocess a source file
+examples/mdd/sequenceTest2.cpp.i:
+	$(MAKE) -f CMakeFiles/sequenceTest2.dir/build.make CMakeFiles/sequenceTest2.dir/examples/mdd/sequenceTest2.cpp.i
+.PHONY : examples/mdd/sequenceTest2.cpp.i
+
+examples/mdd/sequenceTest2.s: examples/mdd/sequenceTest2.cpp.s
+
+.PHONY : examples/mdd/sequenceTest2.s
+
+# target to generate assembly for a file
+examples/mdd/sequenceTest2.cpp.s:
+	$(MAKE) -f CMakeFiles/sequenceTest2.dir/build.make CMakeFiles/sequenceTest2.dir/examples/mdd/sequenceTest2.cpp.s
+.PHONY : examples/mdd/sequenceTest2.cpp.s
+
 examples/mdd/sumAlldiff.o: examples/mdd/sumAlldiff.cpp.o
 
 .PHONY : examples/mdd/sumAlldiff.o
@@ -2516,6 +2556,7 @@ help:
 	@echo "... tinyGCC"
 	@echo "... sumMDD"
 	@echo "... sumAlldiff"
+	@echo "... sequenceTest2"
 	@echo "... sequenceNurse"
 	@echo "... adac"
 	@echo "... sequenceTest"
@@ -2655,6 +2696,9 @@ help:
 	@echo "... examples/mdd/sequenceTest.o"
 	@echo "... examples/mdd/sequenceTest.i"
 	@echo "... examples/mdd/sequenceTest.s"
+	@echo "... examples/mdd/sequenceTest2.o"
+	@echo "... examples/mdd/sequenceTest2.i"
+	@echo "... examples/mdd/sequenceTest2.s"
 	@echo "... examples/mdd/sumAlldiff.o"
 	@echo "... examples/mdd/sumAlldiff.i"
 	@echo "... examples/mdd/sumAlldiff.s"
