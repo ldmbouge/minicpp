@@ -295,7 +295,9 @@ namespace Factory {
 			  bool c1 = true;
 			  bool c2 = true;
 			  bool c3 = true;
-
+			  bool c4 = true;
+			  bool c5 = true;
+			  
 			  if (p.at(pnb) >= len - 1) {
 			    c0 = p.at(maxL) + inS - p.at(minF) >= lb;
 			    c1 = p.at(minL) + inS - p.at(maxF) <= ub;
@@ -313,7 +315,20 @@ namespace Factory {
 			      c3 = c.at(minLup) + inS <= ub;
 			    }
 			  }
-			  return c0 && c1 && c2 && c3;
+
+			  // this does not work?
+			  std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
+			  std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? >= " << c.at(maxL) << std::endl;
+
+			  c4 =( p.at(maxL) + inS >= c.at(minL) &&
+				p.at(minL) + inS <= c.at(maxL) );
+
+			  if (up) {
+			    c5 =( p.at(maxLup) + inS >= c.at(minLup) &&
+				  p.at(minLup) + inS <= c.at(maxLup) );
+			  }
+
+			  return c0 && c1 && c2 && c3 && c4 && c5;
 	});      
       
       // relaxations
