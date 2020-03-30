@@ -221,35 +221,56 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bo
    return _exist(a,c,x,v,up);
 }
 
+void MDDSpec::compile()
+{
+   const unsigned nbL = x.size();
+   _transLayer.reserve(nbL);
+   _frameLayer.reserve(nbL);
+   _uptransLayer.reserve(nbL);
+   _upframeLayer.reserve(nbL);
+   for(auto i = 0u;i < nbL;i++) {      
+      auto& layer   = _transLayer.emplace_back(std::vector<lambdaTrans>());
+      auto& upLayer = _uptransLayer.emplace_back(std::vector<lambdaTrans>());
+      auto& frame   = _frameLayer.emplace_back(std::vector<int>());
+      auto& upFrame = _upframeLayer.emplace_back(std::vector<int>());
+      for(auto& c : constraints)
+         if (c.inScope(x[i]))  {
+            for(auto j : c.transitions())
+               layer.emplace_back(_transition[j]);
+            for(auto j : c.uptrans())
+               upLayer.emplace_back(_uptrans[j]);
+         }
+         else {
+            for(auto j : c)
+               frame.emplace_back(j);
+            for(auto j : c)
+               if (isUp(j))
+                  upFrame.emplace_back(j);                   
+         }
+   }
+}
+
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v)
 {
    result.clear();
-   for(auto& c :constraints) {
-      if(c.inScope(var))
-         for(auto i : c.transitions()) 
-            _transition[i](result,parent,var,v);
-      else
-         for(auto i : c) 
-            result.setProp(i,parent);
-   }
+   for(const auto& t : _transLayer[l])
+      t(result,parent,var,v);
+   for(auto p : _frameLayer[l])
+      result.setProp(p,parent);
    result.relax(parent.isRelaxed());
 }
 
-void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,var<int>::Ptr var,int v)
+void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,int v)
 {
    // when set is true. compute T^{Up}(source,var,val) and store in target
    // when set is false compute Relax(target,T^{Up}(source,var,val)) and store in target.
    MDDState temp(this,(char*)alloca(sizeof(char)*layoutSize()));
    temp.copyState(target);
-   for(auto& c : constraints) {
-      if (c.inScope(var))
-         for(auto l : c.uptrans())
-            _uptrans[l](temp,source,var,v);
-      else
-         for(auto i : c)
-            if (isUp(i))
-               temp.setProp(i,source);
-   }   
+   for(const auto& t : _uptransLayer[l])
+      t(temp,source,var,v);
+   for(auto p : _upframeLayer[l])
+      temp.setProp(p,source);
+   
    if (set)
       target.copyState(temp);
    else 
@@ -274,16 +295,6 @@ void MDDSpec::relaxation(MDDState& a,const MDDState& b)
    for(const auto& relax : _relaxation)
       relax(a,a,b);
    a.relax();
-}
-
-MDDState MDDSpec::relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b)
-{
-   MDDState result(this,(char*)mem->allocate(layoutSize()));
-   for(auto& cstr : constraints) 
-      for(auto p : cstr.relaxations()) 
-         _relaxation[p](result,a,b);       
-   result.relax();
-   return result;
 }
 
 std::pair<int,int> domRange(const Factory::Veci& vars)

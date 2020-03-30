@@ -47,6 +47,7 @@ void MDDRelax::buildDiagram()
 {
    std::cout << "MDDRelax::buildDiagram" << std::endl;
    _mddspec.layout();
+   _mddspec.compile();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
@@ -382,9 +383,11 @@ MDDNode* MDDRelax::resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l)
    from->addArc(mem,to,v);
    for(auto i = to->getChildren().rbegin();i != to->getChildren().rend();i++) {
       auto arc = *i;
+      MDDNode* child = arc->getChild();
+      int v = arc->getValue();
       to->unhook(arc);
-      arc->getChild()->markDirty();
-      delSupport(l,arc->getValue());
+      child->markDirty();
+      delSupport(l,v);
    }
    return to;
 }
@@ -467,17 +470,14 @@ void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
                } else {
                   MDDNode* psiSim = findSimilar(cl,psi,refDir);
                   const MDDState& psiSimState = psiSim->getState();
-                  MDDState ns;
-                  if (psiSim->getNumParents() == 0)
-                     ns = std::move(psi);
-                  else
-                     ns = _mddspec.relaxation(mem,psiSimState,psi);
-                  if (ns == psiSimState) {
+                  if (psiSim->getNumParents() != 0)
+                     _mddspec.relaxation(psi,psiSimState);
+                  if (psi == psiSimState) {
                      addSupport(l-1,v);
                      n->addArc(mem,psiSim,v);
                   } else {
                      auto nh = cl.extract(psiSimState.inner(refDir));
-                     out.insert(resetState(n,psiSim,ns,v,l));
+                     out.insert(resetState(n,psiSim,psi,v,l));
                      if (!nh.empty()) {
                         nh.key() = psiSimState.inner(refDir);
                         cl.insert(std::move(nh));
@@ -543,7 +543,7 @@ void MDDRelax::computeUp()
             MDDState temp(n->getState());  // This is a direct reference to the internals of n->getState()
             for(auto& arcToKid : n->getChildren()) {
                MDDNode* kid = arcToKid->getChild();
-               _mddspec.updateState(first,temp,kid->getState(),x[i],arcToKid->getValue());
+               _mddspec.updateState(first,temp,kid->getState(),i,x[i],arcToKid->getValue());
                first = false;
             }         
          }
