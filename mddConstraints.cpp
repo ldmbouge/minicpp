@@ -320,10 +320,11 @@ namespace Factory {
 			  std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
 			  std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? >= " << c.at(maxL) << std::endl;
 
-			  c4 =( p.at(maxL) + inS >= c.at(minL) &&
-				p.at(minL) + inS <= c.at(maxL) );
 
 			  if (up) {
+			    c4 =( p.at(maxL) + inS >= c.at(minL) &&
+				p.at(minL) + inS <= c.at(maxL) );
+
 			    c5 =( p.at(maxLup) + inS >= c.at(minLup) &&
 				  p.at(minLup) + inS <= c.at(maxLup) );
 			  }
