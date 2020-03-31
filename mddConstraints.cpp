@@ -241,18 +241,34 @@ namespace Factory {
                                  [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
       spec.addTransitions(toDict(maxF,maxL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
-      spec.addTransition(minL,[values,minL,minF,maxLup,len,pnb,lb](auto& out,const auto& p,auto x,int v,bool up) {
+      spec.addTransition(minL,[ps,values,minL,minF,maxLup,minLup,len,pnb,lb](auto& out,const auto& p,auto x,int v,bool up) {
 	  int minVal = p.at(minL)+values.member(v);
 
 	  if (p.at(pnb) >= len-1) {
 	    if (p.at(minL)+values.member(v)-p.at(minF) < lb) { minVal = std::max(minVal, p.at(minF)+lb); }
 	  }
 	  else {
-             // [ 0 1 1 ]
-             int onesToGo = p.at(maxLup-1) - p.at(maxLup - (len-p.at(pnb))-1);
-             if (p.at(minL)+values.member(v)-p.at(minF) + onesToGo < lb) {
-                minVal = std::max(minVal, p.at(minF)+lb - onesToGo );
-             }
+            // The number of possible ones to complete the window can be computed from the 'up' information (if available).
+	    // If the up information is not available, we'll take the remaining window of variables.
+	    int onesToGo = 0; //len-p.at(pnb);
+	    if (!up) { onesToGo = len-p.at(pnb); }
+	    else     {
+	      onesToGo = p.at(maxLup-1) - p.at(minLup - (len-p.at(pnb))-1);
+
+	      // std::cout << "[";
+	      // for (int i=0; i<ps.size(); i++) {
+	      // 	std::cout << p.at(ps[i]) << " ";
+	      // }
+	      // std::cout << "]" << std::endl;
+	      // std::cout << "p.at(pnb) = " << p.at(pnb) << std::endl;
+	      // std::cout << "p.at(maxLup-1) = " << p.at(maxLup-1) << std::endl;
+	      // std::cout << "p.at(maxLup - (len-p.at(pnb)) = " << p.at(maxLup - (len-p.at(pnb))) << std::endl;
+	      // std::cout << "onesToGo = " << onesToGo << std::endl;
+	    }
+
+	    if (p.at(minL)+values.member(v) + onesToGo < lb) {
+	      minVal = std::max(minVal, lb - onesToGo );
+	    }
 	  }
 	  out.set(minL,minVal);
 	});
@@ -270,15 +286,21 @@ namespace Factory {
                                  [](int i) { return [i](auto& out,const auto& c,auto x,int v,bool up) { out.set(i,c.at(i+1));};}));
       spec.addTransitions(toDict(maxFup,maxLup-1,
                                  [](int i) { return [i](auto& out,const auto& c,auto x,int v,bool up) { out.set(i,c.at(i+1));};}));
-      spec.addTransition(minLup,[values,minLup,minFup,len,pnb,lb,nbVars](auto& out,const auto& c,auto x,int v,bool up) {
+      spec.addTransition(minLup,[values,minLup,minFup,maxL,minL,len,pnb,lb,nbVars](auto& out,const auto& c,auto x,int v,bool up) {
 	  int minVal = c.at(minLup)+values.member(v);
 
 	  if (c.at(pnb) <= nbVars-len+1) {
 	    if (c.at(minLup)+values.member(v)-c.at(minFup) < lb) { minVal = std::max(minVal, c.at(minFup)+lb); }
 	  }
 	  else {
-	    if (c.at(minLup)+values.member(v)-c.at(minFup) + (c.at(pnb)-(nbVars-len+1)) < lb) {
-	      minVal = std::max(minVal, c.at(minFup)+lb - (c.at(pnb)-(nbVars-len+1)));
+	    int onesToGo = 0;
+	    if (!up) { onesToGo = c.at(pnb)-(nbVars-len+1); }
+	    //else     { onesToGo = c.at(maxL-1) - c.at(minL - (c.at(pnb)-(nbVars-len+1))); }
+	    // problem: the c state does not capture the entire window in the boundary case (at terminal).
+	    // resolve by changing to "out" state.
+	    else     { onesToGo = out.at(maxL) - out.at(minL - (c.at(pnb)-(nbVars-len+1))); } 
+	    if (c.at(minLup)+values.member(v) + onesToGo < lb) {
+	      minVal = std::max(minVal, lb - onesToGo);
 	    }
 	  }
 	  out.set(minLup,minVal);
