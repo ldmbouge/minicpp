@@ -537,7 +537,7 @@ void MDDRelax::trimDomains()
 void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
-      for(auto i = numVariables - 1;i > 0;i--) {
+      for(int i = (int)numVariables - 1;i >= 0;i--) {
          for(auto& n : layers[i]) {
             bool first = true;
             MDDState temp(n->getState());  // This is a direct reference to the internals of n->getState()

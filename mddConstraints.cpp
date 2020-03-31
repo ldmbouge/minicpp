@@ -248,9 +248,11 @@ namespace Factory {
 	    if (p.at(minL)+values.member(v)-p.at(minF) < lb) { minVal = std::max(minVal, p.at(minF)+lb); }
 	  }
 	  else {
-	    if (p.at(minL)+values.member(v)-p.at(minF) + (len-1-p.at(pnb)) < lb) {
-	      minVal = std::max(minVal, p.at(minF)+lb -(len-1-p.at(pnb)));
-	    }
+             // [ 0 1 1 ]
+             int onesToGo = p.at(maxLup-1) - p.at(maxLup - (len-p.at(pnb))-1);
+             if (p.at(minL)+values.member(v)-p.at(minF) + onesToGo < lb) {
+                minVal = std::max(minVal, p.at(minF)+lb - onesToGo );
+             }
 	  }
 	  out.set(minL,minVal);
 	});
@@ -316,16 +318,14 @@ namespace Factory {
 			    }
 			  }
 
-			  // this does not work?
-			  std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
-			  std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? >= " << c.at(maxL) << std::endl;
-
-			  c4 =( p.at(maxL) + inS >= c.at(minL) &&
-				p.at(minL) + inS <= c.at(maxL) );
-
 			  if (up) {
-			    c5 =( p.at(maxLup) + inS >= c.at(minLup) &&
-				  p.at(minLup) + inS <= c.at(maxLup) );
+             // this does not work?
+             //std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
+            //std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? <= " << c.at(maxL) << std::endl;
+                             c4 =( p.at(maxL) + inS >= c.at(minL) &&
+                                   p.at(minL) + inS <= c.at(maxL) );
+                             c5 =( p.at(maxLup)  >= c.at(minLup) + inS &&
+                                   p.at(minLup)  <= c.at(maxLup) + inS );
 			  }
 
 			  return c0 && c1 && c2 && c3 && c4 && c5;
