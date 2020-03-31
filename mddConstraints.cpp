@@ -30,9 +30,9 @@ namespace Factory {
                 ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
       });
 
-      mdd.addTransition(minC,[minC,values] (auto& out,const auto& p,auto x, int v) { out.set(minC,p.at(minC) + values.member(v));});
-      mdd.addTransition(maxC,[maxC,values] (auto& out,const auto& p,auto x, int v) { out.set(maxC,p.at(maxC) + values.member(v));});
-      mdd.addTransition(rem,[rem] (auto& out,const auto& p,auto x,int v)           { out.set(rem,p.at(rem) - 1);});
+      mdd.addTransition(minC,[minC,values] (auto& out,const auto& p,auto x, int v,bool up) { out.set(minC,p.at(minC) + values.member(v));});
+      mdd.addTransition(maxC,[maxC,values] (auto& out,const auto& p,auto x, int v,bool up) { out.set(maxC,p.at(maxC) + values.member(v));});
+      mdd.addTransition(rem,[rem] (auto& out,const auto& p,auto x,int v,bool up)           { out.set(rem,p.at(rem) - 1);});
 
       mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.set(minC,std::min(l.at(minC), r.at(minC)));});
       mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.set(maxC,std::max(l.at(maxC), r.at(maxC)));});
@@ -56,17 +56,17 @@ namespace Factory {
       const int allu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
       const int someu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
       
-      mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,int val) {
+      mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,int val,bool up) {
                                out.setBS(all,in.getBS(all)).set(val - minDom);
                             });
-      mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,int val) {
+      mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,int val,bool up) {
                                 out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
-      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val) { out.set(len,in.at(len) + 1);});
-      mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,int val) {
+      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val,bool up) { out.set(len,in.at(len) + 1);});
+      mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,int val,bool up) {
                                   out.setBS(allu,in.getBS(allu)).set(val - minDom);
                                });
-      mdd.addTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,int val) {
+      mdd.addTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,int val,bool up) {
                                   out.setBS(someu,in.getBS(someu)).set(val - minDom);
                                });
       
@@ -140,14 +140,14 @@ namespace Factory {
       
       spec.addTransitions(toDict(ps[minFIdx],
                                  ps[minLIdx]-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
       spec.addTransitions(toDict(ps[maxFIdx],
                                  ps[maxLIdx]-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
       spec.addTransition(ps[minLIdx],[values,
-                                      k=ps[minLIdx]](auto& out,const auto& p,auto x,int v) { out.set(k,p.at(k)+values.member(v));});
+                                      k=ps[minLIdx]](auto& out,const auto& p,auto x,int v,bool up) { out.set(k,p.at(k)+values.member(v));});
       spec.addTransition(ps[maxLIdx],[values,
-                                      k=ps[maxLIdx]](auto& out,const auto& p,auto x,int v) { out.set(k,p.at(k)+values.member(v));});
+                                      k=ps[maxLIdx]](auto& out,const auto& p,auto x,int v,bool up) { out.set(k,p.at(k)+values.member(v));});
       
       for(int i = minFIdx; i <= minLIdx; i++)
          spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
@@ -178,12 +178,12 @@ namespace Factory {
       const int pnb  = ps[nb];
 
       spec.addTransitions(toDict(minF,minL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
       spec.addTransitions(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
-      spec.addTransition(minL,[values,minL](auto& out,const auto& p,auto x,int v) { out.set(minL,p.at(minL)+values.member(v));});
-      spec.addTransition(maxL,[values,maxL](auto& out,const auto& p,auto x,int v) { out.set(maxL,p.at(maxL)+values.member(v));});
-      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v) {
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
+      spec.addTransition(minL,[values,minL](auto& out,const auto& p,auto x,int v,bool up) { out.set(minL,p.at(minL)+values.member(v));});
+      spec.addTransition(maxL,[values,maxL](auto& out,const auto& p,auto x,int v,bool up) { out.set(maxL,p.at(maxL)+values.member(v));});
+      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v,bool up) {
                                 out.set(pnb,p.at(pnb)+1);
                              });
 
@@ -238,37 +238,39 @@ namespace Factory {
 	
       // down transitions
       spec.addTransitions(toDict(minF,minL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
       spec.addTransitions(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v) { out.set(i,p.at(i+1));};}));
-      spec.addTransition(minL,[values,minL,minF,len,pnb,lb](auto& out,const auto& p,auto x,int v) {
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
+      spec.addTransition(minL,[values,minL,minF,maxLup,len,pnb,lb](auto& out,const auto& p,auto x,int v,bool up) {
 	  int minVal = p.at(minL)+values.member(v);
 
 	  if (p.at(pnb) >= len-1) {
 	    if (p.at(minL)+values.member(v)-p.at(minF) < lb) { minVal = std::max(minVal, p.at(minF)+lb); }
 	  }
 	  else {
-	    if (p.at(minL)+values.member(v)-p.at(minF) + (len-1-p.at(pnb)) < lb) {
-	      minVal = std::max(minVal, p.at(minF)+lb -(len-1-p.at(pnb)));
-	    }
+             // [ 0 1 1 ]
+             int onesToGo = p.at(maxLup-1) - p.at(maxLup - (len-p.at(pnb))-1);
+             if (p.at(minL)+values.member(v)-p.at(minF) + onesToGo < lb) {
+                minVal = std::max(minVal, p.at(minF)+lb - onesToGo );
+             }
 	  }
 	  out.set(minL,minVal);
 	});
-      spec.addTransition(maxL,[values,maxL,maxF,len,pnb,ub](auto& out,const auto& p,auto x,int v) {
+      spec.addTransition(maxL,[values,maxL,maxF,ub](auto& out,const auto& p,auto x,int v,bool up) {
 	  int maxVal = p.at(maxL)+values.member(v);
 	  if (p.at(maxL)+values.member(v)-p.at(maxF) > ub) { maxVal = std::min(maxVal, p.at(maxF)+ub); }
 	  out.set(maxL,maxVal);
 	});
-      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v) {
+      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v,bool up) {
                                 out.set(pnb,p.at(pnb)+1);
                              });
 
       // up transitions
       spec.addTransitions(toDict(minFup,minLup-1,
-                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v) { out.set(i,c.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v,bool up) { out.set(i,c.at(i+1));};}));
       spec.addTransitions(toDict(maxFup,maxLup-1,
-                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v) { out.set(i,c.at(i+1));};}));
-      spec.addTransition(minLup,[values,minLup,minFup,len,pnb,lb,nbVars](auto& out,const auto& c,auto x,int v) {
+                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v,bool up) { out.set(i,c.at(i+1));};}));
+      spec.addTransition(minLup,[values,minLup,minFup,len,pnb,lb,nbVars](auto& out,const auto& c,auto x,int v,bool up) {
 	  int minVal = c.at(minLup)+values.member(v);
 
 	  if (c.at(pnb) <= nbVars-len+1) {
@@ -281,7 +283,7 @@ namespace Factory {
 	  }
 	  out.set(minLup,minVal);
 	});
-      spec.addTransition(maxLup,[values,maxLup,maxFup,len,pnb,ub](auto& out,const auto& c,auto x,int v) {
+      spec.addTransition(maxLup,[values,maxLup,maxFup,ub](auto& out,const auto& c,auto x,int v,bool up) {
 	  int maxVal = c.at(maxLup)+values.member(v);
 	  if (c.at(maxLup)+values.member(v)-c.at(maxFup) > ub) { maxVal = std::min(maxVal, c.at(maxFup)+ub); }
 	  out.set(maxLup,maxVal);
@@ -316,17 +318,14 @@ namespace Factory {
 			    }
 			  }
 
-			  // this does not work?
-			  std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
-			  std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? >= " << c.at(maxL) << std::endl;
-
-
 			  if (up) {
-			    c4 =( p.at(maxL) + inS >= c.at(minL) &&
-				p.at(minL) + inS <= c.at(maxL) );
-
-			    c5 =( p.at(maxLup) + inS >= c.at(minLup) &&
-				  p.at(minLup) + inS <= c.at(maxLup) );
+             // this does not work?
+             //std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
+            //std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? <= " << c.at(maxL) << std::endl;
+                             c4 =( p.at(maxL) + inS >= c.at(minL) &&
+                                   p.at(minL) + inS <= c.at(maxL) );
+                             c5 =( p.at(maxLup)  >= c.at(minLup) + inS &&
+                                   p.at(minLup)  <= c.at(maxLup) + inS );
 			  }
 
 			  return c0 && c1 && c2 && c3 && c4 && c5;
@@ -366,8 +365,8 @@ namespace Factory {
 
       lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,ps] (int i,int pi) -> lambdaTrans {
               if (i <= minLDom)
-                 return [=] (auto& out,const auto& p,auto x, int v) { out.set(pi,p.at(pi) + ((v - min) == i));};
-              return [=] (auto& out,const auto& p,auto x, int v)    { out.set(pi,p.at(pi) + ((v - min) == (i - dz)));};
+                 return [=] (auto& out,const auto& p,auto x, int v,bool up) { out.set(pi,p.at(pi) + ((v - min) == i));};
+              return [=] (auto& out,const auto& p,auto x, int v,bool up)    { out.set(pi,p.at(pi) + ((v - min) == (i - dz)));};
            });
       spec.addTransitions(d);
 
@@ -426,23 +425,23 @@ namespace Factory {
 	  }
 	});
 	
-      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val,bool up) {
 	  out.set(minW, p.at(minW) + array[p.at(len)]*val);});
-      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val,bool up) {
 	  out.set(maxW, p.at(maxW) + array[p.at(len)]*val);});
 
-      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
+      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(minWup, in.at(minWup) + array[in.at(len)-1]*val);
 	  }
 	});
-      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val) {
+      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(maxWup, in.at(maxWup) + array[in.at(len)-1]*val);
 	  }
 	});
       
-      mdd.addTransition(len, [len] (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(len, [len] (auto& out,const auto& p,auto var, int val,bool up) {
                                 out.set(len,  p.at(len) + 1);
                              });      
 
@@ -499,24 +498,24 @@ namespace Factory {
 	});
 
       
-      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val,bool up) {
 	  out.set(minW, p.at(minW) + array[p.at(len)]*val);});
-      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val,bool up) {
 	  out.set(maxW, p.at(maxW) + array[p.at(len)]*val);});
 
-      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val) {
+      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(minWup, in.at(minWup) + array[in.at(len)-1]*val);
 	  }
 	});
-      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val) {
+      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(maxWup, in.at(maxWup) + array[in.at(len)-1]*val);
 	  }
 	});
 
       
-      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val,bool up) {
 	  out.set(len,  p.at(len) + 1);});      
 
       mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.set(minW,std::min(l.at(minW), r.at(minW)));});
@@ -579,23 +578,23 @@ namespace Factory {
 	  }
 	});
       
-      mdd.addTransition(minW,[minW,matrix,len] (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(minW,[minW,matrix,len] (auto& out,const auto& p,auto var, int val,bool up) {
 	  out.set(minW, p.at(minW) + matrix[p.at(len)][val]);});
-      mdd.addTransition(maxW,[maxW,matrix,len] (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(maxW,[maxW,matrix,len] (auto& out,const auto& p,auto var, int val,bool up) {
 	  out.set(maxW, p.at(maxW) + matrix[p.at(len)][val]);});
 
-      mdd.addTransition(minWup,[minWup,matrix,len] (auto& out,const auto& in,auto var, int val) {
+      mdd.addTransition(minWup,[minWup,matrix,len] (auto& out,const auto& in,auto var, int val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(minWup, in.at(minWup) + matrix[in.at(len)-1][val]);
 	  }
 	});
-      mdd.addTransition(maxWup,[maxWup,matrix,len] (auto& out,const auto& in,auto var, int val) {
+      mdd.addTransition(maxWup,[maxWup,matrix,len] (auto& out,const auto& in,auto var, int val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(maxWup, in.at(maxWup) + matrix[in.at(len)-1][val]);
 	  }
 	});
       
-      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val) {
+      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val,bool up) {
 	  out.set(len,  p.at(len) + 1);});      
 
       mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.set(minW,std::min(l.at(minW), r.at(minW)));});

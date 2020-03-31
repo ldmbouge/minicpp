@@ -27,7 +27,7 @@
 class MDDState;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
 typedef std::function<void(const MDDState&)> FixFun;
-typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> lambdaTrans;
+typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::map<int,lambdaTrans> lambdaMap;
@@ -330,7 +330,7 @@ protected:
    size_t _lsz;
 public:
    MDDStateSpec() {}
-   auto layoutSize() const noexcept { return _lsz;}
+   const auto layoutSize() const noexcept { return _lsz;}
    void layout();
    virtual void varOrder() {}
    bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
@@ -518,15 +518,14 @@ public:
    // Internal methods.
    void varOrder() override;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up);
-   void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
-   MDDState createState(Storage::Ptr& mem,const MDDState& state,unsigned l,var<int>::Ptr var, int v);
-   void updateState(bool set,MDDState& target,const MDDState& source,var<int>::Ptr var,int v);
+   void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v,bool up);
+   void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,int v);
    void relaxation(MDDState& a,const MDDState& b);
-   MDDState relaxation(Storage::Ptr& mem,const MDDState& a,const MDDState& b);
    MDDState rootState(Storage::Ptr& mem);
    bool usesUp() const { return _uptrans.size() > 0;}
    void append(const Factory::Veci& x);
    void reachedFixpoint(const MDDState& sink);
+   void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
       os << "Spec(";
@@ -545,6 +544,10 @@ private:
    std::vector<lambdaSim>   _similarity;
    std::vector<lambdaTrans> _uptrans;
    std::vector<FixFun>        _onFix;
+   std::vector<std::vector<lambdaTrans>> _transLayer;
+   std::vector<std::vector<lambdaTrans>> _uptransLayer;
+   std::vector<std::vector<int>> _frameLayer;
+   std::vector<std::vector<int>> _upframeLayer;   
 };
 
 
