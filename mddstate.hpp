@@ -27,7 +27,7 @@
 class MDDState;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
 typedef std::function<void(const MDDState&)> FixFun;
-typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int)> lambdaTrans;
+typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::map<int,lambdaTrans> lambdaMap;
@@ -518,7 +518,7 @@ public:
    // Internal methods.
    void varOrder() override;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up);
-   void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v);
+   void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v,bool up);
    void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,int v);
    void relaxation(MDDState& a,const MDDState& b);
    MDDState rootState(Storage::Ptr& mem);

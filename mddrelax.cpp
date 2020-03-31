@@ -228,7 +228,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();
       cs.copyState(n->getState());
-      _mddspec.createState(cs,p->getState(),l-1,x[l-1],v);
+      _mddspec.createState(cs,p->getState(),l-1,x[l-1],v,true);
       if (first)
          ms.copyState(cs);
       else
@@ -339,10 +339,11 @@ MDDNodeSet MDDRelax::split(MDDNodeSet& recycled,TVec<MDDNode*>& layer,int l) // 
       auto n = *i;
       assert(n->getNumParents() > 0);
       if (!n->getState().isRelaxed()) continue;
+      //ms.copyState(n->getState());
       for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
          auto p = a->getParent();      // p is the parent
          auto v = a->getValue();
-         _mddspec.createState(ms,p->getState(),l-1,x[l-1],v);
+         _mddspec.createState(ms,p->getState(),l-1,x[l-1],v,true);
          MDDNode* bj = findSimilar(cl,ms,refDir);
          if (bj->getState() == ms) { // there is a perfect match
             if (bj != n) {
@@ -439,7 +440,7 @@ void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
          for(int v = x[l-1]->min(); v <= x[l-1]->max();v++) {         
             if (!x[l-1]->contains(v)) continue;
             if (!_mddspec.exist(state,sink->getState(),x[l-1],v,false)) continue;
-            _mddspec.createState(psi,state,l-1,x[l-1],v);
+            _mddspec.createState(psi,state,l-1,x[l-1],v,false);
             if (l == numVariables) {
                addSupport(l-1,v);
                n->addArc(mem,sink,v);

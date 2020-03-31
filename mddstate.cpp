@@ -250,11 +250,11 @@ void MDDSpec::compile()
    }
 }
 
-void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v)
+void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v,bool hasUp)
 {
    result.clear();
    for(const auto& t : _transLayer[l])
-      t(result,parent,var,v);
+      t(result,parent,var,v,hasUp);
    for(auto p : _frameLayer[l])
       result.setProp(p,parent);
    result.relax(parent.isRelaxed());
@@ -267,7 +267,7 @@ void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsig
    MDDState temp(this,(char*)alloca(sizeof(char)*layoutSize()));
    temp.copyState(target);
    for(const auto& t : _uptransLayer[l])
-      t(temp,source,var,v);
+      t(temp,source,var,v,true);
    for(auto p : _upframeLayer[l])
       temp.setProp(p,source);
    
