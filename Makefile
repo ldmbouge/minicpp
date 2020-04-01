@@ -189,6 +189,19 @@ sumAlldiff/fast:
 .PHONY : sumAlldiff/fast
 
 #=============================================================================
+# Target rules for targets named sumAllDiffTiny
+
+# Build rule for target.
+sumAllDiffTiny: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 sumAllDiffTiny
+.PHONY : sumAllDiffTiny
+
+# fast build rule for target.
+sumAllDiffTiny/fast:
+	$(MAKE) -f CMakeFiles/sumAllDiffTiny.dir/build.make CMakeFiles/sumAllDiffTiny.dir/build
+.PHONY : sumAllDiffTiny/fast
+
+#=============================================================================
 # Target rules for targets named sequenceTest2
 
 # Build rule for target.
@@ -1651,6 +1664,33 @@ examples/mdd/sequenceTest2.cpp.s:
 	$(MAKE) -f CMakeFiles/sequenceTest2.dir/build.make CMakeFiles/sequenceTest2.dir/examples/mdd/sequenceTest2.cpp.s
 .PHONY : examples/mdd/sequenceTest2.cpp.s
 
+examples/mdd/sumAllDiffTiny.o: examples/mdd/sumAllDiffTiny.cpp.o
+
+.PHONY : examples/mdd/sumAllDiffTiny.o
+
+# target to build an object file
+examples/mdd/sumAllDiffTiny.cpp.o:
+	$(MAKE) -f CMakeFiles/sumAllDiffTiny.dir/build.make CMakeFiles/sumAllDiffTiny.dir/examples/mdd/sumAllDiffTiny.cpp.o
+.PHONY : examples/mdd/sumAllDiffTiny.cpp.o
+
+examples/mdd/sumAllDiffTiny.i: examples/mdd/sumAllDiffTiny.cpp.i
+
+.PHONY : examples/mdd/sumAllDiffTiny.i
+
+# target to preprocess a source file
+examples/mdd/sumAllDiffTiny.cpp.i:
+	$(MAKE) -f CMakeFiles/sumAllDiffTiny.dir/build.make CMakeFiles/sumAllDiffTiny.dir/examples/mdd/sumAllDiffTiny.cpp.i
+.PHONY : examples/mdd/sumAllDiffTiny.cpp.i
+
+examples/mdd/sumAllDiffTiny.s: examples/mdd/sumAllDiffTiny.cpp.s
+
+.PHONY : examples/mdd/sumAllDiffTiny.s
+
+# target to generate assembly for a file
+examples/mdd/sumAllDiffTiny.cpp.s:
+	$(MAKE) -f CMakeFiles/sumAllDiffTiny.dir/build.make CMakeFiles/sumAllDiffTiny.dir/examples/mdd/sumAllDiffTiny.cpp.s
+.PHONY : examples/mdd/sumAllDiffTiny.cpp.s
+
 examples/mdd/sumAlldiff.o: examples/mdd/sumAlldiff.cpp.o
 
 .PHONY : examples/mdd/sumAlldiff.o
@@ -2556,6 +2596,7 @@ help:
 	@echo "... tinyGCC"
 	@echo "... sumMDD"
 	@echo "... sumAlldiff"
+	@echo "... sumAllDiffTiny"
 	@echo "... sequenceTest2"
 	@echo "... sequenceNurse"
 	@echo "... adac"
@@ -2699,6 +2740,9 @@ help:
 	@echo "... examples/mdd/sequenceTest2.o"
 	@echo "... examples/mdd/sequenceTest2.i"
 	@echo "... examples/mdd/sequenceTest2.s"
+	@echo "... examples/mdd/sumAllDiffTiny.o"
+	@echo "... examples/mdd/sumAllDiffTiny.i"
+	@echo "... examples/mdd/sumAllDiffTiny.s"
 	@echo "... examples/mdd/sumAlldiff.o"
 	@echo "... examples/mdd/sumAlldiff.i"
 	@echo "... examples/mdd/sumAlldiff.s"
