@@ -58,7 +58,7 @@ public:
    void registerRelaxation(int t) { _rid.emplace_back(t);}
    void registerSimilarity(int t) { _sid.emplace_back(t);}
    void registerUp(int t)         { _utid.emplace_back(t);}
-   bool inScope(var<int>::Ptr x) const { return _vset.member(x->getId());}
+   bool inScope(var<int>::Ptr x) const noexcept { return _vset.member(x->getId());}
    const Factory::Veci& vars() const { return _vars;}
    std::vector<int>& properties() { return _properties;}
    auto begin() { return _properties.begin();}
@@ -496,7 +496,7 @@ public:
    void onFixpoint(FixFun onFix);
    // Internal methods.
    void varOrder() override;
-   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up);
+   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept { return _exist(a,c,x,v,up);}
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v,bool up);
    void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,int v);
    void relaxation(MDDState& a,const MDDState& b) const noexcept {

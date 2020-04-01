@@ -62,7 +62,7 @@ public:
       _data = new char[_sz];
       memcpy(_data,s._data,sizeof(char)*_sz);
    }
-   bool member(int v) const {
+   bool member(int v) const noexcept {
       if (_min <= v && v <= _max)
          return _data[v - _min];
       else return false;

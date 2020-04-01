@@ -153,11 +153,11 @@ void MDDSpec::onFixpoint(std::function<void(const MDDState&)> onFix)
 void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
    auto& b = _exist;
    if(_exist == nullptr)
-      _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
+      _exist = [d,a] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
                   return (!d.inScope(var) || a(p,c, var, val,up));
                };
    else
-      _exist = [=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
+      _exist = [d,a,b] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
                   return (!d.inScope(var) || a(p,c,var, val,up)) && b(p,c, var, val,up);
                };
 }
@@ -203,11 +203,6 @@ void MDDSpec::reachedFixpoint(const MDDState& sink)
 {
    for(auto& fix : _onFix)
       fix(sink);
-}
-
-bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up)
-{
-   return _exist(a,c,x,v,up);
 }
 
 void MDDSpec::compile()
