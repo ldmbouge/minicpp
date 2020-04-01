@@ -14,9 +14,7 @@ namespace Factory {
    MDDProperty::Ptr makeProperty(enum MDDProperty::Direction dir,short id,unsigned short ofs,int init,int max)
    {
       MDDProperty::Ptr rv;
-      if (max <= 1)
-         rv = new MDDPBit(dir,id,ofs,init);
-      else if (max <= 255)
+      if (max <= 255)
          rv = new MDDPByte(dir,id,ofs,init,max);
       else
          rv = new MDDPInt(dir,id,ofs,init,max);
@@ -177,15 +175,6 @@ void MDDSpec::addTransition(int p,lambdaTrans t)
          break;
       }  
 }
-void MDDSpec::addRelaxation(int p,lambdaRelax r)
-{
-   for(auto& cd : constraints)
-      if (cd.ownsProperty(p)) {
-         cd.registerRelaxation((int)_relaxation.size());
-         break;
-      }  
-   _relaxation.emplace_back(std::move(r));
-}
 void MDDSpec::addSimilarity(int p,lambdaSim s)
 {
    for(auto& cd : constraints)
@@ -288,13 +277,6 @@ double MDDSpec::similarity(const MDDState& a,const MDDState& b)
       }
    }
    return dist;
-}
-
-void MDDSpec::relaxation(MDDState& a,const MDDState& b)
-{
-   for(const auto& relax : _relaxation)
-      relax(a,a,b);
-   a.relax();
 }
 
 std::pair<int,int> domRange(const Factory::Veci& vars)

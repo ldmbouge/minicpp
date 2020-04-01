@@ -63,27 +63,24 @@ public:
    std::vector<int>& properties() { return _properties;}
    auto begin() { return _properties.begin();}
    auto end()   { return _properties.end();}
-   void print (std::ostream& os) const { os << _name << "(" << _vars << ")" << std::endl;}
+   void print (std::ostream& os) const { os << _name << "(" << _vars << ")\n";}
 };
 
 class MDDBSValue {
-   unsigned long long*       _buf;
-   const unsigned short      _nbw;
-   const int                _bLen;
+   unsigned long long* _buf;
+   const  short        _nbw;
 public:
-   MDDBSValue(char* buf,short nbw,int nbb)
-      : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw),_bLen(nbb) {}
-   MDDBSValue(MDDBSValue&& v) : _buf(v._buf),_nbw(v._nbw),_bLen(v._bLen) { v._buf = nullptr;}
-   short nbWords() const { return _nbw;}
-   int  bitLen() const { return _bLen;}
-   MDDBSValue& operator=(const MDDBSValue& v) {
+   MDDBSValue(char* buf,short nbw)
+      : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw) {}
+   MDDBSValue(MDDBSValue&& v) : _buf(v._buf),_nbw(v._nbw) { v._buf = nullptr;}
+   short nbWords() const noexcept { return _nbw;}
+   MDDBSValue& operator=(const MDDBSValue& v) noexcept {
       for(int i=0;i <_nbw;i++)
          _buf[i] = v._buf[i];
-      assert(_bLen == v._bLen);
       assert(_nbw == v._nbw);
       return *this;
    }
-   bool getBit(const int ofs) const noexcept {
+   constexpr bool getBit(const int ofs) const noexcept {
       const int wIdx = ofs >> 6;
       const int bOfs = ofs & ((1<<6) - 1);
       const unsigned long long bmask = 0x1ull << bOfs;
@@ -95,64 +92,43 @@ public:
       const unsigned long long bmask = 0x1ull << bOfs;
       _buf[wIdx] &= ~bmask;
    }
-   void set(const int ofs) {
+   void set(const int ofs) noexcept {
       const int wIdx = ofs >> 6;
       const int bOfs = ofs & ((1<<6)-1);
       const unsigned long long bmask = 0x1ull << bOfs;
       _buf[wIdx] |= bmask;      
    }
-   int cardinality() const {
+   constexpr int cardinality() const noexcept {
       int nbb = 0;
       for(int i = (int)_nbw-1;i >= 0;--i) 
          nbb += __builtin_popcountl(_buf[i]);      
       return nbb;
    }
-   MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) {
+   MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {
       for(int i=0;i < _nbw;i++)
          _buf[i] = a._buf[i] | b._buf[i];
       return *this;
    }
-   MDDBSValue& setBinAND(const MDDBSValue& a,const MDDBSValue& b) {
+   MDDBSValue& setBinAND(const MDDBSValue& a,const MDDBSValue& b) noexcept {
       for(int i=0;i < _nbw;i++)
          _buf[i] = a._buf[i] & b._buf[i];
       return *this;
    }
-   MDDBSValue& setBinXOR(const MDDBSValue& a,const MDDBSValue& b) {
+   MDDBSValue& setBinXOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {
       for(int i=0;i < _nbw;i++)
          _buf[i] = a._buf[i] ^ b._buf[i];
       return *this;
    }
-   MDDBSValue& NOT() {
+   MDDBSValue& NOT() noexcept {
       for(int i=0;i <_nbw;i++)
          _buf[i] = ~_buf[i];
       return *this;
    }
    friend bool operator==(const MDDBSValue& a,const MDDBSValue& b) {
-      bool eq = a._nbw == b._nbw && a._bLen == b._bLen;
+      bool eq = a._nbw == b._nbw;
       for(unsigned i = 0 ;eq && i < a._nbw;i++)
          eq = a._buf[i] == b._buf[i];
       return eq;
-   }
-   friend std::ostream& operator<<(std::ostream& os,const MDDBSValue& v) {
-      os << '[';
-      unsigned nbb = v._bLen;
-      int val = 0;
-      for(int i=0;i < v._nbw;i++) {
-         unsigned long long w = v._buf[i];
-         const unsigned biw = nbb >= 64 ? 64 : nbb;
-         nbb -= 64;
-         unsigned long long mask = 1ull;
-         unsigned bOfs = 0;
-         while (bOfs != biw) {
-            bool hasValue = ((w & mask)==mask);
-            if (hasValue) os << val << ',';
-            val++;
-            bOfs++;
-            mask <<=1;
-         }
-      }
-      os << ']';
-      return os;
    }
 };
 
@@ -161,26 +137,35 @@ public:
    enum Direction {Down,Up};
 protected:
    short _id;
-   unsigned short _ofs;
+   unsigned short _ofs; // offset in bytes within block
+   unsigned short _bsz; // size in bytes. 
    enum Direction   _d;
    virtual size_t storageSize() const = 0;  // given in _bits_
    virtual size_t setOffset(size_t bitOffset) = 0;
 public:
    typedef handle_ptr<MDDProperty> Ptr;
-   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs),_d(p._d) {}
-   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs),_d(p._d) {}
-   MDDProperty(short id,unsigned short ofs,enum Direction dir = Down) : _id(id),_ofs(ofs),_d(dir) {}
-   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _d = p._d;return *this;}
-   size_t size() const { return storageSize() >> 3;}
-   bool isUp() const { return _d == Up;}
-   virtual void init(char* buf) const              {}
-   virtual int get(char* buf) const                { return 0;}
-   virtual MDDBSValue getBS(char* buf) const       { return MDDBSValue(nullptr,0,0);}
-   virtual void setInt(char* buf,int v)            {}
-   virtual void setByte(char* buf,unsigned char v) {}
-   virtual MDDBSValue setBS(char* buf,const MDDBSValue& v)  { return MDDBSValue(nullptr,0,0);}
-   virtual void setProp(char* buf,char* from)  {}
-   virtual void print(std::ostream& os) const  {}
+   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_d(p._d) {}
+   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_d(p._d) {}
+   MDDProperty(short id,unsigned short ofs,unsigned short bsz,enum Direction dir = Down)
+      : _id(id),_ofs(ofs),_bsz(bsz),_d(dir) {}
+   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_d = p._d;return *this;}
+   size_t size() const noexcept { return storageSize() >> 3;}
+   bool isUp() const noexcept   { return _d == Up;}
+   virtual void init(char* buf) const noexcept              {}
+   virtual int get(char* buf) const noexcept                { return 0;}
+   int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
+   int getByte(char* buf) const noexcept                    { return ((unsigned char)buf[_ofs]);}
+   MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
+   virtual void set(char* buf,int v) noexcept               {}
+   void setInt(char* buf,int v) noexcept                    { *reinterpret_cast<int*>(buf+_ofs) = v;}
+   void setByte(char* buf,unsigned char v) noexcept         { buf[_ofs] = v;}
+   MDDBSValue setBS(char* buf,const MDDBSValue& v) noexcept {
+      MDDBSValue dest(buf + _ofs,_bsz >> 3);
+      dest = v;
+      return dest;
+   }
+   void setProp(char* buf,char* from) noexcept   { memcpy(buf + _ofs,from + _ofs,_bsz); }
+   virtual void print(std::ostream& os) const  = 0;
    virtual void stream(char* buf,std::ostream& os) const {}
    friend class MDDStateSpec;
 };
@@ -211,12 +196,11 @@ class MDDPInt :public MDDProperty {
 public:
    typedef handle_ptr<MDDPInt> Ptr;
    MDDPInt(enum Direction dir,short id,unsigned short ofs,int init,int max=0x7fffffff)
-      : MDDProperty(id,ofs,dir),_init(init),_max(max) {}
-   void init(char* buf) const override     { *reinterpret_cast<int*>(buf+_ofs) = _init;}
-   int get(char* buf) const override       { return *reinterpret_cast<int*>(buf+_ofs);}
-   void setInt(char* buf,int v) override   { *reinterpret_cast<int*>(buf+_ofs) = v;}
+      : MDDProperty(id,ofs,4,dir),_init(init),_max(max) {}
+   void init(char* buf) const noexcept override      { *reinterpret_cast<int*>(buf+_ofs) = _init;}
+   int get(char* buf) const noexcept override        { return *reinterpret_cast<int*>(buf+_ofs);}
+   void set(char* buf,int v) noexcept override       { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void stream(char* buf,std::ostream& os) const override { os << *reinterpret_cast<int*>(buf+_ofs);}
-   void setProp(char* buf,char* from) override  { setInt(buf,get(from));}
    void print(std::ostream& os) const override  {
       os << "PInt(" << _d << ',' << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
    }
@@ -237,46 +221,20 @@ class MDDPByte :public MDDProperty {
 public:
    typedef handle_ptr<MDDPByte> Ptr;
    MDDPByte(enum Direction dir,short id,unsigned short ofs,unsigned char init,unsigned char max=255)
-      : MDDProperty(id,ofs,dir),_init(init),_max(max) {}
-   void init(char* buf) const override     { buf[_ofs] = _init;}
-   int get(char* buf) const override       { int rv =  (unsigned char)buf[_ofs];return rv;}
-   void setInt(char* buf,int v) override   { buf[_ofs] = (unsigned char)v;}
-   void setByte(char* buf,unsigned char v) override { buf[_ofs] = v;}
+      : MDDProperty(id,ofs,1,dir),_init(init),_max(max) {}
+   void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
+   int get(char* buf) const  noexcept override       { return (unsigned char)buf[_ofs];}
+   void set(char* buf,int v) noexcept override       { ((unsigned char*)buf)[_ofs] = (unsigned char)v;}
    void stream(char* buf,std::ostream& os) const override { int v = (unsigned char)buf[_ofs];os << v;}
-   void setProp(char* buf,char* from)  override { setByte(buf,get(from));}
    void print(std::ostream& os) const override  {
       os << "PByte(" << _d << ',' << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
    friend class MDDStateSpec;
 };
 
-class MDDPBit : public MDDProperty {   // the offset is a byte offset.
-   unsigned char _init;        // in {0,1}
-   const unsigned char _bmask; // mask with 1 at correct bit position
-   size_t storageSize() const override     { return 1;}
-   size_t setOffset(size_t bitOffset) override {
-      _ofs = bitOffset >> 3;      
-      return bitOffset + storageSize();
-   }
-public:
-   MDDPBit(enum Direction dir,short id,unsigned short ofs,unsigned char init)
-      : MDDProperty(id,ofs,dir),_init(init),_bmask(0x1 << (id & 0x7)) {}
-   void init(char* buf) const override     { buf[_ofs] = _init ? (buf[_ofs] | _bmask) : (buf[_ofs] & ~_bmask);}
-   int get(char* buf) const override       { return ((unsigned char)buf[_ofs] & _bmask) == _bmask;}
-   void setInt(char* buf,int v) override   { if (v) buf[_ofs] |= _bmask; else buf[_ofs] &= ~_bmask;}
-   void setByte(char* buf,unsigned char v) override { buf[_ofs] = v ? (buf[_ofs] | _bmask) : (buf[_ofs] & ~_bmask);}
-   void stream(char* buf,std::ostream& os) const override { os << (((unsigned char)buf[_ofs] & _bmask) == _bmask);}
-   void setProp(char* buf,char* from) override { setInt(buf,get(from));}
-   void print(std::ostream& os) const override  {
-      os << "PBit(" << _d << ',' << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_bmask << ')';
-   }
-   friend class MDDStateSpec;   
-};
-
 class MDDPBitSequence : public MDDProperty {
    const int    _nbBits;
    unsigned char  _init;
-   const short _nbWords; 
    size_t storageSize() const override     {
       int up;
       if (_nbBits % 64) {
@@ -291,32 +249,42 @@ class MDDPBitSequence : public MDDProperty {
    }
  public:
    MDDPBitSequence(enum Direction dir,short id,unsigned short ofs,int nbbits,unsigned char init) // init = 0 | 1
-      : MDDProperty(id,ofs,dir),_nbBits(nbbits),_init(init),
-        _nbWords((_nbBits % 64) ? _nbBits / 64 + 1 : _nbBits/64) {}   
-   void init(char* buf) const override {
+      : MDDProperty(id,ofs,8 * ((nbbits % 64) ? nbbits/64 + 1 : nbbits/64),dir),_nbBits(nbbits),_init(init)
+   {}   
+   void init(char* buf) const noexcept override {
       unsigned long long* ptr = reinterpret_cast<unsigned long long*>(buf + _ofs);
       unsigned long long bmask = (_init) ? ~0x0ull : 0x0ull;
-      for(int i=0;i < _nbWords - 1;i++)
+      short nbWords = _bsz >> 3;
+      for(int i=0;i < nbWords - 1;i++)
          ptr[i] = bmask;
       if (_init) {
          int nbr = _nbBits % 64;
          unsigned long long lm = (1ull << (nbr+1)) - 1;
-         ptr[_nbWords-1] = lm;
+         ptr[nbWords-1] = lm;
       }
    }
-   MDDBSValue getBS(char* buf) const override   { return MDDBSValue(buf + _ofs,_nbWords,_nbBits);}
-   MDDBSValue setBS(char* buf,const MDDBSValue& v) override {
-      MDDBSValue dest(buf+_ofs,_nbWords,_nbBits);
-      dest = v;
-      return dest;
+   void stream(char* buf,std::ostream& os) const override {
+      unsigned long long* words = reinterpret_cast<unsigned long long*>(buf + _ofs);
+      os << '[';
+      unsigned nbb = _nbBits;
+      int val = 0;
+      short nbWords = _bsz >> 3;
+      for(int i=0;i < nbWords;i++) {
+         unsigned long long w = words[i];
+         const unsigned biw = nbb >= 64 ? 64 : nbb;
+         nbb -= 64;
+         unsigned long long mask = 1ull;
+         unsigned bOfs = 0;
+         while (bOfs != biw) {
+            bool hasValue = ((w & mask)==mask);
+            if (hasValue) os << val << ',';
+            val++;
+            bOfs++;
+            mask <<=1;
+         }
+      }      
+      os << ']';
    }
-   void setProp(char* buf,char* from) override {
-      unsigned long long* p0 = reinterpret_cast<unsigned long long*>(buf + _ofs);
-      unsigned long long* p1 = reinterpret_cast<unsigned long long*>(from + _ofs);
-      for(int i=0;i < _nbWords;i++)
-         p0[i] = p1[i];
-   }
-   void stream(char* buf,std::ostream& os) const override { os << getBS(buf);}
    void print(std::ostream& os) const override  {
       os << "PBS(" << _d << ',' << _id << ',' << _ofs << ',' << _nbBits << ',' << (int)_init << ')';
    }
@@ -437,12 +405,15 @@ public:
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize();}   
    void init(int i) const  noexcept    { _spec->_attrs[i]->init(_mem);}
+   int operator[](int i) const noexcept   { return _spec->_attrs[i]->getInt(_mem);}  // to _read_ a state property (fast)
    int at(int i) const noexcept           { return _spec->_attrs[i]->get(_mem);}
+   int byte(int i) const noexcept         { return _spec->_attrs[i]->getByte(_mem);}
    MDDBSValue getBS(int i) const noexcept { return _spec->_attrs[i]->getBS(_mem);}
-   int operator[](int i) const noexcept   { return _spec->_attrs[i]->get(_mem);}  // to _read_ a state property
-   void set(int i,int val) noexcept       { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property
-   MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return _spec->_attrs[i]->setBS(_mem,val);}
-   void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);}
+   void set(int i,int val) noexcept       { _spec->_attrs[i]->set(_mem,val);}  // to set a state property (slow)
+   void setInt(int i,int val) noexcept    { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property (fast)
+   void setByte(int i,int val) noexcept   { _spec->_attrs[i]->setByte(_mem,val);}  // to set a state property (fast)  
+   MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return _spec->_attrs[i]->setBS(_mem,val);} // (fast)
+   void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);} // (fast)
    int byteSize(int i) const noexcept   { return (int)_spec->_attrs[i]->size();}
    void clear() noexcept                { _flags._ripped = false;_flags._relaxed = false;}
    bool isRelaxed() const noexcept      { return _flags._relaxed;}
@@ -510,7 +481,15 @@ public:
    int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
    void addArc(const MDDConstraintDescriptor& d,ArcFun a);
    void addTransition(int,lambdaTrans);
-   void addRelaxation(int,lambdaRelax);
+   template <typename LR>
+   void addRelaxation(int p,LR r) {
+      for(auto& cd : constraints)
+         if (cd.ownsProperty(p)) {
+            cd.registerRelaxation((int)_relaxation.size());
+            break;
+         }  
+      _relaxation.emplace_back(std::move(r));
+   }
    void addSimilarity(int,lambdaSim);
    void addTransitions(const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
@@ -520,7 +499,11 @@ public:
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up);
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v,bool up);
    void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,int v);
-   void relaxation(MDDState& a,const MDDState& b);
+   void relaxation(MDDState& a,const MDDState& b) const noexcept {
+      for(const auto& relax : _relaxation)
+         relax(a,a,b);
+      a.relax();
+   }
    MDDState rootState(Storage::Ptr& mem);
    bool usesUp() const { return _uptrans.size() > 0;}
    void append(const Factory::Veci& x);

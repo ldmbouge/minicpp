@@ -26,7 +26,7 @@ const MDDState& MDDRelax::pickReference(int layer,int layerSize)
    double w = 1.0 / (double)layerSize;
    int c = (int)std::floor(v / w);
    int dirIdx = c;
-   //std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << std::endl;
+   //std::cout << "DBG:PICKREF(" << layer << ',' << layerSize << ") :" << dirIdx << '\n';
    return layers[layer].get(dirIdx)->getState();
 }
 
@@ -45,10 +45,10 @@ MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,
 
 void MDDRelax::buildDiagram()
 {
-   std::cout << "MDDRelax::buildDiagram" << std::endl;
+   std::cout << "MDDRelax::buildDiagram" << '\n';
    _mddspec.layout();
    _mddspec.compile();
-   std::cout << _mddspec << std::endl;
+   std::cout << _mddspec << '\n';
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
    sink = new (mem) MDDNode(_lastNid++,mem, trail, sinkState, 0,(int) numVariables, 0);
@@ -64,13 +64,13 @@ void MDDRelax::buildDiagram()
    }
    trimDomains();
    auto dur = RuntimeMonitor::elapsedSince(start);
-   std::cout << "build/Relax:" << dur << std::endl;
+   std::cout << "build/Relax:" << dur << '\n';
    propagate();
 
    // for(auto i = 0u;i < numVariables;i++) {
-   //    std::cout << "layer[" << i << "] = " << layers[i].size() << std::endl;
+   //    std::cout << "layer[" << i << "] = " << layers[i].size() << '\n';
    //    for(auto j=0u;j < layers[i].size();j++) {
-   //       std::cout << '\t' << layers[i][j]->getState() << std::endl;
+   //       std::cout << '\t' << layers[i][j]->getState() << '\n';
    //    }
    // }
    hookupPropagators();
@@ -205,11 +205,11 @@ void MDDRelax::relaxLayer(int i)
       layers[i].push_back(n,mem);
       n->setPosition(k++,mem);
    }
-   //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << std::endl;
+   //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << '\n';
 
    // int r=0;
    // for(auto n : layers[i])
-   //    std::cout << "ENDRELAX " << r++ << " : " << n->getState() << std::endl;
+   //    std::cout << "ENDRELAX " << r++ << " : " << n->getState() << '\n';
 }
 
 
@@ -248,7 +248,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
          }
       }
       // std::cout << "refresh[" << l << "]@" << n->getPosition() << " : "
-      //           << n->getState() << " to " << ms << std::endl;
+      //           << n->getState() << " to " << ms << '\n';
    } else n->clearDirty();
    //return changed;
    return false;
@@ -512,7 +512,7 @@ bool MDDRelax::rebuild()
 {
    MDDNodeSet delta(2 * _width);
    bool changed = false;
-   for(unsigned l = 0u; l <= numVariables;l++) {
+   for(unsigned l = _ff; l <= numVariables;l++) {
       // First refresh the down information in the nodes of layer l based on whether those are dirty.
       MDDNodeSet recycled = filter(layers[l],l);
       MDDNodeSet splitNodes = split(recycled,layers[l],l);
@@ -538,7 +538,7 @@ void MDDRelax::trimDomains()
 void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
-      for(int i = (int)numVariables - 1;i >= 0;i--) {
+      for(int i = _lf;i >= _ff;i--) {
          for(auto& n : layers[i]) {
             bool first = true;
             MDDState temp(n->getState());  // This is a direct reference to the internals of n->getState()
@@ -565,6 +565,11 @@ void MDDRelax::propagate()
       } while (change);
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
+      // adjust first and last free inward.
+      while (_ff < numVariables && x[_ff]->isBound())
+         _ff+=1;
+      while (_lf >= 0 && x[_lf]->isBound())
+         _lf-=1;
    } catch(Status s) {
       queue.clear();
       throw s;

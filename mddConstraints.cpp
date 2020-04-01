@@ -62,7 +62,7 @@ namespace Factory {
       mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,int val,bool up) {
                                 out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
-      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val,bool up) { out.set(len,in.at(len) + 1);});
+      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val,bool up) { out.set(len,in[len] + 1);});
       mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,int val,bool up) {
                                   out.setBS(allu,in.getBS(allu)).set(val - minDom);
                                });
@@ -76,7 +76,7 @@ namespace Factory {
       mdd.addRelaxation(some,[some](auto& out,const auto& l,const auto& r)     {
                                 out.getBS(some).setBinOR(l.getBS(some),r.getBS(some));
                             });
-      mdd.addRelaxation(len,[len](auto& out,const auto& l,const auto& r)     { out.set(len,l.at(len));});
+      mdd.addRelaxation(len,[len](auto& out,const auto& l,const auto& r)     { out.set(len,l[len]);});
       mdd.addRelaxation(allu,[allu](auto& out,const auto& l,const auto& r)     {
                                out.getBS(allu).setBinAND(l.getBS(allu),r.getBS(allu));
                             });
@@ -87,12 +87,12 @@ namespace Factory {
       mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,int val,bool up) -> bool  {
                       MDDBSValue sbs = p.getBS(some);
                       const int ofs = val - minDom;
-                      const bool notOk = p.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == p.at(len));
+                      const bool notOk = p.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == p[len]);
                       bool upNotOk = false,mixNotOk = false;
                       if (up) {
                          MDDBSValue subs = c.getBS(someu);
-                         upNotOk = c.getBS(allu).getBit(ofs) || (subs.getBit(ofs) && subs.cardinality() == n - c.at(len));
-                         MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords(),subs.bitLen());
+                         upNotOk = c.getBS(allu).getBit(ofs) || (subs.getBit(ofs) && subs.cardinality() == n - c[len]);
+                         MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords());
                          both.setBinOR(subs,sbs).set(ofs);
                          mixNotOk = both.cardinality() < n;
                       }
@@ -100,13 +100,13 @@ namespace Factory {
                    });
       mdd.addSimilarity(all,[all](const auto& l,const auto& r) -> double {
                                MDDBSValue lv = l.getBS(all);
-                               MDDBSValue tmp((char*)alloca(sizeof(char)*l.byteSize(all)),lv.nbWords(),lv.bitLen());
+                               MDDBSValue tmp((char*)alloca(sizeof(char)*l.byteSize(all)),lv.nbWords());
                                tmp.setBinXOR(lv,r.getBS(all));
                                return tmp.cardinality();
                             });
       mdd.addSimilarity(some,[some](const auto& l,const auto& r) -> double {
                                MDDBSValue lv = l.getBS(some);
-                               MDDBSValue tmp((char*)alloca(sizeof(char)*l.byteSize(some)),lv.nbWords(),lv.bitLen());
+                               MDDBSValue tmp((char*)alloca(sizeof(char)*l.byteSize(some)),lv.nbWords());
                                tmp.setBinXOR(lv,r.getBS(some));
                                return tmp.cardinality();
                             });
@@ -569,39 +569,40 @@ namespace Factory {
       const int len  = mdd.addState(d, 0, vars.size());
 
       mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
-	  if (upPass==true) {
-	    return ((p.at(minW) + matrix[p.at(len)][val] + c.at(minWup) <= z->max()) &&
-		    (p.at(maxW) + matrix[p.at(len)][val] + c.at(maxWup) >= z->min()));
-	  } else {
-	    return ((p.at(minW) + matrix[p.at(len)][val] + Lproxy[p.at(len)] <= z->max()) && 
-		    (p.at(maxW) + matrix[p.at(len)][val] + Uproxy[p.at(len)] >= z->min()));
-	  }
-	});
+                      const int mlv = matrix[p[len]][val];
+                      if (upPass==true) {
+                         return ((p[minW] + mlv + c[minWup] <= z->max()) &&
+                                 (p[maxW] + mlv + c[maxWup] >= z->min()));
+                      } else {
+                         return ((p[minW] + mlv + Lproxy[p[len]] <= z->max()) && 
+                                 (p[maxW] + mlv + Uproxy[p[len]] >= z->min()));
+                      }
+                   });
       
       mdd.addTransition(minW,[minW,matrix,len] (auto& out,const auto& p,auto var, int val,bool up) {
-	  out.set(minW, p.at(minW) + matrix[p.at(len)][val]);});
+	  out.setInt(minW, p[minW] + matrix[p[len]][val]);});
       mdd.addTransition(maxW,[maxW,matrix,len] (auto& out,const auto& p,auto var, int val,bool up) {
-	  out.set(maxW, p.at(maxW) + matrix[p.at(len)][val]);});
+	  out.setInt(maxW, p[maxW] + matrix[p[len]][val]);});
 
       mdd.addTransition(minWup,[minWup,matrix,len] (auto& out,const auto& in,auto var, int val,bool up) {
-	  if (in.at(len) >= 1) {
-	    out.set(minWup, in.at(minWup) + matrix[in.at(len)-1][val]);
+	  if (in[len] >= 1) {
+             out.setInt(minWup, in[minWup] + matrix[in[len]-1][val]);
 	  }
 	});
       mdd.addTransition(maxWup,[maxWup,matrix,len] (auto& out,const auto& in,auto var, int val,bool up) {
 	  if (in.at(len) >= 1) {
-	    out.set(maxWup, in.at(maxWup) + matrix[in.at(len)-1][val]);
+             out.setInt(maxWup, in[maxWup] + matrix[in[len]-1][val]);
 	  }
 	});
       
       mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val,bool up) {
-	  out.set(len,  p.at(len) + 1);});      
+                                out.setInt(len,  p[len] + 1);});      
 
-      mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.set(minW,std::min(l.at(minW), r.at(minW)));});
-      mdd.addRelaxation(maxW,[maxW](auto& out,const auto& l,const auto& r) { out.set(maxW,std::max(l.at(maxW), r.at(maxW)));});
-      mdd.addRelaxation(minWup,[minWup](auto& out,const auto& l,const auto& r) { out.set(minWup,std::min(l.at(minWup), r.at(minWup)));});
-      mdd.addRelaxation(maxWup,[maxWup](auto& out,const auto& l,const auto& r) { out.set(maxWup,std::max(l.at(maxWup), r.at(maxWup)));});
-      mdd.addRelaxation(len, [len](auto& out,const auto& l,const auto& r)  { out.set(len,std::max(l.at(len),r.at(len)));});
+      mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.setInt(minW,std::min(l[minW], r[minW]));});
+      mdd.addRelaxation(maxW,[maxW](auto& out,const auto& l,const auto& r) { out.setInt(maxW,std::max(l[maxW], r[maxW]));});
+      mdd.addRelaxation(minWup,[minWup](auto& out,const auto& l,const auto& r) { out.setInt(minWup,std::min(l[minWup], r[minWup]));});
+      mdd.addRelaxation(maxWup,[maxWup](auto& out,const auto& l,const auto& r) { out.setInt(maxWup,std::max(l[maxWup], r[maxWup]));});
+      mdd.addRelaxation(len, [len](auto& out,const auto& l,const auto& r)  { out.setInt(len,std::max(l[len],r[len]));});
 
       mdd.onFixpoint([z,minW,maxW](const auto& sink) {
                         z->updateBounds(sink.at(minW),sink.at(maxW));

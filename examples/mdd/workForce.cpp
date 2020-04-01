@@ -131,7 +131,7 @@ set<set<int>> sweep(vector<Job>& jobs)
    for(const auto& e : pt) {
       bool isStart = std::get<1>(e);
       std::cout << ((isStart) ? '+' : '-') << " " << std::get<2>(e) << " || ";
-      std::cout << std::get<0>(e) << " : " << jobs[std::get<2>(e)] << std::endl;
+      std::cout << std::get<0>(e) << " : " << jobs[std::get<2>(e)] << '\n';
    }
    set<int> clique;
    bool added = false;
@@ -172,19 +172,19 @@ void checkSolution(Objective::Ptr obj,Factory::Veci& emp,set<set<int>>& cliques,
    int score = 0;
    for(unsigned j=0;j < nbJ;j++)
       score += compat[j][emp[j]->min()];
-   std::cout  << "CHECK:" << score << " " << obj->value() << std::endl;
+   std::cout  << "CHECK:" << score << " " << obj->value() << '\n';
    unsigned  allOk = 0;
    for(auto& c : cliques) {
       unsigned nbEq = 0;
       for(auto i : c)
          for(auto j : c) 
             nbEq += emp[j]->min() == emp[i]->min();
-      //std::cout << "CL: " << c << " EQ = " << nbEq << " CLSize:" << c.size() << std::endl;
+      //std::cout << "CL: " << c << " EQ = " << nbEq << " CLSize:" << c.size() << '\n';
       allOk += nbEq == c.size();
    }
    if (allOk != cliques.size())
-      std::cout << "BAD Solution" << std::endl;
-   else std::cout << "ALL good" << std::endl;
+      std::cout << "BAD Solution" << '\n';
+   else std::cout << "ALL good" << '\n';
 }
 
 std::string tab(int d) {
@@ -250,7 +250,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
       auto mdd = new MDDRelax(cp,relaxSize);
       for(auto theClique : ctm) {  // merge on cliques if normal alldiff.
          auto c = cv[theClique];
-         std::cout << "Clique: " << c << std::endl;
+         std::cout << "Clique: " << c << '\n';
          auto adv = all(cp, c, [&emp](int i) {return emp[i];});
          Factory::allDiffMDD(mdd->getSpec(),adv);
          //cp->post(Factory::allDifferent(adv));
@@ -328,7 +328,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
                      });   
    search.optimize(obj,stat);   
    auto dur = RuntimeMonitor::elapsedSince(start);
-   std::cout << "Time : " << dur << std::endl;
+   std::cout << "Time : " << dur << '\n';
    cout << stat << endl;
 }
 
@@ -338,17 +338,17 @@ int main(int argc,char* argv[])
    const char* compatFile = "data/workforce100.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
-   std::cout << "overlap = " << over << "\twidth=" << width << std::endl;
+   std::cout << "overlap = " << over << "\twidth=" << width << '\n';
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);
       auto jobs = makeJobs(jobsCSV);
       for (auto& j : jobs)
-         cout << j << std::endl;
+         cout << j << '\n';
       CPSolver::Ptr cp  = Factory::makeSolver();
       buildModel(cp,jobs,compat,width,over);
    } catch (std::exception& e) {
-      std::cerr << "Unable to find the file" << std::endl;
+      std::cerr << "Unable to find the file" << '\n';
    }
 
    return 0;

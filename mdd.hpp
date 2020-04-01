@@ -48,6 +48,8 @@ protected:
    std::vector<TVec<MDDNode*>> layers;
    std::deque<MDDNode*> queue;
    ::trail<bool> _firstTime;
+   ::trail<int>  _ff;
+   ::trail<int>  _lf;
    std::vector<std::vector<::trail<int>>> supports;
    std::vector<int> oft;
    unsigned numVariables;
