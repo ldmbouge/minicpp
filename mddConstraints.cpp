@@ -20,7 +20,7 @@ namespace Factory {
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
       mdd.append(x);
       ValueSet values(rawValues);
-      auto& d = mdd.makeConstraintDescriptor(x,"amongMDD");
+      auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
       const int minC = mdd.addState(d,0,x.size());
       const int maxC = mdd.addState(d,0,x.size());
       const int rem  = mdd.addState(d,(int)x.size(),x.size());
@@ -46,7 +46,7 @@ namespace Factory {
    void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
    {
       mdd.append(vars);
-      auto& d = mdd.makeConstraintDescriptor(vars,"allDiffMdd");
+      auto d = mdd.makeConstraintDescriptor(vars,"allDiffMdd");
       auto udom = domRange(vars);
       int minDom = udom.first;
       const int n    = (int)vars.size();
@@ -62,7 +62,7 @@ namespace Factory {
       mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,int val,bool up) {
                                 out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
-      mdd.addTransition(len,[len,d](auto& out,const auto& in,auto var,int val,bool up) { out.set(len,in[len] + 1);});
+      mdd.addTransition(len,[len](auto& out,const auto& in,auto var,int val,bool up) { out.set(len,in[len] + 1);});
       mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,int val,bool up) {
                                   out.setBS(allu,in.getBS(allu)).set(val - minDom);
                                });
@@ -121,7 +121,7 @@ namespace Factory {
       int maxFIdx = len,maxLIdx = len*2-1;
       spec.append(vars);
       ValueSet values(rawValues);
-      auto& desc = spec.makeConstraintDescriptor(vars,"seqMDD");
+      auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
 
       std::vector<int> ps = spec.addStates(desc,minFIdx,maxLIdx,SHRT_MAX,[maxLIdx,len,minLIdx] (int i) -> int {
          return (i - (i <= minLIdx ? minLIdx : (i >= len ? maxLIdx : 0)));
@@ -165,7 +165,7 @@ namespace Factory {
       int nb = len*2;
       spec.append(vars);
       ValueSet values(rawValues);
-      auto& desc = spec.makeConstraintDescriptor(vars,"seqMDD");
+      auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
       std::vector<int> ps(nb+1);
       for(int i = minFIdx;i < nb;i++)
          ps[i] = spec.addState(desc,0,len);       // init @ 0, largest value is length of window. 
@@ -216,7 +216,7 @@ namespace Factory {
       int nb = len*4;
       spec.append(vars);
       ValueSet values(rawValues);
-      auto& desc = spec.makeConstraintDescriptor(vars,"seqMDD");
+      auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
       std::vector<int> ps(nb+1);
       for(int i = minFIdx;i < minFIdxUp;i++)
          ps[i] = spec.addState(desc,0,len);         // init @ 0, largest value is length of window. 
@@ -234,7 +234,7 @@ namespace Factory {
       const int maxLup = ps[maxLIdxUp];
       const int pnb  = ps[nb];
 
-      const int nbVars = vars.size();
+      const int nbVars = (int)vars.size();
 	
       // down transitions
       spec.addTransitions(toDict(minF,minL-1,
@@ -377,7 +377,7 @@ namespace Factory {
       int maxFDom = dz,maxLDom = dz*2-1;
       int min = udom.first;
       ValueMap<int> values(udom.first, udom.second,0,ub);
-      auto& desc = spec.makeConstraintDescriptor(vars,"gccMDD");
+      auto desc = spec.makeConstraintDescriptor(vars,"gccMDD");
 
       std::vector<int> ps = spec.addStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
 
@@ -415,7 +415,7 @@ namespace Factory {
       // Create lower and upper bounds as proxy for bottom-up values.
       // At layer i, the proxy sums the minimum (resp. maximum) value
       // from layers i+1 through n.      
-      int nbVars = vars.size();
+      int nbVars = (int)vars.size();
       std::vector<int> Lproxy(nbVars, 0);
       std::vector<int> Uproxy(nbVars, 0);
       Lproxy[nbVars-1] = 0;
@@ -425,7 +425,7 @@ namespace Factory {
 	Uproxy[i] = Uproxy[i+1] + array[i+1]*vars[i+1]->max();	
       }
      
-      auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
+      auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
       // Define the states: minimum and maximum weighted value (initialize at 0, maximum is INT_MAX (when negative values are allowed).
       const int minW = mdd.addState(d, 0, INT_MAX);
@@ -488,7 +488,7 @@ namespace Factory {
       // Create lower and upper bounds as proxy for bottom-up values.
       // At layer i, the proxy sums the minimum (resp. maximum) value
       // from layers i+1 through n.      
-      int nbVars = vars.size();
+      int nbVars = (int)vars.size();
       std::vector<int> Lproxy(nbVars, 0);
       std::vector<int> Uproxy(nbVars, 0);
       Lproxy[nbVars-1] = 0;
@@ -498,7 +498,7 @@ namespace Factory {
 	Uproxy[i] = Uproxy[i+1] + array[i+1]*vars[i+1]->max();	
       }
 
-      auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
+      auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
       // Define the states
       const int minW = mdd.addState(d, 0, INT_MAX);
@@ -561,7 +561,7 @@ namespace Factory {
       // Create lower and upper bounds as proxy for bottom-up values.
       // At layer i, the proxy sums the minimum (resp. maximum) value
       // from layers i+1 through n.      
-      int nbVars = vars.size();
+      int nbVars = (int)vars.size();
       std::vector<int> Lproxy(nbVars, 0);
       std::vector<int> Uproxy(nbVars, 0);
       Lproxy[nbVars-1] = 0;
@@ -579,7 +579,7 @@ namespace Factory {
 	Uproxy[i] = Uproxy[i+1] + tmpMax;
       }
       
-      auto& d = mdd.makeConstraintDescriptor(vars,"sumMDD");
+      auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
       // Define the states
       const int minW = mdd.addState(d, 0, INT_MAX);

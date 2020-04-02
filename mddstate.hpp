@@ -23,6 +23,8 @@
 #include <cstring>
 #include <map>
 #include <bitset>
+#include <utility>
+
 
 class MDDState;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
@@ -43,8 +45,12 @@ class MDDConstraintDescriptor {
    std::vector<int> _sid; // similarity ids
    std::vector<int> _utid; // up transition ids
 public:
+   typedef handle_ptr<MDDConstraintDescriptor> Ptr;
    MDDConstraintDescriptor(const Factory::Veci& vars, const char* name);
    MDDConstraintDescriptor(const MDDConstraintDescriptor&);
+   ~MDDConstraintDescriptor() {
+      std::cout << "Destroyed\n";
+   }
    void addProperty(int p) {_properties.push_back(p);}
    bool ownsProperty(int p) const {
       auto at = std::find(_properties.begin(),_properties.end(),p);
@@ -303,12 +309,12 @@ public:
    virtual void varOrder() {}
    bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
    auto size() const noexcept { return _attrs.size();}
-   virtual int addState(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
-   virtual int addStateUp(MDDConstraintDescriptor&d, int init,int max=0x7fffffff);
-   virtual int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init);
-   virtual int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init);
-   std::vector<int> addStates(MDDConstraintDescriptor&d,int from, int to, int max,std::function<int(int)> clo);
-   std::vector<int> addStates(MDDConstraintDescriptor&d,int max,std::initializer_list<int> inputs);
+   virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff);
+   virtual int addStateUp(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff);
+   virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
+   virtual int addBSStateUp(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
+   std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
+   std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
    friend class MDDState;
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s);
 };
@@ -473,19 +479,19 @@ class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
    // End-user API to define an ADD
-   MDDConstraintDescriptor& makeConstraintDescriptor(const Factory::Veci&, const char*);
-   int addState(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
-   int addStateUp(MDDConstraintDescriptor& d, int init,int max=0x7fffffff) override;
-   int addState(MDDConstraintDescriptor& d,int init,size_t max) {return addState(d,init,(int)max);}
-   int addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
-   int addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init) override;
-   void addArc(const MDDConstraintDescriptor& d,ArcFun a);
+   MDDConstraintDescriptor::Ptr makeConstraintDescriptor(const Factory::Veci&, const char*);
+   int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff) override;
+   int addStateUp(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff) override;
+   int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max) {return addState(d,init,(int)max);}
+   int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
+   int addBSStateUp(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
+   void addArc(const MDDConstraintDescriptor::Ptr d,ArcFun a);
    void addTransition(int,lambdaTrans);
    template <typename LR>
    void addRelaxation(int p,LR r) {
       for(auto& cd : constraints)
-         if (cd.ownsProperty(p)) {
-            cd.registerRelaxation((int)_relaxation.size());
+         if (cd->ownsProperty(p)) {
+            cd->registerRelaxation((int)_relaxation.size());
             break;
          }  
       _relaxation.emplace_back(std::move(r));
@@ -496,7 +502,7 @@ public:
    void onFixpoint(FixFun onFix);
    // Internal methods.
    void varOrder() override;
-   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept { return _exist(a,c,x,v,up);}
+   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v,bool up);
    void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,int v);
    void relaxation(MDDState& a,const MDDState& b) const noexcept {
@@ -519,9 +525,9 @@ public:
    }
 private:
    void init();
-   std::vector<MDDConstraintDescriptor> constraints;
+   std::vector<MDDConstraintDescriptor::Ptr> constraints;
    std::vector<var<int>::Ptr> x;
-   ArcFun                        _exist;
+   std::vector<std::pair<MDDConstraintDescriptor::Ptr,ArcFun>>  _exists;
    std::vector<lambdaTrans> _transition;
    std::vector<lambdaRelax> _relaxation;
    std::vector<lambdaSim>   _similarity;
