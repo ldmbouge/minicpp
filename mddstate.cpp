@@ -41,7 +41,6 @@ MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& 
 {}
 
 MDDSpec::MDDSpec()
-   : _exist(nullptr)
 {}
 
 void MDDSpec::append(const Factory::Veci& y)
@@ -74,49 +73,48 @@ void MDDStateSpec::layout()
    std::cout << "State requires:" << _lsz << " bytes" << std::endl;
 }
 
-MDDConstraintDescriptor& MDDSpec::makeConstraintDescriptor(const Factory::Veci& v,const char* n)
+MDDConstraintDescriptor::Ptr MDDSpec::makeConstraintDescriptor(const Factory::Veci& v,const char* n)
 {
-   return constraints.emplace_back(v,n);
-   //return constraints[constraints.size()-1];
+   return constraints.emplace_back(new MDDConstraintDescriptor(v,n));
 }
 
-int MDDStateSpec::addState(MDDConstraintDescriptor& d, int init,int max)
+int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max)
 {
    int aid = (int)_attrs.size();
    _attrs.push_back(Factory::makeProperty(MDDProperty::Down,aid, 0, init, max));
-   d.addProperty(aid);
+   d->addProperty(aid);
    return aid;
 }
-int MDDStateSpec::addStateUp(MDDConstraintDescriptor& d, int init,int max)
+int MDDStateSpec::addStateUp(MDDConstraintDescriptor::Ptr d, int init,int max)
 {
    int aid = (int)_attrs.size();
    _attrs.push_back(Factory::makeProperty(MDDProperty::Up,aid, 0, init, max));
-   d.addProperty(aid);
+   d->addProperty(aid);
    return aid;
 }
-int MDDStateSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
+int MDDStateSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
 {
    int aid = (int)_attrs.size();
    _attrs.push_back(Factory::makeBSProperty(MDDProperty::Down,aid,0,nbb,init));
-   d.addProperty(aid);
+   d->addProperty(aid);
    return aid;
 }
-int MDDStateSpec::addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init)
+int MDDStateSpec::addBSStateUp(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
 {
    int aid = (int)_attrs.size();
    _attrs.push_back(Factory::makeBSProperty(MDDProperty::Up,aid,0,nbb,init));
-   d.addProperty(aid);
+   d->addProperty(aid);
    return aid;
 }
 
-std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor& d,int from, int to,int max, std::function<int(int)> clo)
+std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor::Ptr d,int from, int to,int max, std::function<int(int)> clo)
 {
    std::vector<int> res;
    for(int i = from; i <= to; i++)
       res.push_back(addState(d,clo(i),max));
    return res;
 }
-std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor& d,int max, std::initializer_list<int> inputs)
+std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor::Ptr d,int max, std::initializer_list<int> inputs)
 {
    std::vector<int> res;
    for(auto& v : inputs)
@@ -124,22 +122,22 @@ std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor& d,int max, std
    return res;
 }
 
-int MDDSpec::addState(MDDConstraintDescriptor& d,int init,int max)
+int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max)
 {
    auto rv = MDDStateSpec::addState(d,init,max);
    return rv;
 }
-int MDDSpec::addStateUp(MDDConstraintDescriptor& d,int init,int max)
+int MDDSpec::addStateUp(MDDConstraintDescriptor::Ptr d,int init,int max)
 {
    auto rv = MDDStateSpec::addStateUp(d,init,max);
    return rv;
 }
-int MDDSpec::addBSState(MDDConstraintDescriptor& d,int nbb,unsigned char init)
+int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
 {
    auto rv = MDDStateSpec::addBSState(d,nbb,init);
    return rv;   
 }
-int MDDSpec::addBSStateUp(MDDConstraintDescriptor& d,int nbb,unsigned char init)
+int MDDSpec::addBSStateUp(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
 {
    auto rv = MDDStateSpec::addBSStateUp(d,nbb,init);
    return rv;   
@@ -149,8 +147,22 @@ void MDDSpec::onFixpoint(std::function<void(const MDDState&)> onFix)
 {
    _onFix.emplace_back(onFix);
 }
+bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept
+{
+   bool arcOk = true;
+   for(auto& exist :  _exists) {
+      if (std::get<0>(exist)->inScope(x))
+         arcOk = std::get<1>(exist)(a,c,x,v,up);
+      if (!arcOk) break;
+   }
+   return arcOk;
+      //return _exist(a,c,x,v,up);   
+}
 
-void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
+void MDDSpec::addArc(MDDConstraintDescriptor::Ptr d,ArcFun a)
+{
+   _exists.emplace_back(std::make_pair<MDDConstraintDescriptor::Ptr,ArcFun>(std::move(d),std::move(a)));
+   /*
    auto& b = _exist;
    if(_exist == nullptr)
       _exist = [d,a] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
@@ -160,16 +172,17 @@ void MDDSpec::addArc(const MDDConstraintDescriptor& d,ArcFun a){
       _exist = [d,a,b] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
                   return (!d.inScope(var) || a(p,c,var, val,up)) && b(p,c, var, val,up);
                };
+   */
 }
 void MDDSpec::addTransition(int p,lambdaTrans t)
 {   
    for(auto& cd : constraints)
-      if (cd.ownsProperty(p)) {
+      if (cd->ownsProperty(p)) {
          if (isUp(p)) {
-            cd.registerUp((int)_uptrans.size());
+            cd->registerUp((int)_uptrans.size());
             _uptrans.emplace_back(std::move(t));
          } else {
-            cd.registerTransition((int)_transition.size());
+            cd->registerTransition((int)_transition.size());
             _transition.emplace_back(std::move(t));
          }
          break;
@@ -178,8 +191,8 @@ void MDDSpec::addTransition(int p,lambdaTrans t)
 void MDDSpec::addSimilarity(int p,lambdaSim s)
 {
    for(auto& cd : constraints)
-      if (cd.ownsProperty(p)) {
-         cd.registerSimilarity((int)_similarity.size());
+      if (cd->ownsProperty(p)) {
+         cd->registerSimilarity((int)_similarity.size());
          break;
       }  
    _similarity.emplace_back(std::move(s));
@@ -207,7 +220,7 @@ void MDDSpec::reachedFixpoint(const MDDState& sink)
 
 void MDDSpec::compile()
 {
-   const unsigned nbL = x.size();
+   const unsigned nbL = (unsigned)x.size();
    _transLayer.reserve(nbL);
    _frameLayer.reserve(nbL);
    _uptransLayer.reserve(nbL);
@@ -218,16 +231,16 @@ void MDDSpec::compile()
       auto& frame   = _frameLayer.emplace_back(std::vector<int>());
       auto& upFrame = _upframeLayer.emplace_back(std::vector<int>());
       for(auto& c : constraints)
-         if (c.inScope(x[i]))  {
-            for(auto j : c.transitions())
+         if (c->inScope(x[i]))  {
+            for(auto j : c->transitions())
                layer.emplace_back(_transition[j]);
-            for(auto j : c.uptrans())
+            for(auto j : c->uptrans())
                upLayer.emplace_back(_uptrans[j]);
          }
          else {
-            for(auto j : c)
+            for(auto j : *c)
                frame.emplace_back(j);
-            for(auto j : c)
+            for(auto j : *c)
                if (isUp(j))
                   upFrame.emplace_back(j);                   
          }
@@ -266,7 +279,7 @@ double MDDSpec::similarity(const MDDState& a,const MDDState& b)
 {
    double dist = 0;
    for(auto& cstr : constraints) {
-      for(auto p : cstr.similarities()) {
+      for(auto p : cstr->similarities()) {
          double abSim = _similarity[p](a,b);
          dist += abSim;
       }
