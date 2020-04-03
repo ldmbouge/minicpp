@@ -538,17 +538,20 @@ void MDDRelax::trimDomains()
 void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
+      //std::cout << "up(" << _lf << " - " << _ff << ") : ";
       for(int i = _lf;i >= _ff;i--) {
          for(auto& n : layers[i]) {
             bool first = true;
-            MDDState temp(n->getState());  // This is a direct reference to the internals of n->getState()
+            MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
+            //std::cout << n->getNumChildren() << " ";
             for(auto& arcToKid : n->getChildren()) {
                MDDNode* kid = arcToKid->getChild();
-               _mddspec.updateState(first,temp,kid->getState(),i,x[i],arcToKid->getValue());
+               _mddspec.updateState(first,dest,kid->getState(),i,x[i],arcToKid->getValue());
                first = false;
-            }         
+            }
          }
       }
+      //std::cout << "\n";
    }
 }
 

@@ -261,17 +261,31 @@ void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsig
 {
    // when set is true. compute T^{Up}(source,var,val) and store in target
    // when set is false compute Relax(target,T^{Up}(source,var,val)) and store in target.
-   MDDState temp(this,(char*)alloca(sizeof(char)*layoutSize()));
-   temp.copyState(target);
-   for(const auto& t : _uptransLayer[l])
-      t(temp,source,var,v,true);
-   for(auto p : _upframeLayer[l])
-      temp.setProp(p,source);
-   
-   if (set)
-      target.copyState(temp);
-   else 
+   if (set) {
+      for(const auto& t : _uptransLayer[l])
+         t(target,source,var,v,true);
+      for(auto p : _upframeLayer[l])
+         target.setProp(p,source);
+   } else {
+      MDDState temp(this,(char*)alloca(sizeof(char)*layoutSize()));
+      temp.copyState(target);
+      for(const auto& t : _uptransLayer[l])
+         t(temp,source,var,v,true);
+      for(auto p : _upframeLayer[l])
+         temp.setProp(p,source);
       relaxation(target,temp);          
+   }
+   // MDDState temp(this,(char*)alloca(sizeof(char)*layoutSize()));
+   // temp.copyState(target);
+   // for(const auto& t : _uptransLayer[l])
+   //    t(temp,source,var,v,true);
+   // for(auto p : _upframeLayer[l])
+   //    temp.setProp(p,source);
+   
+   // if (set)
+   //    target.copyState(temp);
+   // else 
+   //    relaxation(target,temp);          
 }
 
 

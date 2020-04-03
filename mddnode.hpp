@@ -32,19 +32,19 @@ public:
         parentPosition(parentPosition)
    {}
    void remove(MDD* mdd);
-   int getValue() const                        { return value; }
-   unsigned short getParentPosition() const    { return parentPosition;}
-   unsigned int getChildPosition() const       { return childPosition;}
-   void setParentPosition(Trailer::Ptr t,unsigned int pos)  {
+   int getValue() const  noexcept                       { return value; }
+   unsigned short getParentPosition() const noexcept    { return parentPosition;}
+   unsigned int getChildPosition() const noexcept       { return childPosition;}
+   void setParentPosition(Trailer::Ptr t,unsigned int pos) noexcept {
       t->trail(new (t) TrailEntry<unsigned int>(&parentPosition));
       parentPosition = pos;
    }
-   void setChildPosition(Trailer::Ptr t,unsigned short  pos)  {
+   void setChildPosition(Trailer::Ptr t,unsigned short  pos) noexcept  {
       t->trail(new (t) TrailEntry<unsigned short>(&childPosition));
       childPosition = pos;
    }
-   MDDNode* getChild() const       { return child;}
-   MDDNode* getParent() const      { return parent;}
+   MDDNode* getChild() const noexcept   { return child;}
+   MDDNode* getParent() const noexcept  { return parent;}
    void moveTo(MDDNode* n,Trailer::Ptr t,Storage::Ptr mem);
 private:
    int value;
@@ -65,13 +65,13 @@ class MDDNode {
 public:
    MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id);
    MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,unsigned layer, int id);
-   const auto& getParents()            { return parents;}
-   const auto& getChildren()           { return children;}
-   std::size_t getNumChildren() const  { return children.size();}
-   std::size_t getNumParents() const   { return parents.size();}
-   bool disconnected() const           { return children.size() < 1 || parents.size() < 1;}
-   void clearChildren() { children.clear();}
-   void clearParents()  { parents.clear();}
+   const auto& getParents()  noexcept  { return parents;}
+   const auto& getChildren() noexcept  { return children;}
+   std::size_t getNumChildren() const  noexcept { return children.size();}
+   std::size_t getNumParents() const   noexcept { return parents.size();}
+   bool disconnected() const noexcept           { return children.size() < 1 || parents.size() < 1;}
+   void clearChildren() noexcept { children.clear();}
+   void clearParents()  noexcept { parents.clear();}
    void remove(MDD* mdd);
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
    void removeParent(MDD* mdd,int value,int pos);
@@ -89,18 +89,17 @@ public:
       state.assign(s,t,mem);
       clearDirty();
    }
-   const MDDState& getState() { return state;}
-   bool contains(int v);
-   unsigned short getLayer() const    { return layer;}
-   int getPosition() const   { return pos;}
-   int getId() const         { return _nid;}
+   const MDDState& getState() const noexcept { return state;}
+   unsigned short getLayer() const noexcept  { return layer;}
+   int getPosition() const noexcept          { return pos;}
+   int getId() const noexcept                { return _nid;}
    void setPosition(int p,Storage::Ptr mem) {
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<int>(&pos));
       pos = p;
    }
-   bool isActive() const { return _active;}
-   bool isDirty() const  { return _dirty;}
+   bool isActive() const noexcept { return _active;}
+   bool isDirty() const  noexcept { return _dirty;}
    void markDirty()  {
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<bool>(&_dirty));
@@ -121,8 +120,7 @@ public:
       t->trail(new (t) TrailEntry<bool>(&_active));
       _active = true;
    }
-   void print(std::ostream& os)
-   {
+   void print(std::ostream& os) {
       os << "L[" << layer << "," << pos << ',' << (_dirty ? 'D':'C') <<  "] " << state;
    }
 private:   

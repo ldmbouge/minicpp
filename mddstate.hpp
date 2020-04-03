@@ -24,7 +24,7 @@
 #include <map>
 #include <bitset>
 #include <utility>
-
+#include <xmmintrin.h>
 
 class MDDState;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
@@ -48,9 +48,6 @@ public:
    typedef handle_ptr<MDDConstraintDescriptor> Ptr;
    MDDConstraintDescriptor(const Factory::Veci& vars, const char* name);
    MDDConstraintDescriptor(const MDDConstraintDescriptor&);
-   ~MDDConstraintDescriptor() {
-      std::cout << "Destroyed\n";
-   }
    void addProperty(int p) {_properties.push_back(p);}
    bool ownsProperty(int p) const {
       auto at = std::find(_properties.begin(),_properties.end(),p);
@@ -111,9 +108,18 @@ public:
       return nbb;
    }
    MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {
-      for(int i=0;i < _nbw;i++)
-         _buf[i] = a._buf[i] | b._buf[i];
-      return *this;
+      switch(_nbw) {
+         case 1: _buf[0] = a._buf[0] | b._buf[0];return *this;
+         case 2: {
+            __m128i p0 = *(__m128i*) a._buf;
+            __m128i p1 = *(__m128i*) b._buf;
+            *(__m128*)_buf = _mm_or_si128(p0,p1);
+         } return *this;
+         default:
+            for(int i=0;i < _nbw;i++)
+               _buf[i] = a._buf[i] | b._buf[i];
+            return *this;
+      }
    }
    MDDBSValue& setBinAND(const MDDBSValue& a,const MDDBSValue& b) noexcept {
       for(int i=0;i < _nbw;i++)
@@ -250,7 +256,7 @@ class MDDPBitSequence : public MDDProperty {
    }
    size_t setOffset(size_t bitOffset) override {
       _ofs = bitOffset >> 3;
-      _ofs = ((_ofs & 0x7) != 0)  ? (_ofs | 0x7)+1 : _ofs; // 8-byte align
+      _ofs = ((_ofs & 0xF) != 0)  ? (_ofs | 0xF)+1 : _ofs; // 16-byte align
       return (_ofs << 3) + storageSize();
    }
  public:
