@@ -196,7 +196,7 @@ public:
          case 2: {
             __m128i p0 = *(__m128i*) a._buf;
             __m128i p1 = *(__m128i*) b._buf;
-            *(__m128*)_buf = _mm_or_si128(p0,p1);
+            *(__m128i*)_buf = _mm_or_si128(p0,p1);
          } return *this;
          default:
             for(int i=0;i < _nbw;i++)
