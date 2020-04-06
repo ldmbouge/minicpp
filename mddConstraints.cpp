@@ -25,13 +25,17 @@ namespace Factory {
       const int maxC = mdd.addState(d,0,x.size());
       const int rem  = mdd.addState(d,(int)x.size(),x.size());
 
-      mdd.addArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool) -> bool {
+      mdd.addArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
          return (p.at(minC) + values.member(val) <= ub) &&
                 ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
       });
 
-      mdd.addTransition(minC,[minC,values] (auto& out,const auto& p,auto x, int v,bool up) { out.set(minC,p.at(minC) + values.member(v));});
-      mdd.addTransition(maxC,[maxC,values] (auto& out,const auto& p,auto x, int v,bool up) { out.set(maxC,p.at(maxC) + values.member(v));});
+      mdd.addTransition(minC,[minC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                out.set(minC,p.at(minC) + values.member(val));
+                             });
+      mdd.addTransition(maxC,[maxC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                out.set(maxC,p.at(maxC) + values.member(val));
+                             });
       mdd.addTransition(rem,[rem] (auto& out,const auto& p,auto x,int v,bool up)           { out.set(rem,p.at(rem) - 1);});
 
       mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.set(minC,std::min(l.at(minC), r.at(minC)));});
@@ -56,19 +60,33 @@ namespace Factory {
       const int allu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
       const int someu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
       
-      mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,int val,bool up) {
-                               out.setBS(all,in.getBS(all)).set(val - minDom);
+      mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,const auto& val,bool up) {
+                               out.setProp(all,in);
+                               if (val.size()==1)
+                                  out.getBS(all).set(val - minDom);
+                               //out.setBS(all,in.getBS(all)).set(val - minDom);
                             });
-      mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,int val,bool up) {
-                                out.setBS(some,in.getBS(some)).set(val - minDom);
+      mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,const auto& val,bool up) {
+                                out.setProp(some,in);
+                                MDDBSValue sv(out.getBS(some));
+                                for(auto v : val)
+                                   sv.set(v - minDom);
+                                //out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
-      mdd.addTransition(len,[len](auto& out,const auto& in,auto var,int val,bool up) { out.set(len,in[len] + 1);});
-      mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,int val,bool up) {
-                                  out.setBS(allu,in.getBS(allu)).set(val - minDom);
+      mdd.addTransition(len,[len](auto& out,const auto& in,auto var,const auto& val,bool up) { out.set(len,in[len] + 1);});
+      mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,const auto& val,bool up) {
+                                out.setProp(allu,in);
+                                if (val.size()==1)
+                                   out.getBS(allu).set(val - minDom);
+                                //out.setBS(allu,in.getBS(allu)).set(val - minDom);
                                });
-      mdd.addTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,int val,bool up) {
-                                  out.setBS(someu,in.getBS(someu)).set(val - minDom);
-                               });
+      mdd.addTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,const auto& val,bool up) {
+                                 out.setProp(someu,in);
+                                 MDDBSValue sv(out.getBS(someu));
+                                 for(auto v : val)
+                                    sv.set(v - minDom);                                 
+                                 //out.setBS(someu,in.getBS(someu)).set(val - minDom);
+                              });
       
       mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r)     {
                                out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));
@@ -84,7 +102,7 @@ namespace Factory {
                                 out.getBS(someu).setBinOR(l.getBS(someu),r.getBS(someu));
                             });
 
-      mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,int val,bool up) -> bool  {
+      mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,const auto& val,bool up) -> bool  {
                       MDDBSValue sbs = p.getBS(some);
                       const int ofs = val - minDom;
                       const bool notOk = p.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == p[len]);
@@ -437,7 +455,7 @@ namespace Factory {
       const int len  = mdd.addState(d, 0, vars.size());
 
       // The lower bound needs the bottom-up state information to be effective.
-      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
+      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
 	  if (upPass==true) {
 	    return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= ub) &&
 		    (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= lb));
@@ -447,23 +465,23 @@ namespace Factory {
 	  }
 	});
 	
-      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val,bool up) {
+      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
 	  out.set(minW, p.at(minW) + array[p.at(len)]*val);});
-      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val,bool up) {
+      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
 	  out.set(maxW, p.at(maxW) + array[p.at(len)]*val);});
 
-      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val,bool up) {
+      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(minWup, in.at(minWup) + array[in.at(len)-1]*val);
 	  }
 	});
-      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val,bool up) {
+      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(maxWup, in.at(maxWup) + array[in.at(len)-1]*val);
 	  }
 	});
       
-      mdd.addTransition(len, [len] (auto& out,const auto& p,auto var, int val,bool up) {
+      mdd.addTransition(len, [len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 out.set(len,  p.at(len) + 1);
                              });      
 
@@ -509,7 +527,7 @@ namespace Factory {
       // State 'len' is needed to capture the index i, to express array[i]*val when vars[i]=val.
       const int len  = mdd.addState(d, 0, vars.size());
 
-      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
+      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
 	  if (upPass==true) {
 	    return ((p.at(minW) + val*array[p.at(len)] + c.at(minWup) <= z->max()) &&
 		    (p.at(maxW) + val*array[p.at(len)] + c.at(maxWup) >= z->min()));
@@ -520,24 +538,24 @@ namespace Factory {
 	});
 
       
-      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, int val,bool up) {
+      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
 	  out.set(minW, p.at(minW) + array[p.at(len)]*val);});
-      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, int val,bool up) {
+      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
 	  out.set(maxW, p.at(maxW) + array[p.at(len)]*val);});
 
-      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, int val,bool up) {
+      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(minWup, in.at(minWup) + array[in.at(len)-1]*val);
 	  }
 	});
-      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, int val,bool up) {
+      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
 	  if (in.at(len) >= 1) {
 	    out.set(maxWup, in.at(maxWup) + array[in.at(len)-1]*val);
 	  }
 	});
 
       
-      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val,bool up) {
+      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, const auto& val,bool up) {
 	  out.set(len,  p.at(len) + 1);});      
 
       mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.set(minW,std::min(l.at(minW), r.at(minW)));});
@@ -590,7 +608,7 @@ namespace Factory {
       // State 'len' is needed to capture the index i, to express matrix[i][vars[i]]
       const int len  = mdd.addState(d, 0, vars.size());
 
-      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, int val,bool upPass) -> bool {
+      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
                       const int mlv = matrix[p[len]][val];
                       if (upPass==true) {
                          return ((p[minW] + mlv + c[minWup] <= z->max()) &&
@@ -601,24 +619,47 @@ namespace Factory {
                       }
                    });
       
-      mdd.addTransition(minW,[minW,matrix,len] (auto& out,const auto& p,auto var, int val,bool up) {
-	  out.setInt(minW, p[minW] + matrix[p[len]][val]);});
-      mdd.addTransition(maxW,[maxW,matrix,len] (auto& out,const auto& p,auto var, int val,bool up) {
-	  out.setInt(maxW, p[maxW] + matrix[p[len]][val]);});
+      mdd.addTransition(minW,[minW,matrix,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+                                int delta = std::numeric_limits<int>::max();
+                                const auto& row = matrix[p[len]];
+                                for(int v : val)
+                                   delta = std::min(delta,row[v]);
+                                out.setInt(minW,p[minW] + delta);
+                                //out.setInt(minW, p[minW] + matrix[p[len]][val]);
+                             });
+      mdd.addTransition(maxW,[maxW,matrix,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+                                int delta = std::numeric_limits<int>::min();
+                                const auto& row = matrix[p[len]];
+                                for(int v : val)
+                                   delta = std::max(delta,row[v]);
+                                out.setInt(maxW,p[maxW] + delta);
+                                //out.setInt(maxW, p[maxW] + matrix[p[len]][val]);
+                             });
 
-      mdd.addTransition(minWup,[minWup,matrix,len] (auto& out,const auto& in,auto var, int val,bool up) {
-	  if (in[len] >= 1) {
-             out.setInt(minWup, in[minWup] + matrix[in[len]-1][val]);
-	  }
-	});
-      mdd.addTransition(maxWup,[maxWup,matrix,len] (auto& out,const auto& in,auto var, int val,bool up) {
-	  if (in.at(len) >= 1) {
-             out.setInt(maxWup, in[maxWup] + matrix[in[len]-1][val]);
-	  }
-	});
+      mdd.addTransition(minWup,[minWup,matrix,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
+                                  if (in[len] >= 1) {
+                                     int delta = std::numeric_limits<int>::max();
+                                     const auto& row = matrix[in[len]-1];
+                                     for(int v : val)
+                                        delta = std::min(delta,row[v]);
+                                     out.setInt(minWup, in[minWup] + delta);
+                                     //out.setInt(minWup, in[minWup] + matrix[in[len]-1][val]);
+                                  }
+                               });
+      mdd.addTransition(maxWup,[maxWup,matrix,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
+                                  if (in.at(len) >= 1) {
+                                     int delta = std::numeric_limits<int>::min();
+                                     const auto& row = matrix[in[len]-1];
+                                     for(int v : val)
+                                        delta = std::max(delta,row[v]);
+                                     out.setInt(maxWup, in[maxWup] + delta);
+                                     //out.setInt(maxWup, in[maxWup] + matrix[in[len]-1][val]);
+                                  }
+                               });
       
-      mdd.addTransition(len, [len]            (auto& out,const auto& p,auto var, int val,bool up) {
-                                out.setInt(len,  p[len] + 1);});      
+      mdd.addTransition(len, [len](auto& out,const auto& p,auto var, const auto& val,bool up) {
+                                out.setInt(len,  p[len] + 1);
+                             });      
 
       mdd.addRelaxation(minW,[minW](auto& out,const auto& l,const auto& r) { out.setInt(minW,std::min(l[minW], r[minW]));});
       mdd.addRelaxation(maxW,[maxW](auto& out,const auto& l,const auto& r) { out.setInt(maxW,std::max(l[maxW], r[maxW]));});

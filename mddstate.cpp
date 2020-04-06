@@ -10,6 +10,11 @@
 #include <algorithm>
 #include <limits.h>
 
+void printSet(const MDDIntSet& s) {
+   std::cout << s << std::endl;
+}
+
+
 namespace Factory {
    MDDProperty::Ptr makeProperty(enum MDDProperty::Direction dir,short id,unsigned short ofs,int init,int max)
    {
@@ -247,7 +252,7 @@ void MDDSpec::compile()
    }
 }
 
-void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v,bool hasUp)
+void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool hasUp)
 {
    result.clear();
    for(const auto& t : _transLayer[l])
@@ -257,7 +262,7 @@ void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
    result.relax(parent.isRelaxed());
 }
 
-void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,int v)
+void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v)
 {
    // when set is true. compute T^{Up}(source,var,val) and store in target
    // when set is false compute Relax(target,T^{Up}(source,var,val)) and store in target.
@@ -275,17 +280,6 @@ void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsig
          temp.setProp(p,source);
       relaxation(target,temp);          
    }
-   // MDDState temp(this,(char*)alloca(sizeof(char)*layoutSize()));
-   // temp.copyState(target);
-   // for(const auto& t : _uptransLayer[l])
-   //    t(temp,source,var,v,true);
-   // for(auto p : _upframeLayer[l])
-   //    temp.setProp(p,source);
-   
-   // if (set)
-   //    target.copyState(temp);
-   // else 
-   //    relaxation(target,temp);          
 }
 
 
