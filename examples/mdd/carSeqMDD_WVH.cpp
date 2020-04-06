@@ -222,7 +222,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in)
 
    auto line = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
    
-   auto mdd = new MDDRelax(cp,16);
+   auto mdd = new MDDRelax(cp,32);
    
    gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
 

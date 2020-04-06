@@ -209,6 +209,8 @@ namespace Factory {
 
    void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
+      const int nbVars = (int)vars.size();
+
       int minFIdx = 0,minLIdx = len-1;
       int maxFIdx = len,maxLIdx = len*2-1;
       int minFIdxUp = len*2,minLIdxUp = len*3-1;
@@ -218,10 +220,14 @@ namespace Factory {
       ValueSet values(rawValues);
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
       std::vector<int> ps(nb+1);
-      for(int i = minFIdx;i < minFIdxUp;i++)
-         ps[i] = spec.addState(desc,0,len);         // init @ 0, largest value is length of window. 
-      for(int i = minFIdxUp;i < nb;i++)
+      for(int i = minFIdx;i <= minLIdx;i++)
+	ps[i] = spec.addState(desc,0,len);         // init @ 0, largest value is length of window. 
+      for(int i = maxFIdx;i <= maxLIdx;i++)
+         ps[i] = spec.addState(desc,nbVars,len);         // init @ 0, largest value is length of window. 
+      for(int i = minFIdxUp;i <= minLIdxUp;i++)
          ps[i] = spec.addStateUp(desc,0,len);       // init @ 0, largest value is length of window. 
+      for(int i = maxFIdxUp;i <= maxLIdxUp;i++)
+         ps[i] = spec.addStateUp(desc,nbVars,len);       // init @ 0, largest value is length of window. 
       ps[nb] = spec.addState(desc,0,vars.size());   // init @ 0, largest value is number of variables. 
 
       const int minF = ps[minFIdx];
@@ -233,8 +239,6 @@ namespace Factory {
       const int maxFup = ps[maxFIdxUp];
       const int maxLup = ps[maxLIdxUp];
       const int pnb  = ps[nb];
-
-      const int nbVars = (int)vars.size();
 	
       // down transitions
       spec.addTransitions(toDict(minF,minL-1,
@@ -242,6 +246,7 @@ namespace Factory {
       spec.addTransitions(toDict(maxF,maxL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
       spec.addTransition(minL,[ps,values,minL,minF,maxLup,minLup,len,pnb,lb](auto& out,const auto& p,auto x,int v,bool up) {
+	  /*
 	  int minVal = p.at(minL)+values.member(v);
 
 	  if (p.at(pnb) >= len-1) {
@@ -269,13 +274,58 @@ namespace Factory {
 	    if (p.at(minL)+values.member(v) + onesToGo < lb) {
 	      minVal = std::max(minVal, lb - onesToGo );
 	    }
+	    }*/
+
+	  std::cout << "layer " << p.at(pnb) << ", in spec.addTransition(minL) with value " << v << std::endl;
+	  std::cout << "parent = [";
+	  for (int i=0; i<ps.size(); i++) {
+	    std::cout << p.at(ps[i]) << " ";
 	  }
+	  std::cout << "]" << std::endl;
+
+	  int minVal = out.at(minL);
+	  std::cout << "initialize minVal = " << minVal << std::endl;
+	  
+	  if (p.at(pnb) >= len-1) {
+	    std::cout << "since p.at(pnb) >= len-1: update minVal = ";
+	    minVal = std::max(minVal, p.at(minF)+lb);
+	    std::cout << minVal << std::endl;
+	  }
+	  std::cout << "p.at(minL)+values.member(v) = " << p.at(minL)+values.member(v) << ", so we update ";
+	  minVal = std::max(minVal, p.at(minL)+values.member(v));
+	  std::cout << "minVal = " << minVal << std::endl;
+
 	  out.set(minL,minVal);
+
+	  std::cout << "out = [";
+	  for (int i=0; i<ps.size(); i++) {
+	    std::cout << out.at(ps[i]) << " ";
+	  }
+	  std::cout << "]" << std::endl;
+
 	});
-      spec.addTransition(maxL,[values,maxL,maxF,ub](auto& out,const auto& p,auto x,int v,bool up) {
-	  int maxVal = p.at(maxL)+values.member(v);
-	  if (p.at(maxL)+values.member(v)-p.at(maxF) > ub) { maxVal = std::min(maxVal, p.at(maxF)+ub); }
+      spec.addTransition(maxL,[ps,pnb,values,maxL,maxF,ub](auto& out,const auto& p,auto x,int v,bool up) {
+	  // int maxVal = p.at(maxL)+values.member(v);
+	  // if (p.at(maxL)+values.member(v)-p.at(maxF) > ub) { maxVal = std::min(maxVal, p.at(maxF)+ub); }
+
+	  std::cout << "layer " << p.at(pnb) << ", in spec.addTransition(maxL) with value " << v << std::endl;
+	  std::cout << "parent = [";
+	  for (int i=0; i<ps.size(); i++) {
+	    std::cout << p.at(ps[i]) << " ";
+	  }
+	  std::cout << "]" << std::endl;
+	  
+	  int maxVal = out.at(maxL);
+	  maxVal = std::min(maxVal, p.at(maxF)+ub);
+	  maxVal = std::min(maxVal, p.at(maxL)+values.member(v));	  
 	  out.set(maxL,maxVal);
+
+	  std::cout << "out = [";
+	  for (int i=0; i<ps.size(); i++) {
+	    std::cout << out.at(ps[i]) << " ";
+	  }
+	  std::cout << "]" << std::endl;
+
 	});
       spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v,bool up) {
                                 out.set(pnb,p.at(pnb)+1);
@@ -287,28 +337,37 @@ namespace Factory {
       spec.addTransitions(toDict(maxFup,maxLup-1,
                                  [](int i) { return [i](auto& out,const auto& c,auto x,int v,bool up) { out.set(i,c.at(i+1));};}));
       spec.addTransition(minLup,[values,minLup,minFup,maxL,minL,len,pnb,lb,nbVars](auto& out,const auto& c,auto x,int v,bool up) {
-	  int minVal = c.at(minLup)+values.member(v);
+	  bool inS = values.member(v);
 
-	  if (c.at(pnb) <= nbVars-len+1) {
-	    if (c.at(minLup)+values.member(v)-c.at(minFup) < lb) { minVal = std::max(minVal, c.at(minFup)+lb); }
-	  }
-	  else {
-	    int onesToGo = 0;
-	    if (!up) { onesToGo = c.at(pnb)-(nbVars-len+1); }
-	    //else     { onesToGo = c.at(maxL-1) - c.at(minL - (c.at(pnb)-(nbVars-len+1))); }
-	    // problem: the c state does not capture the entire window in the boundary case (at terminal).
-	    // resolve by changing to "out" state.
-	    else     { onesToGo = out.at(maxL) - out.at(minL - (c.at(pnb)-(nbVars-len+1))); } 
-	    if (c.at(minLup)+values.member(v) + onesToGo < lb) {
-	      minVal = std::max(minVal, lb - onesToGo);
-	    }
-	  }
+	  // int minVal = c.at(minLup)+values.member(v);
+
+	  // if (c.at(pnb) <= nbVars-len+1) {
+	  //   if (c.at(minLup)+values.member(v)-c.at(minFup) < lb) { minVal = std::max(minVal, c.at(minFup)+lb); }
+	  // }
+	  // else {
+	  //   int onesToGo = 0;
+	  //   if (!up) { onesToGo = c.at(pnb)-(nbVars-len+1); }
+	  //   //else     { onesToGo = c.at(maxL-1) - c.at(minL - (c.at(pnb)-(nbVars-len+1))); }
+	  //   // problem: the c state does not capture the entire window in the boundary case (at terminal).
+	  //   // resolve by changing to "out" state.
+	  //   else     { onesToGo = out.at(maxL) - out.at(minL - (c.at(pnb)-(nbVars-len+1))); } 
+	  //   if (c.at(minLup)+values.member(v) + onesToGo < lb) {
+	  //     minVal = std::max(minVal, lb - onesToGo);
+	  //   }
+	  // }
+	  int minVal = c.at(minLup)+inS;
+	  if (up) { minVal = std::max(minVal, out.at(minLup)); }
+	  if (c.at(pnb) <= nbVars-len+1) { minVal = std::max(minVal, c.at(minFup-1)+inS+lb); }
 	  out.set(minLup,minVal);
 	});
-      spec.addTransition(maxLup,[values,maxLup,maxFup,ub](auto& out,const auto& c,auto x,int v,bool up) {
-	  int maxVal = c.at(maxLup)+values.member(v);
-	  if (c.at(maxLup)+values.member(v)-c.at(maxFup) > ub) { maxVal = std::min(maxVal, c.at(maxFup)+ub); }
-	  out.set(maxLup,maxVal);
+      spec.addTransition(maxLup,[values,maxLup,maxFup,maxL,len,pnb,ub,nbVars](auto& out,const auto& c,auto x,int v,bool up) {
+	  bool inS = values.member(v);
+	  // int maxVal = c.at(maxLup)+values.member(v);
+	  // if (c.at(maxLup)+values.member(v)-c.at(maxFup) > ub) { maxVal = std::min(maxVal, c.at(maxFup)+ub); }
+	  int maxVal = c.at(maxLup)+inS;
+	  if (up) { maxVal = std::min(maxVal, out.at(maxLup)); }
+	  if (c.at(pnb) <= nbVars-len+1) { maxVal = std::min(maxVal, c.at(maxFup-1)+inS+ub); }
+	  out.set(maxLup,maxVal);  
 	});
 
       // arc definitions
@@ -319,38 +378,50 @@ namespace Factory {
 			  bool c1 = true;
 			  bool c2 = true;
 			  bool c3 = true;
-			  bool c4 = true;
-			  bool c5 = true;
+			  // bool c4 = true;
+			  // bool c5 = true;
 			  
-			  if (p.at(pnb) >= len - 1) {
-			    c0 = p.at(maxL) + inS - p.at(minF) >= lb;
-			    c1 = p.at(minL) + inS - p.at(maxF) <= ub;
-			  } else {
-			    c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
-			    c1 = p.at(minL) + inS <= ub;
-			  }
-			  if (up) {
-			    if (c.at(pnb) <= nbVars-len+1) {
-			      c2 = c.at(maxLup) + inS - c.at(minFup) >= lb;
-			      c3 = c.at(minLup) + inS - c.at(maxFup) <= ub;
-			    }
-			    else {
-			      c2 = c.at(maxLup) + inS - c.at(minFup) >= lb - (c.at(pnb)-(nbVars-len+1));
-			      c3 = c.at(minLup) + inS <= ub;
-			    }
-			  }
+	    // 		  if (p.at(pnb) >= len - 1) {
+	    // 		    c0 = p.at(maxL) + inS - p.at(minF) >= lb;
+	    // 		    c1 = p.at(minL) + inS - p.at(maxF) <= ub;
+	    // 		  } else {
+	    // 		    c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
+	    // 		    c1 = p.at(minL) + inS <= ub;
+	    // 		  }
+	    // 		  if (up) {
+	    // 		    if (c.at(pnb) <= nbVars-len+1) {
+	    // 		      c2 = c.at(maxLup) + inS - c.at(minFup) >= lb;
+	    // 		      c3 = c.at(minLup) + inS - c.at(maxFup) <= ub;
+	    // 		    }
+	    // 		    else {
+	    // 		      c2 = c.at(maxLup) + inS - c.at(minFup) >= lb - (c.at(pnb)-(nbVars-len+1));
+	    // 		      c3 = c.at(minLup) + inS <= ub;
+	    // 		    }
+	    // 		  }
 
-			  if (up) {
-             // this does not work?
-             //std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
-            //std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? <= " << c.at(maxL) << std::endl;
-                             c4 =( p.at(maxL) + inS >= c.at(minL) &&
-                                   p.at(minL) + inS <= c.at(maxL) );
-                             c5 =( p.at(maxLup)  >= c.at(minLup) + inS &&
-                                   p.at(minLup)  <= c.at(maxLup) + inS );
-			  }
+	    // 		  if (up) {
+            //  // this does not work?
+            //  //std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
+            // //std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? <= " << c.at(maxL) << std::endl;
+            //                  c4 =( p.at(maxL) + inS >= c.at(minL) &&
+            //                        p.at(minL) + inS <= c.at(maxL) );
+            //                  c5 =( p.at(maxLup)  >= c.at(minLup) + inS &&
+            //                        p.at(minLup)  <= c.at(maxLup) + inS );
+	    // 		  }
 
-			  return c0 && c1 && c2 && c3 && c4 && c5;
+			  // return c0 && c1 && c2 && c3 && c4 && c5;
+
+			  
+
+			  //  The first two are "node existence" functions.
+			  //  I put them here as there is no API yet for this.
+			  c0 = (p.at(minL) <= p.at(maxL));
+			  c1 = (c.at(minL) <= c.at(maxL));
+
+			  c2 = (p.at(minL) + inS <= c.at(maxL));
+			  c3 = (p.at(maxL) + inS >= c.at(minL));
+			  
+			  return c0 && c1 && c2 && c3;
 	});      
       
       // relaxations
