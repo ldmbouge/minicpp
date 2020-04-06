@@ -197,7 +197,7 @@ std::string tab(int d) {
 void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize,int over)
 {
    using namespace std;
-   int nbJ = (int) compat.size();
+   //int nbJ = (int) compat.size();
    int nbE = (int) compat[0].size();
    set<set<int>> cliques = sweep(jobs);
    vector<set<int>> cv;
@@ -319,7 +319,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    });
 
    SearchStatistics stat;
-   search.onSolution([theOne,&emp,obj,z,&stat/*,&cliques,&compat*/]() {
+   search.onSolution([&emp,obj,z,&stat/*,&cliques,&compat*/]() {
        cout << "z->min() : " << z->min() << ", z->max() : " << z->max() << endl;
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;

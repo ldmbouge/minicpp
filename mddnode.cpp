@@ -146,16 +146,6 @@ void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
 }
 
 /*
-  MDDNode::contains(int v) checks if value v is represented by an arc by node.
-*/
-bool MDDNode::contains(int v)
-{
-   for(int i = 0; i < this->children.size(); i++)
-      if(children.get(i)->getValue() == v) return true;
-   return false;
-}
-
-/*
   MDDNode::trim() removes all arcs with values not in the domain of var.
 */
 void MDDNode::trim(MDD* mdd,var<int>::Ptr x)

@@ -24,12 +24,95 @@
 #include <map>
 #include <bitset>
 #include <utility>
+#include <xmmintrin.h>
 
+class MDDIntSet {
+   short  _mxs,_sz;
+   bool  _isSingle;
+   union {
+      int*      _buf;
+      int    _single;
+   };
+public:
+   MDDIntSet() { _buf = 0;_mxs=_sz=0;_isSingle=false;}
+   MDDIntSet(int v) : _mxs(1),_sz(1),_isSingle(true) {
+      _single = v;
+   }
+   MDDIntSet(char* buf,int mxs,std::initializer_list<int> vals)
+      : _mxs(mxs),_sz(0),_isSingle(false) {
+      _buf = reinterpret_cast<int*>(buf);
+      for(int v : vals) 
+         _buf[_sz++] = v;      
+   }
+   MDDIntSet(char* buf,int mxs) : _mxs(mxs),_sz(0),_isSingle(false) {
+      _buf = reinterpret_cast<int*>(buf);       
+   }   
+   constexpr void add(int v) noexcept {
+      assert(_sz < _mxs);
+      _buf[_sz++] = v;
+   }
+   void insert(int v) noexcept {
+      if (contains(v)) return;
+      if(_sz >= _mxs) {
+         std::cerr << "Oops... overflowing MDDIntSet\n";
+         exit(1);
+      }
+      _buf[_sz++] = v;
+   }
+   constexpr const bool contains(int v) const noexcept {
+      for(short i=0;i < _sz;i++)
+         if (_buf[i]==v) return true;
+      return false;
+   }
+   constexpr const short size() const { return _sz;}
+   constexpr const bool isEmpty() const { return _sz == 0;}
+   constexpr const bool isSingleton() const { return _isSingle || _sz == 1;}
+   constexpr const int  singleton() const {
+      if (_isSingle)
+         return _single;
+      else  {
+         assert(_sz == 1);
+         return _buf[0];
+      }
+   }
+   constexpr operator int() const { return singleton();}
+   class iterator: public std::iterator<std::input_iterator_tag,int,short> {
+      union {
+         int*    _data;
+         int     _val;
+      };
+      short   _num;
+      bool    _single;
+      iterator(int* d,long num = 0) : _data(d),_num(num),_single(false) {}
+      iterator(int v,long num = 0) : _val(v),_num(num),_single(true) {}
+   public:
+      iterator& operator++()   { _num = _num + 1; return *this;}
+      iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
+      iterator& operator--()   { _num = _num - 1; return *this;}
+      iterator operator--(int) { iterator retval = *this; --(*this); return retval;}
+      bool operator==(iterator other) const {return _num == other._num;}
+      bool operator!=(iterator other) const {return !(*this == other);}
+      int operator*() const   { return _single ? _val : _data[_num];}
+      friend class MDDIntSet;
+   };
+   iterator begin() const { return _isSingle ? iterator(_single,0) : iterator(_buf,0);}
+   iterator end()   const { return _isSingle ? iterator(_single,_sz) : iterator(_buf,_sz);}
+   iterator cbegin() const noexcept { return begin();}
+   iterator cend()   const noexcept { return end();}
+   friend std::ostream& operator<<(std::ostream& os,const MDDIntSet& s) {
+      os << '{';
+      for(int v : s)
+         os << v << ',';
+      return os << '\b' << '}';
+   }
+};
+
+void printSet(const MDDIntSet& s);
 
 class MDDState;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
 typedef std::function<void(const MDDState&)> FixFun;
-typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr, int,bool)> lambdaTrans;
+typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr,const MDDIntSet&,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::map<int,lambdaTrans> lambdaMap;
@@ -48,9 +131,6 @@ public:
    typedef handle_ptr<MDDConstraintDescriptor> Ptr;
    MDDConstraintDescriptor(const Factory::Veci& vars, const char* name);
    MDDConstraintDescriptor(const MDDConstraintDescriptor&);
-   ~MDDConstraintDescriptor() {
-      std::cout << "Destroyed\n";
-   }
    void addProperty(int p) {_properties.push_back(p);}
    bool ownsProperty(int p) const {
       auto at = std::find(_properties.begin(),_properties.end(),p);
@@ -111,9 +191,18 @@ public:
       return nbb;
    }
    MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {
-      for(int i=0;i < _nbw;i++)
-         _buf[i] = a._buf[i] | b._buf[i];
-      return *this;
+      switch(_nbw) {
+         case 1: _buf[0] = a._buf[0] | b._buf[0];return *this;
+         case 2: {
+            __m128i p0 = *(__m128i*) a._buf;
+            __m128i p1 = *(__m128i*) b._buf;
+            *(__m128i*)_buf = _mm_or_si128(p0,p1);
+         } return *this;
+         default:
+            for(int i=0;i < _nbw;i++)
+               _buf[i] = a._buf[i] | b._buf[i];
+            return *this;
+      }
    }
    MDDBSValue& setBinAND(const MDDBSValue& a,const MDDBSValue& b) noexcept {
       for(int i=0;i < _nbw;i++)
@@ -250,7 +339,7 @@ class MDDPBitSequence : public MDDProperty {
    }
    size_t setOffset(size_t bitOffset) override {
       _ofs = bitOffset >> 3;
-      _ofs = ((_ofs & 0x7) != 0)  ? (_ofs | 0x7)+1 : _ofs; // 8-byte align
+      _ofs = ((_ofs & 0xF) != 0)  ? (_ofs | 0xF)+1 : _ofs; // 16-byte align
       return (_ofs << 3) + storageSize();
    }
  public:
@@ -503,8 +592,8 @@ public:
    // Internal methods.
    void varOrder() override;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
-   void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,int v,bool up);
-   void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,int v);
+   void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
+   void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
    void relaxation(MDDState& a,const MDDState& b) const noexcept {
       for(const auto& relax : _relaxation)
          relax(a,a,b);
