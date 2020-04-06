@@ -218,6 +218,7 @@ void MDDRelax::trimLayer(unsigned int layer)
    MDD::trimLayer(layer);
 }
 
+/*
 bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
    MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
@@ -253,8 +254,8 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    //return changed;
    return false;
 }
+*/
 
-/*
 bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
    MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
@@ -299,7 +300,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    //return changed;
    return false;
 }
-*/
+
 
 MDDNode* MDDRelax::findSimilar(const std::multimap<float,MDDNode*>& layer,
                                const MDDState& s,const MDDState& refDir)
@@ -559,7 +560,7 @@ bool MDDRelax::rebuild()
 {
    MDDNodeSet delta(2 * _width);
    bool changed = false;
-   for(unsigned l = _ff; l <= numVariables;l++) {
+   for(unsigned l = 0u; l <= numVariables;l++) {
       // First refresh the down information in the nodes of layer l based on whether those are dirty.
       MDDNodeSet recycled = filter(layers[l],l);
       MDDNodeSet splitNodes = split(recycled,layers[l],l);
@@ -586,9 +587,9 @@ void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
-      for(int i = _lf;i >= _ff;i--) {
+      for(int i = (int)numVariables - 1;i >= 0;i--) {
          for(auto& n : layers[i]) {
-            bool first = true; /*          
+            bool first = true;           
             MDDIntSet afp[_width];
             for(int k=0;k<_width;k++)
                afp[k] = MDDIntSet((char*)alloca(sizeof(int)*x[i]->size()),x[i]->size());
@@ -600,17 +601,19 @@ void MDDRelax::computeUp()
             MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
             auto ub = std::min(_width,(unsigned)layers[i+1].size());
             for(int k=0;k < ub;k++) {
-               auto c = layers[i+1][k];
-               _mddspec.updateState(first,dest,c->getState(),i,x[i],afp[k]);
-               first = false;
-               } */
-            MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
-            for(auto& arcToKid : n->getChildren()) {
-               MDDNode* kid = arcToKid->getChild();
-               int v = arcToKid->getValue();
-               _mddspec.updateState(first,dest,kid->getState(),i,x[i],MDDIntSet(v));
-               first = false;
+               if (afp[k].size() > 0) {
+                  auto c = layers[i+1][k];
+                  _mddspec.updateState(first,dest,c->getState(),i,x[i],afp[k]);
+                  first = false;
+               }
             }
+            // MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
+            // for(auto& arcToKid : n->getChildren()) {
+            //    MDDNode* kid = arcToKid->getChild();
+            //    int v = arcToKid->getValue();
+            //    _mddspec.updateState(first,dest,kid->getState(),i,x[i],MDDIntSet(v));
+            //    first = false;
+            // }
          }
       }
       //std::cout << "\n";
@@ -631,10 +634,10 @@ void MDDRelax::propagate()
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
       // adjust first and last free inward.
-      while (_ff < numVariables && x[_ff]->isBound())
-         _ff+=1;
-      while (_lf >= 0 && x[_lf]->isBound())
-         _lf-=1;
+      // while (_ff < numVariables && x[_ff]->isBound())
+      //    _ff+=1;
+      // while (_lf >= 0 && x[_lf]->isBound())
+      //    _lf-=1;
    } catch(Status s) {
       queue.clear();
       throw s;
