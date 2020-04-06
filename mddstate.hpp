@@ -221,7 +221,7 @@ public:
    }
    friend bool operator==(const MDDBSValue& a,const MDDBSValue& b) {
       bool eq = a._nbw == b._nbw;
-      for(unsigned i = 0 ;eq && i < a._nbw;i++)
+      for(short i = 0 ;eq && i < a._nbw;i++)
          eq = a._buf[i] == b._buf[i];
       return eq;
    }
