@@ -269,18 +269,21 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       auto p = a->getParent();
       auto v = a->getValue();
       afp[p->getPosition()].add(v);
+      assert(p->getLayer() == l - 1);
+      assert(p->getPosition() >= 0);
+      assert(p->getPosition() < _width);
+      assert(p->getPosition() < layers[l-1].size());
    }
-   auto ub = std::min(_width,(unsigned)layers[l-1].size());
-   for(int i=0;i < ub;i++) {
-      if (afp[i].size() > 0) {
-         auto p = layers[l-1][i];
-         cs.copyState(n->getState());     
-         _mddspec.createState(cs,p->getState(),l-1,x[l-1],afp[i],true);
-         if (first)
-            ms.copyState(cs);
-         else _mddspec.relaxation(ms,cs);
-         first = false;
-      }
+   for(auto& a : n->getParents()) {
+      auto p = a->getParent();
+      auto i = p->getPosition();
+      assert(afp[i].size() > 0);
+      cs.copyState(n->getState());     
+      _mddspec.createState(cs,p->getState(),l-1,x[l-1],afp[i],true);
+      if (first)
+         ms.copyState(cs);
+      else _mddspec.relaxation(ms,cs);
+      first = false;
    }
    bool changed = n->getState() != ms;
    if (changed) {
@@ -300,6 +303,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    //return changed;
    return false;
 }
+
 
 
 MDDNode* MDDRelax::findSimilar(const std::multimap<float,MDDNode*>& layer,
