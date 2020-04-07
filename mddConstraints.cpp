@@ -46,7 +46,7 @@ namespace Factory {
                                 }
                                 out.set(maxC,p.at(maxC) + oneMember);
                              });
-      mdd.addTransition(rem,[rem] (auto& out,const auto& p,auto x,int v,bool up)           { out.set(rem,p.at(rem) - 1);});
+      mdd.addTransition(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(rem,p.at(rem) - 1);});
 
       mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.set(minC,std::min(l.at(minC), r.at(minC)));});
       mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.set(maxC,std::max(l.at(maxC), r.at(maxC)));});
@@ -73,7 +73,7 @@ namespace Factory {
       mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,const auto& val,bool up) {
                                out.setProp(all,in);
                                if (val.size()==1)
-                                  out.getBS(all).set(val - minDom);
+                                  out.getBS(all).set(val.singleton() - minDom);
                                //out.setBS(all,in.getBS(all)).set(val - minDom);
                             });
       mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,const auto& val,bool up) {
@@ -87,7 +87,7 @@ namespace Factory {
       mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,const auto& val,bool up) {
                                 out.setProp(allu,in);
                                 if (val.size()==1)
-                                   out.getBS(allu).set(val - minDom);
+                                   out.getBS(allu).set(val.singleton() - minDom);
                                 //out.setBS(allu,in.getBS(allu)).set(val - minDom);
                                });
       mdd.addTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,const auto& val,bool up) {
@@ -294,9 +294,9 @@ namespace Factory {
 	
       // down transitions
       spec.addTransitions(toDict(minF,minL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
       spec.addTransitions(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,int v,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
       spec.addTransition(minL,[ps,values,minL,minF,maxLup,minLup,len,pnb,lb](auto& out,const auto& p,auto x,const auto& val,bool up) {
           int newMin = std::numeric_limits<int>::max();                                
           for(int v : val)  {                              
@@ -341,15 +341,15 @@ namespace Factory {
              }
              out.set(maxL,newMax);
 	});
-      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,int v,bool up) {
+      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                 out.set(pnb,p.at(pnb)+1);
                              });
 
       // up transitions
       spec.addTransitions(toDict(minFup,minLup-1,
-                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v,bool up) { out.set(i,c.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i+1));};}));
       spec.addTransitions(toDict(maxFup,maxLup-1,
-                                 [](int i) { return [i](auto& out,const auto& c,auto x,int v,bool up) { out.set(i,c.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i+1));};}));
       spec.addTransition(minLup,[values,minLup,minFup,maxL,minL,len,pnb,lb,nbVars](auto& out,const auto& c,
                                                                                    auto x,const auto& val,bool up) {
           int newMin = std::numeric_limits<int>::max();
@@ -460,9 +460,10 @@ namespace Factory {
                        });
 
       lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,ps] (int i,int pi) -> lambdaTrans {
+             // LDM: TOFIX
               if (i <= minLDom)
-                 return [=] (auto& out,const auto& p,auto x, int v,bool up) { out.set(pi,p.at(pi) + ((v - min) == i));};
-              return [=] (auto& out,const auto& p,auto x, int v,bool up)    { out.set(pi,p.at(pi) + ((v - min) == (i - dz)));};
+                 return [=] (auto& out,const auto& p,auto x, const auto& val,bool up) { out.set(pi,p.at(pi) + ((val.singleton() - min) == i));};
+              return [=] (auto& out,const auto& p,auto x, const auto& val,bool up)    { out.set(pi,p.at(pi) + ((val.singleton() - min) == (i - dz)));};
            });
       spec.addTransitions(d);
 

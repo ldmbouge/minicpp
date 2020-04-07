@@ -218,65 +218,31 @@ void MDDRelax::trimLayer(unsigned int layer)
    MDD::trimLayer(layer);
 }
 
-/*
 bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
-   MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-   MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-   bool first = true;
-   assert(n->getNumParents() > 0);
-   for(auto& a : n->getParents()) { // a is the arc p --(v)--> n
-      auto p = a->getParent();      // p is the parent
-      auto v = a->getValue();
-      cs.copyState(n->getState());
-      _mddspec.createState(cs,p->getState(),l-1,x[l-1],v,true);
-      if (first)
-         ms.copyState(cs);
-      else
-         _mddspec.relaxation(ms,cs);
-      first = false;
-   }
-   bool changed = n->getState() != ms;
-   if (changed) {
-      n->setState(ms,mem);
-      for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) {
-         MDDNode* child = (*i)->getChild();
-         int      v  = (*i)->getValue();
-         child->markDirty();
-         if (!_mddspec.exist(n->getState(),child->getState(),x[l],MDDIntSet(v),true)) {
-            n->unhook(*i);
-            delSupport(l,v);
-         }
-      }
-      // std::cout << "refresh[" << l << "]@" << n->getPosition() << " : "
-      //           << n->getState() << " to " << ms << '\n';
-   } else n->clearDirty();
-   //return changed;
-   return false;
-}
-*/
+   MDDState cs0(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+   MDDState ms0(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
 
-bool MDDRelax::refreshNode(MDDNode* n,int l)
-{
    MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    bool first = true;
    assert(n->getNumParents() > 0);
    MDDIntSet afp[_width]; // arcs for parent
-   for(auto i=0u;i < _width;i++)
+   MDDNode*  source[_width];
+   for(auto i=0u;i < _width;i++) {
       afp[i] = MDDIntSet((char*)alloca(sizeof(int)*x[l-1]->size()),x[l-1]->size());
+      source[i] = nullptr;
+   }
    for(auto& a : n->getParents()) {
       auto p = a->getParent();
       auto v = a->getValue();
       afp[p->getPosition()].add(v);
-      assert(p->getLayer() == l - 1);
-      assert(p->getPosition() >= 0);
-      assert(p->getPosition() < _width);
-      assert(p->getPosition() < layers[l-1].size());
+      source[p->getPosition()] = p;
    }
-   for(auto& a : n->getParents()) {
-      auto p = a->getParent();
-      auto i = p->getPosition();
+
+   for(auto i = 0u;i < _width;i++) {
+      if (source[i]==nullptr) continue;
+      auto p = source[i];      
       assert(afp[i].size() > 0);
       cs.copyState(n->getState());     
       _mddspec.createState(cs,p->getState(),l-1,x[l-1],afp[i],true);
@@ -285,6 +251,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       else _mddspec.relaxation(ms,cs);
       first = false;
    }
+
    bool changed = n->getState() != ms;
    if (changed) {
       n->setState(ms,mem);
@@ -611,13 +578,6 @@ void MDDRelax::computeUp()
                   first = false;
                }
             }
-            // MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
-            // for(auto& arcToKid : n->getChildren()) {
-            //    MDDNode* kid = arcToKid->getChild();
-            //    int v = arcToKid->getValue();
-            //    _mddspec.updateState(first,dest,kid->getState(),i,x[i],MDDIntSet(v));
-            //    first = false;
-            // }
          }
       }
       //std::cout << "\n";

@@ -259,7 +259,7 @@ void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
       t(result,parent,var,v,hasUp);
    for(auto p : _frameLayer[l])
       result.setProp(p,parent);
-   result.relax(parent.isRelaxed());
+   result.relax(parent.isRelaxed() || v.size() > 1);
 }
 
 void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v)
