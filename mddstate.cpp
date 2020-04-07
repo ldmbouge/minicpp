@@ -155,13 +155,19 @@ void MDDSpec::onFixpoint(std::function<void(const MDDState&)> onFix)
 bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept
 {
    bool arcOk = true;
-   for(auto& exist :  _exists) {
-      if (std::get<0>(exist)->inScope(x))
-         arcOk = std::get<1>(exist)(a,c,x,v,up);
+   for(auto& exist : _scopedExists[x->getId()]) {
+      arcOk = exist(a,c,x,v,up);
       if (!arcOk) break;
    }
    return arcOk;
-      //return _exist(a,c,x,v,up);   
+   
+   // bool arcOk = true;
+   // for(auto& exist :  _exists) {
+   //    if (std::get<0>(exist)->inScope(x))
+   //       arcOk = std::get<1>(exist)(a,c,x,v,up);
+   //    if (!arcOk) break;
+   // }
+   // return arcOk;
 }
 
 void MDDSpec::addArc(MDDConstraintDescriptor::Ptr d,ArcFun a)
@@ -250,6 +256,18 @@ void MDDSpec::compile()
                   upFrame.emplace_back(j);                   
          }
    }
+   int lid,uid;
+   std::tie(lid,uid) = idRange(x);
+   const int sz = uid + 1;
+   _scopedExists.resize(sz);
+   for(auto& exist : _exists) {
+      auto& cd  = std::get<0>(exist);
+      auto& fun = std::get<1>(exist);
+      auto& vars = cd->vars();
+      for(auto& v : vars) {
+         _scopedExists[v->getId()].emplace_back(fun);
+      }
+   }
 }
 
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool hasUp)
@@ -306,3 +324,4 @@ std::pair<int,int> domRange(const Factory::Veci& vars)
    }
    return udom;
 }
+

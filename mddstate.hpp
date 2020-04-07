@@ -118,8 +118,8 @@ typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::map<int,lambdaTrans> lambdaMap;
 class MDDStateSpec;
 
-class MDDConstraintDescriptor {
-   const Factory::Veci&   _vars;
+ class MDDConstraintDescriptor {
+   const Factory::Veci    _vars;
    ValueSet               _vset;
    const char*            _name;
    std::vector<int> _properties;
@@ -625,11 +625,23 @@ private:
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;
    std::vector<std::vector<int>> _frameLayer;
-   std::vector<std::vector<int>> _upframeLayer;   
+   std::vector<std::vector<int>> _upframeLayer;
+   std::vector<std::vector<ArcFun>> _scopedExists; // 1st dimension indexed by varId. 2nd dimension is a list.
 };
 
 
 std::pair<int,int> domRange(const Factory::Veci& vars);
+
+template <typename Container> std::pair<int,int> idRange(const Container& vars) {
+   int low = std::numeric_limits<int>::max();
+   int up  = std::numeric_limits<int>::min();
+   for(auto& x : vars) {
+      low = std::min(low,x->getId());
+      up  = std::max(up,x->getId());
+   }       
+   return std::make_pair(low,up);
+}
+   
 
 #endif /* mddstate_hpp */
 

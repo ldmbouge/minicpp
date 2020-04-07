@@ -336,13 +336,12 @@ void MDDRelax::filter(TVec<MDDNode*>& layer,int l)
    }
 }
 
-MDDNodeSet MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
+void MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
 {
    using namespace std;
    std::multimap<float,MDDNode*,std::less<float> > cl;
    const MDDState& refDir = _refs[l];
-   MDDNodeSet delta(_width+1);
-   if (l==0 || l==(int)numVariables) return delta;
+   if (l==0 || l==(int)numVariables) return;
    bool xb = x[l-1]->isBound();
    MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
    for(auto i = layer.rbegin();i != layer.rend() && !xb && layer.size() < _width;i++) {
@@ -385,7 +384,6 @@ MDDNodeSet MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node fro
          refreshNode(n,l);
       }      
    }
-   return delta;
 }
 
 struct MDDStateEqual {
@@ -443,7 +441,8 @@ void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
    if (l <= numVariables) {
       const MDDState& refDir = _refs[l];
       std::multimap<float,MDDNode*,std::less<float> > cl;
-      MDDNodeSet recycled(_width+1); // we cannot filter here since the layer may be disconnected temporarily.
+      MDDNodeSet recycled(_width+1,(char*)alloca(sizeof(MDDNode*)*(_width+1)));
+      // we cannot filter here since the layer may be disconnected temporarily.
       for(auto n : layer)
          cl.insert({n->getState().inner(refDir),n});
          
@@ -526,13 +525,12 @@ bool MDDRelax::trimVariable(int i)
 
 bool MDDRelax::rebuild()
 {
-   MDDNodeSet delta(2 * _width);
+   MDDNodeSet delta(2 * _width,(char*)alloca(sizeof(MDDNode*)*2*_width));
    bool changed = false;
    for(unsigned l = 0u; l <= numVariables;l++) {
       // First refresh the down information in the nodes of layer l based on whether those are dirty.
       filter(layers[l],l);
-      MDDNodeSet splitNodes = split(layers[l],l);
-      delta.unionWith(splitNodes);
+      split(delta,layers[l],l); // delta is an _output_ argument from split (splits add to it). 
       spawn(delta,layers[l+1],l+1);    
       bool trim = (l>0) ? trimVariable(l-1) : false;
       changed |= trim;

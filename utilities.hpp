@@ -31,20 +31,8 @@ public:
       for(auto v : s)
          _data[v - _min] = 1;
    }
-   ValueSet(const Factory::Veci& s) {
-      _min = (s.size()) ? s[0]->getId() : 0;
-      _max = (s.size()) ? s[0]->getId() : -1;
-      for(auto v : s) {
-         _min = _min < v->getId() ? _min : v->getId();
-         _max = _max > v->getId() ? _max : v->getId();
-      }
-      _sz = _max - _min + 1;
-      _data = new char[_sz];
-      memset(_data,0,sizeof(char)*_sz);
-      for(auto v : s)
-         _data[v->getId() - _min] = 1;
-   }
-   ValueSet(const std::vector<var<int>::Ptr>& s) {
+   template <typename Container>
+   ValueSet(const Container& s) {
       _min = (s.size()) ? s[0]->getId() : 0;
       _max = (s.size()) ? s[0]->getId() : -1;
       for(auto v : s) {

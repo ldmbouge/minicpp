@@ -33,7 +33,7 @@ private:
 protected:
     void setId(int id) override { _id = id;}
 public:
-   int getId() const { return _id;}
+   int getId() const noexcept { return _id;}
    typedef handle_ptr<var<int>> Ptr;
    virtual Storage::Ptr getStore() = 0;
    virtual CPSolver::Ptr getSolver() = 0;
