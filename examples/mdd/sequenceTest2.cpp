@@ -83,8 +83,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
   /***
    *  In this example, both domain propagation on cumulative sums and the MDD propagation
-   *  will deduce that vars[3] == 0.  This will trigger more domain propagation (the bounds
-   *  on the cumulative variables get updated, which results in vars[2] == 1.
+   *  will deduce that vars[0] == 0 (from the second Sequence constraint).  This will trigger 
+   *  more domain propagation (the bounds on the cumulative variables get updated), which 
+   *  results in vars[1] == 1 (from the first Sequence constraint).
    *  The seqMDD3, however, is almost getting there, but somehow the changes in the state
    *  variables are not triggering a propagation event.  This means that the fixpoint 
    *  terminates earlier.

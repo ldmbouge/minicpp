@@ -401,6 +401,9 @@ namespace Factory {
 	  if (up) {
 	    c0 = (p.at(minL) + inS <= c.at(maxL));
 	    c1 = (p.at(maxL) + inS >= c.at(minL));
+
+	    c2 = (c.at(minLup) + inS <= p.at(maxLup));
+	    c3 = (c.at(maxLup) + inS >= p.at(minLup));
 	  }
 
 	  
