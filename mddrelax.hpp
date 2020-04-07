@@ -9,21 +9,25 @@
 #include <random>
 
 class MDDNodeSet {
-   const int  _msz;
-   int         _sz;
-   MDDNode** _data;
+   MDDNode**   _data;
+   const short  _msz;
+   short         _sz;
+   bool       _stack;
 public:
-   MDDNodeSet() : _msz(0) { _sz = 0;_data = nullptr;}
-   MDDNodeSet(int sz) : _msz(sz),_sz(0) {
+   MDDNodeSet() : _data(nullptr),_msz(0),_sz(0),_stack(false) {}   
+   MDDNodeSet(int sz) : _msz(sz),_sz(0),_stack(false) {
       _data = new MDDNode*[_msz];
    }
-   MDDNodeSet(MDDNodeSet&& other) : _msz(other._msz),_sz(other._sz)
+   MDDNodeSet(int sz,char* buf) : _msz(sz),_sz(0),_stack(true) {
+      _data = reinterpret_cast<MDDNode**>(buf);
+   }
+   MDDNodeSet(MDDNodeSet&& other) : _msz(other._msz),_sz(other._sz),_stack(other._stack)
    {
       _data = other._data;
       other._data = nullptr;
    }
    ~MDDNodeSet() {
-      if (_data) delete[] _data;
+      if (!_stack && _data) delete[] _data;
    }
    bool member(MDDNode* p) const noexcept {
       for(int i=_sz-1;i>=0;i--) 
@@ -90,8 +94,8 @@ class MDDRelax : public MDD {
    bool rebuild();
    bool refreshNode(MDDNode* n,int l);
    bool trimVariable(int i);
-   MDDNodeSet filter(TVec<MDDNode*>& layer,int l);
-   MDDNodeSet split(MDDNodeSet& pool,TVec<MDDNode*>& layer,int l);
+   void filter(TVec<MDDNode*>& layer,int l);
+   MDDNodeSet split(TVec<MDDNode*>& layer,int l);
    void spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l);
    MDDNode* findSimilar(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
    MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);

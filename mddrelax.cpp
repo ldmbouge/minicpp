@@ -307,17 +307,15 @@ void removeMatch(std::multimap<float,MDDNode*>& layer,float key,MDDNode* n)
    assert(false);
 }
 
-MDDNodeSet MDDRelax::filter(TVec<MDDNode*>& layer,int l)
+void MDDRelax::filter(TVec<MDDNode*>& layer,int l)
 {
    // variable x[l-1] connects layer `l-1` to layer `l`
-   MDDNodeSet pool(_width+1);
    for(auto i = layer.rbegin();i != layer.rend();i++) {
       auto n = *i; // This is a _destination_ node into layer `l`
       if (n->getNumParents()==0 && l > 0) {
          //assert(l != numVariables); // should never be recycling the sink
          if (l == (int)numVariables)
             failNow();
-         pool.insert(n);
          delState(n,l);
          continue;
       }
@@ -336,10 +334,9 @@ MDDNodeSet MDDRelax::filter(TVec<MDDNode*>& layer,int l)
          }         
       }      
    }
-   return pool;
 }
 
-MDDNodeSet MDDRelax::split(MDDNodeSet& recycled,TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
+MDDNodeSet MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
 {
    using namespace std;
    std::multimap<float,MDDNode*,std::less<float> > cl;
@@ -384,7 +381,6 @@ MDDNodeSet MDDRelax::split(MDDNodeSet& recycled,TVec<MDDNode*>& layer,int l) // 
       if (n->getNumParents()==0) {
          delState(n,l);
          removeMatch(cl,n->getState().inner(refDir),n);
-         recycled.insert(n);
       } else {
          refreshNode(n,l);
       }      
@@ -441,8 +437,9 @@ void MDDRelax::delState(MDDNode* node,int l)
 
 void MDDRelax::spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l)
 {
-   using namespace std;
-   MDDNodeSet out(_width+1);
+   using namespace std;   
+   MDDNodeSet out(_width+1,(char*)alloca(sizeof(MDDNode*)*(_width+1)));
+   //MDDNodeSet out(_width+1);
    if (l <= numVariables) {
       const MDDState& refDir = _refs[l];
       std::multimap<float,MDDNode*,std::less<float> > cl;
@@ -533,9 +530,9 @@ bool MDDRelax::rebuild()
    bool changed = false;
    for(unsigned l = 0u; l <= numVariables;l++) {
       // First refresh the down information in the nodes of layer l based on whether those are dirty.
-      MDDNodeSet recycled = filter(layers[l],l);
-      MDDNodeSet splitNodes = split(recycled,layers[l],l);
-      delta.unionWith(splitNodes);      
+      filter(layers[l],l);
+      MDDNodeSet splitNodes = split(layers[l],l);
+      delta.unionWith(splitNodes);
       spawn(delta,layers[l+1],l+1);    
       bool trim = (l>0) ? trimVariable(l-1) : false;
       changed |= trim;
