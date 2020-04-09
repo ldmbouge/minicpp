@@ -220,9 +220,6 @@ void MDDRelax::trimLayer(unsigned int layer)
 
 bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
-   MDDState cs0(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-   MDDState ms0(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-
    MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    bool first = true;
@@ -553,7 +550,7 @@ void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
-      for(int i = (int)numVariables - 1;i >= 0;i--) {
+      for(int i = (int)numVariables - 1;i >= _ff;i--) {
          for(auto& n : layers[i]) {
             bool first = true;           
             MDDIntSet afp[_width];
@@ -593,8 +590,8 @@ void MDDRelax::propagate()
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
       // adjust first and last free inward.
-      // while (_ff < numVariables && x[_ff]->isBound())
-      //    _ff+=1;
+      while (_ff < numVariables && x[_ff]->isBound())
+         _ff+=1;
       // while (_lf >= 0 && x[_lf]->isBound())
       //    _lf-=1;
    } catch(Status s) {

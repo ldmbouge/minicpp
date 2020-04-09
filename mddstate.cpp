@@ -160,31 +160,13 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bo
       if (!arcOk) break;
    }
    return arcOk;
-   
-   // bool arcOk = true;
-   // for(auto& exist :  _exists) {
-   //    if (std::get<0>(exist)->inScope(x))
-   //       arcOk = std::get<1>(exist)(a,c,x,v,up);
-   //    if (!arcOk) break;
-   // }
-   // return arcOk;
 }
 
 void MDDSpec::addArc(MDDConstraintDescriptor::Ptr d,ArcFun a)
 {
    _exists.emplace_back(std::make_pair<MDDConstraintDescriptor::Ptr,ArcFun>(std::move(d),std::move(a)));
-   /*
-   auto& b = _exist;
-   if(_exist == nullptr)
-      _exist = [d,a] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
-                  return (!d.inScope(var) || a(p,c, var, val,up));
-               };
-   else
-      _exist = [d,a,b] (const auto& p,const auto& c,var<int>::Ptr var, int val,bool up) -> bool {
-                  return (!d.inScope(var) || a(p,c,var, val,up)) && b(p,c, var, val,up);
-               };
-   */
 }
+
 void MDDSpec::addTransition(int p,lambdaTrans t)
 {   
    for(auto& cd : constraints)
