@@ -46,7 +46,8 @@ public:
    }
    MDDIntSet(char* buf,int mxs) : _mxs(mxs),_sz(0),_isSingle(false) {
       _buf = reinterpret_cast<int*>(buf);       
-   }   
+   }
+   void clear() noexcept { _sz = 0;_isSingle=false;}
    constexpr void add(int v) noexcept {
       assert(_sz < _mxs);
       _buf[_sz++] = v;
@@ -140,10 +141,10 @@ public:
    const std::vector<int>& relaxations() const  { return _rid;}
    const std::vector<int>& similarities() const { return _sid;}
    const std::vector<int>& uptrans() const      { return _utid;}
-   void registerTransition(int t) { _tid.emplace_back(t);}
+   void registerDown(int t)       { _tid.emplace_back(t);}
+   void registerUp(int t)         { _utid.emplace_back(t);}
    void registerRelaxation(int t) { _rid.emplace_back(t);}
    void registerSimilarity(int t) { _sid.emplace_back(t);}
-   void registerUp(int t)         { _utid.emplace_back(t);}
    bool inScope(var<int>::Ptr x) const noexcept { return _vset.member(x->getId());}
    const Factory::Veci& vars() const { return _vars;}
    std::vector<int>& properties() { return _properties;}
@@ -229,23 +230,25 @@ public:
 
 class MDDProperty {
 public:
-   enum Direction {Down,Up};
+   enum Direction { None=0,Down=1,Up=2,Bi=3 };
 protected:
    short _id;
    unsigned short _ofs; // offset in bytes within block
-   unsigned short _bsz; // size in bytes. 
-   enum Direction   _d;
+   unsigned short _bsz; // size in bytes.
+   enum Direction _dir;
    virtual size_t storageSize() const = 0;  // given in _bits_
    virtual size_t setOffset(size_t bitOffset) = 0;
 public:
    typedef handle_ptr<MDDProperty> Ptr;
-   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_d(p._d) {}
-   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_d(p._d) {}
-   MDDProperty(short id,unsigned short ofs,unsigned short bsz,enum Direction dir = Down)
-      : _id(id),_ofs(ofs),_bsz(bsz),_d(dir) {}
-   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_d = p._d;return *this;}
+   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir) {}
+   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir) {}
+   MDDProperty(short id,unsigned short ofs,unsigned short bsz)
+      : _id(id),_ofs(ofs),_bsz(bsz),_dir(None) {}
+   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_dir = p._dir;return *this;}
    size_t size() const noexcept { return storageSize() >> 3;}
-   bool isUp() const noexcept   { return _d == Up;}
+   void setDirection(enum Direction d) { _dir = (enum Direction)(_dir | d);} 
+   bool isUp() const noexcept    { assert(_dir != None);return (_dir & Up) == Up;}
+   bool isDown() const noexcept  { assert(_dir != None);return (_dir & Down) == Down;}
    virtual void init(char* buf) const noexcept              {}
    virtual int get(char* buf) const noexcept                { return 0;}
    int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
@@ -265,16 +268,8 @@ public:
    friend class MDDStateSpec;
 };
 
-inline std::ostream& operator<<(std::ostream& os,const enum MDDProperty::Direction& d) {
-   switch(d) {
-      case MDDProperty::Down: return os << "Down";
-      case MDDProperty::Up:   return os << "Up";
-   }
-}
-
 namespace Factory {
-   inline MDDProperty::Ptr makeProperty(enum MDDProperty::Direction dir,short id,
-                                        unsigned short ofs,int init,int max=0x7fffffff);
+   inline MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max=0x7fffffff);
 }
 
 class MDDPInt :public MDDProperty {
@@ -290,14 +285,14 @@ class MDDPInt :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPInt> Ptr;
-   MDDPInt(enum Direction dir,short id,unsigned short ofs,int init,int max=0x7fffffff)
-      : MDDProperty(id,ofs,4,dir),_init(init),_max(max) {}
+   MDDPInt(short id,unsigned short ofs,int init,int max=0x7fffffff)
+      : MDDProperty(id,ofs,4),_init(init),_max(max) {}
    void init(char* buf) const noexcept override      { *reinterpret_cast<int*>(buf+_ofs) = _init;}
    int get(char* buf) const noexcept override        { return *reinterpret_cast<int*>(buf+_ofs);}
    void set(char* buf,int v) noexcept override       { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void stream(char* buf,std::ostream& os) const override { os << *reinterpret_cast<int*>(buf+_ofs);}
    void print(std::ostream& os) const override  {
-      os << "PInt(" << _d << ',' << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
+      os << "PInt(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
    }
    friend class MDDStateSpec;
 };
@@ -315,14 +310,14 @@ class MDDPByte :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPByte> Ptr;
-   MDDPByte(enum Direction dir,short id,unsigned short ofs,unsigned char init,unsigned char max=255)
-      : MDDProperty(id,ofs,1,dir),_init(init),_max(max) {}
+   MDDPByte(short id,unsigned short ofs,unsigned char init,unsigned char max=255)
+      : MDDProperty(id,ofs,1),_init(init),_max(max) {}
    void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
    int get(char* buf) const  noexcept override       { return (unsigned char)buf[_ofs];}
    void set(char* buf,int v) noexcept override       { ((unsigned char*)buf)[_ofs] = (unsigned char)v;}
    void stream(char* buf,std::ostream& os) const override { int v = (unsigned char)buf[_ofs];os << v;}
    void print(std::ostream& os) const override  {
-      os << "PByte(" << _d << ',' << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
+      os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
    friend class MDDStateSpec;
 };
@@ -343,8 +338,8 @@ class MDDPBitSequence : public MDDProperty {
       return (_ofs << 3) + storageSize();
    }
  public:
-   MDDPBitSequence(enum Direction dir,short id,unsigned short ofs,int nbbits,unsigned char init) // init = 0 | 1
-      : MDDProperty(id,ofs,8 * ((nbbits % 64) ? nbbits/64 + 1 : nbbits/64),dir),_nbBits(nbbits),_init(init)
+   MDDPBitSequence(short id,unsigned short ofs,int nbbits,unsigned char init) // init = 0 | 1
+      : MDDProperty(id,ofs,8 * ((nbbits % 64) ? nbbits/64 + 1 : nbbits/64)),_nbBits(nbbits),_init(init)
    {}   
    void init(char* buf) const noexcept override {
       unsigned long long* ptr = reinterpret_cast<unsigned long long*>(buf + _ofs);
@@ -381,7 +376,7 @@ class MDDPBitSequence : public MDDProperty {
       os << ']';
    }
    void print(std::ostream& os) const override  {
-      os << "PBS(" << _d << ',' << _id << ',' << _ofs << ',' << _nbBits << ',' << (int)_init << ')';
+      os << "PBS(" << _id << ',' << _ofs << ',' << _nbBits << ',' << (int)_init << ')';
    }
    friend class MDDStateSpec;   
 };
@@ -396,12 +391,11 @@ public:
    const auto layoutSize() const noexcept { return _lsz;}
    void layout();
    virtual void varOrder() {}
-   bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
    auto size() const noexcept { return _attrs.size();}
+   bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
+   bool isDown(int p) const noexcept { return _attrs[p]->isDown();}
    virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff);
-   virtual int addStateUp(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff);
    virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
-   virtual int addBSStateUp(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
    friend class MDDState;
@@ -570,12 +564,11 @@ public:
    // End-user API to define an ADD
    MDDConstraintDescriptor::Ptr makeConstraintDescriptor(const Factory::Veci&, const char*);
    int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff) override;
-   int addStateUp(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
-   int addBSStateUp(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
    void addArc(const MDDConstraintDescriptor::Ptr d,ArcFun a);
-   void addTransition(int,lambdaTrans);
+   void transitionDown(int,lambdaTrans);
+   void transitionUp(int,lambdaTrans);
    template <typename LR>
    void addRelaxation(int p,LR r) {
       for(auto& cd : constraints)
@@ -586,7 +579,8 @@ public:
       _relaxation.emplace_back(std::move(r));
    }
    void addSimilarity(int,lambdaSim);
-   void addTransitions(const lambdaMap& map);
+   void transitionDown(const lambdaMap& map);
+   void transitionUp(const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
    // Internal methods.
@@ -630,7 +624,16 @@ private:
 };
 
 
-std::pair<int,int> domRange(const Factory::Veci& vars);
+template <typename Container> std::pair<int,int> domRange(const Container& vars) {
+   std::pair<int,int> udom;
+   udom.first = INT_MAX;
+   udom.second = -INT_MAX;
+   for(auto& x : vars){
+      udom.first = (udom.first > x->min()) ? x->min() : udom.first;
+      udom.second = (udom.second < x->max()) ? x->max() : udom.second;
+   }
+   return udom;
+}  
 
 template <typename Container> std::pair<int,int> idRange(const Container& vars) {
    int low = std::numeric_limits<int>::max();

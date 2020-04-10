@@ -30,7 +30,7 @@ namespace Factory {
                 ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
       });
 
-      mdd.addTransition(minC,[minC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionDown(minC,[minC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool allMembers = true;
                                 for(int v : val) {
                                    allMembers &= values.member(v);
@@ -38,7 +38,7 @@ namespace Factory {
                                 }
                                 out.set(minC,p.at(minC) + allMembers);
                              });
-      mdd.addTransition(maxC,[maxC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionDown(maxC,[maxC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool oneMember = false;
                                 for(int v : val) {
                                    oneMember = values.member(v);
@@ -46,7 +46,7 @@ namespace Factory {
                                 }
                                 out.set(maxC,p.at(maxC) + oneMember);
                              });
-      mdd.addTransition(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(rem,p.at(rem) - 1);});
+      mdd.transitionDown(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(rem,p.at(rem) - 1);});
 
       mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.set(minC,std::min(l.at(minC), r.at(minC)));});
       mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.set(maxC,std::max(l.at(maxC), r.at(maxC)));});
@@ -67,36 +67,34 @@ namespace Factory {
       const int all  = mdd.addBSState(d,udom.second - udom.first + 1,0);
       const int some = mdd.addBSState(d,udom.second - udom.first + 1,0);
       const int len  = mdd.addState(d,0,vars.size());
-      const int allu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
-      const int someu = mdd.addBSStateUp(d,udom.second - udom.first + 1,0);
+      const int allu = mdd.addBSState(d,udom.second - udom.first + 1,0);
+      const int someu = mdd.addBSState(d,udom.second - udom.first + 1,0);
       
-      mdd.addTransition(all,[minDom,all](auto& out,const auto& in,auto var,const auto& val,bool up) {
+      mdd.transitionDown(all,[minDom,all](auto& out,const auto& in,auto var,const auto& val,bool up) {
                                out.setProp(all,in);
                                if (val.size()==1)
                                   out.getBS(all).set(val.singleton() - minDom);
                                //out.setBS(all,in.getBS(all)).set(val - minDom);
                             });
-      mdd.addTransition(some,[minDom,some](auto& out,const auto& in,auto var,const auto& val,bool up) {
+      mdd.transitionDown(some,[minDom,some](auto& out,const auto& in,auto var,const auto& val,bool up) {
                                 out.setProp(some,in);
                                 MDDBSValue sv(out.getBS(some));
                                 for(auto v : val)
                                    sv.set(v - minDom);
                                 //out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
-      mdd.addTransition(len,[len](auto& out,const auto& in,auto var,const auto& val,bool up) { out.set(len,in[len] + 1);});
-      mdd.addTransition(allu,[minDom,allu](auto& out,const auto& in,auto var,const auto& val,bool up) {
-                                out.setProp(allu,in);
-                                if (val.size()==1)
-                                   out.getBS(allu).set(val.singleton() - minDom);
-                                //out.setBS(allu,in.getBS(allu)).set(val - minDom);
-                               });
-      mdd.addTransition(someu,[minDom,someu](auto& out,const auto& in,auto var,const auto& val,bool up) {
-                                 out.setProp(someu,in);
-                                 MDDBSValue sv(out.getBS(someu));
-                                 for(auto v : val)
-                                    sv.set(v - minDom);                                 
-                                 //out.setBS(someu,in.getBS(someu)).set(val - minDom);
-                              });
+      mdd.transitionDown(len,[len](auto& out,const auto& in,auto var,const auto& val,bool up) { out.set(len,in[len] + 1);});
+      mdd.transitionUp(allu,[minDom,allu](auto& out,const auto& in,auto var,const auto& val,bool up) {
+                               out.setProp(allu,in);
+                               if (val.size()==1)
+                                  out.getBS(allu).set(val.singleton() - minDom);
+                            });
+      mdd.transitionUp(someu,[minDom,someu](auto& out,const auto& in,auto var,const auto& val,bool up) {
+                                out.setProp(someu,in);
+                                MDDBSValue sv(out.getBS(someu));
+                                for(auto v : val)
+                                   sv.set(v - minDom);                                 
+                             });
       
       mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r)     {
                                out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));
@@ -166,13 +164,13 @@ namespace Factory {
                              ||  (p.at(p0) >= 0 && minv >= lb && p.at(pminL) - p.at(pmaxF) + inS <= ub);
                        });
       
-      spec.addTransitions(toDict(ps[minFIdx],
+      spec.transitionDown(toDict(ps[minFIdx],
                                  ps[minLIdx]-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.addTransitions(toDict(ps[maxFIdx],
+      spec.transitionDown(toDict(ps[maxFIdx],
                                  ps[maxLIdx]-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.addTransition(ps[minLIdx],[values,minL=ps[minLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(ps[minLIdx],[values,minL=ps[minLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                         bool allMembers = true;
                                         for(int v : val) {
                                            allMembers &= values.member(v);
@@ -181,7 +179,7 @@ namespace Factory {
                                         out.set(minL,p.at(minL)+allMembers);
                                         //out.set(k,p.at(k)+values.member(v));
                                      });
-      spec.addTransition(ps[maxLIdx],[values,maxL=ps[maxLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(ps[maxLIdx],[values,maxL=ps[maxLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                         bool oneMember = false;
                                         for(int v : val) {
                                            oneMember = values.member(v);
@@ -219,11 +217,11 @@ namespace Factory {
       const int maxL = ps[maxLIdx];
       const int pnb  = ps[nb];
 
-      spec.addTransitions(toDict(minF,minL-1,
+      spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.addTransitions(toDict(maxF,maxL-1,
+      spec.transitionDown(toDict(maxF,maxL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.addTransition(minL,[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(minL,[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool allMembers = true;
                                  for(int v : val) {
                                     allMembers &= values.member(v);
@@ -231,7 +229,7 @@ namespace Factory {
                                  }
                                  out.set(minL,p.at(minL)+allMembers);
                               });
-      spec.addTransition(maxL,[values,maxL](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(maxL,[values,maxL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool oneMember = false;
                                  for(int v : val) {
                                     oneMember = values.member(v);
@@ -239,7 +237,7 @@ namespace Factory {
                                  }
                                  out.set(maxL,p.at(maxL)+oneMember);
                               });
-      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(pnb,[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                 out.setInt(pnb,p[pnb]+1);
                              });
 
@@ -281,9 +279,9 @@ namespace Factory {
       for(int i = maxFIdx;i <= maxLIdx;i++)
          ps[i] = spec.addState(desc,0,nbVars);         // init @ nbVars, largest value is nbVars. 
       for(int i = minFIdxUp;i <= minLIdxUp;i++)
-         ps[i] = spec.addStateUp(desc,0,nbVars);       // init @ 0, largest value is nbVars. 
+         ps[i] = spec.addState(desc,0,nbVars);       // init @ 0, largest value is nbVars. 
       for(int i = maxFIdxUp;i <= maxLIdxUp;i++)
-         ps[i] = spec.addStateUp(desc,0,nbVars);       // init @ nbVars, largest value is nbVars. 
+         ps[i] = spec.addState(desc,0,nbVars);       // init @ nbVars, largest value is nbVars. 
       ps[nb] = spec.addState(desc,0,nbVars);   // init @ 0, largest value is number of variables. 
 
       const int minF = ps[minFIdx];
@@ -297,11 +295,11 @@ namespace Factory {
       const int pnb  = ps[nb];
 	
       // down transitions
-      spec.addTransitions(toDict(minF,minL-1,
+      spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.addTransitions(toDict(maxF,maxL-1,
+      spec.transitionDown(toDict(maxF,maxL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.addTransition(minL,[ps,values,minL,minF,maxLup,minLup,len,pnb,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(minL,[ps,values,minL,minF,minLup,len,pnb,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 
 	  bool hasMemberOutS = false;
 	  
@@ -323,7 +321,7 @@ namespace Factory {
 	  out.set(minL,minVal);
 	});
 
-      spec.addTransition(maxL,[values,maxL,maxF,ub,nbVars,lb,pnb,maxLup,len](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(maxL,[values,maxL,maxF,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 	  
 	  bool hasMemberInS = false;
 	  
@@ -345,17 +343,17 @@ namespace Factory {
 	  
 	  out.set(maxL,maxVal);
 	});
-      spec.addTransition(pnb,[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(pnb,[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                 out.set(pnb,p.at(pnb)+1);
                              });
 
       // up transitions
-      spec.addTransitions(toDict(minFup,minLup-1,
-                                 [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i+1));};}));
-      spec.addTransitions(toDict(maxFup,maxLup-1,
-                                 [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i+1));};}));
-      spec.addTransition(minLup,[values,minLup,minFup,maxL,minL,len,pnb,lb,nbVars](auto& out,const auto& c,
-                                                                                   auto x,const auto& val,bool up) {
+      spec.transitionUp(toDict(minFup,minLup-1,
+                               [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i+1));};}));
+      spec.transitionUp(toDict(maxFup,maxLup-1,
+                               [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i+1));};}));
+      spec.transitionUp(minLup,[values,minLup,minFup,len,pnb,lb,nbVars](auto& out,const auto& c,
+                                                                        auto x,const auto& val,bool up) {
 	  bool hasMemberOutS = false;
 	  
           for(int v : val)  {
@@ -371,7 +369,7 @@ namespace Factory {
 
 	  out.set(minLup,minVal);			   
 	});
-      spec.addTransition(maxLup,[values,maxLup,maxFup,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(maxLup,[values,maxLup,maxFup,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
 
 	  bool hasMemberInS = false;
 	  
@@ -477,7 +475,7 @@ namespace Factory {
                  return [=] (auto& out,const auto& p,auto x, const auto& val,bool up) { out.set(pi,p.at(pi) + ((val.singleton() - min) == i));};
               return [=] (auto& out,const auto& p,auto x, const auto& val,bool up)    { out.set(pi,p.at(pi) + ((val.singleton() - min) == (i - dz)));};
            });
-      spec.addTransitions(d);
+      spec.transitionDown(d);
 
       for(ORInt i = minFDom; i <= minLDom; i++){
          int p = ps[i];
@@ -517,8 +515,8 @@ namespace Factory {
       // Define the states: minimum and maximum weighted value (initialize at 0, maximum is INT_MAX (when negative values are allowed).
       const int minW = mdd.addState(d, 0, INT_MAX);
       const int maxW = mdd.addState(d, 0, INT_MAX);
-      const int minWup = mdd.addStateUp(d, 0, INT_MAX);
-      const int maxWup = mdd.addStateUp(d, 0, INT_MAX);
+      const int minWup = mdd.addState(d, 0, INT_MAX);
+      const int maxWup = mdd.addState(d, 0, INT_MAX);
 
       // State 'len' is needed to capture the index i, to express array[i]*val when vars[i]=val.
       const int len  = mdd.addState(d, 0, vars.size());
@@ -534,7 +532,7 @@ namespace Factory {
 	  }
 	});
 	
-      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(minW,[minW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 int delta = std::numeric_limits<int>::max();
                                 auto coef = array[p[len]];
                                 for(int v : val)
@@ -542,7 +540,7 @@ namespace Factory {
                                 out.setInt(minW, p[minW] + delta);
                                 //out.setInt(minW, p[minW] + array[p[len]]*val);
                              });
-      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 int delta = std::numeric_limits<int>::min();
                                 auto coef = array[p[len]];
                                 for(int v : val)
@@ -551,7 +549,7 @@ namespace Factory {
                                 //out.setInt(maxW, p[maxW] + array[p[len]]*val);
                              });
 
-      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
+      mdd.transitionUp(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
                                   if (in[len] >= 1) {
                                      int delta = std::numeric_limits<int>::max();
                                      auto coef = array[in[len]-1];
@@ -560,7 +558,7 @@ namespace Factory {
                                      out.setInt(minWup, in[minWup] + delta);
                                   }
                                });
-      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
+      mdd.transitionUp(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
                                   if (in[len] >= 1) {
                                      int delta = std::numeric_limits<int>::min();
                                      auto coef = array[in[len]-1];
@@ -570,7 +568,7 @@ namespace Factory {
                                   }
                                });
       
-      mdd.addTransition(len, [len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(len, [len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 out.setInt(len,  p[len] + 1);
                              });      
 
@@ -610,8 +608,8 @@ namespace Factory {
       // Define the states
       const int minW = mdd.addState(d, 0, INT_MAX);
       const int maxW = mdd.addState(d, 0, INT_MAX);
-      const int minWup = mdd.addStateUp(d, 0, INT_MAX);
-      const int maxWup = mdd.addStateUp(d, 0, INT_MAX);
+      const int minWup = mdd.addState(d, 0, INT_MAX);
+      const int maxWup = mdd.addState(d, 0, INT_MAX);
 
       // State 'len' is needed to capture the index i, to express array[i]*val when vars[i]=val.
       const int len  = mdd.addState(d, 0, vars.size());
@@ -627,7 +625,7 @@ namespace Factory {
 	});
 
       
-      mdd.addTransition(minW,[minW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(minW,[minW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 int delta = std::numeric_limits<int>::max();
                                 auto coef = array[p[len]];
                                 for(int v : val)
@@ -635,7 +633,7 @@ namespace Factory {
                                 out.setInt(minW,p[minW] + delta);
                                 //out.set(minW, p[minW] + array[p[len]]*val);
                              });
-      mdd.addTransition(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(maxW,[maxW,array,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 int delta = std::numeric_limits<int>::min();
                                 auto coef = array[p[len]];
                                 for(int v : val)
@@ -644,29 +642,29 @@ namespace Factory {
                                 //out.set(maxW, p[maxW] + array[p[len]]*val);
                              });
 
-      mdd.addTransition(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
-                                  if (in[len] >= 1) {
-                                     int delta = std::numeric_limits<int>::max();
-                                     auto coef = array[in[len]-1];
-                                     for(int v : val)
-                                        delta = std::min(delta,coef*v);
-                                     out.setInt(minWup, in[minWup] + delta);
-                                     //out.set(minWup, in[minWup] + array[in[len]-1]*val);
-                                  }
-                               });
-      mdd.addTransition(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
-                                  if (in[len] >= 1) {
-                                     int delta = std::numeric_limits<int>::min();
-                                     auto coef = array[in[len]-1];
-                                     for(int v : val)
-                                        delta = std::max(delta,coef*v);
-                                     out.setInt(maxWup, in[maxWup] + delta);
-                                     //out.set(maxWup, in[maxWup] + array[in[len]-1]*val);
-                                  }
-                               });
+      mdd.transitionUp(minWup,[minWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
+                                 if (in[len] >= 1) {
+                                    int delta = std::numeric_limits<int>::max();
+                                    auto coef = array[in[len]-1];
+                                    for(int v : val)
+                                       delta = std::min(delta,coef*v);
+                                    out.setInt(minWup, in[minWup] + delta);
+                                    //out.set(minWup, in[minWup] + array[in[len]-1]*val);
+                                 }
+                              });
+      mdd.transitionUp(maxWup,[maxWup,array,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
+                                 if (in[len] >= 1) {
+                                    int delta = std::numeric_limits<int>::min();
+                                    auto coef = array[in[len]-1];
+                                    for(int v : val)
+                                       delta = std::max(delta,coef*v);
+                                    out.setInt(maxWup, in[maxWup] + delta);
+                                    //out.set(maxWup, in[maxWup] + array[in[len]-1]*val);
+                                 }
+                              });
 
       
-      mdd.addTransition(len, [len](auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(len, [len](auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 out.setInt(len,p[len] + 1);
                              });      
 
@@ -714,8 +712,8 @@ namespace Factory {
       // Define the states
       const int minW = mdd.addState(d, 0, INT_MAX);
       const int maxW = mdd.addState(d, 0, INT_MAX);
-      const int minWup = mdd.addStateUp(d, 0, INT_MAX);
-      const int maxWup = mdd.addStateUp(d, 0, INT_MAX);
+      const int minWup = mdd.addState(d, 0, INT_MAX);
+      const int maxWup = mdd.addState(d, 0, INT_MAX);
 
       // State 'len' is needed to capture the index i, to express matrix[i][vars[i]]
       const int len  = mdd.addState(d, 0, vars.size());
@@ -731,7 +729,7 @@ namespace Factory {
                       }
                    });
       
-      mdd.addTransition(minW,[minW,matrix,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(minW,[minW,matrix,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 int delta = std::numeric_limits<int>::max();
                                 const auto& row = matrix[p[len]];
                                 for(int v : val)
@@ -739,7 +737,7 @@ namespace Factory {
                                 out.setInt(minW,p[minW] + delta);
                                 //out.setInt(minW, p[minW] + matrix[p[len]][val]);
                              });
-      mdd.addTransition(maxW,[maxW,matrix,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(maxW,[maxW,matrix,len] (auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 int delta = std::numeric_limits<int>::min();
                                 const auto& row = matrix[p[len]];
                                 for(int v : val)
@@ -748,7 +746,7 @@ namespace Factory {
                                 //out.setInt(maxW, p[maxW] + matrix[p[len]][val]);
                              });
 
-      mdd.addTransition(minWup,[minWup,matrix,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
+      mdd.transitionUp(minWup,[minWup,matrix,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
                                   if (in[len] >= 1) {
                                      int delta = std::numeric_limits<int>::max();
                                      const auto& row = matrix[in[len]-1];
@@ -758,7 +756,7 @@ namespace Factory {
                                      //out.setInt(minWup, in[minWup] + matrix[in[len]-1][val]);
                                   }
                                });
-      mdd.addTransition(maxWup,[maxWup,matrix,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
+      mdd.transitionUp(maxWup,[maxWup,matrix,len] (auto& out,const auto& in,auto var, const auto& val,bool up) {
                                   if (in.at(len) >= 1) {
                                      int delta = std::numeric_limits<int>::min();
                                      const auto& row = matrix[in[len]-1];
@@ -769,7 +767,7 @@ namespace Factory {
                                   }
                                });
       
-      mdd.addTransition(len, [len](auto& out,const auto& p,auto var, const auto& val,bool up) {
+      mdd.transitionDown(len, [len](auto& out,const auto& p,auto var, const auto& val,bool up) {
                                 out.setInt(len,  p[len] + 1);
                              });      
 

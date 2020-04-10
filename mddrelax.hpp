@@ -90,6 +90,8 @@ class MDDRelax : public MDD {
    std::mt19937 _rnG;
    std::uniform_real_distribution<double> _sampler;
    std::vector<MDDState> _refs;
+   MDDIntSet*             _afp;
+   MDDNode**              _src;
    const MDDState& pickReference(int layer,int layerSize); 
    bool rebuild();
    bool refreshNode(MDDNode* n,int l);

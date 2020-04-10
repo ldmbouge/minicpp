@@ -11,7 +11,11 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
      _width(width),
      _rnG(42),
      _sampler(0.0,1.0)
-{}
+  
+{
+   _afp = new MDDIntSet[width];
+   _src = new MDDNode*[width];
+}
 
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
@@ -49,6 +53,12 @@ void MDDRelax::buildDiagram()
    _mddspec.layout();
    _mddspec.compile();
    std::cout << _mddspec << '\n';
+   auto uDom = domRange(x);
+   const int sz = uDom.second - uDom.first + 1;
+
+   for(auto i=0u;i < _width;i++)
+      _afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz * _width),sz * _width);
+   
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
    sink = new (mem) MDDNode(_lastNid++,mem, trail, sinkState, 0,(int) numVariables, 0);
@@ -224,25 +234,23 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    bool first = true;
    assert(n->getNumParents() > 0);
-   MDDIntSet afp[_width]; // arcs for parent
-   MDDNode*  source[_width];
    for(auto i=0u;i < _width;i++) {
-      afp[i] = MDDIntSet((char*)alloca(sizeof(int)*x[l-1]->size()),x[l-1]->size());
-      source[i] = nullptr;
+      _afp[i].clear();
+      _src[i] = nullptr;
    }
    for(auto& a : n->getParents()) {
       auto p = a->getParent();
       auto v = a->getValue();
-      afp[p->getPosition()].add(v);
-      source[p->getPosition()] = p;
+      _afp[p->getPosition()].add(v);
+      _src[p->getPosition()] = p;
    }
 
    for(auto i = 0u;i < _width;i++) {
-      if (source[i]==nullptr) continue;
-      auto p = source[i];      
-      assert(afp[i].size() > 0);
+      if (_src[i]==nullptr) continue;
+      auto p = _src[i];      
+      assert(_afp[i].size() > 0);
       cs.copyState(n->getState());     
-      _mddspec.createState(cs,p->getState(),l-1,x[l-1],afp[i],true);
+      _mddspec.createState(cs,p->getState(),l-1,x[l-1],_afp[i],true);
       if (first)
          ms.copyState(cs);
       else _mddspec.relaxation(ms,cs);
@@ -553,20 +561,19 @@ void MDDRelax::computeUp()
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
          for(auto& n : layers[i]) {
             bool first = true;           
-            MDDIntSet afp[_width];
             for(auto k=0u;k<_width;k++)
-               afp[k] = MDDIntSet((char*)alloca(sizeof(int)*x[i]->size()),x[i]->size());
+               _afp[k].clear();
             for(auto& a : n->getChildren()) {
                auto kid = a->getChild();
                int v = a->getValue();
-               afp[kid->getPosition()].add(v);
+               _afp[kid->getPosition()].add(v);
             }
             MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
             auto ub = std::min(_width,(unsigned)layers[i+1].size());
             for(auto k=0u;k < ub;k++) {
-               if (afp[k].size() > 0) {
+               if (_afp[k].size() > 0) {
                   auto c = layers[i+1][k];
-                  _mddspec.updateState(first,dest,c->getState(),i,x[i],afp[k]);
+                  _mddspec.updateState(first,dest,c->getState(),i,x[i],_afp[k]);
                   first = false;
                }
             }
