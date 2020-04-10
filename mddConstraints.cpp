@@ -104,7 +104,7 @@ namespace Factory {
 	  if (up) {
 	    return ((p.at(U) + values.member(val) + c.at(Uup) >= lb) &&
 		    (p.at(L) + values.member(val) + c.at(Lup) <= ub));
-	  }
+          } else return true;
       });
       
       mdd.addRelaxation(L,[L](auto& out,const auto& l,const auto& r) { out.set(L,std::min(l.at(L), r.at(L)));});
