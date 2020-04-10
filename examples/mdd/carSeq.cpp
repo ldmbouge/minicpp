@@ -209,7 +209,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
                      });
 
    auto stat = search.solve([](const SearchStatistics& stats) {
-                               return stats.numberOfSolutions() > 50;
+                               return stats.numberOfSolutions() > 0;
                             });
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;

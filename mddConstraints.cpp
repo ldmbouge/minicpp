@@ -798,4 +798,3 @@ namespace Factory {
       mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
   }  
 }
-

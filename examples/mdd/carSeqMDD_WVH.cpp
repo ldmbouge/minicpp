@@ -209,7 +209,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
                      });
 
    auto stat = search.solve([](const SearchStatistics& stats) {
-                               return stats.numberOfSolutions() > 50;
+                               return stats.numberOfSolutions() > 0;
                             });
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
@@ -257,30 +257,34 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
    // There is something wrong with gccMDD (as of 4/8/2020).
    //   gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
 
-   // use amongMDD instead (for testing).
-   // for(int i=0; i<in.nbConf(); i++) {
-   //   set<int> S;
-   //   S.insert(i);
-   //   Factory::amongMDD(mdd->getSpec(), line, in.demand(i), in.demand(i), S);	  
-   // }
-   
-   // meet demand: count occurrence of configuration via a Boolean variable
+   // Use amongMDD instead (for testing).
+   std::cout << "use amongMDD constraints to model the demand" << std::endl;
    for(int i=0; i<in.nbConf(); i++) {
-     auto boolVar = Factory::boolVarArray(cp,(int) cars.size());
-     std::set<int> S;
+     set<int> S;
      S.insert(i);
-     for (int i=0; i<(int) cars.size(); i++) {
-       cp->post(isMember(boolVar[i], line[i], S));
-     }
-     cp->post(sum(boolVar) == in.demand(i));
+     Factory::amongMDD(mdd->getSpec(), line, in.demand(i), in.demand(i), S);	  
    }
+   
+   // // meet demand: count occurrence of configuration via a Boolean variable
+   // std::cout << "use standard Boolean counters to model the demand" << std::endl;
+   // for(int i=0; i<in.nbConf(); i++) {
+   //   auto boolVar = Factory::boolVarArray(cp,(int) cars.size());
+   //   std::set<int> S;
+   //   S.insert(i);
+   //   for (int i=0; i<(int) cars.size(); i++) {
+   //     cp->post(isMember(boolVar[i], line[i], S));
+   //   }
+   //   cp->post(sum(boolVar) == in.demand(i));
+   // }
 
    for(int o = 0; o < nbO; o++){
      set<int> Confs;
      for(int i=0; i<in.nbConf(); i++) {
        if ( in.requires(i,o) ) { Confs.insert(i); }
      }
+     std::cout << "use seqMDD constraint for option " << o << std::endl;
      seqMDD(mdd->getSpec(), line, in.ub(o), 0, in.lb(o), Confs);
+     // std::cout << "use cumulative domain encoding for option " << o << std::endl;
      // addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
    }
    cp->post(mdd);
