@@ -396,7 +396,15 @@ namespace Factory {
 	  bool c4 = true;
 	  bool c5 = true;
 
+          // std::cout << "inside spec.addArc  at layer = " << p.at(pnb) << std::endl;
+	  
 	  if (up) {
+	    // std::cout << "  --> checking arc existence with p.minL = " << p.at(minL) 
+	    // 	      << " p.maxL = " << p.at(maxL) 
+	    // 	      << " p.minLup = " << p.at(minLup) 
+	    // 	      << " p.maxLup = " << p.at(maxLup)  
+	    // 	      << " inS = " << inS << std::endl;
+
 	    c0 = (p.at(minL) + inS <= c.at(maxL));
 	    c1 = (p.at(maxL) + inS >= c.at(minL));
 

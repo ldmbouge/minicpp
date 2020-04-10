@@ -27,8 +27,8 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mddrelax.hpp"
-#include "mddConstraints.hpp"
+// #include "mddrelax.hpp"
+// #include "mddConstraints.hpp"
 
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
@@ -178,10 +178,10 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
        for(i=0u;i < line.size();i++)
 	 if (line[i]->size()> 1) break;
        auto x = i< line.size() ? line[i] : nullptr;
-
-      // auto x = selectMin(line,
-      //                    [](const auto& x) { return x->size() > 1;},
-      //                    [](const auto& x) { return x->size();});
+       
+       // auto x = selectMin(line,
+       //                   [](const auto& x) { return x->size() > 1;},
+       //                   [](const auto& x) { return x->size();});
 
       if (x) {
          int c = x->min();
@@ -239,8 +239,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
   
 }
 
-
-void buildModel(CPSolver::Ptr cp, Instance& in, int width)
+void buildModel(CPSolver::Ptr cp, Instance& in)
 {
    using namespace std;
 
@@ -251,19 +250,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
    int nbO = (int) options.size();
 
    auto line = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
-   
-   auto mdd = new MDDRelax(cp,width);
 
-   // There is something wrong with gccMDD (as of 4/8/2020).
-   //   gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
-
-   // use amongMDD instead (for testing).
-   // for(int i=0; i<in.nbConf(); i++) {
-   //   set<int> S;
-   //   S.insert(i);
-   //   Factory::amongMDD(mdd->getSpec(), line, in.demand(i), in.demand(i), S);	  
-   // }
-   
    // meet demand: count occurrence of configuration via a Boolean variable
    for(int i=0; i<in.nbConf(); i++) {
      auto boolVar = Factory::boolVarArray(cp,(int) cars.size());
@@ -274,16 +261,16 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
      }
      cp->post(sum(boolVar) == in.demand(i));
    }
+   
 
+   // sequence constraints: use cumulative encoding
    for(int o = 0; o < nbO; o++){
      set<int> Confs;
      for(int i=0; i<in.nbConf(); i++) {
        if ( in.requires(i,o) ) { Confs.insert(i); }
      }
-     seqMDD(mdd->getSpec(), line, in.ub(o), 0, in.lb(o), Confs);
-     // addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
+     addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
    }
-   cp->post(mdd);
 
    solveModel(cp,line,in);
 }
@@ -291,17 +278,15 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
 
 int main(int argc,char* argv[])
 {
-   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
-   const char* filename = (argc >= 3) ? argv[2] : "data/dataMini";
+   const char* filename = (argc >= 2) ? argv[1] : "data/dataMini";
 
-   std::cout << "width = " << width << std::endl;
    std::cout << "filename = " << filename << std::endl;   
 
    try {
       Instance in = Instance::readData(filename);
       std::cout << in << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp,in,width);
+      buildModel(cp,in);
    } catch (std::exception e) {
       std::cerr << "Unable to find the file" << std::endl;
    }

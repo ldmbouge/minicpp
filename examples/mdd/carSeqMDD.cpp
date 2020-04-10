@@ -202,7 +202,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
                      });
 
    auto stat = search.solve([](const SearchStatistics& stats) {
-                               return stats.numberOfSolutions() > 100000;
+                               return stats.numberOfSolutions() > 50;
                             });
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
@@ -210,7 +210,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
 }
 
 
-void buildModel(CPSolver::Ptr cp, Instance& in)
+void buildModel(CPSolver::Ptr cp, Instance& in, int width)
 {
    auto cars = in.cars();
    auto options = in.options();
@@ -220,7 +220,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in)
    matrix<Vecb, var<bool>::Ptr, 2> setup(cp->getStore(),{nbC, nbO});
    using namespace std;
    cout << line << endl;
-   auto mdd = new MDDRelax(cp,16);
+   auto mdd = new MDDRelax(cp,width);
    // for(int o = 0; o < nbO;o++) {
    //    auto vl = slice<var<int>::Ptr>(0,in.nbCars(),[&line,o](int i) { return isEqual(line[i],o);});
    //    cout << vl << endl;
@@ -236,7 +236,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in)
          setup[c][o] = makeBoolVar(cp);
          opts[c] = setup[c][o];
       }
-      auto mdd = new MDDRelax(cp,16);
+      auto mdd = new MDDRelax(cp,width);
       as[o] = mdd;
       seqMDD(mdd->getSpec(),opts, in.ub(o), 0, in.lb(o), {1});
       cp->post(mdd);
@@ -261,12 +261,17 @@ void buildModel(CPSolver::Ptr cp, Instance& in)
 
 int main(int argc,char* argv[])
 {
-   const char* filename = "data/dataMini";
+   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
+   const char* filename = (argc >= 3) ? argv[2] : "data/dataMini";
+
+   std::cout << "width = " << width << std::endl;
+   std::cout << "filename = " << filename << std::endl;   
+
    try {
       Instance in = Instance::readData(filename);
       std::cout << in << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp,in);
+      buildModel(cp,in,width);
    } catch (std::exception e) {
       std::cerr << "Unable to find the file" << std::endl;
    }
