@@ -25,6 +25,7 @@
 #include <bitset>
 #include <utility>
 #include <xmmintrin.h>
+#include <limits.h>
 
 class MDDIntSet {
    short  _mxs,_sz;
