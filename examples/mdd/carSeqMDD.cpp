@@ -22,6 +22,8 @@
 #include <fstream>      // std::ifstream
 #include <iomanip>
 #include <iostream>
+#include <map>
+
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"

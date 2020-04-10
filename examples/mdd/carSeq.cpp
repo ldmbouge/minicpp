@@ -22,6 +22,7 @@
 #include <fstream>      // std::ifstream
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"
@@ -153,6 +154,7 @@ Instance Instance::readData(const char* filename)
    }else
       throw;
 }
+
 std::map<int,int> tomap(int min, int max,std::function<int(int)> clo)
 {
    std::map<int,int> r;

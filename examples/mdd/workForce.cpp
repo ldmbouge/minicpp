@@ -235,7 +235,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    int zUB = 0;
    for (unsigned int i=0; i<emp.size(); i++) {
      int tmpMax = 0;
-     for (unsigned int j=emp[i]->min(); j<=emp[i]->max(); j++) {
+     for (int j=emp[i]->min(); j<=emp[i]->max(); j++) {
        if (compat[i][j] > tmpMax) { tmpMax = compat[i][j]; }
      }
      zUB += tmpMax;
