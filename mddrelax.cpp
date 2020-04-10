@@ -590,7 +590,7 @@ void MDDRelax::propagate()
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
       // adjust first and last free inward.
-      while (_ff < numVariables && x[_ff]->isBound())
+      while (_ff < (int)numVariables && x[_ff]->isBound())
          _ff+=1;
       // while (_lf >= 0 && x[_lf]->isBound())
       //    _lf-=1;
