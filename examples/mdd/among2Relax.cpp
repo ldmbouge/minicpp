@@ -31,11 +31,12 @@ int main(int argc,char* argv[])
    int useSearch = 1;
    using namespace std;
    using namespace Factory;
+   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    CPSolver::Ptr cp  = Factory::makeSolver();
 
    auto v = Factory::intVarArray(cp, 4, 1, 5);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDDRelax(cp,4);
+   auto mdd = new MDDRelax(cp,width);
    //auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, {2});
    Factory::amongMDD(mdd->getSpec(),v, 1, 1, {3});

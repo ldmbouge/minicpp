@@ -107,7 +107,7 @@ public:
    MDDRelax(CPSolver::Ptr cp,int width = 32);
    void trimDomains() override;
    void buildDiagram() override;
-   void relaxLayer(int i);
+   void relaxLayer(int i,unsigned int width);
    void propagate() override;
    void trimLayer(unsigned int layer) override;
    void debugGraph() override;

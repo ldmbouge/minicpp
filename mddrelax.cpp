@@ -70,7 +70,7 @@ void MDDRelax::buildDiagram()
    _refs.emplace_back(rootState);
    for(auto i = 0u; i < numVariables; i++) {
       buildNextLayer(i);
-      relaxLayer(i+1);
+      relaxLayer(i+1,1);//_width);
    }
    trimDomains();
    auto dur = RuntimeMonitor::elapsedSince(start);
@@ -155,10 +155,10 @@ void MDDRelax::relaxLayer(int i)
 
 // "inner product"  based relaxation.
 
-void MDDRelax::relaxLayer(int i)
+void MDDRelax::relaxLayer(int i,unsigned int width)
 {
    _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
-   if (layers[i].size() <= _width)
+   if (layers[i].size() <= width)
       return;   
    const int iSize = (int)layers[i].size();  
    const MDDState& refDir = _refs[i];
@@ -172,8 +172,8 @@ void MDDRelax::relaxLayer(int i)
                                            return std::get<0>(p1) < std::get<0>(p2);
                                         });
 
-   const int bucketSize = iSize / _width;
-   int   rem = iSize % _width;
+   const int bucketSize = iSize / width;
+   int   rem = iSize % width;
    int   lim = bucketSize + ((rem > 0) ? 1 : 0);
    rem = rem > 0 ? rem - 1 : 0;
    int   from = 0;
@@ -181,7 +181,7 @@ void MDDRelax::relaxLayer(int i)
    
    std::multimap<float,MDDNode*,std::less<float> > cli;
    std::vector<MDDNode*> nl;
-   for(k=0;k < _width;k++) { // k is the bucket id
+   for(k=0;k < width;k++) { // k is the bucket id
       memset(buf,0,_mddspec.layoutSize());
       MDDState acc(&_mddspec,buf);
       MDDNode* target = std::get<1>(cl[from]);
