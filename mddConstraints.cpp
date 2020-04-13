@@ -377,6 +377,8 @@ namespace Factory {
 
       spec.transitionDown(Ymin,[values,Ymin,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 
+	  std::cout << "entering Ymin Down at layer " << p.at(N);
+	  
 	  bool hasMemberOutS = false;
 	  
           for(int v : val)  {
@@ -392,6 +394,9 @@ namespace Factory {
 	    if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
 	    if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 	  }
+
+	  std::cout << ": setting Ymin = " << minVal << std::endl;
+
 	  out.set(Ymin,minVal);
 	});
 
@@ -429,6 +434,8 @@ namespace Factory {
 
       spec.transitionUp(Ymin,[Ymin,values,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
 
+	  std::cout << "entering Ymin Up at layer " << c.at(N);
+
       	  int minVal = out.at(Ymin);
 
 	  bool hasMemberInS = false;
@@ -448,6 +455,8 @@ namespace Factory {
 	  
       	  if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
       	  if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
+
+	  std::cout << ": setting Ymin = " << minVal << std::endl;
 
 	  out.set(Ymin,minVal);
       	});
@@ -485,6 +494,8 @@ namespace Factory {
 	  bool c1 = true;
 	  bool c2 = true;
 	  bool c3 = true;
+	  bool c4 = true;
+	  bool c5 = true;
 
 	  // the up-test should not be needed here?
 	  if (up) {
@@ -493,9 +504,12 @@ namespace Factory {
 
 	    c2 = (p.at(Ymin) <= p.at(Ymax));
 	    c3 = (c.at(Ymin) <= c.at(Ymax));
+
+	    c2 = (p.at(Ymax) <= p.at(N));
+	    c3 = (c.at(Ymax) <= c.at(N));
 	  }
 	  
-	  return c0 && c1 && c2 && c3;
+	  return c0 && c1 && c2 && c3 && c4 && c5;
 	});      
       
       // relaxations
