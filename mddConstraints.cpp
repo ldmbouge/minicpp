@@ -104,7 +104,8 @@ namespace Factory {
 	  if (up) {
 	    return ((p.at(U) + values.member(val) + c.at(Uup) >= lb) &&
 		    (p.at(L) + values.member(val) + c.at(Lup) <= ub));
-          } else return true;
+          } else
+	    return (p.at(L) + values.member(val) <= ub);
       });
       
       mdd.addRelaxation(L,[L](auto& out,const auto& l,const auto& r) { out.set(L,std::min(l.at(L), r.at(L)));});
@@ -326,43 +327,58 @@ namespace Factory {
    void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
       const int nbVars = (int)vars.size();
+
+      // Indices of the properties that will be used.
+      int YminIdx = 0,        YmaxIdx = 1;          // Minimum and maximum cumulative value at this state
+      int AminFIdx = 2,       AminLIdx = 2+len-1;   // First and Last index of Amin array (minimum value among Ancestors)
+      int AmaxFIdx = 2+len,   AmaxLIdx = 2+2*len-1; // First and Last index of Amax array (maximum value among Ancestors)
+      int DminFIdx = 2+2*len, DminLIdx = 2+3*len-1; // First and Last index of Dmin array (maximum value among Descendants)
+      int DmaxFIdx = 2+3*len, DmaxLIdx = 2+4*len-1; // First and Last index of Dmax array (maximum value among Descendants)
+      int NIdx = 2+4*len;                        // Layer index (N-th variable)
       
-      int minFIdx = 0,minLIdx = len-1;
-      int maxFIdx = len,maxLIdx = len*2-1;
-      int minFIdxUp = len*2,minLIdxUp = len*3-1;
-      int maxFIdxUp = len*3,maxLIdxUp = len*4-1;
-      int nb = len*4;
       spec.append(vars);
       ValueSet values(rawValues);
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
-      std::vector<int> ps(nb+1);
-      for(int i = minFIdx;i <= minLIdx;i++)
-	ps[i] = spec.addState(desc,0,nbVars);         // init @ 0, largest value is nbVars. 
-      for(int i = maxFIdx;i <= maxLIdx;i++)
-         ps[i] = spec.addState(desc,0,nbVars);         // init @ nbVars, largest value is nbVars. 
-      for(int i = minFIdxUp;i <= minLIdxUp;i++)
-         ps[i] = spec.addState(desc,0,nbVars);       // init @ 0, largest value is nbVars. 
-      for(int i = maxFIdxUp;i <= maxLIdxUp;i++)
-         ps[i] = spec.addState(desc,0,nbVars);       // init @ nbVars, largest value is nbVars. 
-      ps[nb] = spec.addState(desc,0,nbVars);   // init @ 0, largest value is number of variables. 
+      std::vector<int> ps(NIdx+1);
 
-      const int minF = ps[minFIdx];
-      const int minL = ps[minLIdx];
-      const int maxF = ps[maxFIdx];
-      const int maxL = ps[maxLIdx];
-      const int minFup = ps[minFIdxUp];
-      const int minLup = ps[minLIdxUp];
-      const int maxFup = ps[maxFIdxUp];
-      const int maxLup = ps[maxLIdxUp];
-      const int pnb  = ps[nb];
+      ps[YminIdx] = spec.addState(desc, 0, nbVars);
+      ps[YmaxIdx] = spec.addState(desc, 0, nbVars);
+      
+      for(int i = AminFIdx;i <= AminLIdx;i++)
+	ps[i] = spec.addState(desc, 0, nbVars);
+      for(int i = AmaxFIdx;i <= AmaxLIdx;i++)
+	ps[i] = spec.addState(desc, 0, nbVars);
+      for(int i = DminFIdx;i <= DminLIdx;i++)
+	ps[i] = spec.addState(desc, 0, nbVars);
+      for(int i = DmaxFIdx;i <= DmaxLIdx;i++)
+	ps[i] = spec.addState(desc, 0, nbVars);
+      ps[NIdx] = spec.addState(desc, 0, nbVars);
+
+      const int Ymin = ps[YminIdx];
+      const int Ymax = ps[YmaxIdx];
+      const int AminF = ps[AminFIdx];
+      const int AminL = ps[AminLIdx];
+      const int AmaxF = ps[AmaxFIdx];
+      const int AmaxL = ps[AmaxLIdx];
+      const int DminF = ps[DminFIdx];
+      const int DminL = ps[DminLIdx];
+      const int DmaxF = ps[DmaxFIdx];
+      const int DmaxL = ps[DmaxLIdx];
+      const int N = ps[NIdx];
 	
       // down transitions
-      spec.transitionDown(toDict(minF,minL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.transitionDown(minL,[ps,values,minL,minF,minLup,len,pnb,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(toDict(AminF+1,AminL,
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i-1));};}));
+      spec.transitionDown(toDict(AmaxF+1,AmaxL,
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i-1));};}));
 
+      spec.transitionDown(AminF,[AminF,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(AminF,p.at(Ymin)); });
+      spec.transitionDown(AmaxF,[AmaxF,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(AmaxF,p.at(Ymax)); });
+
+      spec.transitionDown(Ymin,[values,Ymin,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
+
+	  std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
+	  
 	  bool hasMemberOutS = false;
 	  
           for(int v : val)  {
@@ -371,20 +387,24 @@ namespace Factory {
 	      break;
 	    }
 	  }
-
-	  int minVal = p.at(minL);
-	  if (!hasMemberOutS) { minVal++; };
-	  if (p.at(pnb) >= len-1) { minVal = std::max(minVal, lb+p.at(minF)); }
-
-	  if (up && out.at(pnb) <= nbVars-len+1) {
-	    minVal = std::max(minVal, out.at(minLup) - ub);
-	  }
 	  
-	  out.set(minL,minVal);
+	  int minVal = p.at(Ymin);
+	  if (!hasMemberOutS) { minVal++; };
+	  if (up) {
+	    if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
+	    if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
+	  }
+
+	  std::cout << ": setting Ymin = " << minVal << std::endl;
+
+	  out.set(Ymin,minVal);
 	});
 
-      spec.transitionDown(maxL,[values,maxL,maxF,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
+     
+      spec.transitionDown(Ymax,[values,Ymax,AmaxL,DmaxL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 	  
+	  std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
+
 	  bool hasMemberInS = false;
 	  
           for(int v : val)  {
@@ -393,59 +413,95 @@ namespace Factory {
 	      break;
 	    }
 	  }
-
-	  int maxVal = p.at(maxL) + hasMemberInS;
-	  maxVal = std::min(maxVal, ub+p.at(maxF));
-
-	  // Adding this causes an error: testSequence misses a solution!
-	  // Need to print out the MDD during search...
-	  // if (up && out.at(pnb) <= nbVars-len+1) {
-	  //   maxVal = std::min(maxVal, out.at(maxLup) - lb);
-	  // }
 	  
-	  out.set(maxL,maxVal);
+	  int maxVal = p.at(Ymax) + hasMemberInS;
+	  if (up) {
+	    if (out.at(N) >= len)        {  maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
+	    if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, out.at(DmaxL) - ub); }
+	  }
+
+	  std::cout << ": setting Ymax = " << maxVal << std::endl;
+
+	  out.set(Ymax,maxVal);
 	});
-      spec.transitionDown(pnb,[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
-                                out.set(pnb,p.at(pnb)+1);
-                             });
+
+
+      
+      spec.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
 
       // up transitions
-      spec.transitionUp(toDict(minFup,minLup-1,
-                               [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i+1));};}));
-      spec.transitionUp(toDict(maxFup,maxLup-1,
-                               [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i+1));};}));
-      spec.transitionUp(minLup,[values,minLup,minFup,len,pnb,lb,nbVars](auto& out,const auto& c,
-                                                                        auto x,const auto& val,bool up) {
-	  bool hasMemberOutS = false;
+      spec.transitionUp(toDict(DminF+1,DminL,
+                               [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i-1));};}));
+      spec.transitionUp(toDict(DmaxF+1,DmaxL,
+                               [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i-1));};}));
+      spec.transitionUp(DminF,[DminF,Ymin](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DminF,c.at(Ymin)); });
+      spec.transitionUp(DmaxF,[DmaxF,Ymax](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DmaxF,c.at(Ymax)); });
+
+      spec.transitionUp(Ymin,[Ymin,Ymax,values,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
+
+	  std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
+
+      	  int minVal = out.at(Ymin);
+
+	  bool hasMemberInS = false;
 	  
           for(int v : val)  {
-	    if (!values.member(v)) {
+	    if (values.member(v)) {
+	      hasMemberInS = true;
+	      break;
+	    }
+	  }	  
+	  if (hasMemberInS) {
+	    minVal = std::max(minVal, c.at(Ymin)-1);
+	  }
+	  else {
+	    minVal = std::max(minVal, c.at(Ymin));
+	  }
+	  
+      	  if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
+      	  if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
+
+	  std::cout << ": setting Ymin = " << minVal << std::endl;
+
+	  // if (minVal > out.at(Ymax)) {
+	  //   std::cout << " !! minVal > out.at(Ymax) " << std::endl;
+	  // }
+	  
+out.set(Ymin,minVal);
+      	});
+
+      spec.transitionUp(Ymax,[Ymax,Ymin,values,AmaxL,DmaxL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
+	  
+	  std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
+
+      	  int maxVal = out.at(Ymax);
+	  
+	  bool hasMemberOutS = false;
+          for(int v : val)  {
+	    if (!values.member(v)) { 
 	      hasMemberOutS = true;
 	      break;
 	    }
 	  }
-
-	  int minVal = c.at(minLup);
-	  if (!hasMemberOutS) { minVal++; }
-	  if (c.at(pnb) <= nbVars-len+1) { minVal = std::max(minVal, lb+c.at(minFup)); }
-
-	  out.set(minLup,minVal);			   
-	});
-      spec.transitionUp(maxLup,[values,maxLup,maxFup,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
-
-	  bool hasMemberInS = false;
-	  
-          for(int v : val)  {
-	    if (values.member(v)) {
-	      hasMemberInS = true;
-	      break;
-	    }
+	  if (hasMemberOutS) {
+	    maxVal = std::min(maxVal, c.at(Ymax));
 	  }
+	  else {
+	    maxVal = std::min(maxVal, c.at(Ymax)-1);
+	  }	  
 	  
-	  int maxVal = c.at(maxLup) + hasMemberInS;
-	  maxVal = std::min(maxVal, ub+c.at(maxFup));
-	  out.set(maxLup,maxVal);
-	});
+      	  if (out.at(N) >= len)        { maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
+      	  if (out.at(N) <= nbVars-len) { maxVal = std::min(maxVal, out.at(DmaxL) - ub); }
+
+	  // if (maxVal < out.at(Ymin)) {
+	  //   std::cout << " !! maxVal < out.at(Ymin) " << std::endl;
+	  // }
+
+	  std::cout << ": setting Ymax = " << maxVal << std::endl;
+	  
+      	  out.set(Ymax,maxVal);
+      	});
+
 
       // arc definitions
       spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool up) -> bool {
@@ -457,66 +513,39 @@ namespace Factory {
 	  bool c3 = true;
 	  bool c4 = true;
 	  bool c5 = true;
+	  bool c6 = true;
+	  bool c7 = true;
 
-          // std::cout << "inside spec.addArc  at layer = " << p.at(pnb) << std::endl;
-	  
+	  // the up-test should not be needed here?
 	  if (up) {
-	    // std::cout << "  --> checking arc existence with p.minL = " << p.at(minL) 
-	    // 	      << " p.maxL = " << p.at(maxL) 
-	    // 	      << " p.minLup = " << p.at(minLup) 
-	    // 	      << " p.maxLup = " << p.at(maxLup)  
-	    // 	      << " inS = " << inS << std::endl;
+	    c0 = (p.at(Ymin) + inS <= c.at(Ymax));
+	    c1 = (p.at(Ymax) + inS >= c.at(Ymin));
 
-	    c0 = (p.at(minL) + inS <= c.at(maxL));
-	    c1 = (p.at(maxL) + inS >= c.at(minL));
+	    c2 = (p.at(Ymin) <= p.at(Ymax));
+	    c3 = (c.at(Ymin) <= c.at(Ymax));
 
-	    c2 = (c.at(minLup) + inS <= p.at(maxLup));
-	    c3 = (c.at(maxLup) + inS >= p.at(minLup));
+	    c4 = (p.at(Ymax) <= p.at(N));
+	    c5 = (c.at(Ymax) <= c.at(N));
+
+	    c6 = (p.at(Ymin) >= 0);
+	    c7 = (c.at(Ymin) >= 0);
 	  }
-
 	  
-	  // if (p.at(pnb) >= len - 1) {
-	  //   c0 = p.at(maxL) + inS - p.at(minF) >= lb;
-	  //   c1 = p.at(minL) + inS - p.at(maxF) <= ub;
-	  // } else {
-	  //   c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
-	  //   c1 = p.at(minL) + inS <= ub;
-	  // }
-
-	  // if (up) {
-	  //   if (c.at(pnb) <= nbVars-len+1) {
-	  //     c2 = c.at(maxLup) + inS - c.at(minFup) >= lb;
-	  //     c3 = c.at(minLup) + inS - c.at(maxFup) <= ub;
-	  //   }
-	  //   else {
-	  //     c2 = c.at(maxLup) + inS - c.at(minFup) >= lb - (c.at(pnb)-(nbVars-len+1));
-	  //     c3 = c.at(minLup) + inS <= ub;
-	  //   }
-	  // }
-	  
-	  // if (up) {
-          //    // this does not work?
-          //    //std::cout << "p.at(maxL) = " << p.at(maxL) << " + inS = " << inS << " ? >= " << c.at(minL) << std::endl;
-          //   //std::cout << "p.at(minL) = " << p.at(minL) << " + inS = " << inS << " ? <= " << c.at(maxL) << std::endl;
-	  //   c4 =( p.at(maxL) + inS >= c.at(minL) &&
-	  // 	  p.at(minL) + inS <= c.at(maxL) );
-	  //   c5 =( p.at(maxLup)  >= c.at(minLup) + inS &&
-	  // 	  p.at(minLup)  <= c.at(maxLup) + inS );
-	  // }
-
-	  return c0 && c1 && c2 && c3 && c4 && c5;
+	  return c0 && c1 && c2 && c3 && c4 && c5 && c6 && c7;
 	});      
       
       // relaxations
-      for(int i = minFIdx; i <= minLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
-      for(int i = maxFIdx; i <= maxLIdx; i++)
+      spec.addRelaxation(Ymin,[Ymin](auto& out,const auto& l,const auto& r) { out.set(Ymin,std::min(l.at(Ymin),r.at(Ymin)));});
+      spec.addRelaxation(Ymax,[Ymax](auto& out,const auto& l,const auto& r) { out.set(Ymax,std::max(l.at(Ymax),r.at(Ymax)));});
+      for(int i = AminFIdx; i <= AminLIdx; i++)
+	 spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
+      for(int i = AmaxFIdx; i <= AmaxLIdx; i++)
          spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
-      for(int i = minFIdxUp; i <= minLIdxUp; i++)
+      for(int i = DminFIdx; i <= DminLIdx; i++)
          spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
-      for(int i = maxFIdxUp; i <= maxLIdxUp; i++)
+      for(int i = DmaxFIdx; i <= DmaxLIdx; i++)
          spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
-      spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) { out.set(pnb,std::min(l.at(pnb),r.at(pnb)));});
+      spec.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
    }
 
 
