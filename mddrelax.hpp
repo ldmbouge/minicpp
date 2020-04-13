@@ -98,16 +98,14 @@ class MDDRelax : public MDD {
    bool trimVariable(int i);
    void filter(TVec<MDDNode*>& layer,int l);
    void split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l); // delta is essentially an out argument. 
-   void spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l);
    MDDNode* findSimilar(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
-   MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);
    void delState(MDDNode* state,int l);
    void computeUp();
 public:
    MDDRelax(CPSolver::Ptr cp,int width = 32);
    void trimDomains() override;
    void buildDiagram() override;
-   void relaxLayer(int i);
+   void relaxLayer(int i,unsigned int width);
    void propagate() override;
    void trimLayer(unsigned int layer) override;
    void debugGraph() override;
