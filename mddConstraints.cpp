@@ -377,7 +377,7 @@ namespace Factory {
 
       spec.transitionDown(Ymin,[values,Ymin,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 
-	  std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
+	  // std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
 	  
 	  bool hasMemberOutS = false;
 	  
@@ -391,11 +391,12 @@ namespace Factory {
 	  int minVal = p.at(Ymin);
 	  if (!hasMemberOutS) { minVal++; };
 	  if (up) {
+	    minVal = std::max(minVal, out.at(Ymin));
 	    if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
 	    if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 	  }
 
-	  std::cout << ": setting Ymin = " << minVal << std::endl;
+	  // std::cout << ": setting Ymin = " << minVal << std::endl;
 
 	  out.set(Ymin,minVal);
 	});
@@ -403,7 +404,7 @@ namespace Factory {
      
       spec.transitionDown(Ymax,[values,Ymax,AmaxL,DmaxL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 	  
-	  std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
+	  // std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
 
 	  bool hasMemberInS = false;
 	  
@@ -416,11 +417,12 @@ namespace Factory {
 	  
 	  int maxVal = p.at(Ymax) + hasMemberInS;
 	  if (up) {
+	    maxVal = std::min(maxVal, out.at(Ymax));
 	    if (out.at(N) >= len)        {  maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
 	    if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, out.at(DmaxL) - ub); }
 	  }
 
-	  std::cout << ": setting Ymax = " << maxVal << std::endl;
+	  // std::cout << ": setting Ymax = " << maxVal << std::endl;
 
 	  out.set(Ymax,maxVal);
 	});
@@ -439,7 +441,7 @@ namespace Factory {
 
       spec.transitionUp(Ymin,[Ymin,Ymax,values,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
 
-	  std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
+	  // std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
 
       	  int minVal = out.at(Ymin);
 
@@ -461,18 +463,14 @@ namespace Factory {
       	  if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
       	  if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 
-	  std::cout << ": setting Ymin = " << minVal << std::endl;
-
-	  // if (minVal > out.at(Ymax)) {
-	  //   std::cout << " !! minVal > out.at(Ymax) " << std::endl;
-	  // }
+	  // std::cout << ": setting Ymin = " << minVal << std::endl;
 	  
 out.set(Ymin,minVal);
       	});
 
       spec.transitionUp(Ymax,[Ymax,Ymin,values,AmaxL,DmaxL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
 	  
-	  std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
+	  // std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
 
       	  int maxVal = out.at(Ymax);
 	  
@@ -493,11 +491,7 @@ out.set(Ymin,minVal);
       	  if (out.at(N) >= len)        { maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
       	  if (out.at(N) <= nbVars-len) { maxVal = std::min(maxVal, out.at(DmaxL) - ub); }
 
-	  // if (maxVal < out.at(Ymin)) {
-	  //   std::cout << " !! maxVal < out.at(Ymin) " << std::endl;
-	  // }
-
-	  std::cout << ": setting Ymax = " << maxVal << std::endl;
+	  // std::cout << ": setting Ymax = " << maxVal << std::endl;
 	  
       	  out.set(Ymax,maxVal);
       	});
