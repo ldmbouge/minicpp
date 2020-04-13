@@ -589,6 +589,87 @@ out.set(Ymin,minVal);
       }
    }
 
+   void gccMDD2(MDDSpec& spec,const Factory::Veci& vars, const std::map<int,int>& lb, const std::map<int,int>& ub)
+   {
+      spec.append(vars);
+      int sz = (int) vars.size();
+      auto udom = domRange(vars);
+      int dz = udom.second - udom.first + 1;
+      int minFDom = 0,      minLDom = dz-1;
+      int maxFDom = dz,     maxLDom = dz*2-1;
+      int minFDomUp = dz*2, minLDomUp = dz*3-1;
+      int maxFDomUp = dz*3, maxLDomUp = dz*4-1;
+      int min = udom.first;
+      ValueMap<int> valuesLB(udom.first, udom.second,0,lb);
+      ValueMap<int> valuesUB(udom.first, udom.second,0,ub);
+      auto desc = spec.makeConstraintDescriptor(vars,"gccMDD");
+
+      std::vector<int> ps = spec.addStates(desc, minFDom, maxLDomUp, sz,[] (int i) -> int { return 0; });
+
+      spec.addArc(desc,[=](const auto& p,const auto& c,auto x,int v,bool up)->bool{
+	  bool c1 = true;
+	  bool c2 = true;
+
+	  int minIdx = v - min;
+	  int maxIdx = maxFDom + v - min;
+	  int minIdxUp = minFDomUp + v - min;
+	  int maxIdxUp = maxFDomUp + v - min;
+	  
+	  if (up) {
+	    c1 = (p.at(ps[minIdx]) + 1 + c.at(ps[minIdxUp]) <= valuesUB[v]);
+	    c2 = (p.at(ps[maxIdx]) + 1 + c.at(ps[maxIdxUp]) >= valuesLB[v]);
+	  }
+	  else {
+	    c1 = (p.at(ps[minIdx]) + 1 <= valuesUB[v]);
+	  }	    
+	  
+	  return c1 && c2;
+	});
+
+      lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,ps] (int i,int pi) -> lambdaTrans {
+	  // LDM: TOFIX
+	  if (i <= minLDom)
+	    return [=] (auto& out,const auto& p,auto x, const auto& val,bool up) { out.set(pi,p.at(pi) + ((val.singleton() - min) == i));};
+	  return [=] (auto& out,const auto& p,auto x, const auto& val,bool up)    { out.set(pi,p.at(pi) + ((val.singleton() - min) == (i - dz)));};
+           });
+      spec.transitionDown(d);
+
+      lambdaMap dUp = toDict(minFDomUp,maxLDomUp,ps,[dz,min,minLDomUp,ps] (int i,int pi) -> lambdaTrans {
+	  // COPIED AND ADAPTED FROM       spec.transitionDown(d);
+	  if (i <= minLDomUp)
+	    return [=] (auto& out,const auto& c,auto x, const auto& val,bool up) { out.set(pi,c.at(pi) + ((val.singleton() - min) == i));};
+	  return [=] (auto& out,const auto& c,auto x, const auto& val,bool up)    { out.set(pi,c.at(pi) + ((val.singleton() - min) == (i - dz)));};
+           });
+      spec.transitionUp(dUp);
+
+      
+      for(ORInt i = minFDom; i <= minLDom; i++){
+         int p = ps[i];
+         spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::min(l.at(p),r.at(p));});
+      }
+
+      for(ORInt i = maxFDom; i <= maxLDom; i++){
+         int p = ps[i];
+         spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::max(l.at(p),r.at(p));});
+      }
+
+      for(ORInt i = minFDomUp; i <= minLDomUp; i++){
+	 int p = ps[i];
+         spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::min(l.at(p),r.at(p));});
+      }
+
+      for(ORInt i = maxFDomUp; i <= maxLDomUp; i++){
+         int p = ps[i];
+         spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::max(l.at(p),r.at(p));});
+      }
+}
+
+
+  
 
   void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub) {
       // Enforce
