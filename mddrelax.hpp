@@ -98,9 +98,7 @@ class MDDRelax : public MDD {
    bool trimVariable(int i);
    void filter(TVec<MDDNode*>& layer,int l);
    void split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l); // delta is essentially an out argument. 
-   void spawn(MDDNodeSet& delta,TVec<MDDNode*>& layer,unsigned int l);
    MDDNode* findSimilar(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir);
-   MDDNode* resetState(MDDNode* from,MDDNode* to,MDDState& s,int v,int l);
    void delState(MDDNode* state,int l);
    void computeUp();
 public:

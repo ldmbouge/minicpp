@@ -143,6 +143,8 @@ inline void MDDEdge::moveTo(MDDNode* n,Trailer::Ptr t,Storage::Ptr mem)
    child = n;
    child->hookChild(this,mem);
    assert(n->isActive());
+   assert(getParent()->getChildren().get(getChildPosition()).get() == this);
+   assert(getChild()->getParents().get(getParentPosition()).get() == this);
 }
 
 

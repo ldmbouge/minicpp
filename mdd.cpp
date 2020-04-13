@@ -204,8 +204,8 @@ void MDD::removeNode(MDDNode* node)
 {
    if(node->isActive()){
       assert(layers[node->getLayer()].get(node->getPosition()) == node);
-      node->remove(this);
       node->deactivate();
+      node->remove(this);
       //swap nodes in layer and decrement size of layer
       const int l      = node->getLayer();
       const int nodeID = node->getPosition();
