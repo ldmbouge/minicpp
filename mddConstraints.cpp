@@ -25,7 +25,7 @@ namespace Factory {
       const int maxC = mdd.addState(d,0,x.size());
       const int rem  = mdd.addState(d,(int)x.size(),x.size());
 
-      mdd.addArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
+      mdd.existArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
          return (p.at(minC) + values.member(val) <= ub) &&
                 ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
       });
@@ -100,7 +100,7 @@ namespace Factory {
                                 out.set(Uup,p.at(Uup) + oneMember);
                              });
 
-      mdd.addArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
+      mdd.existArc(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
 	  if (up) {
 	    return ((p.at(U) + values.member(val) + c.at(Uup) >= lb) &&
 		    (p.at(L) + values.member(val) + c.at(Lup) <= ub));
@@ -173,7 +173,7 @@ namespace Factory {
                                 out.getBS(someu).setBinOR(l.getBS(someu),r.getBS(someu));
                             });
 
-      mdd.addArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,const auto& val,bool up) -> bool  {
+      mdd.existArc(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,const auto& val,bool up) -> bool  {
                       MDDBSValue sbs = p.getBS(some);
                       const int ofs = val - minDom;
                       const bool notOk = p.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == p[len]);
@@ -220,7 +220,7 @@ namespace Factory {
       const int pmaxF = ps[maxFIdx];
       const int pmin = ps[minFIdx];
       const int pmax = ps[maxLIdx];
-      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
+      spec.existArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           int minv = p.at(pmax) - p.at(pmin) + inS;
                           return (p.at(p0) < 0 &&  minv >= lb && p.at(pminL) + inS               <= ub)
@@ -304,7 +304,7 @@ namespace Factory {
                                 out.setInt(pnb,p[pnb]+1);
                              });
 
-      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
+      spec.existArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           if (p.at(pnb) >= len - 1) {
                              bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
@@ -377,17 +377,9 @@ namespace Factory {
 
       spec.transitionDown(Ymin,[values,Ymin,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 
-	  std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
+                                  //std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
 	  
-	  bool hasMemberOutS = false;
-	  
-          for(int v : val)  {
-	    if (!values.member(v)) { 
-	      hasMemberOutS = true;
-	      break;
-	    }
-	  }
-	  
+          bool hasMemberOutS = val.memberOutside(values);	  
 	  int minVal = p.at(Ymin);
 	  if (!hasMemberOutS) { minVal++; };
 	  if (up) {
@@ -395,32 +387,24 @@ namespace Factory {
 	    if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 	  }
 
-	  std::cout << ": setting Ymin = " << minVal << std::endl;
+	  //std::cout << ": setting Ymin = " << minVal << std::endl;
 
 	  out.set(Ymin,minVal);
 	});
 
      
-      spec.transitionDown(Ymax,[values,Ymax,AmaxL,DmaxL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(Ymax,[values,Ymax,AmaxL,DmaxL,len,N,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 	  
-	  std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
+                                  // std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
 
-	  bool hasMemberInS = false;
-	  
-          for(int v : val)  {
-	    if (values.member(v)) {
-	      hasMemberInS = true;
-	      break;
-	    }
-	  }
-	  
+          bool hasMemberInS = val.memberInside(values);
 	  int maxVal = p.at(Ymax) + hasMemberInS;
 	  if (up) {
 	    if (out.at(N) >= len)        {  maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
 	    if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, out.at(DmaxL) - ub); }
 	  }
 
-	  std::cout << ": setting Ymax = " << maxVal << std::endl;
+	  //std::cout << ": setting Ymax = " << maxVal << std::endl;
 
 	  out.set(Ymax,maxVal);
 	});
@@ -437,20 +421,13 @@ namespace Factory {
       spec.transitionUp(DminF,[DminF,Ymin](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DminF,c.at(Ymin)); });
       spec.transitionUp(DmaxF,[DmaxF,Ymax](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DmaxF,c.at(Ymax)); });
 
-      spec.transitionUp(Ymin,[Ymin,Ymax,values,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(Ymin,[Ymin,values,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
 
-	  std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
+                                //std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
 
       	  int minVal = out.at(Ymin);
 
-	  bool hasMemberInS = false;
-	  
-          for(int v : val)  {
-	    if (values.member(v)) {
-	      hasMemberInS = true;
-	      break;
-	    }
-	  }	  
+	  bool hasMemberInS = val.memberInside(values);
 	  if (hasMemberInS) {
 	    minVal = std::max(minVal, c.at(Ymin)-1);
 	  }
@@ -461,28 +438,20 @@ namespace Factory {
       	  if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
       	  if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 
-	  std::cout << ": setting Ymin = " << minVal << std::endl;
+	  //std::cout << ": setting Ymin = " << minVal << std::endl;
 
 	  // if (minVal > out.at(Ymax)) {
 	  //   std::cout << " !! minVal > out.at(Ymax) " << std::endl;
 	  // }
 	  
-out.set(Ymin,minVal);
+          out.set(Ymin,minVal);
       	});
 
-      spec.transitionUp(Ymax,[Ymax,Ymin,values,AmaxL,DmaxL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
-	  
-	  std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
-
+      spec.transitionUp(Ymax,[Ymax,values,AmaxL,DmaxL,len,N,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                //std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
       	  int maxVal = out.at(Ymax);
 	  
-	  bool hasMemberOutS = false;
-          for(int v : val)  {
-	    if (!values.member(v)) { 
-	      hasMemberOutS = true;
-	      break;
-	    }
-	  }
+	  bool hasMemberOutS = val.memberOutside(values);
 	  if (hasMemberOutS) {
 	    maxVal = std::min(maxVal, c.at(Ymax));
 	  }
@@ -497,14 +466,14 @@ out.set(Ymin,minVal);
 	  //   std::cout << " !! maxVal < out.at(Ymin) " << std::endl;
 	  // }
 
-	  std::cout << ": setting Ymax = " << maxVal << std::endl;
+	  //std::cout << ": setting Ymax = " << maxVal << std::endl;
 	  
       	  out.set(Ymax,maxVal);
       	});
 
 
       // arc definitions
-      spec.addArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool up) -> bool {
+      spec.existArc(desc,[=] (const auto& p,const auto& c,auto x,int v,bool up) -> bool {
 	  bool inS = values.member(v);
 	  
 	  bool c0 = true;
@@ -564,7 +533,7 @@ out.set(Ymin,minVal);
 
       std::vector<int> ps = spec.addStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
 
-      spec.addArc(desc,[=](const auto& p,const auto& c,auto x,int v,bool)->bool{
+      spec.existArc(desc,[=](const auto& p,const auto& c,auto x,int v,bool)->bool{
                           return p.at(ps[v-min]) < values[v];
                        });
 
@@ -621,7 +590,7 @@ out.set(Ymin,minVal);
       const int len  = mdd.addState(d, 0, vars.size());
 
       // The lower bound needs the bottom-up state information to be effective.
-      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
+      mdd.existArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
 	  if (upPass==true) {
 	    return ((p[minW] + val*array[p[len]] + c[minWup] <= ub) &&
 		    (p[maxW] + val*array[p[len]] + c[maxWup] >= lb));
@@ -713,7 +682,7 @@ out.set(Ymin,minVal);
       // State 'len' is needed to capture the index i, to express array[i]*val when vars[i]=val.
       const int len  = mdd.addState(d, 0, vars.size());
 
-      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
+      mdd.existArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
 	  if (upPass==true) {
 	    return ((p[minW] + val*array[p[len]] + c[minWup] <= z->max()) &&
 		    (p[maxW] + val*array[p[len]] + c[maxWup] >= z->min()));
@@ -817,7 +786,7 @@ out.set(Ymin,minVal);
       // State 'len' is needed to capture the index i, to express matrix[i][vars[i]]
       const int len  = mdd.addState(d, 0, vars.size());
 
-      mdd.addArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
+      mdd.existArc(d,[=] (const auto& p, const auto& c, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
                       const int mlv = matrix[p[len]][val];
                       if (upPass==true) {
                          return ((p[minW] + mlv + c[minWup] <= z->max()) &&

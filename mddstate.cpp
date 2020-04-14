@@ -138,7 +138,7 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bo
    return arcOk;
 }
 
-void MDDSpec::addArc(MDDConstraintDescriptor::Ptr d,ArcFun a)
+void MDDSpec::existArc(MDDConstraintDescriptor::Ptr d,ArcFun a)
 {
    _exists.emplace_back(std::make_pair<MDDConstraintDescriptor::Ptr,ArcFun>(std::move(d),std::move(a)));
 }

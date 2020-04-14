@@ -66,6 +66,22 @@ public:
          if (_buf[i]==v) return true;
       return false;
    }
+   const bool memberOutside(const ValueSet& S) const noexcept {
+      if (_isSingle) return !S.member(_single);
+      else {
+         for(short k=0;k <_sz;k++)
+            if (!S.member(_buf[k])) return true;
+         return false;
+      }
+   }
+   const bool memberInside(const ValueSet& S) const noexcept {
+      if (_isSingle) return S.member(_single);
+      else {
+         for(short k=0;k <_sz;k++)
+            if (S.member(_buf[k])) return true;
+         return false;
+      }
+   }
    constexpr const short size() const { return _sz;}
    constexpr const bool isEmpty() const { return _sz == 0;}
    constexpr const bool isSingleton() const { return _isSingle || _sz == 1;}
@@ -567,7 +583,7 @@ public:
    int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
-   void addArc(const MDDConstraintDescriptor::Ptr d,ArcFun a);
+   void existArc(const MDDConstraintDescriptor::Ptr d,ArcFun a);
    void transitionDown(int,lambdaTrans);
    void transitionUp(int,lambdaTrans);
    template <typename LR>
