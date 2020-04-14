@@ -593,34 +593,16 @@ namespace Factory {
       	    }; }));
       spec.transitionDown(toDict(maxFDom,maxLDom, [min,ps,maxFDom](int i) {
       	    return [=](auto& out,const auto& p,auto x,const auto& val,bool up) {
-      	      // int tmp = p.at(ps[i]);
-      	      // for(int v : val) {
-      	      // 	if (i-maxFDom+min == v) {
-      	      // 	  tmp++;
-      	      // 	  break;
-      	      // 	}
-      	      // }
      	      out.set(ps[i], p.at(ps[i])+val.contains(i-maxFDom+min));
       	    }; }));
 
       spec.transitionUp(toDict(minFDomUp,minLDomUp, [min,ps,minFDomUp] (int i) {
       	    return [=](auto& out,const auto& c,auto x,const auto& val,bool up) {
-      	      out.set(ps[i], c.at(ps[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp) == i));
+	      out.set(ps[i], c.at(ps[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
       	    }; }));
       spec.transitionUp(toDict(maxFDomUp,maxLDomUp, [min,ps,maxFDomUp](int i) {
       	    return [=](auto& out,const auto& c,auto x,const auto& val,bool up) {
-	      // std::cout << "entering transitionUp with val=" << val << " and property i=" << i
-	      // 		<< " which translates into " << i-maxFDomUp+min;;
-      	      int tmp = c.at(ps[i]);
-      	      for(int v : val) {
-      		if (v-min+maxFDomUp == i) {
-		  // std::cout << " Count me in! ";
-      		  tmp++;
-      		  break;
-      		}
-      	      }
-	      // std::cout << std::endl;
-      	      out.set(ps[i], tmp);
+	      out.set(ps[i], c.at(ps[i])+val.contains(i-maxFDomUp+min));
       	    }; }));
 
       
