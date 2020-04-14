@@ -211,6 +211,13 @@ void MDDRelax::trimLayer(unsigned int layer)
 
 bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
+   if (l == 0) {
+      assert(n->getNumParents() == 0);
+      bool isOk = _mddspec.consistent(n->getState(), x[0]);
+      if (!isOk) failNow();
+      n->clearDirty();
+      return false;
+   }
    MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    bool first = true;
@@ -237,7 +244,14 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       else _mddspec.relaxation(ms,cs);
       first = false;
    }
-
+   bool isOk =  _mddspec.consistent(ms,x[l-1]);
+   bool internal = l > 0 && l < (int)numVariables;
+   if (!internal) {
+      if (!isOk) failNow();
+   } else {
+      if (!isOk) delState(n,l);
+      return true;
+   }
    bool changed = n->getState() != ms;
    if (changed) {
       n->setState(ms,mem);
@@ -347,6 +361,12 @@ void MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
          auto p = a->getParent();      // p is the parent
          auto v = a->getValue();       // value on arc from parent
          _mddspec.createState(ms,p->getState(),l-1,x[l-1],MDDIntSet(v),true);
+         bool isOk = _mddspec.consistent(ms,x[l-1]);
+         if (!isOk) {
+            delSupport(l-1,v);
+            p->unhook(a);
+            continue;
+         }
          MDDNode* bj = findSimilar(cl,ms,refDir);
          if (bj->getState() == ms) { // there is a perfect match
             if (bj != n) 
@@ -360,8 +380,8 @@ void MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
             for(auto ca : n->getChildren()) 
                cnt += keepArc[idx] = _mddspec.exist(ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
             if (cnt == 0) {
-               delSupport(l-1,a->getValue());
-               a->getParent()->unhook(a);
+               delSupport(l-1,v);
+               p->unhook(a);
             } else {
                MDDNode* nc = new (mem) MDDNode(_lastNid++,mem,trail,ms.clone(mem),x[l-1]->size(),l,(int)layer.size());
                layer.push_back(nc,mem);
@@ -471,13 +491,13 @@ void MDDRelax::computeUp()
                _afp[kid->getPosition()].add(v);
             }
             MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
-            auto ub = std::min(_width,(unsigned)layers[i+1].size());
-            for(auto k=0u;k < ub;k++) {
+            auto wub = std::min(_width,(unsigned)layers[i+1].size());
+            for(auto k=0u;k < wub;k++) {
                if (_afp[k].size() > 0) {
                   original.copyState(dest);
                   auto c = layers[i+1][k];
                   _mddspec.updateState(first,dest,c->getState(),i,x[i],_afp[k]);
-                  if (original != dest && i > 0)
+                  if (original != dest) // && i > 0)
                      n->markDirty();
                   first = false;
                }
