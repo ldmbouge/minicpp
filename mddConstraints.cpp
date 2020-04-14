@@ -377,7 +377,7 @@ namespace Factory {
 
       spec.transitionDown(Ymin,[values,Ymin,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 
-	  // std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
+	  std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
 	  
 	  bool hasMemberOutS = false;
 	  
@@ -396,7 +396,7 @@ namespace Factory {
 	    if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 	  }
 
-	  // std::cout << ": setting Ymin = " << minVal << std::endl;
+	  std::cout << ": setting Ymin = " << minVal << std::endl;
 
 	  out.set(Ymin,minVal);
 	});
@@ -404,7 +404,7 @@ namespace Factory {
      
       spec.transitionDown(Ymax,[values,Ymax,AmaxL,DmaxL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
 	  
-	  // std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
+	  std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
 
 	  bool hasMemberInS = false;
 	  
@@ -422,7 +422,7 @@ namespace Factory {
 	    if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, out.at(DmaxL) - ub); }
 	  }
 
-	  // std::cout << ": setting Ymax = " << maxVal << std::endl;
+	  std::cout << ": setting Ymax = " << maxVal << std::endl;
 
 	  out.set(Ymax,maxVal);
 	});
@@ -441,7 +441,7 @@ namespace Factory {
 
       spec.transitionUp(Ymin,[Ymin,Ymax,values,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
 
-	  // std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
+	  std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
 
       	  int minVal = out.at(Ymin);
 
@@ -463,7 +463,7 @@ namespace Factory {
       	  if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
       	  if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 
-	  // std::cout << ": setting Ymin = " << minVal << std::endl;
+	  std::cout << ": setting Ymin = " << minVal << std::endl;
 	  
 out.set(Ymin,minVal);
       	});
@@ -620,21 +620,76 @@ out.set(Ymin,minVal);
 	  return c1 && c2;
 	});
 
-      lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,ps] (int i,int pi) -> lambdaTrans {
-	  // LDM: TOFIX
-	  if (i <= minLDom)
-	    return [=] (auto& out,const auto& p,auto x, const auto& val,bool up) { out.set(pi,p.at(pi) + ((val.singleton() - min) == i));};
-	  return [=] (auto& out,const auto& p,auto x, const auto& val,bool up)    { out.set(pi,p.at(pi) + ((val.singleton() - min) == (i - dz)));};
-           });
-      spec.transitionDown(d);
+      spec.transitionDown(toDict(minFDom,minLDom, [min,ps] (int i) {
+      	    return [=](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      	      int tmp = p.at(ps[i]);
+      	      if (val.isSingleton() && (val.singleton() - min) == i) tmp++;
+      	      out.set(ps[i], tmp);
+      	    }; }));
+      spec.transitionDown(toDict(maxFDom,maxLDom, [min,ps,maxFDom](int i) {
+      	    return [=](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      	      // int tmp = p.at(ps[i]);
+      	      // for(int v : val) {
+      	      // 	if (i-maxFDom+min == v) {
+      	      // 	  tmp++;
+      	      // 	  break;
+      	      // 	}
+      	      // }
+     	      out.set(ps[i], p.at(ps[i])+val.contains(i-maxFDom+min));
+      	    }; }));
 
-      lambdaMap dUp = toDict(minFDomUp,maxLDomUp,ps,[dz,min,minLDomUp,ps] (int i,int pi) -> lambdaTrans {
-	  // COPIED AND ADAPTED FROM       spec.transitionDown(d);
-	  if (i <= minLDomUp)
-	    return [=] (auto& out,const auto& c,auto x, const auto& val,bool up) { out.set(pi,c.at(pi) + ((val.singleton() - min) == i));};
-	  return [=] (auto& out,const auto& c,auto x, const auto& val,bool up)    { out.set(pi,c.at(pi) + ((val.singleton() - min) == (i - dz)));};
-           });
-      spec.transitionUp(dUp);
+      spec.transitionUp(toDict(minFDomUp,minLDomUp, [min,ps,minFDomUp] (int i) {
+      	    return [=](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      	      out.set(ps[i], c.at(ps[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp) == i));
+      	    }; }));
+      spec.transitionUp(toDict(maxFDomUp,maxLDomUp, [min,ps,maxFDomUp](int i) {
+      	    return [=](auto& out,const auto& c,auto x,const auto& val,bool up) {
+	      // std::cout << "entering transitionUp with val=" << val << " and property i=" << i
+	      // 		<< " which translates into " << i-maxFDomUp+min;;
+      	      int tmp = c.at(ps[i]);
+      	      for(int v : val) {
+      		if (v-min+maxFDomUp == i) {
+		  // std::cout << " Count me in! ";
+      		  tmp++;
+      		  break;
+      		}
+      	      }
+	      // std::cout << std::endl;
+      	      out.set(ps[i], tmp);
+      	    }; }));
+
+      
+      // lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,maxFDom,ps] (int i,int pi) -> lambdaTrans {
+      // 	  if (i <= minLDom)
+      // 	    return [=] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      // 	      out.set(pi,p.at(pi) + (val.isSingleton() && (val.singleton() - min) == i));};
+      // 	  return [=] (auto& out,const auto& p,auto x, const auto& val,bool up)    {
+      // 	    int tmp = p.at(ps[i]);
+      // 	    for(int v : val) {
+      // 	      if (i-maxFDom+min == v) {
+      // 		tmp++;
+      // 		break;
+      // 	      }
+      // 	    }
+      // 	    out.set(pi,tmp);};
+      //      });
+      // spec.transitionDown(d);
+
+      // lambdaMap dUp = toDict(minFDomUp,maxLDomUp,ps,[dz,min,minFDomUp,minLDomUp,maxFDom,ps] (int i,int pi) -> lambdaTrans {
+      // 	  if (i <= minLDomUp)
+      // 	    return [=] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+      // 	      out.set(pi,c.at(pi) + (val.isSingleton() && (i-minFDomUp+min==val.singleton())));};
+      // 	  return [=] (auto& out,const auto& c,auto x, const auto& val,bool up)    {
+      // 	    int tmp = c.at(ps[i]);
+      // 	    for(int v : val) {
+      // 	      if (i-maxFDom+min == v) {
+      // 		tmp++;
+      // 		break;
+      // 	      }
+      // 	    }
+      // 	    out.set(pi,tmp);};
+      // 	});
+      // spec.transitionUp(dUp);
 
       
       for(ORInt i = minFDom; i <= minLDom; i++){
