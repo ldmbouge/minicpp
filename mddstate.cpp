@@ -137,8 +137,21 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bo
    }
    return arcOk;
 }
+bool MDDSpec::consistent(const MDDState& a,var<int>::Ptr x) const noexcept
+{
+   bool cons = true;
+   for(auto& consFun : _scopedConsistent[x->getId()]) {
+      cons = consFun(a);
+      if (!cons) break;      
+   }
+   return cons;
+}
 
-void MDDSpec::addArc(MDDConstraintDescriptor::Ptr d,ArcFun a)
+void MDDSpec::nodeExist(MDDConstraintDescriptor::Ptr d,NodeFun a)
+{
+   _nodeExists.emplace_back(std::make_pair<MDDConstraintDescriptor::Ptr,NodeFun>(std::move(d),std::move(a)));
+}
+void MDDSpec::arcExist(MDDConstraintDescriptor::Ptr d,ArcFun a)
 {
    _exists.emplace_back(std::make_pair<MDDConstraintDescriptor::Ptr,ArcFun>(std::move(d),std::move(a)));
 }
@@ -234,13 +247,20 @@ void MDDSpec::compile()
    std::tie(lid,uid) = idRange(x);
    const int sz = uid + 1;
    _scopedExists.resize(sz);
+   _scopedConsistent.resize(sz);
    for(auto& exist : _exists) {
       auto& cd  = std::get<0>(exist);
       auto& fun = std::get<1>(exist);
       auto& vars = cd->vars();
-      for(auto& v : vars) {
-         _scopedExists[v->getId()].emplace_back(fun);
-      }
+      for(auto& v : vars) 
+         _scopedExists[v->getId()].emplace_back(fun);      
+   }
+   for(auto& nex : _nodeExists) {
+      auto& cd  = std::get<0>(nex);
+      auto& fun = std::get<1>(nex);
+      auto& vars = cd->vars();
+      for(auto& v : vars) 
+         _scopedConsistent[v->getId()].emplace_back(fun);
    }
 }
 

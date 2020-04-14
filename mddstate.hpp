@@ -62,9 +62,29 @@ public:
       _buf[_sz++] = v;
    }
    constexpr const bool contains(int v) const noexcept {
-      for(short i=0;i < _sz;i++)
-         if (_buf[i]==v) return true;
-      return false;
+      if (_isSingle)
+         return _single == v;
+      else {
+         for(short i=0;i < _sz;i++)
+            if (_buf[i]==v) return true;     
+         return false;
+      }
+   }
+   const bool memberOutside(const ValueSet& S) const noexcept {
+      if (_isSingle) return !S.member(_single);
+      else {
+         for(short k=0;k <_sz;k++)
+            if (!S.member(_buf[k])) return true;
+         return false;
+      }
+   }
+   const bool memberInside(const ValueSet& S) const noexcept {
+      if (_isSingle) return S.member(_single);
+      else {
+         for(short k=0;k <_sz;k++)
+            if (S.member(_buf[k])) return true;
+         return false;
+      }
    }
    constexpr const short size() const { return _sz;}
    constexpr const bool isEmpty() const { return _sz == 0;}
@@ -112,6 +132,7 @@ public:
 void printSet(const MDDIntSet& s);
 
 class MDDState;
+typedef std::function<bool(const MDDState&)> NodeFun;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
 typedef std::function<void(const MDDState&)> FixFun;
 typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr,const MDDIntSet&,bool)> lambdaTrans;
@@ -567,11 +588,11 @@ public:
    int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
-   void addArc(const MDDConstraintDescriptor::Ptr d,ArcFun a);
+   void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
+   void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
    void transitionDown(int,lambdaTrans);
    void transitionUp(int,lambdaTrans);
-   template <typename LR>
-   void addRelaxation(int p,LR r) {
+   template <typename LR> void addRelaxation(int p,LR r) {
       for(auto& cd : constraints)
          if (cd->ownsProperty(p)) {
             cd->registerRelaxation((int)_relaxation.size());
@@ -586,6 +607,7 @@ public:
    void onFixpoint(FixFun onFix);
    // Internal methods.
    void varOrder() override;
+   bool consistent(const MDDState& a,var<int>::Ptr x) const noexcept;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
    void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
@@ -612,6 +634,7 @@ private:
    std::vector<MDDConstraintDescriptor::Ptr> constraints;
    std::vector<var<int>::Ptr> x;
    std::vector<std::pair<MDDConstraintDescriptor::Ptr,ArcFun>>  _exists;
+   std::vector<std::pair<MDDConstraintDescriptor::Ptr,NodeFun>> _nodeExists;
    std::vector<lambdaTrans> _transition;
    std::vector<lambdaRelax> _relaxation;
    std::vector<lambdaSim>   _similarity;
@@ -622,6 +645,7 @@ private:
    std::vector<std::vector<int>> _frameLayer;
    std::vector<std::vector<int>> _upframeLayer;
    std::vector<std::vector<ArcFun>> _scopedExists; // 1st dimension indexed by varId. 2nd dimension is a list.
+   std::vector<std::vector<NodeFun>> _scopedConsistent;
 };
 
 

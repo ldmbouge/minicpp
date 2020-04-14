@@ -171,7 +171,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       */   
        if (x) {
 	 int c = x->min();
-          int i = x->getId();
+         //int i = x->getId();
           
          return  [=] {
                     //cout << tab(i) << "?x(" << i << ") == " << c << endl;
