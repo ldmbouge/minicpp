@@ -78,8 +78,18 @@ int main(int argc,char* argv[])
                          });
       
       search.onSolution([&v]() {
-                           std::cout << "Assignment:" << std::endl;
-                           std::cout << v << std::endl;
+                           std::cout << "Assignment:" << v << '\n';
+                           int count[10] = {};
+                           for(int k=0;k < 50;k++) {
+                              count[v[k]->min()]++;
+                           }
+                           bool c1 = (2 <= count[2] && count[2] <= 5);
+                           bool c2 = (2 <= count[3] && count[3] <= 5);
+                           bool c3 = (3 <= count[4] && count[4] <= 5);
+                           bool c4 = (3 <= count[5] && count[5] <= 5);
+                           if (c1 && c2 && c3 && c4)
+                              std::cout << "All good!\n";
+                           else std::cout << "Something wrong...\n";
                         });
       
       std::cout << "starting..." << std::endl;
