@@ -128,15 +128,19 @@ void MDD::addNodeToLayer(int layer,MDDNode* n,int forValue)
    addSupport(layer-1,forValue);
 }
 
-void MDD::trimDomains()
+bool MDD::trimDomains()
 {
+   bool changed = false;
    for(auto i = 1u; i < numVariables;i++) {
       const auto& layer = layers[i];
       for(int j = (int)layer.size() - 1;j >= 0;j--) {
-         if(layer[j]->disconnected())
+         if(layer[j]->disconnected()) {
             removeNode(layer[j]);
+            changed = true;
+         }
       }
-   }   
+   }
+   return changed;
 }
 
 void MDD::hookupPropagators()

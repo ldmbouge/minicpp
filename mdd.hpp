@@ -35,7 +35,7 @@ public:
    std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
    unsigned long layerSize(const int layer) {return layers[layer].size();}
 protected:
-   virtual void trimDomains();
+   virtual bool trimDomains();
    void hookupPropagators();
    void buildNextLayer(unsigned int i);
    virtual void buildDiagram();

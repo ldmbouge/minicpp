@@ -249,8 +249,10 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    if (!internal) {
       if (!isOk) failNow();
    } else {
-      if (!isOk) delState(n,l);
-      return true;
+      if (!isOk) {
+         delState(n,l);
+         return true;
+      }
    }
    bool changed = n->getState() != ms;
    if (changed) {
@@ -264,14 +266,9 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
             delSupport(l,v);
          }
       }
-      // std::cout << "refresh[" << l << "]@" << n->getPosition() << " : "
-      //           << n->getState() << " to " << ms << '\n';
    } else n->clearDirty();
-   //return changed;
-   return false;
+   return changed;
 }
-
-
 
 MDDNode* MDDRelax::findSimilar(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
 {
@@ -305,19 +302,21 @@ void removeMatch(std::multimap<float,MDDNode*>& layer,float key,MDDNode* n)
    assert(false);
 }
 
-void MDDRelax::filter(TVec<MDDNode*>& layer,int l)
+bool MDDRelax::filter(TVec<MDDNode*>& layer,int l)
 {
    // variable x[l-1] connects layer `l-1` to layer `l`
+   bool changed = false;
    for(auto i = layer.rbegin();i != layer.rend();i++) {
       auto n = *i; // This is a _destination_ node into layer `l`
       if (n->getNumParents()==0 && l > 0) {
          if (l == (int)numVariables)
             failNow();
          delState(n,l);
+         changed = true;
          continue;
       }
       if (n->isDirty())
-         refreshNode(n,l);
+         changed = refreshNode(n,l) || changed;
       else {
          for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
             auto arc = *i;
@@ -326,11 +325,13 @@ void MDDRelax::filter(TVec<MDDNode*>& layer,int l)
             if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
                n->unhook(arc);
                child->markDirty();
+               changed = true;
                delSupport(l,v);
             }
          }         
       }      
    }
+   return changed;
 }
 
 template <typename Container,typename T,typename Fun> T sum(Container& c,T acc,const Fun& fun) {
@@ -338,10 +339,11 @@ template <typename Container,typename T,typename Fun> T sum(Container& c,T acc,c
    return acc;
 }
 
-void MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
+bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
 {
    using namespace std;
-   if (l==0 || l==(int)numVariables) return; // We never go through the splitting logic at root/sink
+   if (l==0 || l==(int)numVariables) return false; // We never go through the splitting logic at root/sink
+   bool changed = false;
    std::multimap<float,MDDNode*,std::less<float> > cl;
    const MDDState& refDir = _refs[l];
    bool xb = x[l-1]->isBound();
@@ -365,6 +367,7 @@ void MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
          if (!isOk) {
             delSupport(l-1,v);
             p->unhook(a);
+            changed = true;
             continue;
          }
          MDDNode* bj = findSimilar(cl,ms,refDir);
@@ -382,6 +385,7 @@ void MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
             if (cnt == 0) {
                delSupport(l-1,v);
                p->unhook(a);
+               changed = true;
             } else {
                MDDNode* nc = new (mem) MDDNode(_lastNid++,mem,trail,ms.clone(mem),x[l-1]->size(),l,(int)layer.size());
                layer.push_back(nc,mem);
@@ -394,6 +398,7 @@ void MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
                      ca->getChild()->markDirty();
                   }
                }
+               changed = true;
                cl.insert({nc->getState().inner(refDir), nc});
             }
          }
@@ -401,9 +406,11 @@ void MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
       if (n->getNumParents()==0) {
          delState(n,l);
          removeMatch(cl,n->getState().inner(refDir),n);
+         changed = true;
       } else
-         refreshNode(n,l);       
+         changed = refreshNode(n,l) || changed;
    }
+   return changed;
 }
 
 struct MDDStateEqual {
@@ -455,7 +462,7 @@ bool MDDRelax::rebuild()
    bool changed = false;
    for(unsigned l = 0u; l <= numVariables;l++) {
       // First refresh the down information in the nodes of layer l based on whether those are dirty.
-      filter(layers[l],l);
+      changed = filter(layers[l],l) || changed;
       split(delta,layers[l],l); // delta is an _output_ argument from split (splits add to it). 
       bool trim = (l>0) ? trimVariable(l-1) : false;
       changed |= trim;
@@ -463,15 +470,19 @@ bool MDDRelax::rebuild()
    return changed;
 }
 
-void MDDRelax::trimDomains()
+bool MDDRelax::trimDomains()
 {
+   bool changed = false;
    for(auto i = 1u; i < numVariables;i++) {
       const auto& layer = layers[i];      
       for(int j = (int)layer.size() - 1;j >= 0;j--) {
-         if(layer[j]->disconnected())
+         if(layer[j]->disconnected()) {
             removeNode(layer[j]);
+            changed = true;
+         }
       }
-   }   
+   }
+   return changed;
 }
 
 void MDDRelax::computeUp()
