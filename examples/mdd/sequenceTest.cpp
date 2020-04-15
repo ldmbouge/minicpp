@@ -54,7 +54,7 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
 
 void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
 
-  int H = vars.size();
+  int H = (int)vars.size();
   
   auto cumul = Factory::intVarArray(cp, H+1, 0, H); 
   cp->post(cumul[0] == 0);

@@ -302,6 +302,23 @@ void removeMatch(std::multimap<float,MDDNode*>& layer,float key,MDDNode* n)
    assert(false);
 }
 
+bool MDDRelax::filterKids(MDDNode* n,int l)
+{
+   bool changed = false;
+   for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
+      auto arc = *i;
+      MDDNode* child = arc->getChild();
+      int v = arc->getValue();
+      if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
+         n->unhook(arc);
+         child->markDirty();
+         changed = true;
+         delSupport(l,v);
+      }
+   }         
+   return changed;
+}
+
 bool MDDRelax::filter(TVec<MDDNode*>& layer,int l)
 {
    // variable x[l-1] connects layer `l-1` to layer `l`
@@ -317,19 +334,7 @@ bool MDDRelax::filter(TVec<MDDNode*>& layer,int l)
       }
       if (n->isDirty())
          changed = refreshNode(n,l) || changed;
-      else {
-         for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
-            auto arc = *i;
-            MDDNode* child = arc->getChild();
-            int v = arc->getValue();
-            if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
-               n->unhook(arc);
-               child->markDirty();
-               changed = true;
-               delSupport(l,v);
-            }
-         }         
-      }      
+      changed = filterKids(n,l) || changed;      
    }
    return changed;
 }
@@ -463,7 +468,7 @@ bool MDDRelax::rebuild()
    for(unsigned l = 0u; l <= numVariables;l++) {
       // First refresh the down information in the nodes of layer l based on whether those are dirty.
       changed = filter(layers[l],l) || changed;
-      split(delta,layers[l],l); // delta is an _output_ argument from split (splits add to it). 
+      changed = split(delta,layers[l],l) || changed; // delta is an _output_ argument from split (splits add to it). 
       bool trim = (l>0) ? trimVariable(l-1) : false;
       changed |= trim;
    }
@@ -490,7 +495,7 @@ void MDDRelax::computeUp()
    if (_mddspec.usesUp()) {
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
       MDDState original(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
-      sink->markDirty();
+      //sink->markDirty();
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
          for(auto& n : layers[i]) {
             bool first = true;           
@@ -524,7 +529,9 @@ void MDDRelax::propagate()
 {
    try {      
       bool change = false;
+      int iter = 0;
       do {
+         iter++;
          MDD::propagate();
          computeUp();
          change = rebuild();
