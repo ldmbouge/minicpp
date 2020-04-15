@@ -74,23 +74,9 @@ void solveModel(CPSolver::Ptr cp, const Veci& vx)
    std::cout << stat << std::endl;
 }
 
-std::map<int,int> buildBounds(int nbVars, int min, int max)
-{
-   std::map<int,int> bounds;
-   int n =  nbVars / (max - min + 1);
-   int r = nbVars % (max - min + 1);
-   for(int i = min; i <= max; i++) {
-      int k = n + (r-- > 0 ? 1 : 0);      
-      bounds.insert(std::pair<int,int>(i,k));
-   }
-   return bounds;
-}
-
-
 void addGCC(CPSolver::Ptr cp, const Veci& vars, const std::map<int,int>& lb, const std::map<int,int>& ub ) {
 
-  // meet demand: count occurrence of configuration via a Boolean variable
-  std::cout << "use standard Boolean counters to model the GCC: ";
+  // std::cout << "use standard Boolean counters to model the GCC: ";
   
   std::map<int,int>::const_iterator it1, it2;
   for (it1=lb.begin(), it2=ub.begin(); it1!=lb.end(); ++it1, ++it2) {
@@ -104,7 +90,7 @@ void addGCC(CPSolver::Ptr cp, const Veci& vars, const std::map<int,int>& lb, con
     cp->post(sum(boolVar) >= it1->second);
     cp->post(sum(boolVar) <= it2->second);
   }
-  std::cout << "done." << std::endl;
+  // std::cout << "done." << std::endl;
 }
 
 
@@ -120,12 +106,10 @@ int main(int argc,char* argv[])
 
    auto mdd = new MDDRelax(cp,width);
 
-
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
-   //auto bounds = buildBounds(SZ_VAR, 1, SZ_VAL);
    std::map<int,int> boundsLB = {{1,1},{2,1},{3,2}};
    std::map<int,int> boundsUB = {{1,2},{2,1},{3,2}};
-
+   
    auto start = RuntimeMonitor::cputime();
    
    std::cout << "lower and upper bounds:" << std::endl;
@@ -140,7 +124,6 @@ int main(int argc,char* argv[])
    if (mode == 0) {
      std::cout << "use Boolean domain encoding for GCC" << std::endl;
      addGCC(cp, v, boundsLB, boundsUB);
-     std::cout << "done" << std::endl;
    }
    else if (mode == 1) {
      std::cout << "use gccMDD -- only with UB constraints!" << std::endl;
@@ -167,7 +150,6 @@ int main(int argc,char* argv[])
      std::cout << stats << std::endl;
    }
 
-   std::cout << "About to solve Model" << std::endl;
    solveModel(cp, v);
    cp.dealloc();
    return 0;

@@ -597,15 +597,16 @@ namespace Factory {
 	  return cond;
 	});
 
-      // spec.nodeExist(desc,[=](const auto& p) {
-      // 	  // checks global validity: can we still satisfy all lower bounds?
-      // 	  bool cond = true;
-      // 	  int remainingLB=0;
-      // 	  for (int i=0; i<minLDom; i++) {
-      // 	    remainingLB += std::max(0, valuesLB[i] - (p.at(ps[i]) + p.at(ps[minFDomUp+i])));
-
-      // 	  return c2 && c4 && c6;
-      // 	});
+      spec.nodeExist(desc,[=](const auto& p) {
+      	  // check global validity: can we still satisfy all lower bounds?
+      	  int remainingLB=0;
+      	  int fixedValues=0;
+      	  for (int i=0; i<=minLDom; i++) {
+      	    remainingLB += std::max(0, valuesLB[i+min] - (p.at(ps[i]) + p.at(ps[minFDomUp+i])));
+	    fixedValues += p.at(ps[i]) + p.at(ps[minFDomUp+i]);
+	  }
+      	  return (fixedValues+remainingLB<=sz);
+      	});
       
       spec.transitionDown(toDict(minFDom,minLDom, [min,ps] (int i) {
       	    return [=](auto& out,const auto& p,auto x,const auto& val,bool up) {

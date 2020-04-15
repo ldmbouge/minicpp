@@ -209,7 +209,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
                      });
 
    auto stat = search.solve([](const SearchStatistics& stats) {
-                               return stats.numberOfSolutions() > 0;
+                               return stats.numberOfSolutions() > 100;
                             });
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
@@ -254,16 +254,18 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
    
    auto mdd = new MDDRelax(cp,width);
 
-   // There is something wrong with gccMDD (as of 4/8/2020).
-   //   gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
+   // meet demand: use gccMDD2
+   std::map<int,int> boundsLB = tomap(0, mx,[&in] (int i) { return in.demand(i);} );
+   std::map<int,int> boundsUB = tomap(0, mx,[&in] (int i) { return in.demand(i);} );
+   Factory::gccMDD2(mdd->getSpec(), line, boundsLB, boundsUB);
 
-   // Use amongMDD instead (for testing).
-   std::cout << "use amongMDD constraints to model the demand" << std::endl;
-   for(int i=0; i<in.nbConf(); i++) {
-     set<int> S;
-     S.insert(i);
-     Factory::amongMDD(mdd->getSpec(), line, in.demand(i), in.demand(i), S);	  
-   }
+   // // meet demand: use amongMDD (for testing)
+   // std::cout << "use amongMDD constraints to model the demand" << std::endl;
+   // for(int i=0; i<in.nbConf(); i++) {
+   //   set<int> S;
+   //   S.insert(i);
+   //   Factory::amongMDD(mdd->getSpec(), line, in.demand(i), in.demand(i), S);	  
+   // }
    
    // // meet demand: count occurrence of configuration via a Boolean variable
    // std::cout << "use standard Boolean counters to model the demand" << std::endl;
