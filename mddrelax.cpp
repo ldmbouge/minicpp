@@ -362,11 +362,11 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
       auto n = *i;
       assert(n->getNumParents() > 0);
       if (!n->getState().isRelaxed()) continue;
-      ms.copyState(n->getState());
       for(auto pit = n->getParents().rbegin(); pit != n->getParents().rend();pit++) {
          auto a = *pit;                // a is the arc p --(v)--> n
          auto p = a->getParent();      // p is the parent
          auto v = a->getValue();       // value on arc from parent
+         ms.copyState(n->getState());
          _mddspec.createState(ms,p->getState(),l-1,x[l-1],MDDIntSet(v),true);
          bool isOk = _mddspec.consistent(ms,x[l-1]);
          if (!isOk) {
