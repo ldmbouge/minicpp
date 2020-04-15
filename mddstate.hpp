@@ -563,11 +563,11 @@ public:
    bool stateChange(const MDDState& b) const {
       return memcmp(_mem,b._mem,_spec->layoutSize())!=0;
    }
-   bool operator==(const MDDState& s) const {    // equality test likely O(1) when different.
-      return memcmp(_mem,s._mem,_spec->layoutSize())==0 && _flags._relaxed == s._flags._relaxed;
+   bool operator==(const MDDState& s) const {    
+      return _flags._relaxed == s._flags._relaxed && memcmp(_mem,s._mem,_spec->layoutSize())==0;
    }
    bool operator!=(const MDDState& s) const {
-      return memcmp(_mem,s._mem,_spec->layoutSize())!=0 || _flags._relaxed != s._flags._relaxed;
+      return _flags._relaxed != s._flags._relaxed || memcmp(_mem,s._mem,_spec->layoutSize())!=0;
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << (s._flags._relaxed ? 'T' : 'F') << '[';
