@@ -274,11 +274,11 @@ public:
    virtual void init(char* buf) const noexcept              {}
    virtual int get(char* buf) const noexcept                { return 0;}
    int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
-   int getByte(char* buf) const noexcept                    { return ((unsigned char)buf[_ofs]);}
+   int getByte(char* buf) const noexcept                    { return buf[_ofs];}
    MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
    virtual void set(char* buf,int v) noexcept               {}
    void setInt(char* buf,int v) noexcept                    { *reinterpret_cast<int*>(buf+_ofs) = v;}
-   void setByte(char* buf,unsigned char v) noexcept         { buf[_ofs] = v;}
+   void setByte(char* buf,char v) noexcept         { buf[_ofs] = v;}
    MDDBSValue setBS(char* buf,const MDDBSValue& v) noexcept {
       MDDBSValue dest(buf + _ofs,_bsz >> 3);
       dest = v;
@@ -320,8 +320,8 @@ public:
 };
 
 class MDDPByte :public MDDProperty {
-   unsigned char _init;
-   unsigned char  _max;
+   char _init;
+   char  _max;
    size_t storageSize() const override     { return 8;}
    size_t setOffset(size_t bitOffset) override {
       size_t boW = bitOffset & 0x7;
@@ -332,12 +332,12 @@ class MDDPByte :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPByte> Ptr;
-   MDDPByte(short id,unsigned short ofs,unsigned char init,unsigned char max=255)
+   MDDPByte(short id,unsigned short ofs,char init,char max=127)
       : MDDProperty(id,ofs,1),_init(init),_max(max) {}
    void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
-   int get(char* buf) const  noexcept override       { return (unsigned char)buf[_ofs];}
-   void set(char* buf,int v) noexcept override       { ((unsigned char*)buf)[_ofs] = (unsigned char)v;}
-   void stream(char* buf,std::ostream& os) const override { int v = (unsigned char)buf[_ofs];os << v;}
+   int get(char* buf) const  noexcept override       { return buf[_ofs];}
+   void set(char* buf,int v) noexcept override       { buf[_ofs] = (char)v;}
+   void stream(char* buf,std::ostream& os) const override { int v = buf[_ofs];os << v;}
    void print(std::ostream& os) const override  {
       os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }

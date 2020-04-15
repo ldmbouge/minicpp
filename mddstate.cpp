@@ -19,7 +19,7 @@ namespace Factory {
    MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max)
    {
       MDDProperty::Ptr rv;
-      if (max <= 255)
+      if (max <= 127)
          rv = new MDDPByte(id,ofs,init,max);
       else
          rv = new MDDPInt(id,ofs,init,max);
