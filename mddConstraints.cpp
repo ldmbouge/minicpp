@@ -567,25 +567,47 @@ namespace Factory {
       std::vector<int> ps = spec.addStates(desc, minFDom, maxLDomUp, sz,[] (int i) -> int { return 0; });
 
       spec.arcExist(desc,[=](const auto& p,const auto& c,auto x,int v,bool up)->bool{
-	  bool c1 = true;
-	  bool c2 = true;
-
+	  bool cond = true;
+	  
 	  int minIdx = v - min;
 	  int maxIdx = maxFDom + v - min;
 	  int minIdxUp = minFDomUp + v - min;
 	  int maxIdxUp = maxFDomUp + v - min;
-	  
+  
 	  if (up) {
-	    c1 = (p.at(ps[minIdx]) + 1 + c.at(ps[minIdxUp]) <= valuesUB[v]);
-	    c2 = (p.at(ps[maxIdx]) + 1 + c.at(ps[maxIdxUp]) >= valuesLB[v]);
+	    // check LB and UB thresholds when value v is assigned:
+	    cond = cond && (p.at(ps[minIdx]) + 1 + c.at(ps[minIdxUp]) <= valuesUB[v])
+	                && (p.at(ps[maxIdx]) + 1 + c.at(ps[maxIdxUp]) >= valuesLB[v]);
+	    // check LB and UB thresholds for other values, when they are not assigned:
+	    for (int i=min; i<v; i++) {
+	      if (!cond) break;
+	      cond = cond && (p.at(ps[i-min]) + c.at(ps[minFDomUp+i-min]) <= valuesUB[i])
+	    	          && (p.at(ps[maxFDom+i-min]) + c.at(ps[maxFDomUp+i-min]) >= valuesLB[i]);
+	    }
+	    for (int i=v+1; i<=minLDom+min; i++) {
+	      if (!cond) break;
+	      cond = cond && (p.at(ps[i-min]) + c.at(ps[minFDomUp+i-min]) <= valuesUB[i])
+	    	          && (p.at(ps[maxFDom+i-min]) + c.at(ps[maxFDomUp+i-min]) >= valuesLB[i]);
+	    }
 	  }
 	  else {
-	    c1 = (p.at(ps[minIdx]) + 1 <= valuesUB[v]);
-	  }	    
+	    cond = (p.at(ps[minIdx]) + 1 <= valuesUB[v]);
+	  }
 	  
-	  return c1 && c2;
+	  return cond;
 	});
 
+      spec.nodeExist(desc,[=](const auto& p) {
+      	  // check global validity: can we still satisfy all lower bounds?
+      	  int remainingLB=0;
+      	  int fixedValues=0;
+      	  for (int i=0; i<=minLDom; i++) {
+      	    remainingLB += std::max(0, valuesLB[i+min] - (p.at(ps[i]) + p.at(ps[minFDomUp+i])));
+	    fixedValues += p.at(ps[i]) + p.at(ps[minFDomUp+i]);
+	  }
+      	  return (fixedValues+remainingLB<=sz);
+      	});
+      
       spec.transitionDown(toDict(minFDom,minLDom, [min,ps] (int i) {
       	    return [=](auto& out,const auto& p,auto x,const auto& val,bool up) {
       	      int tmp = p.at(ps[i]);
