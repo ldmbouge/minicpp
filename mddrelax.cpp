@@ -381,7 +381,7 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
             bool keepArc[n->getNumChildren()];
             unsigned idx = 0,cnt = 0;
             for(auto ca : n->getChildren()) 
-               cnt += keepArc[idx] = _mddspec.exist(ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
+               cnt += keepArc[idx++] = _mddspec.exist(ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
             if (cnt == 0) {
                delSupport(l-1,v);
                p->unhook(a);
