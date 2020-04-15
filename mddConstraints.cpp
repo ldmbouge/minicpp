@@ -384,7 +384,8 @@ namespace Factory {
 	  if (up) {
 	    minVal = std::max(minVal, out.at(Ymin));
 	    if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
-	    if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, std::max(0,out.at(DminL) - ub)); }
+	    // if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, std::max(0,out.at(DminL) - ub)); }
+	    if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 	  }
 
 	  // std::cout << ": setting Ymin = " << minVal << std::endl;
@@ -398,7 +399,8 @@ namespace Factory {
 	  if (up) {
 	    maxVal = std::min(maxVal, out.at(Ymax));
 	    if (out.at(N) >= len)        {  maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
-	    if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, std::max(0,out.at(DmaxL) - lb)); }
+	    // if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, std::max(0,out.at(DmaxL) - lb)); }
+	    if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, out.at(DmaxL) - lb); }
 	  }
 	  //std::cout << ": setting Ymax = " << maxVal << std::endl;
 	  out.set(Ymax,maxVal);
@@ -419,14 +421,14 @@ namespace Factory {
       	  int minVal = out.at(Ymin);
 	  bool hasMemberInS = val.memberInside(values);
 	  if (hasMemberInS) {
-	    minVal = std::max(minVal, std::max(0,c.at(Ymin)-1));
+	    minVal = std::max(minVal, c.at(Ymin)-1);
 	  }
 	  else {
 	    minVal = std::max(minVal, c.at(Ymin));
 	  }
 	  
       	  if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
-      	  if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, std::max(0,out.at(DminL) - ub)); }
+      	  if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
 
 	  //std::cout << ": setting Ymin = " << minVal << std::endl;
 
@@ -444,11 +446,11 @@ namespace Factory {
 	    maxVal = std::min(maxVal, c.at(Ymax));
 	  }
 	  else {
-	    maxVal = std::min(maxVal, std::max(0,c.at(Ymax)-1));
+	    maxVal = std::min(maxVal, c.at(Ymax)-1);
 	  }	  
 	  
       	  if (out.at(N) >= len)        { maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
-      	  if (out.at(N) <= nbVars-len) { maxVal = std::min(maxVal, std::max(0,out.at(DmaxL) - lb)); }
+      	  if (out.at(N) <= nbVars-len) { maxVal = std::min(maxVal, out.at(DmaxL) - lb); }
 
 	  // if (maxVal < out.at(Ymin)) {
 	  //   std::cout << " !! maxVal < out.at(Ymin) " << std::endl;
@@ -458,11 +460,13 @@ namespace Factory {
       	});
 
       spec.nodeExist(desc,[=](const auto& p) {
-                             bool c2 = (p.at(Ymin) <= p.at(Ymax));            
-                             bool c4 = (p.at(Ymax) <= p.at(N));
-                             bool c6 = (p.at(Ymin) >= 0);
-                             return c2 && c4 && c6;
-                          });
+	  return ( (p.at(Ymin) <= p.at(Ymax)) &&
+		   (p.at(Ymax) >= 0) &&
+		   (p.at(Ymax) <= p.at(N)) &&
+		   (p.at(Ymin) >= 0) &&
+		   (p.at(Ymin) <= p.at(N)) );
+	});
+      
       // arc definitions
       spec.arcExist(desc,[=] (const auto& p,const auto& c,auto x,int v,bool up) -> bool {
 	  bool inS = values.member(v);
