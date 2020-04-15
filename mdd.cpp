@@ -281,10 +281,14 @@ MDDStats::MDDStats(MDD* mdd) : _nbLayers((unsigned int)mdd->nbLayers()) {
          auto n = layer[i];
          size_t out = n->getNumChildren();
          size_t in = n->getNumParents();
-         _nbIEdges.first = (_nbIEdges.first < in) ? _nbIEdges.first : in;
-         _nbIEdges.second = (_nbIEdges.second > in) ? _nbIEdges.second : in;
-         _nbOEdges.first = (_nbOEdges.first < out) ? _nbOEdges.first : out;
-         _nbOEdges.second = (_nbOEdges.second > out) ? _nbOEdges.second : out;
+         if (n->getLayer() > 0) {
+            _nbIEdges.first = (_nbIEdges.first < in) ? _nbIEdges.first : in;
+            _nbIEdges.second = (_nbIEdges.second > in) ? _nbIEdges.second : in;
+         }
+         if (n->getLayer() < _nbLayers) {
+            _nbOEdges.first = (_nbOEdges.first < out) ? _nbOEdges.first : out;
+            _nbOEdges.second = (_nbOEdges.second > out) ? _nbOEdges.second : out;
+         }
       }
    }
 }
