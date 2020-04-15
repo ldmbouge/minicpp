@@ -91,7 +91,7 @@ void addGCC(CPSolver::Ptr cp, const Veci& vars, const std::map<int,int>& lb, con
 
   // meet demand: count occurrence of configuration via a Boolean variable
   std::cout << "use standard Boolean counters to model the GCC: ";
-
+  
   std::map<int,int>::const_iterator it1, it2;
   for (it1=lb.begin(), it2=ub.begin(); it1!=lb.end(); ++it1, ++it2) {
     assert(it1->first == it2->first);
@@ -140,6 +140,7 @@ int main(int argc,char* argv[])
    if (mode == 0) {
      std::cout << "use Boolean domain encoding for GCC" << std::endl;
      addGCC(cp, v, boundsLB, boundsUB);
+     std::cout << "done" << std::endl;
    }
    else if (mode == 1) {
      std::cout << "use gccMDD -- only with UB constraints!" << std::endl;
@@ -165,7 +166,8 @@ int main(int argc,char* argv[])
      std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
      std::cout << stats << std::endl;
    }
-   
+
+   std::cout << "About to solve Model" << std::endl;
    solveModel(cp, v);
    cp.dealloc();
    return 0;
