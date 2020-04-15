@@ -277,7 +277,7 @@ MDDStats::MDDStats(MDD* mdd) : _nbLayers((unsigned int)mdd->nbLayers()) {
    for(auto& layer : mdd->getLayers()){
       _width.first = std::min(_width.first,(int)layer.size());
       _width.second = std::max(_width.second,(int)layer.size());
-      for(auto i = 1u; i < layer.size()-1; i++){
+      for(auto i = 0u; i < layer.size(); i++){
          auto n = layer[i];
          size_t out = n->getNumChildren();
          size_t in = n->getNumParents();
