@@ -249,7 +249,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     }
     cp->post(mdd);
   }
-    else if (mode == 3) {
+  else if (mode == 3) {
     cout << "Sequence MDD3 encoding" << endl;
 
     // constraint 1
@@ -277,6 +277,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       }
     }
     cp->post(mdd);
+    mdd->saveGraph();
   }
   else if (mode == 4) {
     cout << "Cumulative Sums with isMember encoding" << endl;
