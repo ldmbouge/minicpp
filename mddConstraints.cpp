@@ -448,34 +448,13 @@ namespace Factory {
       
       // arc definitions
       spec.arcExist(desc,[=] (const auto& p,const auto& c,auto x,int v,bool up) -> bool {
-	  bool inS = values.member(v);
-	  
-	  bool c0 = true;
-	  bool c1 = true;
-	  bool c2 = true;
-	  bool c3 = true;
-	  bool c4 = true;
-	  bool c5 = true;
-	  bool c6 = true;
-	  bool c7 = true;
-
-	  // the up-test should not be needed here?
-	  if (up) {
-	    c0 = (p.at(Ymin) + inS <= c.at(Ymax));
-	    c1 = (p.at(Ymax) + inS >= c.at(Ymin));
-
-	    c2 = (p.at(Ymin) <= p.at(Ymax));
-	    c3 = (c.at(Ymin) <= c.at(Ymax));
-
-	    c4 = (p.at(Ymax) <= p.at(N));
-	    c5 = (c.at(Ymax) <= c.at(N));
-
-	    c6 = (p.at(Ymin) >= 0);
-	    c7 = (c.at(Ymin) >= 0);
-	  }
-	  
-	  return c0 && c1 && c2 && c3 && c4 && c5 && c6 && c7;
-	});      
+                            bool c0 = true,c1 = true,inS = values.member(v);
+                            if (up) { // during the initial post, I do test arc existence and up isn't there yet.
+                               c0 = (p.at(Ymin) + inS <= c.at(Ymax));
+                               c1 = (p.at(Ymax) + inS >= c.at(Ymin));
+                            }	  
+                            return c0 && c1;
+                         });      
       
       // relaxations
       spec.addRelaxation(Ymin,[Ymin](auto& out,const auto& l,const auto& r) { out.set(Ymin,std::min(l.at(Ymin),r.at(Ymin)));});
