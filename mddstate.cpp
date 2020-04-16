@@ -128,6 +128,12 @@ void MDDSpec::onFixpoint(std::function<void(const MDDState&)> onFix)
 {
    _onFix.emplace_back(onFix);
 }
+void MDDSpec::updateNode(MDDState& a) const noexcept
+{
+   for(auto& fun : _updates)
+      fun(a);
+}
+
 bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept
 {
    bool arcOk = true;
@@ -155,7 +161,10 @@ void MDDSpec::arcExist(MDDConstraintDescriptor::Ptr d,ArcFun a)
 {
    _exists.emplace_back(std::make_pair<MDDConstraintDescriptor::Ptr,ArcFun>(std::move(d),std::move(a)));
 }
-
+void MDDSpec::updateNode(UpdateFun nf)
+{
+   _updates.emplace_back(std::move(nf));
+}
 void MDDSpec::transitionDown(int p,lambdaTrans t)
 {   
    for(auto& cd : constraints)

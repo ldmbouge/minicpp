@@ -459,6 +459,21 @@ namespace Factory {
       	  out.set(Ymax,maxVal);
       	});
 
+      spec.updateNode([=](auto& n) {
+                         int minVal = n.at(Ymin);
+                         int maxVal = n.at(Ymax);
+                         if (n.at(N) >= len) {
+                            minVal = std::max(lb + n.at(AminL),minVal);
+                            maxVal = std::min(ub + n.at(AmaxL),maxVal);
+                         }
+                         if (n.at(N) <= nbVars - len) {
+                            minVal = std::max(n.at(DminL) - ub,minVal);
+                            maxVal = std::min(n.at(DmaxL) - lb,maxVal);
+                         }
+                         n.set(Ymin,minVal);
+                         n.set(Ymax,maxVal);
+                      });
+
       spec.nodeExist(desc,[=](const auto& p) {
 	  return ( (p.at(Ymin) <= p.at(Ymax)) &&
 		   (p.at(Ymax) >= 0) &&
