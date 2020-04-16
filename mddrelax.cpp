@@ -489,7 +489,7 @@ bool MDDRelax::trimDomains()
          }
       }
    }
-   return changed;
+  return changed;
 }
 
 void MDDRelax::computeUp()
