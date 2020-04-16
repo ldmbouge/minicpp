@@ -77,8 +77,6 @@ public:
    void post() override;
 };
 
-
-
 class NEQBinBC : public Constraint { // x != y + c
    var<int>::Ptr _x,_y;
    int _c;
