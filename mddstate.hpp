@@ -135,6 +135,7 @@ class MDDState;
 typedef std::function<bool(const MDDState&)> NodeFun;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
 typedef std::function<void(const MDDState&)> FixFun;
+typedef std::function<void(MDDState&)> UpdateFun;
 typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr,const MDDIntSet&,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
@@ -590,6 +591,7 @@ public:
    int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
    void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
    void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
+   void updateNode(UpdateFun update);
    void transitionDown(int,lambdaTrans);
    void transitionUp(int,lambdaTrans);
    template <typename LR> void addRelaxation(int p,LR r) {
@@ -608,6 +610,7 @@ public:
    // Internal methods.
    void varOrder() override;
    bool consistent(const MDDState& a,var<int>::Ptr x) const noexcept;
+   void updateNode(MDDState& a) const noexcept;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
    void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
@@ -636,6 +639,7 @@ private:
    std::vector<var<int>::Ptr> x;
    std::vector<std::pair<MDDConstraintDescriptor::Ptr,ArcFun>>  _exists;
    std::vector<std::pair<MDDConstraintDescriptor::Ptr,NodeFun>> _nodeExists;
+   std::vector<UpdateFun>      _updates; // this is a list of function that applies to every node. 
    std::vector<lambdaTrans> _transition;
    std::vector<lambdaRelax> _relaxation;
    std::vector<lambdaSim>   _similarity;

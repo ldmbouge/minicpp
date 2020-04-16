@@ -244,6 +244,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       else _mddspec.relaxation(ms,cs);
       first = false;
    }
+   _mddspec.updateNode(ms);
    bool isOk =  _mddspec.consistent(ms,x[l-1]);
    bool internal = l > 0 && l < (int)numVariables;
    if (!internal) {
@@ -368,6 +369,7 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
          auto v = a->getValue();       // value on arc from parent
          ms.copyState(n->getState());
          _mddspec.createState(ms,p->getState(),l-1,x[l-1],MDDIntSet(v),true);
+         _mddspec.updateNode(ms);
          bool isOk = _mddspec.consistent(ms,x[l-1]);
          if (!isOk) {
             delSupport(l-1,v);
@@ -496,6 +498,7 @@ void MDDRelax::computeUp()
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
       MDDState original(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
       //sink->markDirty();
+      _mddspec.updateNode(*sink->key()); // should improve this API
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
          for(auto& n : layers[i]) {
             bool first = true;           
@@ -518,6 +521,7 @@ void MDDRelax::computeUp()
                   first = false;
                }
             }
+            _mddspec.updateNode(dest);
          }
       }
       //std::cout << "\n";
