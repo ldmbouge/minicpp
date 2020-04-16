@@ -283,7 +283,7 @@ namespace Factory {
       spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
       spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
 
       spec.transitionDown(minL,[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool allMembers = true;
@@ -376,33 +376,24 @@ namespace Factory {
       spec.transitionDown(AminF,[AminF,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(AminF,p.at(Ymin)); });
       spec.transitionDown(AmaxF,[AmaxF,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(AmaxF,p.at(Ymax)); });
 
-      spec.transitionDown(Ymin,[values,Ymin,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
-
+      spec.transitionDown(Ymin,[values,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) {
 	  //std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
           bool hasMemberOutS = val.memberOutside(values);	  
 	  int minVal = p.at(Ymin) + !hasMemberOutS;
-	  if (up) {
-	    minVal = std::max(minVal, out.at(Ymin));
-	    if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
-	    // if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, std::max(0,out.at(DminL) - ub)); }
-	    if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
-	  }
-
+	  if (up) 
+             minVal = std::max(minVal, out.at(Ymin));	  
 	  // std::cout << ": setting Ymin = " << minVal << std::endl;
 	  out.set(Ymin,minVal);
 	});
 
-      spec.transitionDown(Ymax,[values,Ymax,AmaxL,DmaxL,len,N,nbVars,lb,ub](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(Ymax,[values,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) {
           // std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
           bool hasMemberInS = val.memberInside(values);
 	  int maxVal = p.at(Ymax) + hasMemberInS;
 	  if (up) {
 	    maxVal = std::min(maxVal, out.at(Ymax));
-	    if (out.at(N) >= len)        {  maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
-	    // if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, std::max(0,out.at(DmaxL) - lb)); }
-	    if (out.at(N) <= nbVars-len) {  maxVal = std::min(maxVal, out.at(DmaxL) - lb); }
 	  }
-	  //std::cout << ": setting Ymax = " << maxVal << std::endl;
+	  // std::cout << ": setting Ymax = " << maxVal << std::endl;
 	  out.set(Ymax,maxVal);
 	});
 
@@ -416,48 +407,21 @@ namespace Factory {
       spec.transitionUp(DminF,[DminF,Ymin](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DminF,c.at(Ymin)); });
       spec.transitionUp(DmaxF,[DmaxF,Ymax](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DmaxF,c.at(Ymax)); });
 
-      spec.transitionUp(Ymin,[Ymin,values,AminL,DminL,len,N,lb,nbVars,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
-          //std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
-      	  int minVal = out.at(Ymin);
-	  bool hasMemberInS = val.memberInside(values);
-	  if (hasMemberInS) {
-	    minVal = std::max(minVal, c.at(Ymin)-1);
-	  }
-	  else {
-	    minVal = std::max(minVal, c.at(Ymin));
-	  }
-	  
-      	  if (out.at(N) >= len)        {  minVal = std::max(minVal, lb + out.at(AminL)); }
-      	  if (out.at(N) <= nbVars-len) {  minVal = std::max(minVal, out.at(DminL) - ub); }
+      spec.transitionUp(Ymin,[Ymin,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                //std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
+                                bool hasMemberInS = val.memberInside(values);
+                                int minVal = std::max(out.at(Ymin), c.at(Ymin) - hasMemberInS);
+                                //std::cout << ": setting Ymin = " << minVal << std::endl;
+                                out.set(Ymin,minVal);
+                             });
 
-	  //std::cout << ": setting Ymin = " << minVal << std::endl;
-
-	  // if (minVal > out.at(Ymax)) {
-	  //   std::cout << " !! minVal > out.at(Ymax) " << std::endl;
-	  // }
-          out.set(Ymin,minVal);
-      	});
-
-      spec.transitionUp(Ymax,[Ymax,values,AmaxL,DmaxL,len,N,nbVars,lb,ub](auto& out,const auto& c,auto x,const auto& val,bool up) {
-          //std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
-      	  int maxVal = out.at(Ymax);	  
-	  bool hasMemberOutS = val.memberOutside(values);
-	  if (hasMemberOutS) {
-	    maxVal = std::min(maxVal, c.at(Ymax));
-	  }
-	  else {
-	    maxVal = std::min(maxVal, c.at(Ymax)-1);
-	  }	  
-	  
-      	  if (out.at(N) >= len)        { maxVal = std::min(maxVal, ub + out.at(AmaxL)); }
-      	  if (out.at(N) <= nbVars-len) { maxVal = std::min(maxVal, out.at(DmaxL) - lb); }
-
-	  // if (maxVal < out.at(Ymin)) {
-	  //   std::cout << " !! maxVal < out.at(Ymin) " << std::endl;
-	  // }
-	  //std::cout << "[UP] setting Ymax = " << maxVal << std::endl;
-      	  out.set(Ymax,maxVal);
-      	});
+      spec.transitionUp(Ymax,[Ymax,values,N](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                // std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
+                                bool hasMemberOutS = val.memberOutside(values);
+                                int maxVal = std::min(out.at(Ymax), c.at(Ymax) - !hasMemberOutS);
+                                // std::cout << "[UP] setting Ymax = " << maxVal << std::endl;
+                                out.set(Ymax,maxVal);
+                             });
 
       spec.updateNode([=](auto& n) {
                          int minVal = n.at(Ymin);
@@ -475,14 +439,15 @@ namespace Factory {
                       });
 
       spec.nodeExist(desc,[=](const auto& p) {
-
-	  if (!( (p.at(Ymin) <= p.at(Ymax)) &&
-		 (p.at(Ymax) >= 0) &&
-		 (p.at(Ymax) <= p.at(N)) &&
-		 (p.at(Ymin) >= 0) &&
-		 (p.at(Ymin) <= p.at(N)) )) {
-	    std::cout << "layer " << p.at(N) << ": node " << p << " infeasible " << std::endl;
-	  }
+	  
+	  // if (!( (p.at(Ymin) <= p.at(Ymax)) &&
+	  // 	 (p.at(Ymin) <= p.at(N)) &&
+	  // 	 (p.at(Ymin) >= 0) &&
+	  // 	 (p.at(Ymax) <= p.at(N)) &&
+	  // 	 (p.at(Ymax) >= 0) )) {
+	  //   std::cout << "layer " << p.at(N) << ": node " << p << " infeasible " << std::endl;
+	  //   std::cout << " This concerns properties " << Ymin << " and " << Ymax << std::endl;
+	  // }
 	  
 	  return ( (p.at(Ymin) <= p.at(Ymax)) &&
 		   (p.at(Ymax) >= 0) &&
@@ -493,39 +458,19 @@ namespace Factory {
       
       // arc definitions
       spec.arcExist(desc,[=] (const auto& p,const auto& c,auto x,int v,bool up) -> bool {
-	  bool inS = values.member(v);
-	  
-	  bool c0 = true;
-	  bool c1 = true;
-	  bool c2 = true;
-	  bool c3 = true;
-	  bool c4 = true;
-	  bool c5 = true;
-	  bool c6 = true;
-	  bool c7 = true;
-
-	  // the up-test should not be needed here?
-	  if (up) {
-	    c0 = (p.at(Ymin) + inS <= c.at(Ymax));
-	    c1 = (p.at(Ymax) + inS >= c.at(Ymin));
-
-	    c2 = (p.at(Ymin) <= p.at(Ymax));
-	    c3 = (c.at(Ymin) <= c.at(Ymax));
-
-	    c4 = (p.at(Ymax) <= p.at(N));
-	    c5 = (c.at(Ymax) <= c.at(N));
-
-	    c6 = (p.at(Ymin) >= 0);
-	    c7 = (c.at(Ymin) >= 0);
-	  }
-
-	  if (!(c0 && c1 && c2 && c3 && c4 && c5 && c6 && c7)) {
-	    std::cout << "layer " << p.at(N) << ": removing arc from " << p << " to " << c << " with label " << v << std::endl;
-	    exit(1);
-	  }
-	  
-	  return c0 && c1 && c2 && c3 && c4 && c5 && c6 && c7;
-	});      
+                            bool c0 = true,c1 = true,inS = values.member(v);
+                            if (up) { // during the initial post, I do test arc existence and up isn't there yet.
+                               c0 = (p.at(Ymin) + inS <= c.at(Ymax));
+                               c1 = (p.at(Ymax) + inS >= c.at(Ymin));
+                            }
+			    // if (!(c0&&c1)) {
+			    //   std::cout << "layer " << p.at(N) << ": arc infeasible with value " << v << " between "
+			    // 		<< p << " and " << c << std::endl;
+			    //   std::cout << " This concerns properties " << Ymin << " and " << Ymax << std::endl;
+			    // }
+			    
+                            return c0 && c1;
+                         });      
       
       // relaxations
       spec.addRelaxation(Ymin,[Ymin](auto& out,const auto& l,const auto& r) { out.set(Ymin,std::min(l.at(Ymin),r.at(Ymin)));});
