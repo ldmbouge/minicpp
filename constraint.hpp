@@ -69,6 +69,16 @@ public:
   void post() override;
 };
 
+class EQAbsDiffBC : public Constraint { // z == |x - y|
+  var<int>::Ptr _z,_x,_y;
+public:
+  EQAbsDiffBC(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y)
+       : Constraint(x->getSolver()),_z(z),_x(x),_y(y) {}
+   void post() override;
+};
+
+
+
 class NEQBinBC : public Constraint { // x != y + c
    var<int>::Ptr _x,_y;
    int _c;
@@ -327,6 +337,9 @@ namespace Factory {
    }
    inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,var<bool>::Ptr b) {
      return new (x->getSolver()) EQTernBCbool(x,y,b);
+   }
+   inline Constraint::Ptr equalAbsDiff(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y) {
+      return new (x->getSolver()) EQAbsDiffBC(z,x,y);
    }
    inline Constraint::Ptr notEqual(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
       return new (x->getSolver()) NEQBinBC(x,y,c);
