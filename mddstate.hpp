@@ -612,6 +612,7 @@ public:
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
    void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
    void relaxation(MDDState& a,const MDDState& b) const noexcept {
+      if (a == b) return;
       for(const auto& relax : _relaxation)
          relax(a,a,b);
       a.relax();
