@@ -475,6 +475,15 @@ namespace Factory {
                       });
 
       spec.nodeExist(desc,[=](const auto& p) {
+
+	  if (!( (p.at(Ymin) <= p.at(Ymax)) &&
+		 (p.at(Ymax) >= 0) &&
+		 (p.at(Ymax) <= p.at(N)) &&
+		 (p.at(Ymin) >= 0) &&
+		 (p.at(Ymin) <= p.at(N)) )) {
+	    std::cout << "layer " << p.at(N) << ": node " << p << " infeasible " << std::endl;
+	  }
+	  
 	  return ( (p.at(Ymin) <= p.at(Ymax)) &&
 		   (p.at(Ymax) >= 0) &&
 		   (p.at(Ymax) <= p.at(N)) &&
@@ -508,6 +517,11 @@ namespace Factory {
 
 	    c6 = (p.at(Ymin) >= 0);
 	    c7 = (c.at(Ymin) >= 0);
+	  }
+
+	  if (!(c0 && c1 && c2 && c3 && c4 && c5 && c6 && c7)) {
+	    std::cout << "layer " << p.at(N) << ": removing arc from " << p << " to " << c << " with label " << v << std::endl;
+	    exit(1);
 	  }
 	  
 	  return c0 && c1 && c2 && c3 && c4 && c5 && c6 && c7;
