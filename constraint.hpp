@@ -380,6 +380,20 @@ namespace Factory {
    inline Objective::Ptr maximize(var<int>::Ptr x) {
       return new Maximize(x);
    }
+   inline var<int>::Ptr operator+(var<int>::Ptr x,var<int>::Ptr y) { // x + y
+      int min = x->min() + y->min();
+      int max = x->max() + y->max();
+      var<int>::Ptr z = makeIntVar(x->getSolver(),min,max);
+      x->getSolver()->post(equal(z,x,y));
+      return z;
+   }
+   inline var<int>::Ptr operator-(var<int>::Ptr x,var<int>::Ptr y) { // x - y
+      int min = x->min() - y->max();
+      int max = x->max() - y->max();
+      var<int>::Ptr z = makeIntVar(x->getSolver(),min,max);
+      x->getSolver()->post(equal(x,z,y));
+      return z;
+   }
    inline var<bool>::Ptr isEqual(var<int>::Ptr x,const int c) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       try {
