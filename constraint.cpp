@@ -121,6 +121,41 @@ void EQTernBCbool::post()
    }
 }
 
+void EQAbsDiffBC::post()
+{
+   // z == |x - y|
+   if (_x->isBound() && _y->isBound())
+      _z->assign(std::abs(_x->min()-_y->min()));
+   else {
+      _z->updateBounds((_x->min() > _y->max())*(_x->min()-_y->max()) + (_y->min() > _x->max())*(_y->min()-_x->max()),
+ 		       std::max(_x->max()-_y->min(), _y->max()-_x->min()));
+      _x->updateBounds(std::min(_z->min()+_y->min(), _y->min()-_z->max()),
+		       std::max(_z->max()+_y->max(), _y->max()-_z->min()));
+      _y->updateBounds(std::min(_z->min()+_x->min(), _x->min()-_z->max()),
+		       std::max(_z->max()+_x->max(), _x->max()-_z->min()));
+      
+      _x->whenBoundsChange([this] {
+	  _z->updateBounds((_x->min() > _y->max())*(_x->min()-_y->max()) + (_y->min() > _x->max())*(_y->min()-_x->max()),
+			   std::max(_x->max()-_y->min(), _y->max()-_x->min()));
+	  _y->updateBounds(std::min(_z->min()+_x->min(), _x->min()-_z->max()),
+			   std::max(_z->max()+_x->max(), _x->max()-_z->min()));
+	});
+      
+      _y->whenBoundsChange([this] {
+	  _z->updateBounds((_x->min() > _y->max())*(_x->min()-_y->max()) + (_y->min() > _x->max())*(_y->min()-_x->max()),
+			   std::max(_x->max()-_y->min(), _y->max()-_x->min()));
+	  _x->updateBounds(std::min(_z->min()+_y->min(), _y->min()-_z->max()),
+			   std::max(_z->max()+_y->max(), _y->max()-_z->min()));
+	});
+
+      _z->whenBoundsChange([this] {
+	  _x->updateBounds(std::min(_z->min()+_y->min(), _y->min()-_z->max()),
+			   std::max(_z->max()+_y->max(), _y->max()-_z->min()));
+	  _y->updateBounds(std::min(_z->min()+_x->min(), _x->min()-_z->max()),
+			   std::max(_z->max()+_x->max(), _x->max()-_z->min()));
+	});
+   }
+}
 
 void NEQBinBC::print(std::ostream& os) const
 {
