@@ -121,32 +121,39 @@ void EQTernBCbool::post()
    }
 }
 
-
 void EQAbsDiffBC::post()
 {
    // z == |x - y|
-  
-   // It's easy to update dom(z) based on x and y.
-   // It's much harder to effectively update x and y based on z:
-   // for example, even if z and x are fixed, y can still take
-   // an entire interval in case of bounds consistency.
-   // This implementation therefore considers z to be the 
-   // "dependent variable"; the bounds for x and y will not be updated.
-  
    if (_x->isBound() && _y->isBound())
       _z->assign(std::abs(_x->min()-_y->min()));
    else {
       _z->updateBounds((_x->min() > _y->max())*(_x->min()-_y->max()) + (_y->min() > _x->max())*(_y->min()-_x->max()),
  		       std::max(_x->max()-_y->min(), _y->max()-_x->min()));
+      _x->updateBounds(std::min(_z->min()+_y->min(), _y->min()-_z->max()),
+		       std::max(_z->max()+_y->max(), _y->max()-_z->min()));
+      _y->updateBounds(std::min(_z->min()+_x->min(), _x->min()-_z->max()),
+		       std::max(_z->max()+_x->max(), _x->max()-_z->min()));
       
       _x->whenBoundsChange([this] {
 	  _z->updateBounds((_x->min() > _y->max())*(_x->min()-_y->max()) + (_y->min() > _x->max())*(_y->min()-_x->max()),
 			   std::max(_x->max()-_y->min(), _y->max()-_x->min()));
-                           });
+	  _y->updateBounds(std::min(_z->min()+_x->min(), _x->min()-_z->max()),
+			   std::max(_z->max()+_x->max(), _x->max()-_z->min()));
+	});
+      
       _y->whenBoundsChange([this] {
 	  _z->updateBounds((_x->min() > _y->max())*(_x->min()-_y->max()) + (_y->min() > _x->max())*(_y->min()-_x->max()),
 			   std::max(_x->max()-_y->min(), _y->max()-_x->min()));
-                           });
+	  _x->updateBounds(std::min(_z->min()+_y->min(), _y->min()-_z->max()),
+			   std::max(_z->max()+_y->max(), _y->max()-_z->min()));
+	});
+
+      _z->whenBoundsChange([this] {
+	  _x->updateBounds(std::min(_z->min()+_y->min(), _y->min()-_z->max()),
+			   std::max(_z->max()+_y->max(), _y->max()-_z->min()));
+	  _y->updateBounds(std::min(_z->min()+_x->min(), _x->min()-_z->max()),
+			   std::max(_z->max()+_x->max(), _x->max()-_z->min()));
+	});
    }
 }
 
