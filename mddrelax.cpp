@@ -497,7 +497,8 @@ void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
-      MDDState dest(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+      MDDState cs(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+      MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
       _mddspec.updateNode(*sink->key()); // should improve this API
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
          for(auto& n : layers[i]) {
@@ -512,15 +513,23 @@ void MDDRelax::computeUp()
             auto wub = std::min(_width,(unsigned)layers[i+1].size());
             for(auto k=0u;k < wub;k++) {
                if (_afp[k].size() > 0) {
-                  dest.copyState(n->getState());
+                  cs.copyState(n->getState());
                   auto c = layers[i+1][k];
-                  _mddspec.updateState(first,dest,c->getState(),i,x[i],_afp[k]);
+                  _mddspec.updateState(cs,c->getState(),i,x[i],_afp[k]);
+                  if (first)
+                     ms.copyState(cs);
+                  else {
+                     if (ms != cs) {
+                        _mddspec.relaxation(ms,cs);
+                        ms.relaxUp();
+                     }
+                  }
                   first = false;
                }
             }
-            _mddspec.updateNode(dest);
-            bool dirty = n->isDirty() || (n->getState() != dest);
-            n->setState(dest,mem);
+            _mddspec.updateNode(ms);
+            bool dirty = n->isDirty() || (n->getState() != ms);
+            n->setState(ms,mem);
             if (dirty) n->markDirty();
          }
       }

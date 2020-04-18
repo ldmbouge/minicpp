@@ -625,7 +625,7 @@ public:
    void updateNode(MDDState& a) const noexcept;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
-   void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
+   void updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
    void relaxation(MDDState& a,const MDDState& b) const noexcept;
    MDDState rootState(Storage::Ptr& mem);
    bool usesUp() const { return _uptrans.size() > 0;}

@@ -289,28 +289,13 @@ void MDDSpec::relaxation(MDDState& a,const MDDState& b) const noexcept
       relax(a,a,b);
 }
 
-void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v)
+void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v)
 {
-   // when set is true. compute T^{Up}(source,var,val) and store in target
-   // when set is false compute Relax(target,T^{Up}(source,var,val)) and store in target.
-   if (set) {
-      for(const auto& t : _uptransLayer[l])
-         t(target,source,var,v,true);
-      for(auto p : _upframeLayer[l])
-         target.setProp(p,source);
-      target.relaxUp(source.isUpRelaxed() || v.size() > 1);
-   } else {
-      MDDState temp(this,(char*)alloca(sizeof(char)*layoutSize()));
-      temp.copyState(target);
-      for(const auto& t : _uptransLayer[l])
-         t(temp,source,var,v,true);
-      for(auto p : _upframeLayer[l])
-         temp.setProp(p,source);
-      if (target != temp) {
-         relaxation(target,temp);
-         target.relaxUp(source.isUpRelaxed() || v.size() > 1);
-      }
-   }
+   for(const auto& t : _uptransLayer[l])
+      t(target,source,var,v,true);
+   for(auto p : _upframeLayer[l])
+      target.setProp(p,source);
+   target.relaxUp(source.isUpRelaxed() || v.size() > 1);
 }
 
 
