@@ -415,7 +415,7 @@ namespace Factory {
                                 out.set(Ymin,minVal);
                              });
 
-      spec.transitionUp(Ymax,[Ymax,values,N](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(Ymax,[Ymax,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
                                 // std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
                                 bool hasMemberOutS = val.memberOutside(values);
                                 int maxVal = std::min(out.at(Ymax), c.at(Ymax) - !hasMemberOutS);

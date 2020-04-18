@@ -172,13 +172,13 @@ void MDDRelax::relaxLayer(int i,unsigned int width)
       MDDNode* target = std::get<1>(cl[from]);
       acc.initState(target->getState());
       for(from++; from < lim;from++) {
-         MDDNode* strip = std::get<1>(cl[from]);
+         MDDNode* strip = std::get<1>(cl[from]);         
          _mddspec.relaxation(acc,strip->getState());
+         acc.relaxDown();
          for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
             auto arc = *i;
             arc->moveTo(target,trail,mem);
          }
-         acc.relax();
       }
       //acc.hash();
       target->setState(acc,mem);
@@ -241,7 +241,12 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       _mddspec.createState(cs,p->getState(),l-1,x[l-1],_afp[i],true);
       if (first)
          ms.copyState(cs);
-      else _mddspec.relaxation(ms,cs);
+      else {
+         if (ms != cs) {
+            _mddspec.relaxation(ms,cs);
+            ms.relaxDown();
+         }
+      }
       first = false;
    }
    _mddspec.updateNode(ms);
