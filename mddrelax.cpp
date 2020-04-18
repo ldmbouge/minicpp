@@ -258,15 +258,8 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    bool changed = n->getState() != ms;
    if (changed) {
       n->setState(ms,mem);
-      for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) {
-         MDDNode* child = (*i)->getChild();
-         // int      v  = (*i)->getValue();         
-         child->markDirty();
-         // if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
-         //    n->unhook(*i);
-         //    delSupport(l,v);
-         // }
-      }
+      for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) 
+         (*i)->getChild()->markDirty();      
    } else n->clearDirty();
    return changed;
 }
@@ -499,7 +492,7 @@ void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
-      MDDState original(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+      //MDDState original(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
       MDDState dest(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
       _mddspec.updateNode(*sink->key()); // should improve this API
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
@@ -512,7 +505,7 @@ void MDDRelax::computeUp()
                int v = a->getValue();
                _afp[kid->getPosition()].add(v);
             }
-            original.copyState(n->getState());
+            //original.copyState(n->getState());
             //dest.copyState(n->getState());
             //MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
             auto wub = std::min(_width,(unsigned)layers[i+1].size());
@@ -525,7 +518,7 @@ void MDDRelax::computeUp()
                }
             }
             _mddspec.updateNode(dest);
-            bool dirty = n->isDirty() || (original != dest);
+            bool dirty = n->isDirty() || (n->getState() != dest);
             n->setState(dest,mem);
             if (dirty) n->markDirty();
          }
