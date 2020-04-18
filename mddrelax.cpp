@@ -492,7 +492,6 @@ void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
-      //MDDState original(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
       MDDState dest(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
       _mddspec.updateNode(*sink->key()); // should improve this API
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
@@ -505,9 +504,6 @@ void MDDRelax::computeUp()
                int v = a->getValue();
                _afp[kid->getPosition()].add(v);
             }
-            //original.copyState(n->getState());
-            //dest.copyState(n->getState());
-            //MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
             auto wub = std::min(_width,(unsigned)layers[i+1].size());
             for(auto k=0u;k < wub;k++) {
                if (_afp[k].size() > 0) {
