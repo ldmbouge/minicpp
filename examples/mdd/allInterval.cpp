@@ -25,10 +25,95 @@
 #include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 #include "table.hpp"
+#include "allInterval.hpp"
 
 
 using namespace std;
 using namespace Factory;
+
+/*** Domain (bounds) propagation for AbsDiff constraint ***/
+
+bool propagateExpression(var<int>::Ptr _z,var<int>::Ptr _x,var<int>::Ptr _y,
+			 int &v1min, int &v1max, int &v3min, int &v3max ) {
+  // Apply interval propagation for expression [z] = [Abs[ [[x] - [y]] ]] :
+  // First propagate x, y, z bounds 'up' through to intersect [z] == [v3]
+  // Then propagate the intervals 'down' back to x, y, z
+  
+  // std::cout << "enter propagateExpression(" << _z << ", " << _x << ", " << _y << ")" << std::endl;
+
+  
+     // Up-propagate:
+     v1min = _x->min() - _y->max();
+     v1max = _x->max() - _y->min();
+     int v2min = 0;
+     if (!((v1max >= 0) && (v1min<=0)))
+       v2min = std::min(std::abs(v1min), std::abs(v1max));
+     int v2max = std::max(std::abs(v1min), std::abs(v1max));
+     v3min = std::max(_z->min(), v2min);
+     v3max = std::min(_z->max(), v2max);
+
+     // Down-propagate for v1, v2, v3 (their bounds will be used for x, y, z):
+     v2min = std::max(v2min, v3min);
+     v2max = std::min(v2max, v3max);
+     v1min = std::max(v1min, -v2max);
+     v1max = std::min(v1max, v2max);
+
+     if ((v1max < v1min) || (v2max < v2min) || (v3max < v3min)) {
+       std::cout << "propagateExpression(" << _z << ", " << _x << ", " << _y << "): "
+		 << _z << " = |" << _x << "-" << _y << "| returns false because ";
+       if (v1max < v1min) std::cout << "(v1max < v1min)";
+       if (v2max < v2min) std::cout << "(v2max < v2min)";
+       if (v3max < v2min) std::cout << "(v3max < v3min)";
+       std::cout << std::endl;
+       return false;
+     }
+     return true;
+}
+void EQAbsDiffBC::post()
+{
+   // z == |x - y|
+   if (_x->isBound() && _y->isBound()) {
+     _z->assign(std::abs(_x->min()-_y->min()));
+   }
+   else {
+
+     int v1min, v1max, v3min, v3max;
+     bool check = propagateExpression(_x, _y, _z, v1min, v1max, v3min, v3max);
+     std::cout << "v1min = " << v1min << ", v1max = " << v1max << "v3min = " << v3min << ", v3max = " << v3max << std::endl;
+     if (!check) { throw Failure; }
+
+     _z->updateBounds(std::max(_z->min(),v3min), std::min(_z->max(),v3max));
+     _x->updateBounds(std::max(_x->min(),_y->min()+v1min), std::min(_x->max(),_y->max()+v1max));
+     _y->updateBounds(std::max(_y->min(),_x->min()-v1max), std::min(_y->max(),_x->max()-v1min));
+      
+     _x->whenBoundsChange([this] {
+	 // int v1min, v1max, v3min, v3max;
+	 // bool check = propagateExpression(_x, _y, _z, v1min, v1max, v3min, v3max);
+	 // std::cout << "v1min = " << v1min << ", v1max = " << v1max << ", v3min = " << v3min << ", v3max = " << v3max << std::endl;
+	 // if (!check) { throw Failure; }
+
+	 _z->updateBounds(std::max(_z->min(),v3min), std::min(_z->max(),v3max));
+	 _y->updateBounds(std::max(_y->min(),_x->min()-v1max), std::min(_y->max(),_x->max()-v1min));
+
+       });
+      
+      _y->whenBoundsChange([this] {
+	 int v1min, v1max, v3min, v3max;
+	 bool check = propagateExpression(_x, _y, _z, v1min, v1max, v3min, v3max);
+	  _z->updateBounds(std::max(_z->min(),v3min), std::min(_z->max(),v3max));
+	  _x->updateBounds(std::max(_x->min(),_y->min()+v1min), std::min(_x->max(),_y->max()+v1max));
+	});
+
+      _z->whenBoundsChange([this] {
+	 int v1min, v1max, v3min, v3max;
+	 bool check = propagateExpression(_x, _y, _z, v1min, v1max, v3min, v3max);
+	  _x->updateBounds(std::max(_x->min(),_y->min()+v1min), std::min(_x->max(),_y->max()+v1max));
+	  _y->updateBounds(std::max(_y->min(),_x->min()-v1max), std::min(_y->max(),_x->max()-v1min));
+	});
+   }
+}
+/***/
+
 
 Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)> clo)
 {
@@ -186,11 +271,11 @@ int main(int argc,char* argv[])
       
 
    int cnt = 0;
-   search.onSolution([&cnt]() {
+   search.onSolution([&cnt,xVars,yVars]() {
        cnt++;
-       std::cout << "\rNumber of solutions:" << cnt << std::flush;
-       // 	 std::cout << "x = " << xVars << endl;
-       // 	 std::cout << "y = " << yVars << endl;
+       // std::cout << "\rNumber of solutions:" << cnt << std::flush;
+        	 std::cout << "x = " << xVars << endl;
+        	 std::cout << "y = " << yVars << endl;
      });
 
       
