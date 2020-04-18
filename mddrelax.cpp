@@ -260,12 +260,12 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       n->setState(ms,mem);
       for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) {
          MDDNode* child = (*i)->getChild();
-         int      v  = (*i)->getValue();         
+         // int      v  = (*i)->getValue();         
          child->markDirty();
-         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
-            n->unhook(*i);
-            delSupport(l,v);
-         }
+         // if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
+         //    n->unhook(*i);
+         //    delSupport(l,v);
+         // }
       }
    } else n->clearDirty();
    return changed;
@@ -414,8 +414,11 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
          delState(n,l);
          removeMatch(cl,n->getState().inner(refDir),n);
          changed = true;
-      } else
-         changed = refreshNode(n,l) || changed;
+      } else {
+         bool refreshed = refreshNode(n,l);
+         if (refreshed) filterKids(n,l);
+         changed = refreshed || changed;
+      }
    }
    return changed;
 }
@@ -497,11 +500,11 @@ void MDDRelax::computeUp()
    if (_mddspec.usesUp()) {
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
       MDDState original(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
-      //sink->markDirty();
+      MDDState dest(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
       _mddspec.updateNode(*sink->key()); // should improve this API
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
          for(auto& n : layers[i]) {
-            bool first = true;           
+            bool first = true;
             for(auto k=0u;k<_width;k++)
                _afp[k].clear();
             for(auto& a : n->getChildren()) {
@@ -509,19 +512,22 @@ void MDDRelax::computeUp()
                int v = a->getValue();
                _afp[kid->getPosition()].add(v);
             }
-            MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
+            original.copyState(n->getState());
+            //dest.copyState(n->getState());
+            //MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
             auto wub = std::min(_width,(unsigned)layers[i+1].size());
             for(auto k=0u;k < wub;k++) {
                if (_afp[k].size() > 0) {
-                  original.copyState(dest);
+                  dest.copyState(n->getState());
                   auto c = layers[i+1][k];
                   _mddspec.updateState(first,dest,c->getState(),i,x[i],_afp[k]);
-                  if (original != dest) // && i > 0)
-                     n->markDirty();
                   first = false;
                }
             }
             _mddspec.updateNode(dest);
+            bool dirty = n->isDirty() || (original != dest);
+            n->setState(dest,mem);
+            if (dirty) n->markDirty();
          }
       }
       //std::cout << "\n";
