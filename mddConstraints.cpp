@@ -283,7 +283,7 @@ namespace Factory {
       spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
       spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
 
       spec.transitionDown(minL,[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool allMembers = true;
@@ -377,23 +377,18 @@ namespace Factory {
       spec.transitionDown(AmaxF,[AmaxF,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(AmaxF,p.at(Ymax)); });
 
       spec.transitionDown(Ymin,[values,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) {
-	  //std::cout << "entering Ymin Down at layer " << p.at(N) << " with values " << val;
           bool hasMemberOutS = val.memberOutside(values);	  
 	  int minVal = p.at(Ymin) + !hasMemberOutS;
 	  if (up) 
              minVal = std::max(minVal, out.at(Ymin));	  
-	  // std::cout << ": setting Ymin = " << minVal << std::endl;
 	  out.set(Ymin,minVal);
 	});
 
       spec.transitionDown(Ymax,[values,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) {
-          // std::cout << "entering Ymax Down at layer " << p.at(N) << " with values " << val;
           bool hasMemberInS = val.memberInside(values);
 	  int maxVal = p.at(Ymax) + hasMemberInS;
-	  if (up) {
+	  if (up)
 	    maxVal = std::min(maxVal, out.at(Ymax));
-	  }
-	  // std::cout << ": setting Ymax = " << maxVal << std::endl;
 	  out.set(Ymax,maxVal);
 	});
 
@@ -408,10 +403,8 @@ namespace Factory {
       spec.transitionUp(DmaxF,[DmaxF,Ymax](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DmaxF,c.at(Ymax)); });
 
       spec.transitionUp(Ymin,[Ymin,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
-                                //std::cout << "entering Ymin Up at layer " << c.at(N) << " with values " << val;
                                 bool hasMemberInS = val.memberInside(values);
                                 int minVal = std::max(out.at(Ymin), c.at(Ymin) - hasMemberInS);
-                                //std::cout << ": setting Ymin = " << minVal << std::endl;
                                 out.set(Ymin,minVal);
                              });
 
@@ -419,7 +412,6 @@ namespace Factory {
                                 // std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
                                 bool hasMemberOutS = val.memberOutside(values);
                                 int maxVal = std::min(out.at(Ymax), c.at(Ymax) - !hasMemberOutS);
-                                // std::cout << "[UP] setting Ymax = " << maxVal << std::endl;
                                 out.set(Ymax,maxVal);
                              });
 
@@ -433,22 +425,12 @@ namespace Factory {
                          if (n.at(N) <= nbVars - len) {
                             minVal = std::max(n.at(DminL) - ub,minVal);
                             maxVal = std::min(n.at(DmaxL) - lb,maxVal);
-                         }
+			 }
                          n.set(Ymin,minVal);
                          n.set(Ymax,maxVal);
                       });
 
       spec.nodeExist(desc,[=](const auto& p) {
-	  
-	  // if (!( (p.at(Ymin) <= p.at(Ymax)) &&
-	  // 	 (p.at(Ymin) <= p.at(N)) &&
-	  // 	 (p.at(Ymin) >= 0) &&
-	  // 	 (p.at(Ymax) <= p.at(N)) &&
-	  // 	 (p.at(Ymax) >= 0) )) {
-	  //   std::cout << "layer " << p.at(N) << ": node " << p << " infeasible " << std::endl;
-	  //   std::cout << " This concerns properties " << Ymin << " and " << Ymax << std::endl;
-	  // }
-	  
 	  return ( (p.at(Ymin) <= p.at(Ymax)) &&
 		   (p.at(Ymax) >= 0) &&
 		   (p.at(Ymax) <= p.at(N)) &&
@@ -463,12 +445,6 @@ namespace Factory {
                                c0 = (p.at(Ymin) + inS <= c.at(Ymax));
                                c1 = (p.at(Ymax) + inS >= c.at(Ymin));
                             }
-			    // if (!(c0&&c1)) {
-			    //   std::cout << "layer " << p.at(N) << ": arc infeasible with value " << v << " between "
-			    // 		<< p << " and " << c << std::endl;
-			    //   std::cout << " This concerns properties " << Ymin << " and " << Ymax << std::endl;
-			    // }
-			    
                             return c0 && c1;
                          });      
       
@@ -963,5 +939,108 @@ namespace Factory {
       mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l[minWup] - r[minWup]); });
       mdd.addSimilarity(maxWup,[maxWup](auto l,auto r) -> double { return abs(l[maxWup] - r[maxWup]); });
       mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
-  }  
+  }
+
+
+  void absDiffMDD(MDDSpec& mdd, const Factory::Veci& vars) {
+
+    assert(vars.size()==3);
+    
+    // Filtering rules based the following constraint:
+    //   |vars[0]-vars[1]| = vars[2]
+    // referred to below as |x-y| = z.
+    mdd.append(vars);    
+    auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
+    
+    const int xMin = mdd.addState(d,0,-INT_MAX);
+    const int xMax = mdd.addState(d,0,INT_MAX);
+    const int yMin = mdd.addState(d,0,-INT_MAX);
+    const int yMax = mdd.addState(d,0,INT_MAX);
+    // const int Lz = mdd.addState(d,0,INT_MAX);
+    // const int Uz = mdd.addState(d,0,INT_MAX);
+    const int N = mdd.addState(d,0,2); // layer index 
+
+    mdd.transitionDown(xMin,[xMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==0) {	  
+	  int min=INT_MAX;
+	  for(int v : val)
+	    if (v<min) { min = v; }
+	  out.set(xMin,min);
+	}
+	else {
+	  out.set(xMin,p.at(xMin));
+	}	  
+      });
+    mdd.transitionDown(xMax,[xMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==0) {	    
+	  int max=-INT_MAX;
+	  for(int v : val)
+	    if (v>max) { max = v; }
+	  out.set(xMax,max);
+	}
+	else {
+	  out.set(xMax, p.at(xMax));
+	}
+      });
+    mdd.transitionDown(yMin,[yMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==1) {	  
+	  int min=INT_MAX;
+	  for(int v : val)
+	    if (v<min) { min = v; }
+	  out.set(yMin,min);
+	}
+	else {
+	  out.set(yMin, p.at(yMin));
+	}
+      });
+    mdd.transitionDown(yMax,[yMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==1) {
+	  int max=-INT_MAX;
+	  for(int v : val)
+	    if (v>max) { max = v; }
+	  out.set(yMax,max);
+	}
+	else {
+	  out.set(yMax, p.at(yMax));
+	}
+      });
+
+    mdd.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+
+      // mdd.updateNode([=](auto& n) {
+      //                 });
+
+      // mdd.nodeExist(desc,[=](const auto& p) {
+      // 	  return ( );
+      // 	});
+
+    mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
+	// if (up && c.at(N) == 3) {
+	if (p.at(N)==2){
+	  // evaluate whether z=v is allowed
+	  if ((p.at(xMin)==p.at(xMax)) && (p.at(yMin)==p.at(yMax))) {
+	    return (val==std::abs(p.at(xMin)-p.at(yMin)));
+	  }
+	  else {	    
+	    int zMin = (p.at(xMin)>p.at(yMax))*(p.at(xMin)-p.at(yMax)) + (p.at(yMin)>p.at(xMax))*(p.at(yMin)-p.at(xMax));
+	    int zMax = std::max(p.at(xMax)-p.at(yMin), p.at(yMax)-p.at(xMin));
+	    return ((val<=zMax) && (val>=zMin));
+	  }
+	} else
+	  return 1;
+      });
+      
+      mdd.addRelaxation(xMin,[xMin](auto& out,const auto& l,const auto& r) { out.set(xMin,std::min(l.at(xMin), r.at(xMin)));});
+      mdd.addRelaxation(xMax,[xMax](auto& out,const auto& l,const auto& r) { out.set(xMax,std::max(l.at(xMax), r.at(xMax)));});
+      mdd.addRelaxation(yMin,[yMin](auto& out,const auto& l,const auto& r) { out.set(yMin,std::min(l.at(yMin), r.at(yMin)));});
+      mdd.addRelaxation(yMax,[yMax](auto& out,const auto& l,const auto& r) { out.set(yMax,std::max(l.at(yMax), r.at(yMax)));});
+      mdd.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
+
+      mdd.addSimilarity(xMin,[xMin](auto l,auto r) -> double { return abs(l.at(xMin) - r.at(xMin)); });
+      mdd.addSimilarity(xMax,[xMax](auto l,auto r) -> double { return abs(l.at(xMax) - r.at(xMax)); });
+      mdd.addSimilarity(yMin,[yMin](auto l,auto r) -> double { return abs(l.at(yMin) - r.at(yMin)); });
+      mdd.addSimilarity(yMax,[yMax](auto l,auto r) -> double { return abs(l.at(yMax) - r.at(yMax)); });
+      mdd.addSimilarity(N,[N](auto l,auto r) -> double { return abs(l.at(N) - r.at(N)); });
+  }
+
 }
