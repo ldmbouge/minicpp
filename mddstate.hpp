@@ -440,9 +440,10 @@ class MDDState {  // An actual state of an MDDNode.
    char*              _mem;
    mutable float      _rip;
    struct Flags {
-      bool         _relaxed:1;
+      bool          _drelax:1;
+      bool          _urelax:1;
       mutable bool  _ripped:1;
-      bool          _unused:6;
+      bool          _unused:5;
    } _flags;
    class TrailState : public Entry {
       MDDState* _at;
@@ -464,15 +465,16 @@ class MDDState {  // An actual state of an MDDNode.
       }
    };
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),_flags({false,false}) {}
+   MDDState() : _spec(nullptr),_mem(nullptr),_flags({false,false,false}) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
       : _spec(s),_mem(b),_flags({relax,false}) {
       if (_spec)
          memset(_mem,0,_spec->layoutSize());
    }
-   MDDState(MDDStateSpec* s,char* b,/*int hash,*/bool relax,float rip,bool ripped) 
+   MDDState(MDDStateSpec* s,char* b,/*int hash,*/bool drelax,bool urelax,float rip,bool ripped) 
       : _spec(s),_mem(b),_rip(rip) {
-         _flags._relaxed = relax;
+         _flags._drelax = drelax;
+         _flags._urelax = urelax;
          _flags._ripped = ripped;
       }
    MDDState(const MDDState& s) 
@@ -512,7 +514,7 @@ public:
    MDDState clone(Storage::Ptr mem) const {
       char* block = _spec ? (char*)mem->allocate(sizeof(char)*_spec->layoutSize()) : nullptr;
       if (_spec)  memcpy(block,_mem,_spec->layoutSize());
-      return MDDState(_spec,block,/*_hash,*/_flags._relaxed,_rip,_flags._ripped);
+      return MDDState(_spec,block,/*_hash,*/_flags._drelax,_flags._urelax,_rip,_flags._ripped);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize();}   
@@ -527,9 +529,12 @@ public:
    MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return _spec->_attrs[i]->setBS(_mem,val);} // (fast)
    void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);} // (fast)
    int byteSize(int i) const noexcept   { return (int)_spec->_attrs[i]->size();}
-   void clear() noexcept                { _flags._ripped = false;_flags._relaxed = false;}
-   bool isRelaxed() const noexcept      { return _flags._relaxed;}
-   void relax(bool r = true) noexcept   { _flags._relaxed = r;}
+   void clear() noexcept                { _flags._ripped = false;_flags._drelax = false;_flags._urelax = false;}
+   bool isRelaxed() const noexcept          { return _flags._drelax || _flags._urelax;}
+   bool isUpRelaxed() const noexcept        { return _flags._urelax;}
+   bool isDownRelaxed() const noexcept      { return _flags._drelax;}
+   void relaxDown(bool r = true) noexcept   { _flags._drelax = r;}
+   void relaxUp(bool r = true) noexcept     { _flags._urelax = r;}
    float inner(const MDDState& s) const {
       if (_flags._ripped) 
          return _rip;
@@ -561,17 +566,24 @@ public:
          ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
       return ttl;
    }
-   bool stateChange(const MDDState& b) const {
+   bool stateEqual(const MDDState& b) const noexcept {
+      return memcmp(_mem,b._mem,_spec->layoutSize())==0;
+   }
+   bool stateChange(const MDDState& b) const noexcept {
       return memcmp(_mem,b._mem,_spec->layoutSize())!=0;
    }
    bool operator==(const MDDState& s) const {    
-      return _flags._relaxed == s._flags._relaxed && memcmp(_mem,s._mem,_spec->layoutSize())==0;
+      return _flags._drelax == s._flags._drelax &&
+         //_flags._urelax == s._flags._urelax &&
+         memcmp(_mem,s._mem,_spec->layoutSize())==0;
    }
    bool operator!=(const MDDState& s) const {
-      return _flags._relaxed != s._flags._relaxed || memcmp(_mem,s._mem,_spec->layoutSize())!=0;
+      return ! this->operator==(s);
+      //_flags._drelax != s._flags._drelax || memcmp(_mem,s._mem,_spec->layoutSize())!=0;
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
-      os << (s._flags._relaxed ? 'T' : 'F') << '[';
+      os << (s._flags._drelax ? 'T' : 'F')
+         << (s._flags._urelax ? 'T' : 'F') << '[';
       if(s._spec != nullptr)
          for(auto atr : s._spec->_attrs) {
             atr->stream(s._mem,os);
@@ -613,13 +625,8 @@ public:
    void updateNode(MDDState& a) const noexcept;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
-   void updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
-   void relaxation(MDDState& a,const MDDState& b) const noexcept {
-      if (a == b) return;
-      for(const auto& relax : _relaxation)
-         relax(a,a,b);
-      a.relax();
-   }
+   void updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
+   void relaxation(MDDState& a,const MDDState& b) const noexcept;
    MDDState rootState(Storage::Ptr& mem);
    bool usesUp() const { return _uptrans.size() > 0;}
    void append(const Factory::Veci& x);

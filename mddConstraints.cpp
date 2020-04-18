@@ -283,7 +283,7 @@ namespace Factory {
       spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
       spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
 
       spec.transitionDown(minL,[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool allMembers = true;
@@ -384,7 +384,7 @@ namespace Factory {
 	  out.set(Ymin,minVal);
 	});
 
-      spec.transitionDown(Ymax,[values,Ymax,N](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(Ymax,[values,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) {
           bool hasMemberInS = val.memberInside(values);
 	  int maxVal = p.at(Ymax) + hasMemberInS;
 	  if (up)
@@ -408,7 +408,8 @@ namespace Factory {
                                 out.set(Ymin,minVal);
                              });
 
-      spec.transitionUp(Ymax,[Ymax,values,N](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(Ymax,[Ymax,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                // std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
                                 bool hasMemberOutS = val.memberOutside(values);
                                 int maxVal = std::min(out.at(Ymax), c.at(Ymax) - !hasMemberOutS);
                                 out.set(Ymax,maxVal);
@@ -449,7 +450,7 @@ namespace Factory {
       
       // relaxations
       spec.addRelaxation(Ymin,[Ymin](auto& out,const auto& l,const auto& r) { out.set(Ymin,std::min(l.at(Ymin),r.at(Ymin)));});
-      spec.addRelaxation(Ymax,[Ymax,N](auto& out,const auto& l,const auto& r) { out.set(Ymax,std::max(l.at(Ymax),r.at(Ymax)));});
+      spec.addRelaxation(Ymax,[Ymax](auto& out,const auto& l,const auto& r) { out.set(Ymax,std::max(l.at(Ymax),r.at(Ymax)));});
       for(int i = AminFIdx; i <= AminLIdx; i++)
 	 spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
       for(int i = AmaxFIdx; i <= AmaxLIdx; i++)

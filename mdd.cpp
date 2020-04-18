@@ -108,7 +108,10 @@ void MDD::buildNextLayer(unsigned int i)
             if (sink->getNumParents() == 0) {
                sinkState.copyState(state);
             } else {
-               _mddspec.relaxation(sinkState, state);
+               if (sinkState != state) {
+                  _mddspec.relaxation(sinkState, state);
+                  sinkState.relaxDown();
+               }
             }
             parent->addArc(mem,sink, v);
          }

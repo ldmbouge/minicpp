@@ -172,13 +172,13 @@ void MDDRelax::relaxLayer(int i,unsigned int width)
       MDDNode* target = std::get<1>(cl[from]);
       acc.initState(target->getState());
       for(from++; from < lim;from++) {
-         MDDNode* strip = std::get<1>(cl[from]);
+         MDDNode* strip = std::get<1>(cl[from]);         
          _mddspec.relaxation(acc,strip->getState());
+         acc.relaxDown();
          for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
             auto arc = *i;
             arc->moveTo(target,trail,mem);
          }
-         acc.relax();
       }
       //acc.hash();
       target->setState(acc,mem);
@@ -241,7 +241,12 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       _mddspec.createState(cs,p->getState(),l-1,x[l-1],_afp[i],true);
       if (first)
          ms.copyState(cs);
-      else _mddspec.relaxation(ms,cs);
+      else {
+         if (ms != cs) {
+            _mddspec.relaxation(ms,cs);
+            ms.relaxDown();
+         }
+      }
       first = false;
    }
    _mddspec.updateNode(ms);
@@ -258,15 +263,8 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    bool changed = n->getState() != ms;
    if (changed) {
       n->setState(ms,mem);
-      for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) {
-         MDDNode* child = (*i)->getChild();
-         int      v  = (*i)->getValue();         
-         child->markDirty();
-         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
-            n->unhook(*i);
-            delSupport(l,v);
-         }
-      }
+      for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) 
+         (*i)->getChild()->markDirty();      
    } else n->clearDirty();
    return changed;
 }
@@ -414,8 +412,11 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
          delState(n,l);
          removeMatch(cl,n->getState().inner(refDir),n);
          changed = true;
-      } else
-         changed = refreshNode(n,l) || changed;
+      } else {
+         bool refreshed = refreshNode(n,l);
+         if (refreshed) filterKids(n,l);
+         changed = refreshed || changed;
+      }
    }
    return changed;
 }
@@ -496,12 +497,12 @@ void MDDRelax::computeUp()
 {
    if (_mddspec.usesUp()) {
       //std::cout << "up(" << _lf << " - " << _ff << ") : ";
-      MDDState original(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
-      //sink->markDirty();
+      MDDState cs(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+      MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
       _mddspec.updateNode(*sink->key()); // should improve this API
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
          for(auto& n : layers[i]) {
-            bool first = true;           
+            bool first = true;
             for(auto k=0u;k<_width;k++)
                _afp[k].clear();
             for(auto& a : n->getChildren()) {
@@ -509,19 +510,27 @@ void MDDRelax::computeUp()
                int v = a->getValue();
                _afp[kid->getPosition()].add(v);
             }
-            MDDState dest(n->getState());  // This is a direct reference to the internals of n->getState()
             auto wub = std::min(_width,(unsigned)layers[i+1].size());
             for(auto k=0u;k < wub;k++) {
                if (_afp[k].size() > 0) {
-                  original.copyState(dest);
+                  cs.copyState(n->getState());
                   auto c = layers[i+1][k];
-                  _mddspec.updateState(first,dest,c->getState(),i,x[i],_afp[k]);
-                  if (original != dest) // && i > 0)
-                     n->markDirty();
+                  _mddspec.updateState(cs,c->getState(),i,x[i],_afp[k]);
+                  if (first)
+                     ms.copyState(cs);
+                  else {
+                     if (ms != cs) {
+                        _mddspec.relaxation(ms,cs);
+                        ms.relaxUp();
+                     }
+                  }
                   first = false;
                }
             }
-            _mddspec.updateNode(dest);
+            _mddspec.updateNode(ms);
+            bool dirty = n->isDirty() || (n->getState() != ms);
+            n->setState(ms,mem);
+            if (dirty) n->markDirty();
          }
       }
       //std::cout << "\n";

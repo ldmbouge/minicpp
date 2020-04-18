@@ -280,27 +280,22 @@ void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
       t(result,parent,var,v,hasUp);
    for(auto p : _frameLayer[l])
       result.setProp(p,parent);
-   result.relax(parent.isRelaxed() || v.size() > 1);
+   result.relaxDown(parent.isDownRelaxed() || v.size() > 1);
 }
 
-void MDDSpec::updateState(bool set,MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v)
+void MDDSpec::relaxation(MDDState& a,const MDDState& b) const noexcept
 {
-   // when set is true. compute T^{Up}(source,var,val) and store in target
-   // when set is false compute Relax(target,T^{Up}(source,var,val)) and store in target.
-   if (set) {
-      for(const auto& t : _uptransLayer[l])
-         t(target,source,var,v,true);
-      for(auto p : _upframeLayer[l])
-         target.setProp(p,source);
-   } else {
-      MDDState temp(this,(char*)alloca(sizeof(char)*layoutSize()));
-      temp.copyState(target);
-      for(const auto& t : _uptransLayer[l])
-         t(temp,source,var,v,true);
-      for(auto p : _upframeLayer[l])
-         temp.setProp(p,source);
-      relaxation(target,temp);          
-   }
+   for(const auto& relax : _relaxation)
+      relax(a,a,b);
+}
+
+void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v)
+{
+   for(const auto& t : _uptransLayer[l])
+      t(target,source,var,v,true);
+   for(auto p : _upframeLayer[l])
+      target.setProp(p,source);
+   target.relaxUp(source.isUpRelaxed() || v.size() > 1);
 }
 
 
