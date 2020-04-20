@@ -31,43 +31,48 @@
 using namespace std;
 using namespace Factory;
 
+
+class interval {
+public:
+  int min, max;
+  interval(int,int);
+};
+
+interval::interval(int _min, int _max) {
+  min = _min;
+  max = _max;
+}
+
+
 /*** Domain (bounds) propagation for AbsDiff constraint ***/
+bool propagateExpression(const interval* _x, const interval* _y, const interval* _z, interval &v1, interval &v3) {
 
-bool propagateExpression(var<int>::Ptr _z,var<int>::Ptr _x,var<int>::Ptr _y,
-			 int &v1min, int &v1max, int &v3min, int &v3max ) {
-  // Apply interval propagation for expression [z] = [Abs[ [[x] - [y]] ]] :
-  // First propagate x, y, z bounds 'up' through to intersect [z] == [v3]
-  // Then propagate the intervals 'down' back to x, y, z
+  /*** 
+   * Apply interval propagation to expression [z] = [Abs[ [[x] - [y]] ]] :
+   * First propagate x, y, z bounds 'up' to intersect [z] == [v3]
+   * Then propagate the intervals 'down' back to x, y, z: this done in 
+   * constraint, based on v1 and v3.
+   ***/
   
-  // std::cout << "enter propagateExpression(" << _z << ", " << _x << ", " << _y << ")" << std::endl;
-
+  // Up-propagate:
+  v1.min = _x->min - _y->max;
+  v1.max = _x->max - _y->min;
+  interval v2(0, 0);
+  if (!((v1.max >= 0) && (v1.min<=0)))
+    v2.min = std::min(std::abs(v1.min), std::abs(v1.max));
+  v2.max = std::max(std::abs(v1.min), std::abs(v1.max));
+  v3.min = std::max(_z->min, v2.min);
+  v3.max = std::min(_z->max, v2.max);
   
-     // Up-propagate:
-     v1min = _x->min() - _y->max();
-     v1max = _x->max() - _y->min();
-     int v2min = 0;
-     if (!((v1max >= 0) && (v1min<=0)))
-       v2min = std::min(std::abs(v1min), std::abs(v1max));
-     int v2max = std::max(std::abs(v1min), std::abs(v1max));
-     v3min = std::max(_z->min(), v2min);
-     v3max = std::min(_z->max(), v2max);
-
-     // Down-propagate for v1, v2, v3 (their bounds will be used for x, y, z):
-     v2min = std::max(v2min, v3min);
-     v2max = std::min(v2max, v3max);
-     v1min = std::max(v1min, -v2max);
-     v1max = std::min(v1max, v2max);
-
-     if ((v1max < v1min) || (v2max < v2min) || (v3max < v3min)) {
-       std::cout << "propagateExpression(" << _z << ", " << _x << ", " << _y << "): "
-		 << _z << " = |" << _x << "-" << _y << "| returns false because ";
-       if (v1max < v1min) std::cout << "(v1max < v1min)";
-       if (v2max < v2min) std::cout << "(v2max < v2min)";
-       if (v3max < v2min) std::cout << "(v3max < v3min)";
-       std::cout << std::endl;
-       return false;
-     }
-     return true;
+  // Down-propagate for v1, v2, v3 (their bounds will be used for x, y, z):
+  v2.min = std::max(v2.min, v3.min);
+  v2.max = std::min(v2.max, v3.max);
+  v1.min = std::max(v1.min, -(v2.max));
+  v1.max = std::min(v1.max, v2.max);
+  
+  if ((v1.max < v1.min) || (v2.max < v2.min) || (v3.max < v3.min))
+    return false;
+  return true;
 }
 void EQAbsDiffBC::post()
 {
@@ -77,43 +82,249 @@ void EQAbsDiffBC::post()
    }
    else {
 
-     int v1min, v1max, v3min, v3max;
-     bool check = propagateExpression(_x, _y, _z, v1min, v1max, v3min, v3max);
-     std::cout << "v1min = " << v1min << ", v1max = " << v1max << "v3min = " << v3min << ", v3max = " << v3max << std::endl;
+     interval v1(0,0);
+     interval v3(0,0);
+     interval X(_x->min(), _x->max());
+     interval Y(_y->min(), _y->max());
+     interval Z(_z->min(), _z->max());
+     bool check = propagateExpression(&X, &Y, &Z, v1, v3);
      if (!check) { throw Failure; }
 
-     _z->updateBounds(std::max(_z->min(),v3min), std::min(_z->max(),v3max));
-     _x->updateBounds(std::max(_x->min(),_y->min()+v1min), std::min(_x->max(),_y->max()+v1max));
-     _y->updateBounds(std::max(_y->min(),_x->min()-v1max), std::min(_y->max(),_x->max()-v1min));
+     _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+     _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+     _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
       
      _x->whenBoundsChange([this] {
-	 // int v1min, v1max, v3min, v3max;
-	 // bool check = propagateExpression(_x, _y, _z, v1min, v1max, v3min, v3max);
-	 // std::cout << "v1min = " << v1min << ", v1max = " << v1max << ", v3min = " << v3min << ", v3max = " << v3max << std::endl;
-	 // if (!check) { throw Failure; }
-
-	 _z->updateBounds(std::max(_z->min(),v3min), std::min(_z->max(),v3max));
-	 _y->updateBounds(std::max(_y->min(),_x->min()-v1max), std::min(_y->max(),_x->max()-v1min));
-
+	 interval v1(0,0);
+	 interval v3(0,0);
+	 interval X(_x->min(), _x->max());
+	 interval Y(_y->min(), _y->max());
+	 interval Z(_z->min(), _z->max());
+	 bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+	 if (!check) { throw Failure; }
+     	 _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+     	 _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
        });
       
       _y->whenBoundsChange([this] {
-	 int v1min, v1max, v3min, v3max;
-	 bool check = propagateExpression(_x, _y, _z, v1min, v1max, v3min, v3max);
-	  _z->updateBounds(std::max(_z->min(),v3min), std::min(_z->max(),v3max));
-	  _x->updateBounds(std::max(_x->min(),_y->min()+v1min), std::min(_x->max(),_y->max()+v1max));
-	});
+	 interval v1(0,0);
+	 interval v3(0,0);
+	 interval X(_x->min(), _x->max());
+	 interval Y(_y->min(), _y->max());
+	 interval Z(_z->min(), _z->max());
+	 bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+	 if (!check) { throw Failure; }
+     	  _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+     	  _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+     	});
 
       _z->whenBoundsChange([this] {
-	 int v1min, v1max, v3min, v3max;
-	 bool check = propagateExpression(_x, _y, _z, v1min, v1max, v3min, v3max);
-	  _x->updateBounds(std::max(_x->min(),_y->min()+v1min), std::min(_x->max(),_y->max()+v1max));
-	  _y->updateBounds(std::max(_y->min(),_x->min()-v1max), std::min(_y->max(),_x->max()-v1min));
-	});
+	 interval v1(0,0);
+	 interval v3(0,0);
+	 interval X(_x->min(), _x->max());
+	 interval Y(_y->min(), _y->max());
+	 interval Z(_z->min(), _z->max());
+	 bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+	 if (!check) { throw Failure; }
+     	  _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+     	  _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
+     	});
+      
+      // _x->whenBind([this] { _y->assign(_x->min() - _c);});
+      // _y->whenBind([this] { _x->assign(_y->min() + _c);});
+
    }
 }
 /***/
 
+namespace Factory {
+
+  void absDiffMDD(MDDSpec& mdd, const Factory::Veci& vars) {
+
+    assert(vars.size()==3);
+    
+    // Filtering rules based the following constraint:
+    //   |vars[0]-vars[1]| = vars[2]
+    // referred to below as |x-y| = z.
+    mdd.append(vars);    
+    auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
+    
+    const int xMin = mdd.addState(d,0,-INT_MAX);
+    const int xMax = mdd.addState(d,0,INT_MAX);
+    const int yMin = mdd.addState(d,0,-INT_MAX);
+    const int yMax = mdd.addState(d,0,INT_MAX);
+    const int yMinUp = mdd.addState(d,0,-INT_MAX);
+    const int yMaxUp = mdd.addState(d,0,INT_MAX);
+    const int zMinUp = mdd.addState(d,0,-INT_MAX);
+    const int zMaxUp = mdd.addState(d,0,INT_MAX);
+    const int N = mdd.addState(d,0,2); // layer index 
+
+    mdd.transitionDown(xMin,[xMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==0) {	  
+	  int min=INT_MAX;
+	  for(int v : val)
+	    if (v<min) { min = v; }
+	  out.set(xMin,min);
+	}
+	else {
+	  out.set(xMin,p.at(xMin));
+	}	  
+      });
+    mdd.transitionDown(xMax,[xMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==0) {	    
+	  int max=-INT_MAX;
+	  for(int v : val)
+	    if (v>max) { max = v; }
+	  out.set(xMax,max);
+	}
+	else {
+	  out.set(xMax, p.at(xMax));
+	}
+      });
+    mdd.transitionDown(yMin,[yMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==1) {	  
+	  int min=INT_MAX;
+	  for(int v : val)
+	    if (v<min) { min = v; }
+	  out.set(yMin,min);
+	}
+	else {
+	  out.set(yMin, p.at(yMin));
+	}
+      });
+    mdd.transitionDown(yMax,[yMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==1) {
+	  int max=-INT_MAX;
+	  for(int v : val)
+	    if (v>max) { max = v; }
+	  out.set(yMax,max);
+	}
+	else {
+	  out.set(yMax, p.at(yMax));
+	}
+      });
+
+    mdd.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+
+    mdd.transitionDown(yMinUp,[yMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+	if (c.at(N)==2) {
+	  int min=INT_MAX;
+	  for(int v : val)
+	    if (v<min) { min = v; }
+	  out.set(yMinUp,min);
+	}
+	else {
+	  out.set(yMinUp, c.at(yMinUp));
+	}
+      });
+    mdd.transitionUp(yMaxUp,[yMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+	if (c.at(N)==2) {
+	  int max=-INT_MAX;
+	  for(int v : val)
+	    if (v>max) { max = v; }
+	  out.set(yMaxUp,max);
+	}
+	else {
+	  out.set(yMaxUp, c.at(yMaxUp));
+	}
+      });
+    mdd.transitionDown(zMinUp,[zMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+	if (c.at(N)==3) {
+	  int min=INT_MAX;
+	  for(int v : val)
+	    if (v<min) { min = v; }
+	  out.set(zMinUp,min);
+	}
+	else {
+	  out.set(zMinUp, c.at(zMinUp));
+	}
+      });
+    mdd.transitionUp(zMaxUp,[zMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+	if (c.at(N)==3) {
+	  int max=-INT_MAX;
+	  for(int v : val)
+	    if (v>max) { max = v; }
+	  out.set(zMaxUp,max);
+	}
+	else {
+	  out.set(zMaxUp, c.at(zMaxUp));
+	}
+      });
+
+    
+      // mdd.updateNode([=](auto& n) {
+      //                 });
+
+      // mdd.nodeExist(desc,[=](const auto& p) {
+      // 	  return ( );
+      // 	});
+
+    mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
+	
+	if (p.at(N)==2) {
+	  // filter z variable
+	  interval v1(0,INT_MAX);
+	  interval v3(0,INT_MAX);
+	  interval X(p.at(xMin), p.at(xMax));
+	  interval Y(p.at(yMin), p.at(yMax));
+	  interval Z(0, INT_MAX);
+	  bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+	  return ((val>=v3.min) && (val<=v3.max));
+	}
+	else {
+	  if (up) {
+	    if (p.at(N) == 0) {
+	      // filter x variable
+	      interval v1(0,INT_MAX);
+	      interval v3(0,INT_MAX);
+	      interval X(0, INT_MAX);
+	      interval Y(p.at(yMinUp), p.at(yMaxUp));
+	      interval Z(p.at(zMinUp), p.at(zMaxUp));
+	      bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+	      return ((val>=Y.min+v1.min) && (val<=Y.max+v1.max));
+	    }
+	    else if (p.at(N) == 1) {
+	      // filter y variable
+	      interval v1(0,INT_MAX);
+	      interval v3(0,INT_MAX);
+	      interval X(p.at(xMin), p.at(xMax));
+	      interval Y(0, INT_MAX);
+	      interval Z(p.at(zMinUp), p.at(zMaxUp));
+	      bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+	      return ((val>=X.min-v1.max) && (val<=X.max-v1.min));
+	    }
+	  }
+	  else {
+	    return 1;
+	  }
+	}
+      });
+      
+      mdd.addRelaxation(xMin,[xMin](auto& out,const auto& l,const auto& r) { out.set(xMin,std::min(l.at(xMin), r.at(xMin)));});
+      mdd.addRelaxation(xMax,[xMax](auto& out,const auto& l,const auto& r) { out.set(xMax,std::max(l.at(xMax), r.at(xMax)));});
+      mdd.addRelaxation(yMin,[yMin](auto& out,const auto& l,const auto& r) { out.set(yMin,std::min(l.at(yMin), r.at(yMin)));});
+      mdd.addRelaxation(yMax,[yMax](auto& out,const auto& l,const auto& r) { out.set(yMax,std::max(l.at(yMax), r.at(yMax)));});
+      mdd.addRelaxation(yMinUp,[yMinUp](auto& out,const auto& l,const auto& r) { out.set(yMinUp,std::min(l.at(yMinUp), r.at(yMinUp)));});
+      mdd.addRelaxation(yMaxUp,[yMaxUp](auto& out,const auto& l,const auto& r) { out.set(yMaxUp,std::max(l.at(yMaxUp), r.at(yMaxUp)));});
+      mdd.addRelaxation(zMinUp,[zMinUp](auto& out,const auto& l,const auto& r) { out.set(zMinUp,std::min(l.at(zMinUp), r.at(zMinUp)));});
+      mdd.addRelaxation(zMaxUp,[zMaxUp](auto& out,const auto& l,const auto& r) { out.set(zMaxUp,std::max(l.at(zMaxUp), r.at(zMaxUp)));});
+      mdd.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
+
+      mdd.addSimilarity(xMin,[xMin](auto l,auto r) -> double { return abs(l.at(xMin) - r.at(xMin)); });
+      mdd.addSimilarity(xMax,[xMax](auto l,auto r) -> double { return abs(l.at(xMax) - r.at(xMax)); });
+      mdd.addSimilarity(yMin,[yMin](auto l,auto r) -> double { return abs(l.at(yMin) - r.at(yMin)); });
+      mdd.addSimilarity(yMax,[yMax](auto l,auto r) -> double { return abs(l.at(yMax) - r.at(yMax)); });
+      mdd.addSimilarity(yMinUp,[yMinUp](auto l,auto r) -> double { return abs(l.at(yMinUp) - r.at(yMinUp)); });
+      mdd.addSimilarity(yMaxUp,[yMaxUp](auto l,auto r) -> double { return abs(l.at(yMaxUp) - r.at(yMaxUp)); });
+      mdd.addSimilarity(zMinUp,[zMinUp](auto l,auto r) -> double { return abs(l.at(zMinUp) - r.at(zMinUp)); });
+      mdd.addSimilarity(zMaxUp,[zMaxUp](auto l,auto r) -> double { return abs(l.at(zMaxUp) - r.at(zMaxUp)); });
+      mdd.addSimilarity(N,[N](auto l,auto r) -> double { return abs(l.at(N) - r.at(N)); });
+  }
+
+}
+
+
+/***/
 
 Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)> clo)
 {
@@ -273,9 +484,9 @@ int main(int argc,char* argv[])
    int cnt = 0;
    search.onSolution([&cnt,xVars,yVars]() {
        cnt++;
-       // std::cout << "\rNumber of solutions:" << cnt << std::flush;
-        	 std::cout << "x = " << xVars << endl;
-        	 std::cout << "y = " << yVars << endl;
+       std::cout << "\rNumber of solutions:" << cnt << std::flush;
+       // std::cout << "x = " << xVars << endl;
+       // std::cout << "y = " << yVars << endl;
      });
 
       
@@ -291,3 +502,38 @@ int main(int argc,char* argv[])
    cp.dealloc();
    return 0;
 }
+
+
+
+
+// /*** Domain (bounds) propagation for AbsDiff constraint ***/
+// bool propagateExpression(interval &_x, interval &_y, interval &_z, interval &v1, interval &v3) {
+
+//   /*** 
+//    * Apply interval propagation to expression [z] = [Abs[ [[x] - [y]] ]] :
+//    * First propagate x, y, z bounds 'up' through to intersect [z] == [v3]
+//    * Then propagate the intervals 'down' back to x, y, z: this done in 
+//    * constraint, based on v1 and v3.
+//    ***/
+  
+//   // Up-propagate:
+//   v1->min = _x->min - _y->max;
+//   v1->max = _x->max - _y->min;
+//   interval v2(0, 0);
+//   int v2min = 0;
+//   if (!((v1max >= 0) && (v1min<=0)))
+//     v2min = std::min(std::abs(v1min), std::abs(v1max));
+//   int v2max = std::max(std::abs(v1min), std::abs(v1max));
+//   v3min = std::max(_z->min(), v2min);
+//   v3max = std::min(_z->max(), v2max);
+  
+//   // Down-propagate for v1, v2, v3 (their bounds will be used for x, y, z):
+//   v2min = std::max(v2min, v3min);
+//   v2max = std::min(v2max, v3max);
+//   v1min = std::max(v1min, -v2max);
+//   v1max = std::min(v1max, v2max);
+  
+//   if ((v1max < v1min) || (v2max < v2min) || (v3max < v3min))
+//     return false;
+//   return true;
+// }

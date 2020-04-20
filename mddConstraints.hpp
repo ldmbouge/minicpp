@@ -44,7 +44,7 @@ namespace Factory {
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub);
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, var<int>::Ptr z);
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z);
-   void absDiffMDD(MDDSpec& mdd, const Factory::Veci& vars);
+   // void absDiffMDD(MDDSpec& mdd, const Factory::Veci& vars);
 }
 
 #endif

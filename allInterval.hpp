@@ -8,6 +8,7 @@
 #include <iomanip>
 #include <stdint.h>
 #include "intvar.hpp"
+#include "mddstate.hpp"
 
 // Dedicated constraints to compare domain propagation to MDD propagation
 
@@ -20,10 +21,15 @@ public:
 };
 
 namespace Factory {
-   inline Constraint::Ptr equalAbsDiff(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y) {
-      return new (x->getSolver()) EQAbsDiffBC(z,x,y);
-   }
+  inline Constraint::Ptr equalAbsDiff(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y) {
+    return new (x->getSolver()) EQAbsDiffBC(z,x,y);
+  }
+
+  void absDiffMDD(MDDSpec& mdd, const Factory::Veci& vars);
 }
+
+
+
 
 
 #endif
