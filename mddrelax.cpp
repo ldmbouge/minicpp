@@ -315,8 +315,11 @@ class MDDNodeSim {
    const TVec<MDDNode*>& _layer;
    bool _ready;
    const MDDState& _refDir;
+   const MDDSpec& _mddspec;
    std::multimap<float,MDDNode*,std::less<float> > _cl;
-   std::reverse_iterator<TVec<MDDNode*>::iterator> _cur;
+   //std::reverse_iterator<TVec<MDDNode*>::iterator> _cur;
+   std::vector<std::pair<double,MDDNode*>> _pq;
+   std::vector<std::pair<double,MDDNode*>>::iterator _first,_last;
    void initialize() {
       _ready = true;
       if (_cl.size()==0) {
@@ -326,8 +329,24 @@ class MDDNodeSim {
       }     
    }
 public:
-   MDDNodeSim(const TVec<MDDNode*>& layer,const MDDState& ref)
-      : _layer(layer),_ready(false),_refDir(ref),_cur(layer.rbegin()) {}
+   MDDNodeSim(const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec)
+      : _layer(layer),_ready(false),_refDir(ref),_mddspec(mddspec) //,_cur(layer.rbegin())
+   {
+      _pq.reserve(_layer.size());      
+      for(auto& n : _layer)
+         if (n->getState().isRelaxed()) {            
+            //double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(n->getState()) : (double)n->getPosition();
+            double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(n->getState()) : - (double)n->getNumParents(); 
+            //std::cout << "A(" << key << ',' << n << "),";
+            _pq.emplace_back(std::move(key),std::move(n));
+         }
+      std::make_heap(_pq.begin(),_pq.end(),[](const auto& a,const auto& b) {
+                                              return std::get<0>(a) < std::get<0>(b);
+                                           });
+      //std::cout << std::endl;
+      _first = _pq.begin();
+      _last  = _pq.end();
+   }
    MDDNode* findSimilar(const MDDState& s) {
       if (!_ready) initialize();
       float query = s.inner(_refDir);
@@ -362,11 +381,17 @@ public:
       _cl.insert({nc->getState().inner(_refDir),nc});
    }
    MDDNode* extractNode() {
-      while(_cur != _layer.rend()) {
-         MDDNode* n = *_cur;
-         _cur++;
-         if (n->getState().isRelaxed())
-            return n;
+      while (_first != _last) {
+         double key = 0.0;
+         MDDNode* value = nullptr;
+         std::tie(key,value) = *_first;
+         std::pop_heap(_first,_last,[](const auto& a,const auto& b) {
+                                       return std::get<0>(a) < std::get<0>(b);
+                                    });
+         _pq.pop_back();
+         _last = _pq.end();
+         //std::cout << "X(" << key << ")";
+         return value;
       }
       return nullptr;
    }
@@ -377,9 +402,10 @@ public:
 bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
 {
    using namespace std;
-   if (l==0 || l==(int)numVariables || x[l-1]->isBound()) return false; // We never go through the splitting logic at root/sink
+   if (l==0 || l==(int)numVariables || layer.size()==_width || x[l-1]->isBound()) return false; // We never go through the splitting logic at root/sink
    bool changed = false;
-   MDDNodeSim nSim(layer,_refs[l]);
+   //std::cout << "\nStarting: LS=" << layer.size() << "\n";
+   MDDNodeSim nSim(layer,_refs[l],_mddspec);
    MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
    MDDNode* n = nullptr;
    while (layer.size() < _width && (n = nSim.extractNode()) != nullptr) {

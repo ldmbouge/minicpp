@@ -633,7 +633,8 @@ public:
    bool usesUp() const { return _uptrans.size() > 0;}
    void append(const Factory::Veci& x);
    void reachedFixpoint(const MDDState& sink);
-   double splitPriority(const MDDState& n);
+   double splitPriority(const MDDState& n) const;
+   bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
