@@ -364,9 +364,9 @@ public:
    MDDNode* extractNode() {
       while(_cur != _layer.rend()) {
          MDDNode* n = *_cur;
+         _cur++;
          if (n->getState().isRelaxed())
             return n;
-         _cur++;
       }
       return nullptr;
    }
@@ -562,7 +562,7 @@ void MDDRelax::computeUp()
       if (ss != sink->getState()) {
          sink->setState(ss,mem);
       }
-      for(const auto pa  : sink->getParents())
+      for(const auto& pa  : sink->getParents())
          pa->getParent()->markDirty();
       for(int i = (int)numVariables - 1;i >= _ff;i--) {
          for(auto& n : layers[i]) {
@@ -570,7 +570,7 @@ void MDDRelax::computeUp()
                bool dirty = processNodeUp(n,i);
                if (dirty) {
                   n->markDirty();
-                  for(const auto pa  : n->getParents())
+                  for(const auto& pa  : n->getParents())
                      pa->getParent()->markDirty();
                }
             }
