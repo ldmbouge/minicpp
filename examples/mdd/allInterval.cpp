@@ -293,6 +293,7 @@ namespace Factory {
 	      bool check = propagateExpression(&X, &Y, &Z, v1, v3);
 	      return ((val>=X.min-v1.max) && (val<=X.max-v1.min));
 	    }
+            else return true; // missing return?
 	  }
 	  else {
 	    return 1;
