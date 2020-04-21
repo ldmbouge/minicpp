@@ -139,6 +139,7 @@ typedef std::function<void(MDDState&)> UpdateFun;
 typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr,const MDDIntSet&,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
+typedef std::function<double(const MDDState&)> SplitFun;
 typedef std::map<int,lambdaTrans> lambdaMap;
 class MDDStateSpec;
 
@@ -619,6 +620,7 @@ public:
    void transitionUp(const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
+   void splitOnLargest(SplitFun onSplit);
    // Internal methods.
    void varOrder() override;
    bool consistent(const MDDState& a,var<int>::Ptr x) const noexcept;
@@ -631,6 +633,8 @@ public:
    bool usesUp() const { return _uptrans.size() > 0;}
    void append(const Factory::Veci& x);
    void reachedFixpoint(const MDDState& sink);
+   double splitPriority(const MDDState& n) const;
+   bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
@@ -652,6 +656,7 @@ private:
    std::vector<lambdaSim>   _similarity;
    std::vector<lambdaTrans> _uptrans;
    std::vector<FixFun>        _onFix;
+   std::vector<SplitFun>      _onSplit;
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;
    std::vector<std::vector<int>> _frameLayer;

@@ -934,6 +934,8 @@ namespace Factory {
                         z->updateBounds(sink.at(minW),sink.at(maxW));
                      });
 
+      mdd.splitOnLargest([minW](const auto& in) { return in[minW];});
+
       mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
       mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
       mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l[minWup] - r[minWup]); });

@@ -124,10 +124,15 @@ int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char ini
    return rv;   
 }
 
-void MDDSpec::onFixpoint(std::function<void(const MDDState&)> onFix)
+void MDDSpec::onFixpoint(FixFun onFix)
 {
    _onFix.emplace_back(onFix);
 }
+void MDDSpec::splitOnLargest(SplitFun onSplit)
+{
+   _onSplit.emplace_back(onSplit);
+}
+
 void MDDSpec::updateNode(MDDState& a) const noexcept
 {
    for(auto& fun : _updates)
@@ -223,6 +228,14 @@ void MDDSpec::reachedFixpoint(const MDDState& sink)
 {
    for(auto& fix : _onFix)
       fix(sink);
+}
+
+double MDDSpec::splitPriority(const MDDState& n) const
+{
+   double ttl = 0.0;
+   for(const auto& sf : _onSplit)
+      ttl += sf(n);
+   return ttl;
 }
 
 void MDDSpec::compile()

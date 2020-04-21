@@ -321,6 +321,7 @@ namespace Factory {
 	      interval Z(p.at(zMinUp), p.at(zMaxUp));
 	      return propagateExpression(&X, &Y, &Z, v1, v3);
 	    }
+            else return true; // missing return?
 	  }
 	  else {
 	    return 1;
