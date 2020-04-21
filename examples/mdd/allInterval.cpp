@@ -57,7 +57,7 @@ bool propagateExpression(const interval* _x, const interval* _y, const interval*
   // Up-propagate:
   v1.min = _x->min - _y->max;
   v1.max = _x->max - _y->min;
-  interval v2(0, 0);
+  interval v2(-INT_MAX,INT_MAX);
   if (!((v1.max >= 0) && (v1.min<=0)))
     v2.min = std::min(std::abs(v1.min), std::abs(v1.max));
   v2.max = std::max(std::abs(v1.min), std::abs(v1.max));
@@ -81,9 +81,8 @@ void EQAbsDiffBC::post()
      _z->assign(std::abs(_x->min()-_y->min()));
    }
    else {
-
-     interval v1(0,0);
-     interval v3(0,0);
+     interval v1(-INT_MAX,INT_MAX);
+     interval v3(-INT_MAX,INT_MAX);
      interval X(_x->min(), _x->max());
      interval Y(_y->min(), _y->max());
      interval Z(_z->min(), _z->max());
@@ -95,8 +94,8 @@ void EQAbsDiffBC::post()
      _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
       
      _x->whenBoundsChange([this] {
-	 interval v1(0,0);
-	 interval v3(0,0);
+	 interval v1(-INT_MAX,INT_MAX);
+	 interval v3(-INT_MAX,INT_MAX);
 	 interval X(_x->min(), _x->max());
 	 interval Y(_y->min(), _y->max());
 	 interval Z(_z->min(), _z->max());
@@ -107,8 +106,8 @@ void EQAbsDiffBC::post()
        });
       
       _y->whenBoundsChange([this] {
-	 interval v1(0,0);
-	 interval v3(0,0);
+	 interval v1(-INT_MAX,INT_MAX);
+	 interval v3(-INT_MAX,INT_MAX);
 	 interval X(_x->min(), _x->max());
 	 interval Y(_y->min(), _y->max());
 	 interval Z(_z->min(), _z->max());
@@ -118,21 +117,53 @@ void EQAbsDiffBC::post()
      	  _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
      	});
 
-      _z->whenBoundsChange([this] {
-	 interval v1(0,0);
-	 interval v3(0,0);
-	 interval X(_x->min(), _x->max());
-	 interval Y(_y->min(), _y->max());
-	 interval Z(_z->min(), _z->max());
-	 bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-	 if (!check) { throw Failure; }
-     	  _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
-     	  _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
-     	});
-      
-      // _x->whenBind([this] { _y->assign(_x->min() - _c);});
-      // _y->whenBind([this] { _x->assign(_y->min() + _c);});
+      // _z->whenBoundsChange([this] {
+      // 	 interval v1(-INT_MAX,INT_MAX);
+      // 	 interval v3(-INT_MAX,INT_MAX);
+      // 	 interval X(_x->min(), _x->max());
+      // 	 interval Y(_y->min(), _y->max());
+      // 	 interval Z(_z->min(), _z->max());
+      // 	 bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+      // 	 if (!check) { throw Failure; }
+      // 	  _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+      // 	  _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
+      // 	});
 
+      // Applying domain consistency to x and y when Dom(z) changes seems to mimick the Puget&Regin approach.
+      _z->whenDomainChange([this] {
+	  for (int x=_x->min(); x<=_x->max(); x++) {
+	    if (_x->contains(x)) {
+	      bool support = false;
+	      for (int y=_y->min(); y<=_y->max() && !support; y++) {
+		if (_y->contains(y)) {
+		  for (int z=_z->min(); z<=_z->max() && !support; z++) {
+		    if (_z->contains(z) && (z==std::abs(x-y))){
+		      support = true;
+		      break;
+		    }
+		  }
+		}
+	      }
+	      if (!support) { _x->remove(x); }
+	    }
+	  }
+	  for (int y=_y->min(); y<=_y->max(); y++) {
+	    if (_y->contains(y)) {
+	      bool support = false;
+	      for (int x=_x->min(); x<=_x->max() && !support; x++) {
+		if (_x->contains(x)) {
+		  for (int z=_z->min(); z<=_z->max() && !support; z++) {
+		    if (_z->contains(z) && (z==std::abs(x-y))){
+		      support = true;
+		      break;
+		    }
+		  }
+		}
+	      }
+	      if (!support) { _y->remove(y); }
+	    }
+	  }
+     	});
    }
 }
 /***/
@@ -267,9 +298,8 @@ namespace Factory {
 	  interval v3(0,INT_MAX);
 	  interval X(p.at(xMin), p.at(xMax));
 	  interval Y(p.at(yMin), p.at(yMax));
-	  interval Z(0, INT_MAX);
-	  bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-	  return ((val>=v3.min) && (val<=v3.max));
+	  interval Z(val, val);
+	  return propagateExpression(&X, &Y, &Z, v1, v3);
 	}
 	else {
 	  if (up) {
@@ -277,21 +307,19 @@ namespace Factory {
 	      // filter x variable
 	      interval v1(0,INT_MAX);
 	      interval v3(0,INT_MAX);
-	      interval X(0, INT_MAX);
+	      interval X(val, val);
 	      interval Y(p.at(yMinUp), p.at(yMaxUp));
 	      interval Z(p.at(zMinUp), p.at(zMaxUp));
-	      bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-	      return ((val>=Y.min+v1.min) && (val<=Y.max+v1.max));
+	      return propagateExpression(&X, &Y, &Z, v1, v3);
 	    }
 	    else if (p.at(N) == 1) {
 	      // filter y variable
 	      interval v1(0,INT_MAX);
 	      interval v3(0,INT_MAX);
 	      interval X(p.at(xMin), p.at(xMax));
-	      interval Y(0, INT_MAX);
+	      interval Y(val, val);
 	      interval Z(p.at(zMinUp), p.at(zMaxUp));
-	      bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-	      return ((val>=X.min-v1.max) && (val<=X.max-v1.min));
+	      return propagateExpression(&X, &Y, &Z, v1, v3);
 	    }
 	  }
 	  else {
@@ -443,6 +471,7 @@ int main(int argc,char* argv[])
      Factory::allDiffMDD(mdd->getSpec(),yVars);
      cp->post(mdd);
      //mdd->saveGraph();
+
    }
    if ((mode < 0) || (mode > 3)) {
      cout << "Exit: specify a mode in {0,1,2,3}:" << endl;
@@ -455,16 +484,16 @@ int main(int argc,char* argv[])
 
    DFSearch search(cp,[=]() {
 
-      //  // Lex order
-      // unsigned i = 0u;
-      // for(i=0u;i < xVars.size();i++)
-      // 	if (xVars[i]->size()> 1) break;
-      // auto x = i< xVars.size() ? xVars[i] : nullptr;
-
-       // Fail first
-       auto x = selectMin(xVars,
-                         [](const auto& x) { return x->size() > 1;},
-                         [](const auto& x) { return x->size();});
+        // Lex order
+       unsigned i = 0u;
+       for(i=0u;i < xVars.size();i++)
+       	if (xVars[i]->size()> 1) break;
+       auto x = i< xVars.size() ? xVars[i] : nullptr;
+       
+       // // Fail first
+       // auto x = selectMin(xVars,
+       // 			  [](const auto& x) { return x->size() > 1;},
+       //                    [](const auto& x) { return x->size();});
 
       if (x) {
 	
