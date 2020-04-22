@@ -84,6 +84,47 @@ struct MDDNodePtrOrder {
    }
 };
 
+
+template <class op> class MDDQueue {
+   std::deque<MDDNode*>* _queues;
+   int _nbq;
+   int _nbe;
+   int _cl;
+   int _init;
+public:
+   MDDQueue(int nb) : _nbq(nb),_nbe(0),_cl(0) {
+      _init = std::is_same<op,std::plus<int>>::value ? 0 : _nbq - 1;
+      _queues = new std::deque<MDDNode*>[_nbq];
+   }
+   ~MDDQueue()  { delete []_queues;}
+   void clear() {
+      for(int i = 0;i < _nbq;i++)
+         _queues[i].clear();
+      _nbe = 0;
+   }
+   void reset() noexcept { _cl = _init;}
+   bool empty() const    { return _nbe == 0;}
+   void enQueue(MDDNode* n) {
+      _queues[n->getLayer()].emplace_back(n);
+      _nbe += 1;
+   }
+   MDDNode* deQueue() {
+      while (_cl >= 0 && _cl < _nbq && _queues[_cl].size() == 0)
+         _cl = op(_cl,1);
+      if (_cl < 0 || _cl >= _nbq) {
+         assert(_nbe == 0);
+         return nullptr;
+      }
+      auto rv = _queues[_cl].front();
+      _queues[_cl].pop_front();
+      _nbe -= 1;
+      return rv;
+   }
+};
+
+using MDDFQueue = MDDQueue<std::plus<int>>;
+using MDDBQueue = MDDQueue<std::minus<int>>;
+
 class MDDRelax : public MDD {
    const unsigned int _width;
    ::trail<unsigned> _lowest;
@@ -92,6 +133,8 @@ class MDDRelax : public MDD {
    std::vector<MDDState> _refs;
    MDDIntSet*             _afp;
    MDDNode**              _src;
+   MDDFQueue*             _fwd;
+   MDDBQueue*             _bwd;
    const MDDState& pickReference(int layer,int layerSize); 
    bool rebuild();
    bool refreshNode(MDDNode* n,int l);
@@ -104,6 +147,7 @@ class MDDRelax : public MDD {
    void computeUp();
    void postUp();
    bool trimDomains() override;
+   void removeArc(int outL,int inL,MDDEdge* arc) override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:
    MDDRelax(CPSolver::Ptr cp,int width = 32);

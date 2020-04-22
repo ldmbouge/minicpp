@@ -81,8 +81,6 @@ public:
    void unhook(MDDEdge::Ptr arc);
    void unhookChild(MDDEdge::Ptr arc);
    void hookChild(MDDEdge::Ptr arc,Storage::Ptr mem);
-   void trim(MDD* mdd,var<int>::Ptr x);
-
    MDDState* key()            { return &state;}
    void setState(const MDDState& s,Storage::Ptr mem) {
       auto t = children.getTrail();

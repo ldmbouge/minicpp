@@ -92,13 +92,19 @@ void MDDNode::hookChild(MDDEdge::Ptr arc,Storage::Ptr mem)
 */
 void MDDNode::remove(MDD* mdd)
 {
+   int layer = (int)getLayer();
    for(int i = (int)children.size() - 1; i >= 0 ; i--) {
       MDDEdge::Ptr arc = children.get(i);
       arc->getChild()->markDirty();
+      mdd->removeArc(layer,layer+1,arc.get());
       arc->remove(mdd);
    }
-   for(int i = (int)parents.size() - 1; i >=0 ; i--) // Would have to do something for up properties.
-      parents.get(i)->remove(mdd);
+   for(int i = (int)parents.size() - 1; i >=0 ; i--) { // Would have to do something for up properties.
+      MDDEdge::Ptr arc = parents.get(i);
+      //arc->getParent()->markDirty();   // [ldm] this increases the # failures. not sure why.
+      mdd->removeArc(layer-1,layer,arc.get());
+      arc->remove(mdd);
+   }
 }
 
 /*
@@ -143,22 +149,6 @@ void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
                                       (unsigned int)child->parents.size());
    children.push_back(e,mem);
    child->parents.push_back(e,mem);
-}
-
-/*
-  MDDNode::trim() removes all arcs with values not in the domain of var.
-*/
-void MDDNode::trim(MDD* mdd,var<int>::Ptr x)
-{
-   if (isActive()) {
-      for(int i = (int)children.size() - 1; i >= 0 ; i--){
-         if(!x->contains(children.get(i)->getValue())) {
-            auto arc = children.get(i);
-            arc->getChild()->markDirty();
-            arc->remove(mdd);
-         }
-      }
-   }
 }
 
 double MDDSpec::splitPriority(const MDDNode& n) const

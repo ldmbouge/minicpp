@@ -6,45 +6,6 @@
 #include <cmath>
 #include "RuntimeMonitor.hpp"
 
-template <class op> class MDDQueue {
-   std::deque<MDDNode*>* _queues;
-   int _nbq;
-   int _nbe;
-   int _cl;
-   int _init;
-public:
-   MDDQueue(int nb) : _nbq(nb),_nbe(0),_cl(0) {
-      _init = std::is_same<op,std::plus<int>>::value ? 0 : _nbq - 1;
-      _queues = new std::deque<MDDNode*>[_nbq];
-   }
-   ~MDDQueue()  { delete []_queues;}
-   void clear() {
-      for(int i = 0;i < _nbq;i++)
-         _queues[i].clear();
-   }
-   void reset() noexcept { _cl = _init;}
-   bool empty() const    { return _nbe == 0;}
-   void enQueue(MDDNode* n) {
-      _queues[n->getLayer()].emplace_back(n);
-      _nbe += 1;
-   }
-   MDDNode* deQueue() {
-      while (_cl >= 0 && _cl < _nbq && _queues[_cl].size() == 0)
-         _cl = op(_cl,1);
-      if (_cl < 0 || _cl >= _nbq) {
-         assert(_nbe == 0);
-         return nullptr;
-      }
-      auto rv = _queues[_cl].front();
-      _queues[_cl].pop_front();
-      _nbe -= 1;
-      return rv;
-   }
-};
-
-using MDDFQueue = MDDQueue<std::plus<int>>;
-using MDDBQueue = MDDQueue<std::minus<int>>;
-
 MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
    : MDD(cp),
      _width(width),
@@ -54,6 +15,8 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
 {
    _afp = new MDDIntSet[width];
    _src = new MDDNode*[width];
+   _fwd = nullptr;
+   _bwd = nullptr;
 }
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
@@ -83,6 +46,8 @@ void MDDRelax::buildDiagram()
    std::cout << "MDDRelax::buildDiagram" << '\n';
    _mddspec.layout();
    _mddspec.compile();
+   _fwd = new (mem) MDDFQueue(numVariables+1);
+   _bwd = new (mem) MDDBQueue(numVariables+1);
    std::cout << _mddspec << '\n';
    auto uDom = domRange(x);
    const int sz = uDom.second - uDom.first + 1;
@@ -246,8 +211,34 @@ void MDDRelax::relaxLayer(int i,unsigned int width)
 
 void MDDRelax::trimLayer(unsigned int layer)
 {
-   MDD::trimLayer(layer);
+   if (_firstTime.fresh()) {
+      _firstTime = false;
+      queue.clear();
+      _fwd->clear();
+      _bwd->clear();
+   }
+   auto var = x[layer];
+   for(auto i = layers[layer].cbegin(); i != layers[layer].cend();i++) {
+      auto& children = (*i)->getChildren();
+      for(int i = (int)children.size() - 1; i >= 0 ; i--){
+         auto arc = children.get(i);
+         if(!var->contains(arc->getValue())) {
+            MDDNode* child  = arc->getChild();
+            child->markDirty();
+            removeArc(layer,layer+1,arc.get());
+            arc->remove(this);            
+         }
+      }   
+   }
 }
+
+void MDDRelax::removeArc(int outL,int inL,MDDEdge* arc) // notified when arc is deleted.
+{
+   assert(outL + 1 == inL);
+   _bwd->enQueue(arc->getParent());
+   _fwd->enQueue(arc->getChild());
+}
+
 
 bool MDDRelax::refreshNode(MDDNode* n,int l)
 {
