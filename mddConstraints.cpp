@@ -14,6 +14,7 @@
  */
 
 #include "mddConstraints.hpp"
+#include "mddnode.hpp"
 #include <limits.h>
 
 namespace Factory {
@@ -55,6 +56,7 @@ namespace Factory {
       mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l.at(minC) - r.at(minC)); });
       mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l.at(maxC) - r.at(maxC)); });
       mdd.addSimilarity(rem ,[] (auto l,auto r) -> double { return 0; });
+      mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
    void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
@@ -934,7 +936,7 @@ namespace Factory {
                         z->updateBounds(sink.at(minW),sink.at(maxW));
                      });
 
-      mdd.splitOnLargest([minW](const auto& in) { return in[minW];});
+      mdd.splitOnLargest([minW](const auto& in) { return in.getState()[minW];});
 
       mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
       mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
