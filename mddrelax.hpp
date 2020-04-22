@@ -102,6 +102,7 @@ class MDDRelax : public MDD {
    void delState(MDDNode* state,int l);
    bool processNodeUp(MDDNode* n,int i); // i is the layer number
    void computeUp();
+   void postUp();
    bool trimDomains() override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:

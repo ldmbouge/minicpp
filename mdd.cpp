@@ -61,7 +61,7 @@ void MDD::post()
    }
    _ff = 0;
    _lf = numVariables - 1;
-   this->buildDiagram();
+   buildDiagram();
    _posting = false;
 }
 

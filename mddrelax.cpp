@@ -6,6 +6,45 @@
 #include <cmath>
 #include "RuntimeMonitor.hpp"
 
+template <class op> class MDDQueue {
+   std::deque<MDDNode*>* _queues;
+   int _nbq;
+   int _nbe;
+   int _cl;
+   int _init;
+public:
+   MDDQueue(int nb) : _nbq(nb),_nbe(0),_cl(0) {
+      _init = std::is_same<op,std::plus<int>>::value ? 0 : _nbq - 1;
+      _queues = new std::deque<MDDNode*>[_nbq];
+   }
+   ~MDDQueue()  { delete []_queues;}
+   void clear() {
+      for(int i = 0;i < _nbq;i++)
+         _queues[i].clear();
+   }
+   void reset() noexcept { _cl = _init;}
+   bool empty() const    { return _nbe == 0;}
+   void enQueue(MDDNode* n) {
+      _queues[n->getLayer()].emplace_back(n);
+      _nbe += 1;
+   }
+   MDDNode* deQueue() {
+      while (_cl >= 0 && _cl < _nbq && _queues[_cl].size() == 0)
+         _cl = op(_cl,1);
+      if (_cl < 0 || _cl >= _nbq) {
+         assert(_nbe == 0);
+         return nullptr;
+      }
+      auto rv = _queues[_cl].front();
+      _queues[_cl].pop_front();
+      _nbe -= 1;
+      return rv;
+   }
+};
+
+using MDDFQueue = MDDQueue<std::plus<int>>;
+using MDDBQueue = MDDQueue<std::minus<int>>;
+
 MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
    : MDD(cp),
      _width(width),
@@ -64,6 +103,7 @@ void MDDRelax::buildDiagram()
       buildNextLayer(i);
       relaxLayer(i+1,1);//_width);
    }
+   postUp();
    trimDomains();
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "build/Relax:" << dur << '\n';
@@ -575,6 +615,20 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    bool dirty = n->isDirty() || (n->getState() != ms);
    n->setState(ms,mem);
    return dirty;
+}
+
+void MDDRelax::postUp()
+{
+   if (_mddspec.usesUp()) {
+      MDDState ss(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+      ss.copyState(sink->getState());
+      _mddspec.updateNode(ss);
+      if (ss != sink->getState()) 
+         sink->setState(ss,mem);      
+      for(int i = (int)numVariables - 1;i >= 0;i--) 
+         for(auto& n : layers[i]) 
+            processNodeUp(n,i);               
+   }
 }
 
 void MDDRelax::computeUp()
