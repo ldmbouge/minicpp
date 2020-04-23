@@ -230,14 +230,6 @@ void MDDSpec::reachedFixpoint(const MDDState& sink)
       fix(sink);
 }
 
-double MDDSpec::splitPriority(const MDDState& n) const
-{
-   double ttl = 0.0;
-   for(const auto& sf : _onSplit)
-      ttl += sf(n);
-   return ttl;
-}
-
 void MDDSpec::compile()
 {
    const unsigned nbL = (unsigned)x.size();

@@ -132,6 +132,7 @@ public:
 void printSet(const MDDIntSet& s);
 
 class MDDState;
+class MDDNode;
 typedef std::function<bool(const MDDState&)> NodeFun;
 typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
 typedef std::function<void(const MDDState&)> FixFun;
@@ -139,7 +140,7 @@ typedef std::function<void(MDDState&)> UpdateFun;
 typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr,const MDDIntSet&,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
-typedef std::function<double(const MDDState&)> SplitFun;
+typedef std::function<double(const MDDNode&)> SplitFun;
 typedef std::map<int,lambdaTrans> lambdaMap;
 class MDDStateSpec;
 
@@ -633,7 +634,7 @@ public:
    bool usesUp() const { return _uptrans.size() > 0;}
    void append(const Factory::Veci& x);
    void reachedFixpoint(const MDDState& sink);
-   double splitPriority(const MDDState& n) const;
+   double splitPriority(const MDDNode& n) const;
    bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }

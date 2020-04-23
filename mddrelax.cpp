@@ -335,8 +335,7 @@ public:
       _pq.reserve(_layer.size());      
       for(auto& n : _layer)
          if (n->getState().isRelaxed()) {            
-            //double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(n->getState()) : (double)n->getPosition();
-            double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(n->getState()) : - (double)n->getNumParents(); 
+            double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(*n) : (double)n->getPosition();
             //std::cout << "A(" << key << ',' << n << "),";
             _pq.emplace_back(std::move(key),std::move(n));
          }

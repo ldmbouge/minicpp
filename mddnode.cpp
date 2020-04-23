@@ -161,6 +161,14 @@ void MDDNode::trim(MDD* mdd,var<int>::Ptr x)
    }
 }
 
+double MDDSpec::splitPriority(const MDDNode& n) const
+{
+   double ttl = 0.0;
+   for(const auto& sf : _onSplit)
+      ttl += sf(n);
+   return ttl;
+}
+
 void MDDEdge::remove(MDD* mdd)
 {
    parent->removeChild(mdd,value,childPosition);
