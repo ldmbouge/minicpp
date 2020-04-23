@@ -74,15 +74,15 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
    // consider more complex instances with more alldiff constraints (and
    // more variables).
 
-   int N = 24;
+   int N = 20;
    int D = 0; // set later, to minimum Alldiff scope
-   int NbCliques = 9;
+   int NbCliques = 12;
 
    // initialize random seed
-   srand(1234);
+   srand(666);
    
-
    vector< set<int> > Cliques;
+   bool isUsed[N];
    /*** This part is used to generate random cliques ***/
    for (int i=0; i<NbCliques; i++) {
      set<int> C;
@@ -96,13 +96,16 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
      for (int j=i; j<=i+N-NbCliques; j++) {
        // include variables from staggered interval (best case scenario for MDDs)
        auto v = rand() % 100;
-       if (v < 60) {
+       if (v < 75) {
      	 C.insert(j);
+	 isUsed[j] = true;
        }
      }
-     
-     std::cout << "clique " << i << ": " << C << std::endl;
-     Cliques.push_back(C);
+     if (C.size() <= 1) i--;
+     else {
+       std::cout << "clique " << i << ": " << C << std::endl;
+       Cliques.push_back(C);
+     }
 
      if (D < (int)C.size()) D = (int)C.size();
    }   
@@ -135,19 +138,28 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
    auto vars = Factory::intVarArray(cp, N, 0, D-1);
    MDDRelax* mdd = nullptr;
+
+   for (int i=0; i<N; i++) {
+     if (!isUsed[i]) { cp->post(vars[i] == 0); }
+   }
+  
+
    if (mode == 0) {
+     std::cout << "Standard AllDiff (binary not-equal) encoding" << std::endl;      
      for (int i=0; i<NbCliques; i++) {
        auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
        cp->post(Factory::allDifferent(adv));
      }
    }
    if ((mode == 1) || (mode == 3)) {
+     std::cout << "Domain consistent AllDiff" << std::endl;      
      for (int i=0; i<NbCliques; i++) {
        auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
        cp->post(Factory::allDifferentAC(adv));
      }
    }
    if ((mode == 2) || (mode==3)) {
+     std::cout << "MDD-AllDiff" << std::endl;      
      mdd = new MDDRelax(cp,relaxSize);
      for (int i=0; i<NbCliques; i++) {
        auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
@@ -184,16 +196,20 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
               };
        } else return Branches({});
      });
-      
-   search.onSolution([&vars]() {
-       std::cout << "Assignment:" << std::endl;
-       std::cout << vars << std::endl;
+
+
+   int cnt = 0;
+   search.onSolution([&cnt]() {
+       cnt++;
+       std::cout << "\rNumber of solutions:" << cnt << std::flush;
+       //std::cout << "Assignment:" << vars << std::endl;
      });
-      
-      
-   auto stat = search.solve([](const SearchStatistics& stats) {
-       return stats.numberOfSolutions() > 0;
-     }); 
+   
+   // auto stat = search.solve([](const SearchStatistics& stats) {
+   //     return stats.numberOfSolutions() > 0;
+   //   }); 
+   auto stat = search.solve();
+
    cout << stat << endl;
 }
 

@@ -107,6 +107,10 @@ namespace Factory {
           } else
 	    return (p.at(L) + values.member(val) <= ub);
       });
+
+      // mdd.splitOnLargest([=](const auto& in) { return -(in[U]+in[Uup]-in[L]-in[Lup]);});
+      // mdd.splitOnLargest([=](const auto& in) { return in[L];});
+
       
       mdd.addRelaxation(L,[L](auto& out,const auto& l,const auto& r) { out.set(L,std::min(l.at(L), r.at(L)));});
       mdd.addRelaxation(U,[U](auto& out,const auto& l,const auto& r) { out.set(U,std::max(l.at(U), r.at(U)));});
