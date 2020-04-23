@@ -102,22 +102,28 @@ public:
          _queues[i].clear();
       _nbe = 0;
    }
-   void reset() noexcept { _cl = _init;}
+   void init() noexcept { _cl = _init;}
    bool empty() const    { return _nbe == 0;}
    void enQueue(MDDNode* n) {
-      _queues[n->getLayer()].emplace_back(n);
-      _nbe += 1;
+      if (std::find(_queues[n->getLayer()].begin(),_queues[n->getLayer()].end(),n) == _queues[n->getLayer()].end()) {
+         _queues[n->getLayer()].emplace_back(n);
+         _nbe += 1;
+      }
    }
    MDDNode* deQueue() {
-      while (_cl >= 0 && _cl < _nbq && _queues[_cl].size() == 0)
-         _cl = op(_cl,1);
-      if (_cl < 0 || _cl >= _nbq) {
-         assert(_nbe == 0);
-         return nullptr;
-      }
-      auto rv = _queues[_cl].front();
-      _queues[_cl].pop_front();
-      _nbe -= 1;
+      op opName;
+      MDDNode* rv = nullptr;
+      do {
+         while (_cl >= 0 && _cl < _nbq && _queues[_cl].size() == 0)
+            _cl = opName(_cl,1);
+         if (_cl < 0 || _cl >= _nbq) {
+            assert(_nbe == 0);
+            return nullptr;
+         }
+         rv = _queues[_cl].front();
+         _queues[_cl].pop_front();
+         _nbe -= 1;
+      } while (!rv->isActive());
       return rv;
    }
 };
@@ -145,6 +151,7 @@ class MDDRelax : public MDD {
    void delState(MDDNode* state,int l);
    bool processNodeUp(MDDNode* n,int i); // i is the layer number
    void computeUp();
+   void computeDown();
    void postUp();
    bool trimDomains() override;
    void removeArc(int outL,int inL,MDDEdge* arc) override;

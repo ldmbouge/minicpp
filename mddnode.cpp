@@ -13,6 +13,7 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id
      _nid(nid),
      _active(true),
      _dirty(false),
+     _inQueue(false),
      layer(layer),
      children(t,mem,2),
      parents(t,mem,2)
@@ -24,6 +25,7 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
      _nid(nid),
      _active(true),
      _dirty(false),
+     _inQueue(false),
      layer(layer),
      children(t,mem,std::max(dsz,1)),
      parents(t,mem,std::max(dsz,1)),
@@ -31,7 +33,7 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
 {}
 
 
-void MDDNode::unhookOutgoing(MDDEdge::Ptr arc)
+bool MDDNode::unhookOutgoing(MDDEdge::Ptr arc)
 {
    // Remove this outgoing arc from the children's list held in the receiving node. 
    assert(this == arc->getParent());
@@ -39,11 +41,13 @@ void MDDNode::unhookOutgoing(MDDEdge::Ptr arc)
    assert(at >= 0 && at < children.size());
    assert(children.get(at) == arc);
    children.remove(at);
-   if (children.size() > 0)
-      children.get(at)->setChildPosition(parents.getTrail(), at); 
+   bool moreKids = children.size() > 0;
+   if (moreKids)
+      children.get(at)->setChildPosition(parents.getTrail(), at);
+   return !moreKids;
 }
 
-void MDDNode::unhookIncoming(MDDEdge::Ptr arc)
+bool MDDNode::unhookIncoming(MDDEdge::Ptr arc)
 {
    // Remove this incoming arc from the parent's list held in the receiving node.
    assert(arc->getChild() == this);
@@ -51,8 +55,10 @@ void MDDNode::unhookIncoming(MDDEdge::Ptr arc)
    assert(at >= 0 && at < (int)parents.size());
    assert(parents.get(at) == arc);
    parents.remove(at);
-   if (parents.size() > 0)
+   bool moreParents = parents.size() > 0;
+   if (moreParents)
       parents.get(at)->setParentPosition(parents.getTrail(), at);  // whoever was moved needs to know their position.
+   return !moreParents;
 }
 
 void MDDNode::unhook(MDDEdge::Ptr arc)
@@ -92,6 +98,7 @@ void MDDNode::hookChild(MDDEdge::Ptr arc,Storage::Ptr mem)
 */
 void MDDNode::remove(MDD* mdd)
 {
+   assert(!isActive());
    int layer = (int)getLayer();
    for(int i = (int)children.size() - 1; i >= 0 ; i--) {
       MDDEdge::Ptr arc = children.get(i);

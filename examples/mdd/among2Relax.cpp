@@ -63,10 +63,10 @@ int main(int argc,char* argv[])
                                //mddAppliance->saveGraph();
                                int c = x->min();
                                return  [=] {
-                                          std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
                                           mdd->saveGraph();
+                                          std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
                                           cp->post(x == c);
-                                          //mdd->saveGraph();
+                                          mdd->saveGraph();
                                           //std::cout << "VARS: " << v << std::endl;
                                        }
                                   | [=] {

@@ -76,8 +76,8 @@ public:
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
    void removeParent(MDD* mdd,int value,int pos);
    void removeChild(MDD* mdd,int value,int pos);
-   void unhookOutgoing(MDDEdge::Ptr arc);
-   void unhookIncoming(MDDEdge::Ptr arc);
+   bool unhookOutgoing(MDDEdge::Ptr arc); // returns true if the node is now child-less
+   bool unhookIncoming(MDDEdge::Ptr arc); // returns true if the node is now orphaned
    void unhook(MDDEdge::Ptr arc);
    void unhookChild(MDDEdge::Ptr arc);
    void hookChild(MDDEdge::Ptr arc,Storage::Ptr mem);
@@ -96,8 +96,11 @@ public:
       t->trail(new (t) TrailEntry<int>(&pos));
       pos = p;
    }
+   void enterQueue() const noexcept { _inQueue = true;}
+   void leaveQueue() const noexcept { _inQueue = false;}
    bool isActive() const noexcept { return _active;}
    bool isDirty() const  noexcept { return _dirty;}
+   bool inQueue() const noexcept { return _inQueue;}
    void markDirty()  {
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<bool>(&_dirty));
@@ -126,6 +129,7 @@ private:
    int _nid;
    bool _active;
    bool _dirty;
+   mutable bool _inQueue;
    const unsigned short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;

@@ -42,7 +42,7 @@ int main(int argc,char* argv[])
    vector<int> vals1 {1, 2, 3, 4, 5};
    vector<int> vals2 {5, 4, 3, 2, 1};
    vector<int> vals3 {7, 8, 11, 15, 4};
-
+   MDDRelax* cstr = nullptr;
    if (mode == 0) {
      cout << "Using domain encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
      auto sum1 = Factory::intVarArray(cp,5,[&](int i) { return vals1[i]*vars[i];});
@@ -62,6 +62,7 @@ int main(int argc,char* argv[])
      Factory::sumMDD(mdd->getSpec(), vars, vals2, 18, 19);
      Factory::sumMDD(mdd->getSpec(), vars, vals3, 50, 65);
      cp->post(mdd);
+     cstr = mdd;
    }
    else if (mode == 2) {
      cout << "Using MDD encoding of  sum_i w[i]x[i] == z" << endl;
@@ -77,7 +78,7 @@ int main(int argc,char* argv[])
      auto z3 = Factory::makeIntVar(cp, 50, 65);
      Factory::sumMDD(mdd->getSpec(), vars, vals3, z3);
      cp->post(mdd);
-
+     cstr = mdd;
    }
    else if (mode == 3) {
      cout << "Using MDD encoding of  sum_i M[i][x[i]] == z" << endl;
@@ -117,6 +118,7 @@ int main(int argc,char* argv[])
      }
      Factory::sumMDD(mdd->getSpec(), vars, valMatrix3, z3);
      cp->post(mdd);
+     cstr = mdd;
    }
    else {
      cout << "Error: specify a mode in {0,1,2,3}:" << endl;
@@ -141,11 +143,20 @@ int main(int argc,char* argv[])
 	int c = x->min();
 	
 	return  [=] {
-	  cp->post(x == c);}
-	| [=] {
-	  cp->post(x != c);};
+                   if (cstr) cstr->saveGraph();
+                   cout << "CHOICE: x_" << x->getId() << " == " << c << '\n';
+                   cp->post(x == c);
+                   if (cstr) cstr->saveGraph();
+                   cout << "AFTER : x_" << x->getId() << " == " << c << '\n';                   
+                } | [=] {
+                       if (cstr) cstr->saveGraph();
+                       cout << "CHOICE: x_" << x->getId() << " != " << c << '\n';
+                       cp->post(x != c);
+                       if (cstr) cstr->saveGraph();
+                       cout << "AFTER : x_" << x->getId() << " != " << c << '\n';                   
+                    };
       } else return Branches({});
-       });
+                      });
       
      search.onSolution([&vars,vals1,vals2,vals3]() {
 	 std::cout << "Assignment:" << vars;
