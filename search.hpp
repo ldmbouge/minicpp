@@ -24,6 +24,7 @@
 
 #include "solver.hpp"
 #include "constraint.hpp"
+#include "RuntimeMonitor.hpp"
 
 class Branches {
    std::vector<std::function<void(void)>> _alts;
@@ -47,12 +48,15 @@ public:
 };
 
 class SearchStatistics {
-    int _nFailures;
-    int _nNodes;
-    int _nSolutions;
-    bool _completed;
+   int _nFailures;
+   int _nNodes;
+   int _nSolutions;
+   bool _completed;
+   RuntimeMonitor::HRClock _startTime;   
 public:
-   SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {}
+   SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {
+      _startTime = RuntimeMonitor::cputime();
+   }
    void incrFailures() { _nFailures++; }
    void incrNodes() { _nNodes++; }
    void incrSolutions() { _nSolutions++; }
@@ -60,6 +64,7 @@ public:
    int numberOfFailures() const { return _nFailures; }
    int numberOfNodes() const { return _nNodes; }
    int numberOfSolutions() const { return _nSolutions; }
+   RuntimeMonitor::HRClock startTime() const { return _startTime;}
    bool isCompleted() const { return _completed; }
    friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
       return os << "\n\t#choice   : " << ss._nNodes

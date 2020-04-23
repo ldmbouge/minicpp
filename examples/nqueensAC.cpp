@@ -51,7 +51,9 @@ int main(int argc,char* argv[])
     //                      cout << "sol = " << q << endl;
     //                   });
 
-    auto stat = search.solve();
+    auto stat = search.solve([](const SearchStatistics& s) {
+                                return RuntimeMonitor::elapsedSince(s.startTime()) > 100;
+                             });
     cout << stat << endl;
     
     cp.dealloc();
