@@ -171,19 +171,19 @@ template <typename Fun> vector<int> toVec(int min,int max,Fun f)
    return v;
 }
 
-void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
+void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in, int timelimit)
 {
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
 
-       unsigned i = 0u;
-       for(i=0u;i < line.size();i++)
-	 if (line[i]->size()> 1) break;
-       auto x = i< line.size() ? line[i] : nullptr;
+       // unsigned i = 0u;
+       // for(i=0u;i < line.size();i++)
+       // 	 if (line[i]->size()> 1) break;
+       // auto x = i< line.size() ? line[i] : nullptr;
        
-       // auto x = selectMin(line,
-       //                   [](const auto& x) { return x->size() > 1;},
-       //                   [](const auto& x) { return x->size();});
+       auto x = selectMin(line,
+                         [](const auto& x) { return x->size() > 1;},
+                         [](const auto& x) { return x->size();});
 
       if (x) {
          int c = x->min();
@@ -210,9 +210,10 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
                         }                      
                      });
 
-   auto stat = search.solve([](const SearchStatistics& stats) {
-                               return stats.numberOfSolutions() > 0;
-                            });
+   auto stat = search.solve([timelimit](const SearchStatistics& stats) {
+       return ((stats.numberOfSolutions() > 0) || (RuntimeMonitor::elapsedSince(stats.startTime()) > 1000*timelimit));
+     });
+   
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
    cout << stat << endl;
@@ -241,7 +242,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
   
 }
 
-void buildModel(CPSolver::Ptr cp, Instance& in)
+void buildModel(CPSolver::Ptr cp, Instance& in, int timelimit)
 {
    using namespace std;
 
@@ -274,21 +275,23 @@ void buildModel(CPSolver::Ptr cp, Instance& in)
      addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
    }
 
-   solveModel(cp,line,in);
+   solveModel(cp,line,in, timelimit);
 }
 
 
 int main(int argc,char* argv[])
 {
    const char* filename = (argc >= 2) ? argv[1] : "data/dataMini";
-
+   int timelimit = (argc >= 3 && strncmp(argv[2],"-t",2)==0) ? atoi(argv[2]+2) : 60;
+   
    std::cout << "filename = " << filename << std::endl;   
+   std::cout << "time limit = " << timelimit << std::endl;   
 
    try {
       Instance in = Instance::readData(filename);
       std::cout << in << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp,in);
+      buildModel(cp,in,timelimit);
    } catch (std::exception e) {
       std::cerr << "Unable to find the file" << std::endl;
    }
