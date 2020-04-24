@@ -285,7 +285,7 @@ namespace Factory {
       spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
       spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
 
       spec.transitionDown(minL,[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool allMembers = true;

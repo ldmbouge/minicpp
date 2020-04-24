@@ -141,7 +141,8 @@ class MDDRelax : public MDD {
    MDDNode**              _src;
    MDDFQueue*             _fwd;
    MDDBQueue*             _bwd;
-   const MDDState& pickReference(int layer,int layerSize); 
+   const MDDState& pickReference(int layer,int layerSize);
+   void checkGraph();
    bool refreshNode(MDDNode* n,int l);
    bool trimVariable(int i);
    bool filterKids(MDDNode* n,int l);

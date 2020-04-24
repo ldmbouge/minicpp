@@ -328,6 +328,7 @@ bool MDDRelax::filterKids(MDDNode* n,int l)
             changed = true;
             delSupport(l,v);
             removeArc(l,l+1,arc.get());
+            if (child->getNumParents()==0) delState(child,l+1);
          }
       }
       if (n->getNumChildren()==0 && l != (int)numVariables) {
@@ -440,12 +441,12 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
    MDDNode* n = nullptr;
    while (layer.size() < _width && (n = nSim.extractNode()) != nullptr) {
       assert(n->getNumParents() > 0);
-      if (!n->getState().isRelaxed()) continue;
+      assert(n->getState().isRelaxed());
       for(auto pit = n->getParents().rbegin(); pit != n->getParents().rend();pit++) {
          auto a = *pit;                // a is the arc p --(v)--> n
          auto p = a->getParent();      // p is the parent
          auto v = a->getValue();       // value on arc from parent
-         ms.copyState(n->getState());
+         //ms.copyState(n->getState());
          _mddspec.createState(ms,p->getState(),l-1,x[l-1],MDDIntSet(v),true);
          _mddspec.updateNode(ms);
          bool isOk = _mddspec.consistent(ms,x[l-1]);
@@ -639,7 +640,7 @@ void MDDRelax::computeDown()
    MDDNodeSet delta(2 * _width,(char*)alloca(sizeof(MDDNode*)*2*_width));
    for(int l=1;l < (int) numVariables;l++) {
       if (!x[l-1]->isBound() && layers[l].size() < _width) 
-         split(delta,layers[l],l); 
+         split(delta,layers[l],l);
    }
    for(int l=0;l < (int) numVariables;l++)
       trimVariable(l);      
@@ -686,6 +687,20 @@ void MDDRelax::propagate()
       throw s;
    }
 }
+
+void MDDRelax::checkGraph()
+{
+   for(unsigned l=0u;l < numVariables;l++) {
+      for(unsigned i=0u;i < layers[l].size();i++) {
+         auto n = layers[l][i];
+         assert(n->isActive());
+         assert(l == 0 || n->getNumParents() > 0);
+         assert(l == numVariables || n->getNumChildren() > 0);
+      }
+   }
+}
+
+
 
 void MDDRelax::debugGraph()
 {
