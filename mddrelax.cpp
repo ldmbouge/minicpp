@@ -244,8 +244,6 @@ void MDDRelax::trimLayer(unsigned int layer)
       for(int i = (int)children.size() - 1; i >= 0 ; i--){
          auto arc = children.get(i);
          if(!var->contains(arc->getValue())) {
-            MDDNode* child  = arc->getChild();
-            child->markDirty();
             removeArc(layer,layer+1,arc.get());
             arc->remove(this);            
          }
@@ -267,7 +265,6 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       assert(n->getNumParents() == 0);
       bool isOk = _mddspec.consistent(n->getState(), x[0]);
       if (!isOk) failNow();
-      n->clearDirty();
       return false;
    }
    MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
@@ -313,9 +310,8 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       }
    }
    bool changed = n->getState() != ms;
-   if (changed) {
-      n->setState(ms,mem);
-   } else n->clearDirty();
+   if (changed) 
+      n->setState(ms,mem);  
    return changed;
 }
 
@@ -329,7 +325,6 @@ bool MDDRelax::filterKids(MDDNode* n,int l)
          int v = arc->getValue();
          if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
             n->unhook(arc);
-            child->markDirty();
             changed = true;
             delSupport(l,v);
             removeArc(l,l+1,arc.get());
@@ -491,7 +486,6 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
                   if (keepArc[idx++]) {
                      nc->addArc(mem,ca->getChild(),ca->getValue());
                      addSupport(l,ca->getValue());
-                     ca->getChild()->markDirty();
                      _fwd->enQueue(ca->getChild());
                   }
                }
@@ -547,7 +541,6 @@ void MDDRelax::delState(MDDNode* node,int l)
       for(auto& arc : node->getChildren()) {
          if (arc->getChild()->unhookIncoming(arc))
             delState(arc->getChild(),l+1);
-         arc->getChild()->markDirty();
          delSupport(l,arc->getValue());
          removeArc(l,l+1,arc.get());
       }
@@ -565,20 +558,6 @@ bool MDDRelax::trimVariable(int i)
       }
    }
    return trim;
-}
-
-bool MDDRelax::rebuild()
-{
-   MDDNodeSet delta(2 * _width,(char*)alloca(sizeof(MDDNode*)*2*_width));
-   bool changed = false;
-   for(unsigned l = 0u; l <= numVariables;l++) {
-      // First refresh the down information in the nodes of layer l based on whether those are dirty.
-      changed = filter(layers[l],l) || changed;
-      changed = split(delta,layers[l],l) || changed; // delta is an _output_ argument from split (splits add to it). 
-      bool trim = (l>0) ? trimVariable(l-1) : false;
-      changed |= trim;
-   }
-   return changed;
 }
 
 bool MDDRelax::trimDomains()

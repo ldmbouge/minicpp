@@ -12,7 +12,6 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id
    : pos(id),
      _nid(nid),
      _active(true),
-     _dirty(false),
      _inQueue(false),
      layer(layer),
      children(t,mem,2),
@@ -24,7 +23,6 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
    : pos(id),
      _nid(nid),
      _active(true),
-     _dirty(false),
      _inQueue(false),
      layer(layer),
      children(t,mem,std::max(dsz,1)),
@@ -102,13 +100,11 @@ void MDDNode::remove(MDD* mdd)
    int layer = (int)getLayer();
    for(int i = (int)children.size() - 1; i >= 0 ; i--) {
       MDDEdge::Ptr arc = children.get(i);
-      arc->getChild()->markDirty();
       mdd->removeArc(layer,layer+1,arc.get());
       arc->remove(mdd);
    }
    for(int i = (int)parents.size() - 1; i >=0 ; i--) { // Would have to do something for up properties.
       MDDEdge::Ptr arc = parents.get(i);
-      //arc->getParent()->markDirty();   // [ldm] this increases the # failures. not sure why.
       mdd->removeArc(layer-1,layer,arc.get());
       arc->remove(mdd);
    }

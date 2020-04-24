@@ -192,7 +192,6 @@ void MDD::trimLayer(unsigned int layer)
       for(int i = (int)children.size() - 1; i >= 0 ; i--){
          auto arc = children.get(i);
          if(!var->contains(arc->getValue())) {
-            arc->getChild()->markDirty();
             arc->remove(this);
          }
       }   
