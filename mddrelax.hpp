@@ -146,7 +146,6 @@ class MDDRelax : public MDD {
    bool refreshNode(MDDNode* n,int l);
    bool trimVariable(int i);
    bool filterKids(MDDNode* n,int l);
-   bool filter(TVec<MDDNode*>& layer,int l);
    bool split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l); // delta is essentially an out argument. 
    void delState(MDDNode* state,int l);
    bool processNodeUp(MDDNode* n,int i); // i is the layer number

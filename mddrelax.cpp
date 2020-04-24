@@ -343,26 +343,6 @@ bool MDDRelax::filterKids(MDDNode* n,int l)
    return changed;
 }
 
-bool MDDRelax::filter(TVec<MDDNode*>& layer,int l)
-{
-   // variable x[l-1] connects layer `l-1` to layer `l`
-   bool changed = false;
-   for(auto i = layer.rbegin();i != layer.rend();i++) {
-      auto n = *i; // This is a _destination_ node into layer `l`
-      if (n->getNumParents()==0 && l > 0) {
-         if (l == (int)numVariables)
-            failNow();
-         delState(n,l);
-         changed = true;
-         continue;
-      }
-      if (n->isDirty())
-         changed = refreshNode(n,l) || changed;
-      changed = filterKids(n,l) || changed;      
-   }
-   return changed;
-}
-
 template <typename Container,typename T,typename Fun> T sum(Container& c,T acc,const Fun& fun) {
    for(auto& term : c) acc += fun(term);
    return acc;
@@ -646,7 +626,7 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
       }
    }
    _mddspec.updateNode(ms);
-   bool dirty = n->isDirty() || (n->getState() != ms);
+   bool dirty = (n->getState() != ms);
    n->setState(ms,mem);
    return dirty;
 }
