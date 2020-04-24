@@ -117,7 +117,7 @@ public:
          while (_cl >= 0 && _cl < _nbq && _queues[_cl].size() == 0)
             _cl = opName(_cl,1);
          if (_cl < 0 || _cl >= _nbq) {
-            assert(_nbe == 0);
+            //assert(_nbe == 0);
             return nullptr;
          }
          rv = _queues[_cl].front();

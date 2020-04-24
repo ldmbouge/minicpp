@@ -217,8 +217,15 @@ void MDDRelax::postUp()
       if (ss != sink->getState()) 
          sink->setState(ss,mem);      
       for(int i = (int)numVariables - 1;i >= 0;i--) 
-         for(auto& n : layers[i]) 
-            processNodeUp(n,i);               
+         for(auto& n : layers[i]) {
+            bool dirty = processNodeUp(n,i);
+            if (dirty) {
+               for(const auto& pa  : n->getParents())
+                  _bwd->enQueue(pa->getParent());
+               for(const auto& arc : n->getChildren())
+                  _fwd->enQueue(arc->getChild());
+            }
+         }
    }
 }
 
@@ -308,10 +315,6 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
    bool changed = n->getState() != ms;
    if (changed) {
       n->setState(ms,mem);
-      for(auto i = n->getChildren().rbegin();i != n->getChildren().rend();i++) {
-         (*i)->getChild()->markDirty();
-         //_fwd->enQueue((*i)->getChild());
-      }
    } else n->clearDirty();
    return changed;
 }
@@ -319,18 +322,24 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
 bool MDDRelax::filterKids(MDDNode* n,int l)
 {
    bool changed = false;
-   for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
-      auto arc = *i;
-      MDDNode* child = arc->getChild();
-      int v = arc->getValue();
-      if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
-         n->unhook(arc);
-         child->markDirty();
-         changed = true;
-         delSupport(l,v);
-         removeArc(l,l+1,arc.get());
+   if (n->isActive()) {
+      for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
+         auto arc = *i;
+         MDDNode* child = arc->getChild();
+         int v = arc->getValue();
+         if (!_mddspec.exist(n->getState(),child->getState(),x[l],v,true)) {
+            n->unhook(arc);
+            child->markDirty();
+            changed = true;
+            delSupport(l,v);
+            removeArc(l,l+1,arc.get());
+         }
       }
-   }         
+      if (n->getNumChildren()==0 && l != (int)numVariables) {
+         delState(n,l);
+         changed = true;
+      }
+   }
    return changed;
 }
 
@@ -518,8 +527,8 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
          changed = true;
       } else {
          bool refreshed = refreshNode(n,l);
-         if (refreshed) filterKids(n,l);
-         if (refreshed) {
+         filterKids(n,l);
+         if (refreshed && n->isActive()) {
             for(const auto& arc : n->getParents())
                _bwd->enQueue(arc->getParent());
             for(const auto& arc : n->getChildren())
@@ -646,7 +655,7 @@ void MDDRelax::computeDown()
 {
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
-      if (node==nullptr) continue;
+      if (node==nullptr) break;
       int l = node->getLayer();
       if (l > 0 && node->getNumParents() == 0) {
          if (l == (int)numVariables) failNow();
@@ -658,9 +667,10 @@ void MDDRelax::computeDown()
          delState(node,l);
          continue;
       }
+      assert(node->isActive());
       bool dirty = refreshNode(node,l);
       filterKids(node,l);   // must filter unconditionally after a refresh since children may have changed.
-      if (dirty) {
+      if (dirty && node->isActive()) {
          for(const auto& arc : node->getParents())
             _bwd->enQueue(arc->getParent());
          for(const auto& arc : node->getChildren())
@@ -681,9 +691,10 @@ void MDDRelax::computeUp()
    if (_mddspec.usesUp())  {
       while (!_bwd->empty()) {
          MDDNode* n = _bwd->deQueue();
-         if (n==nullptr) continue;
+         if (n==nullptr) break;
          bool dirty = processNodeUp(n,n->getLayer());
-         if (dirty) {
+         filterKids(n,n->getLayer());
+         if (dirty && n->isActive()) {
             for(const auto& pa  : n->getParents())
                _bwd->enQueue(pa->getParent());
             for(const auto& arc : n->getChildren())
