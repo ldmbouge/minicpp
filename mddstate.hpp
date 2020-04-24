@@ -287,7 +287,15 @@ public:
       dest = v;
       return dest;
    }
-   void setProp(char* buf,char* from) noexcept   { memcpy(buf + _ofs,from + _ofs,_bsz); }
+   void setProp(char* buf,char* from) noexcept   {
+      switch(_bsz) {
+         case 1: buf[_ofs] = from[_ofs];break;
+         case 2: *reinterpret_cast<short*>(buf+_ofs) = *reinterpret_cast<short*>(from+_ofs);break;
+         case 4: *reinterpret_cast<int*>(buf+_ofs) = *reinterpret_cast<int*>(from+_ofs);break;
+         case 8: *reinterpret_cast<long long*>(buf+_ofs) = *reinterpret_cast<long long*>(from+_ofs);break;
+         default: memcpy(buf + _ofs,from + _ofs,_bsz);break;
+      }
+   }
    virtual void print(std::ostream& os) const  = 0;
    virtual void stream(char* buf,std::ostream& os) const {}
    friend class MDDStateSpec;
