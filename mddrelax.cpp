@@ -446,7 +446,7 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
          auto a = *pit;                // a is the arc p --(v)--> n
          auto p = a->getParent();      // p is the parent
          auto v = a->getValue();       // value on arc from parent
-         //ms.copyState(n->getState());
+         ms.copyState(n->getState());
          _mddspec.createState(ms,p->getState(),l-1,x[l-1],MDDIntSet(v),true);
          _mddspec.updateNode(ms);
          bool isOk = _mddspec.consistent(ms,x[l-1]);
