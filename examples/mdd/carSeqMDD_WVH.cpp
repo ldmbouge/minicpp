@@ -174,14 +174,14 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in, int timeli
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
 
-       // unsigned i = 0u;
-       // for(i=0u;i < line.size();i++)
-       // 	 if (line[i]->size()> 1) break;
-       // auto x = i< line.size() ? line[i] : nullptr;
+       unsigned i = 0u;
+       for(i=0u;i < line.size();i++)
+       	 if (line[i]->size()> 1) break;
+       auto x = i< line.size() ? line[i] : nullptr;
        
-      auto x = selectMin(line,
-                         [](const auto& x) { return x->size() > 1;},
-                         [](const auto& x) { return x->size();});
+      // auto x = selectMin(line,
+      //                    [](const auto& x) { return x->size() > 1;},
+      //                    [](const auto& x) { return x->size();});
 
       if (x) {
          int c = x->min();
