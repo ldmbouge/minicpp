@@ -25,11 +25,20 @@ namespace Factory {
       const int minC = mdd.addState(d,0,x.size());
       const int maxC = mdd.addState(d,0,x.size());
       const int rem  = mdd.addState(d,(int)x.size(),x.size());
-
-      mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
-         return (p.at(minC) + values.member(val) <= ub) &&
-                ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
-      });
+      if (rawValues.size() == 1) {
+         int tv = *rawValues.cbegin();
+         mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
+                           bool vinS = tv == val;// values.member(val);
+                           return (p.at(minC) + vinS <= ub) &&
+                              ((p.at(maxC) + vinS +  p.at(rem) - 1) >= lb);
+                        });         
+      } else {
+         mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
+                           bool vinS = values.member(val);
+                           return (p.at(minC) + vinS <= ub) &&
+                              ((p.at(maxC) + vinS +  p.at(rem) - 1) >= lb);
+                        });
+      }
 
       mdd.transitionDown(minC,[minC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool allMembers = true;

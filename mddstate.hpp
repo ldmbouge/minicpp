@@ -417,14 +417,18 @@ class MDDPBitSequence : public MDDProperty {
 
 class MDDStateSpec {
 protected:
-   std::vector<MDDProperty::Ptr> _attrs;
+   MDDProperty** _attrs;
+   short _mxp;
+   short _nbp;
+   //std::vector<MDDProperty::Ptr> _attrs;
    size_t _lsz;
+   void addProperty(MDDProperty::Ptr p) noexcept;
 public:
-   MDDStateSpec() {}
+   MDDStateSpec();
    const auto layoutSize() const noexcept { return _lsz;}
    void layout();
    virtual void varOrder() {}
-   auto size() const noexcept { return _attrs.size();}
+   auto size() const noexcept { return _nbp;}
    bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
    bool isDown(int p) const noexcept { return _attrs[p]->isDown();}
    virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff);
@@ -595,7 +599,8 @@ public:
       os << (s._flags._drelax ? 'T' : 'F')
          << (s._flags._urelax ? 'T' : 'F') << '[';
       if(s._spec != nullptr)
-         for(auto atr : s._spec->_attrs) {
+         for(int p=0;p < s._spec->_nbp;p++) {
+            auto atr = s._spec->_attrs[p];
             atr->stream(s._mem,os);
             os << ' ';
          }
@@ -648,8 +653,10 @@ public:
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
       os << "Spec(";
-      for(auto a : s._attrs)
+      for(int p=0;p < s._nbp;p++) {
+         auto a = s._attrs[p];
          os << a << ' ';
+      }
       os << ')';
       return os;
    }

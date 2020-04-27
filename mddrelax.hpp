@@ -152,7 +152,6 @@ class MDDRelax : public MDD {
    void computeUp();
    void computeDown();
    void postUp();
-   bool trimDomains() override;
    void removeArc(int outL,int inL,MDDEdge* arc) override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:

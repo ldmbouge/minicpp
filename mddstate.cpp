@@ -63,10 +63,31 @@ void MDDSpec::varOrder()
                                });   
 }
 
+MDDStateSpec::MDDStateSpec()
+{
+   _mxp = 4;
+   _nbp = 0;
+   _attrs = new MDDProperty*[_mxp];
+}
+
+void MDDStateSpec::addProperty(MDDProperty::Ptr p) noexcept
+{
+   if (_nbp == _mxp) {
+      MDDProperty** ns = new MDDProperty*[_mxp<<1];
+      for(short i =0;i < _nbp;i++)
+         ns[i] = _attrs[i];
+      delete[]_attrs;
+      _attrs = ns;
+      _mxp = _mxp << 1;
+   }
+   _attrs[_nbp++] = p.get();
+}
+
 void MDDStateSpec::layout()
 {
    size_t lszBit = 0;
-   for(auto a : _attrs) {
+   for(int p = 0;p <_nbp;p++) {
+      auto a = _attrs[p];
       lszBit = a->setOffset(lszBit);
    }
    size_t boB = lszBit & 0x7;
@@ -85,15 +106,15 @@ MDDConstraintDescriptor::Ptr MDDSpec::makeConstraintDescriptor(const Factory::Ve
 
 int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max)
 {
-   int aid = (int)_attrs.size();
-   _attrs.push_back(Factory::makeProperty(aid, 0, init, max));
+   int aid = (int)_nbp;
+   addProperty(Factory::makeProperty(aid, 0, init, max));
    d->addProperty(aid);
    return aid;
 }
 int MDDStateSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
 {
-   int aid = (int)_attrs.size();
-   _attrs.push_back(Factory::makeBSProperty(aid,0,nbb,init));
+   int aid = (int)_nbp;
+   addProperty(Factory::makeBSProperty(aid,0,nbb,init));
    d->addProperty(aid);
    return aid;
 }

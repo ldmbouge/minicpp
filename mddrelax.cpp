@@ -318,6 +318,7 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
 bool MDDRelax::filterKids(MDDNode* n,int l)
 {
    bool changed = false;
+   assert(layers[numVariables].size() == 1);
    if (n->isActive()) {
       for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
          auto arc = *i;
@@ -333,6 +334,7 @@ bool MDDRelax::filterKids(MDDNode* n,int l)
       }
       if (n->getNumChildren()==0 && l != (int)numVariables) {
          delState(n,l);
+         assert(layers[numVariables].size() == 1);
          changed = true;
       }
    }
@@ -350,7 +352,6 @@ class MDDNodeSim {
    const MDDState& _refDir;
    const MDDSpec& _mddspec;
    std::multimap<float,MDDNode*,std::less<float> > _cl;
-   //std::reverse_iterator<TVec<MDDNode*>::iterator> _cur;
    std::vector<std::pair<double,MDDNode*>> _pq;
    std::vector<std::pair<double,MDDNode*>>::iterator _first,_last;
    void initialize() {
@@ -363,19 +364,19 @@ class MDDNodeSim {
    }
 public:
    MDDNodeSim(const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec)
-      : _layer(layer),_ready(false),_refDir(ref),_mddspec(mddspec) //,_cur(layer.rbegin())
+      : _layer(layer),_ready(false),_refDir(ref),_mddspec(mddspec) 
    {
       _pq.reserve(_layer.size());      
       for(auto& n : _layer)
          if (n->getState().isRelaxed()) {            
-            double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(*n) : (double)n->getPosition();
+            double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(*n) 
+               : (double)n->getPosition();
             //std::cout << "A(" << key << ',' << n << "),";
             _pq.emplace_back(std::move(key),std::move(n));
          }
       std::make_heap(_pq.begin(),_pq.end(),[](const auto& a,const auto& b) {
                                               return std::get<0>(a) < std::get<0>(b);
                                            });
-      //std::cout << std::endl;
       _first = _pq.begin();
       _last  = _pq.end();
    }
@@ -428,8 +429,6 @@ public:
       return nullptr;
    }
 };
-
-
 
 bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
 {
@@ -521,6 +520,7 @@ struct MDDStateEqual {
 
 void MDDRelax::delState(MDDNode* node,int l)
 {
+   if (l==0 || l == (int)numVariables) return;
    assert(node->isActive());
    node->deactivate();
    assert(l == node->getLayer());
@@ -561,21 +561,6 @@ bool MDDRelax::trimVariable(int i)
    return trim;
 }
 
-bool MDDRelax::trimDomains()
-{
-   bool changed = false;
-   for(auto i = 1u; i < numVariables;i++) {
-      const auto& layer = layers[i];      
-      for(int j = (int)layer.size() - 1;j >= 0;j--) {
-         if(layer[j]->disconnected()) {
-            removeNode(layer[j]);
-            changed = true;
-         }
-      }
-   }
-  return changed;
-}
-
 bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
 {
    MDDState cs(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
@@ -613,6 +598,11 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
 
 void MDDRelax::computeDown()
 {
+   MDDNodeSet delta(2 * _width,(char*)alloca(sizeof(MDDNode*)*2*_width));
+   for(int l=1;l < (int) numVariables;l++) {
+      if (!x[l-1]->isBound() && layers[l].size() < _width) 
+         split(delta,layers[l],l);
+   }
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
       if (node==nullptr) break;
@@ -627,9 +617,12 @@ void MDDRelax::computeDown()
          delState(node,l);
          continue;
       }
+      assert(layers[numVariables].size() == 1);
       assert(node->isActive());
       bool dirty = refreshNode(node,l);
+      assert(layers[numVariables].size() == 1);
       filterKids(node,l);   // must filter unconditionally after a refresh since children may have changed.
+      assert(layers[numVariables].size() == 1);
       if (dirty && node->isActive()) {
          for(const auto& arc : node->getParents())
             _bwd->enQueue(arc->getParent());
@@ -637,13 +630,6 @@ void MDDRelax::computeDown()
             _fwd->enQueue(arc->getChild());
       } 
    }
-   MDDNodeSet delta(2 * _width,(char*)alloca(sizeof(MDDNode*)*2*_width));
-   for(int l=1;l < (int) numVariables;l++) {
-      if (!x[l-1]->isBound() && layers[l].size() < _width) 
-         split(delta,layers[l],l);
-   }
-   for(int l=0;l < (int) numVariables;l++)
-      trimVariable(l);      
 }
 
 void MDDRelax::computeUp()
@@ -669,19 +655,21 @@ void MDDRelax::propagate()
    try {      
       bool change = false;
       int iter = 0;
+      MDD::propagate();
       do {
          _fwd->init(); 
          _bwd->init();
          iter++;
-         MDD::propagate();
          computeUp();
          computeDown();
+         assert(layers[numVariables].size() == 1);
          if (!_mddspec.usesUp()) _bwd->clear();
          change = !_fwd->empty() || !_bwd->empty();
-         trimDomains();
       } while (change);
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
+      for(int l=0;l < (int) numVariables;l++)
+         trimVariable(l);      
   } catch(Status s) {
       queue.clear();
       throw s;
@@ -699,8 +687,6 @@ void MDDRelax::checkGraph()
       }
    }
 }
-
-
 
 void MDDRelax::debugGraph()
 {
