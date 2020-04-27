@@ -398,7 +398,18 @@ public:
          return nlt->second;
       }      
    }
+   bool findMatch(MDDNode* n) {
+      float key = n->getState().inner(_refDir);
+      auto i = _cl.lower_bound(key);
+      while (i != _cl.end() && i->first == key) {
+         if (i->second == n)
+            return true;
+         i++;
+      }
+      return false;
+   }
    void removeMatch(MDDNode* n) {
+      if (!_ready) return;
       float key = n->getState().inner(_refDir);
       auto i = _cl.lower_bound(key);
       while (i != _cl.end() && i->first == key) {
