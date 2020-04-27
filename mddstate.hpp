@@ -683,6 +683,7 @@ public:
    bool consistent(const MDDState& a,var<int>::Ptr x) const noexcept;
    void updateNode(MDDState& a) const noexcept;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
+   void copyStateUp(MDDState& result,const MDDState& source);
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
    void updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
    void relaxation(MDDState& a,const MDDState& b) const noexcept;
