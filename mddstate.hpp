@@ -144,7 +144,20 @@ typedef std::function<double(const MDDNode&)> SplitFun;
 typedef std::map<int,lambdaTrans> lambdaMap;
 class MDDStateSpec;
 
- class MDDConstraintDescriptor {
+class Zone {
+   unsigned short _startOfs;
+   unsigned short _length;
+   std::set<int> _props;
+public:
+   Zone(unsigned short so,unsigned short eo,const std::set<int>& ps) : _startOfs(so),_length(eo-so),_props(ps) {}   
+   friend std::ostream& operator<<(std::ostream& os,const Zone& z) {
+      os << "zone(" << z._startOfs << "-->" << (int)z._startOfs + z._length << ")";return os;
+   }
+   void copy(char* dst,char* src) const noexcept { memcpy(dst+_startOfs,src+_startOfs,_length);}
+};
+
+
+class MDDConstraintDescriptor {
    const Factory::Veci    _vars;
    ValueSet               _vset;
    const char*            _name;
@@ -270,6 +283,8 @@ public:
    MDDProperty(short id,unsigned short ofs,unsigned short bsz)
       : _id(id),_ofs(ofs),_bsz(bsz),_dir(None) {}
    MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_dir = p._dir;return *this;}
+   unsigned short startOfs() const noexcept { return _ofs;}
+   unsigned short endOfs() const noexcept   { return _ofs + _bsz;}
    size_t size() const noexcept { return storageSize() >> 3;}
    void setDirection(enum Direction d) { _dir = (enum Direction)(_dir | d);} 
    bool isUp() const noexcept    { assert(_dir != None);return (_dir & Up) == Up;}
@@ -431,6 +446,8 @@ public:
    auto size() const noexcept { return _nbp;}
    bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
    bool isDown(int p) const noexcept { return _attrs[p]->isDown();}
+   unsigned short startOfs(int p) const noexcept { return _attrs[p]->startOfs();}
+   unsigned short endOfs(int p) const noexcept { return _attrs[p]->endOfs();}
    virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff);
    virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
@@ -543,6 +560,7 @@ public:
    MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return _spec->_attrs[i]->setBS(_mem,val);} // (fast)
    void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);} // (fast)
    int byteSize(int i) const noexcept   { return (int)_spec->_attrs[i]->size();}
+   void copyZone(const Zone& z,const MDDState& in) noexcept { z.copy(_mem,in._mem);}
    void clear() noexcept                { _flags._ripped = false;_flags._drelax = false;_flags._urelax = false;}
    bool isRelaxed() const noexcept          { return _flags._drelax || _flags._urelax;}
    bool isUpRelaxed() const noexcept        { return _flags._urelax;}
@@ -607,6 +625,31 @@ public:
       return os << ']';
    }
 };
+
+class MDDSpec;
+class LayerDesc {
+   std::vector<int> _dframe;
+   std::vector<int> _uframe;
+   std::vector<Zone> _dzones;
+   std::vector<Zone> _uzones;
+public:
+   LayerDesc() {}
+   const std::vector<int>& downProps() const { return _dframe;}
+   const std::vector<int>& upProps() const { return _uframe;}
+   void addDownProp(int p) { _dframe.emplace_back(p);}
+   void addUpProp(int p)   { _uframe.emplace_back(p);}
+   void zoningUp(const MDDSpec& spec);
+   void zoningDown(const MDDSpec& spec);
+   void zoning(const MDDSpec& spec);
+   void frameDown(MDDState& out,const MDDState& in) {
+      for(const auto& z : _dzones)
+         out.copyZone(z,in);
+   }
+   void frameUp(MDDState& out,const MDDState& in) {
+      for(const auto& z : _uzones)
+         out.copyZone(z,in);
+   }
+};   
 
 class MDDSpec: public MDDStateSpec {
 public:
@@ -675,8 +718,7 @@ private:
    std::vector<SplitFun>      _onSplit;
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;
-   std::vector<std::vector<int>> _frameLayer;
-   std::vector<std::vector<int>> _upframeLayer;
+   std::vector<LayerDesc> _frameLayer;
    std::vector<std::vector<ArcFun>> _scopedExists; // 1st dimension indexed by varId. 2nd dimension is a list.
    std::vector<std::vector<NodeFun>> _scopedConsistent;
 };
