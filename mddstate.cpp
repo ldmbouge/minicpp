@@ -63,10 +63,31 @@ void MDDSpec::varOrder()
                                });   
 }
 
+MDDStateSpec::MDDStateSpec()
+{
+   _mxp = 4;
+   _nbp = 0;
+   _attrs = new MDDProperty*[_mxp];
+}
+
+void MDDStateSpec::addProperty(MDDProperty::Ptr p) noexcept
+{
+   if (_nbp == _mxp) {
+      MDDProperty** ns = new MDDProperty*[_mxp<<1];
+      for(short i =0;i < _nbp;i++)
+         ns[i] = _attrs[i];
+      delete[]_attrs;
+      _attrs = ns;
+      _mxp = _mxp << 1;
+   }
+   _attrs[_nbp++] = p.get();
+}
+
 void MDDStateSpec::layout()
 {
    size_t lszBit = 0;
-   for(auto a : _attrs) {
+   for(int p = 0;p <_nbp;p++) {
+      auto a = _attrs[p];
       lszBit = a->setOffset(lszBit);
    }
    size_t boB = lszBit & 0x7;
@@ -85,15 +106,15 @@ MDDConstraintDescriptor::Ptr MDDSpec::makeConstraintDescriptor(const Factory::Ve
 
 int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max)
 {
-   int aid = (int)_attrs.size();
-   _attrs.push_back(Factory::makeProperty(aid, 0, init, max));
+   int aid = (int)_nbp;
+   addProperty(Factory::makeProperty(aid, 0, init, max));
    d->addProperty(aid);
    return aid;
 }
 int MDDStateSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
 {
-   int aid = (int)_attrs.size();
-   _attrs.push_back(Factory::makeBSProperty(aid,0,nbb,init));
+   int aid = (int)_nbp;
+   addProperty(Factory::makeBSProperty(aid,0,nbb,init));
    d->addProperty(aid);
    return aid;
 }
@@ -230,32 +251,99 @@ void MDDSpec::reachedFixpoint(const MDDState& sink)
       fix(sink);
 }
 
+void LayerDesc::zoning(const MDDSpec& spec)
+{
+   zoningDown(spec);
+   zoningUp(spec);
+}
+
+void LayerDesc::zoningUp(const MDDSpec& spec)
+{
+   int fstProp = -1,lstProp = -1;
+   std::set<int> zp;
+   for(auto p : _uframe) {
+      if (fstProp == -1) 
+         zp.insert(fstProp = lstProp = p);
+      else {
+         if (p == fstProp - 1)
+            zp.insert(fstProp = p);
+         else if (p == lstProp + 1)
+            zp.insert(lstProp = p);
+         else if (p >= fstProp && p <= lstProp)
+            zp.insert(p);
+         else {
+            auto sOfs = spec.startOfs(fstProp);
+            auto eOfs = spec.endOfs(lstProp);
+            _uzones.emplace_back(Zone(sOfs,eOfs,zp));
+            zp.clear();
+            zp.insert(fstProp = lstProp = p);
+         }
+      }         
+   }
+   if (fstProp != -1) {
+      auto sOfs = spec.startOfs(fstProp);
+      auto eOfs = spec.endOfs(lstProp);
+      _uzones.emplace_back(Zone(sOfs,eOfs,zp));
+   }
+}
+   
+void LayerDesc::zoningDown(const MDDSpec& spec)
+{
+   int fstProp = -1,lstProp = -1;
+   std::set<int> zp;
+   for(auto p : _dframe) {
+      if (fstProp == -1) 
+         zp.insert(fstProp = lstProp = p);
+      else {
+         if (p == fstProp - 1)
+            zp.insert(fstProp = p);
+         else if (p == lstProp + 1)
+            zp.insert(lstProp = p);
+         else if (p >= fstProp && p <= lstProp)
+            zp.insert(p);
+         else {
+            auto sOfs = spec.startOfs(fstProp);
+            auto eOfs = spec.endOfs(lstProp);
+            _dzones.emplace_back(Zone(sOfs,eOfs,zp));
+            zp.clear();
+            zp.insert(fstProp = lstProp = p);
+         }
+      }         
+   }
+   if (fstProp != -1) {
+      auto sOfs = spec.startOfs(fstProp);
+      auto eOfs = spec.endOfs(lstProp);
+      _dzones.emplace_back(Zone(sOfs,eOfs,zp));
+   }
+}
+
+
 void MDDSpec::compile()
 {
    const unsigned nbL = (unsigned)x.size();
    _transLayer.reserve(nbL);
    _frameLayer.reserve(nbL);
    _uptransLayer.reserve(nbL);
-   _upframeLayer.reserve(nbL);
    for(auto i = 0u;i < nbL;i++) {      
       auto& layer   = _transLayer.emplace_back(std::vector<lambdaTrans>());
       auto& upLayer = _uptransLayer.emplace_back(std::vector<lambdaTrans>());
-      auto& frame   = _frameLayer.emplace_back(std::vector<int>());
-      auto& upFrame = _upframeLayer.emplace_back(std::vector<int>());
-      for(auto& c : constraints)
+      auto& frame   = _frameLayer.emplace_back(LayerDesc());
+      for(auto& c : constraints) {
          if (c->inScope(x[i]))  {
             for(auto j : c->transitions())
                layer.emplace_back(_transition[j]);
             for(auto j : c->uptrans())
                upLayer.emplace_back(_uptrans[j]);
          } else { // x[i] does not appear in constraint c. So the properties of c should be subject to frame axioms (copied)
-            for(auto j : c->properties())
+            for(auto j : c->properties()) {
                if (isDown(j))
-                  frame.emplace_back(j);
-            for(auto j : c->properties())
+                  frame.addDownProp(j);
                if (isUp(j))
-                  upFrame.emplace_back(j);                   
+                  frame.addUpProp(j);
+            }
          }
+      }
+      frame.zoning(*this);
    }
    int lid,uid;
    std::tie(lid,uid) = idRange(x);
@@ -278,13 +366,18 @@ void MDDSpec::compile()
    }
 }
 
+void MDDSpec::copyStateUp(MDDState& result,const MDDState& source)
+{
+   if (usesUp())
+      result.copyState(source);
+}
+
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool hasUp)
 {
    result.clear();
    for(const auto& t : _transLayer[l])
       t(result,parent,var,v,hasUp);
-   for(auto p : _frameLayer[l])
-      result.setProp(p,parent);
+   _frameLayer[l].frameDown(result,parent);
    result.relaxDown(parent.isDownRelaxed() || v.size() > 1);
 }
 
@@ -298,8 +391,7 @@ void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,var
 {
    for(const auto& t : _uptransLayer[l])
       t(target,source,var,v,true);
-   for(auto p : _upframeLayer[l])
-      target.setProp(p,source);
+   _frameLayer[l].frameUp(target,source);
    target.relaxUp(source.isUpRelaxed() || v.size() > 1);
 }
 

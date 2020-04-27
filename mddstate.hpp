@@ -144,7 +144,20 @@ typedef std::function<double(const MDDNode&)> SplitFun;
 typedef std::map<int,lambdaTrans> lambdaMap;
 class MDDStateSpec;
 
- class MDDConstraintDescriptor {
+class Zone {
+   unsigned short _startOfs;
+   unsigned short _length;
+   std::set<int> _props;
+public:
+   Zone(unsigned short so,unsigned short eo,const std::set<int>& ps) : _startOfs(so),_length(eo-so),_props(ps) {}   
+   friend std::ostream& operator<<(std::ostream& os,const Zone& z) {
+      os << "zone(" << z._startOfs << "-->" << (int)z._startOfs + z._length << ")";return os;
+   }
+   void copy(char* dst,char* src) const noexcept { memcpy(dst+_startOfs,src+_startOfs,_length);}
+};
+
+
+class MDDConstraintDescriptor {
    const Factory::Veci    _vars;
    ValueSet               _vset;
    const char*            _name;
@@ -270,6 +283,8 @@ public:
    MDDProperty(short id,unsigned short ofs,unsigned short bsz)
       : _id(id),_ofs(ofs),_bsz(bsz),_dir(None) {}
    MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_dir = p._dir;return *this;}
+   unsigned short startOfs() const noexcept { return _ofs;}
+   unsigned short endOfs() const noexcept   { return _ofs + _bsz;}
    size_t size() const noexcept { return storageSize() >> 3;}
    void setDirection(enum Direction d) { _dir = (enum Direction)(_dir | d);} 
    bool isUp() const noexcept    { assert(_dir != None);return (_dir & Up) == Up;}
@@ -287,7 +302,15 @@ public:
       dest = v;
       return dest;
    }
-   void setProp(char* buf,char* from) noexcept   { memcpy(buf + _ofs,from + _ofs,_bsz); }
+   void setProp(char* buf,char* from) noexcept   {
+      switch(_bsz) {
+         case 1: buf[_ofs] = from[_ofs];break;
+         case 2: *reinterpret_cast<short*>(buf+_ofs) = *reinterpret_cast<short*>(from+_ofs);break;
+         case 4: *reinterpret_cast<int*>(buf+_ofs) = *reinterpret_cast<int*>(from+_ofs);break;
+         case 8: *reinterpret_cast<long long*>(buf+_ofs) = *reinterpret_cast<long long*>(from+_ofs);break;
+         default: memcpy(buf + _ofs,from + _ofs,_bsz);break;
+      }
+   }
    virtual void print(std::ostream& os) const  = 0;
    virtual void stream(char* buf,std::ostream& os) const {}
    friend class MDDStateSpec;
@@ -409,16 +432,22 @@ class MDDPBitSequence : public MDDProperty {
 
 class MDDStateSpec {
 protected:
-   std::vector<MDDProperty::Ptr> _attrs;
+   MDDProperty** _attrs;
+   short _mxp;
+   short _nbp;
+   //std::vector<MDDProperty::Ptr> _attrs;
    size_t _lsz;
+   void addProperty(MDDProperty::Ptr p) noexcept;
 public:
-   MDDStateSpec() {}
+   MDDStateSpec();
    const auto layoutSize() const noexcept { return _lsz;}
    void layout();
    virtual void varOrder() {}
-   auto size() const noexcept { return _attrs.size();}
+   auto size() const noexcept { return _nbp;}
    bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
    bool isDown(int p) const noexcept { return _attrs[p]->isDown();}
+   unsigned short startOfs(int p) const noexcept { return _attrs[p]->startOfs();}
+   unsigned short endOfs(int p) const noexcept { return _attrs[p]->endOfs();}
    virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff);
    virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
@@ -531,6 +560,7 @@ public:
    MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return _spec->_attrs[i]->setBS(_mem,val);} // (fast)
    void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);} // (fast)
    int byteSize(int i) const noexcept   { return (int)_spec->_attrs[i]->size();}
+   void copyZone(const Zone& z,const MDDState& in) noexcept { z.copy(_mem,in._mem);}
    void clear() noexcept                { _flags._ripped = false;_flags._drelax = false;_flags._urelax = false;}
    bool isRelaxed() const noexcept          { return _flags._drelax || _flags._urelax;}
    bool isUpRelaxed() const noexcept        { return _flags._urelax;}
@@ -587,13 +617,39 @@ public:
       os << (s._flags._drelax ? 'T' : 'F')
          << (s._flags._urelax ? 'T' : 'F') << '[';
       if(s._spec != nullptr)
-         for(auto atr : s._spec->_attrs) {
+         for(int p=0;p < s._spec->_nbp;p++) {
+            auto atr = s._spec->_attrs[p];
             atr->stream(s._mem,os);
             os << ' ';
          }
       return os << ']';
    }
 };
+
+class MDDSpec;
+class LayerDesc {
+   std::vector<int> _dframe;
+   std::vector<int> _uframe;
+   std::vector<Zone> _dzones;
+   std::vector<Zone> _uzones;
+public:
+   LayerDesc() {}
+   const std::vector<int>& downProps() const { return _dframe;}
+   const std::vector<int>& upProps() const { return _uframe;}
+   void addDownProp(int p) { _dframe.emplace_back(p);}
+   void addUpProp(int p)   { _uframe.emplace_back(p);}
+   void zoningUp(const MDDSpec& spec);
+   void zoningDown(const MDDSpec& spec);
+   void zoning(const MDDSpec& spec);
+   void frameDown(MDDState& out,const MDDState& in) {
+      for(const auto& z : _dzones)
+         out.copyZone(z,in);
+   }
+   void frameUp(MDDState& out,const MDDState& in) {
+      for(const auto& z : _uzones)
+         out.copyZone(z,in);
+   }
+};   
 
 class MDDSpec: public MDDStateSpec {
 public:
@@ -627,6 +683,7 @@ public:
    bool consistent(const MDDState& a,var<int>::Ptr x) const noexcept;
    void updateNode(MDDState& a) const noexcept;
    bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
+   void copyStateUp(MDDState& result,const MDDState& source);
    void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
    void updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
    void relaxation(MDDState& a,const MDDState& b) const noexcept;
@@ -640,8 +697,10 @@ public:
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
       os << "Spec(";
-      for(auto a : s._attrs)
+      for(int p=0;p < s._nbp;p++) {
+         auto a = s._attrs[p];
          os << a << ' ';
+      }
       os << ')';
       return os;
    }
@@ -660,8 +719,7 @@ private:
    std::vector<SplitFun>      _onSplit;
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;
-   std::vector<std::vector<int>> _frameLayer;
-   std::vector<std::vector<int>> _upframeLayer;
+   std::vector<LayerDesc> _frameLayer;
    std::vector<std::vector<ArcFun>> _scopedExists; // 1st dimension indexed by varId. 2nd dimension is a list.
    std::vector<std::vector<NodeFun>> _scopedConsistent;
 };

@@ -61,7 +61,7 @@ void MDD::post()
    }
    _ff = 0;
    _lf = numVariables - 1;
-   this->buildDiagram();
+   buildDiagram();
    _posting = false;
 }
 
@@ -186,10 +186,15 @@ void MDD::trimLayer(unsigned int layer)
       _firstTime = false;
       queue.clear();
    }
-   //for(int i = (int) layers[layer].size() - 1; i >= 0; i--)
-   //layers[layer][i]->trim(this,x[layer]);
+   auto var = x[layer];
    for(auto i = layers[layer].cbegin(); i != layers[layer].cend();i++) {
-      (*i)->trim(this,x[layer]);
+      auto& children = (*i)->getChildren();
+      for(int i = (int)children.size() - 1; i >= 0 ; i--){
+         auto arc = children.get(i);
+         if(!var->contains(arc->getValue())) {
+            arc->remove(this);
+         }
+      }   
    }
 }
 

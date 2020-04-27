@@ -76,18 +76,15 @@ public:
    void addArc(Storage::Ptr& mem,MDDNode* child, int v);
    void removeParent(MDD* mdd,int value,int pos);
    void removeChild(MDD* mdd,int value,int pos);
-   void unhookOutgoing(MDDEdge::Ptr arc);
-   void unhookIncoming(MDDEdge::Ptr arc);
+   bool unhookOutgoing(MDDEdge::Ptr arc); // returns true if the node is now child-less
+   bool unhookIncoming(MDDEdge::Ptr arc); // returns true if the node is now orphaned
    void unhook(MDDEdge::Ptr arc);
    void unhookChild(MDDEdge::Ptr arc);
    void hookChild(MDDEdge::Ptr arc,Storage::Ptr mem);
-   void trim(MDD* mdd,var<int>::Ptr x);
-
    MDDState* key()            { return &state;}
    void setState(const MDDState& s,Storage::Ptr mem) {
       auto t = children.getTrail();
       state.assign(s,t,mem);
-      clearDirty();
    }
    const MDDState& getState() const noexcept { return state;}
    unsigned short getLayer() const noexcept  { return layer;}
@@ -98,18 +95,10 @@ public:
       t->trail(new (t) TrailEntry<int>(&pos));
       pos = p;
    }
+   void enterQueue() const noexcept { _inQueue = true;}
+   void leaveQueue() const noexcept { _inQueue = false;}
+   bool inQueue() const noexcept { return _inQueue;}
    bool isActive() const noexcept { return _active;}
-   bool isDirty() const  noexcept { return _dirty;}
-   void markDirty()  {
-      auto t = children.getTrail();
-      t->trail(new (t) TrailEntry<bool>(&_dirty));
-      _dirty = true;
-   }
-   void clearDirty() {
-      auto t = children.getTrail();
-      t->trail(new (t) TrailEntry<bool>(&_dirty));
-      _dirty = false;
-   }
    void deactivate() {
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<bool>(&_active));
@@ -121,13 +110,13 @@ public:
       _active = true;
    }
    void print(std::ostream& os) {
-      os << "L[" << layer << "," << pos << ',' << (_dirty ? 'D':'C') <<  "] " << state;
+      os << "L[" << layer << "," << pos <<  "] " << state;
    }
 private:   
    int pos;
    int _nid;
    bool _active;
-   bool _dirty;
+   mutable bool _inQueue;
    const unsigned short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;

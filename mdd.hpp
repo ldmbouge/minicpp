@@ -15,6 +15,8 @@
 #include "mddstate.hpp"
 
 class MDDNode;
+class MDDEdge;
+
 class MDD  : public Constraint {
 public:
    MDD(CPSolver::Ptr cp);
@@ -34,6 +36,7 @@ public:
    unsigned long nbLayers() const { return numVariables;}
    std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
    unsigned long layerSize(const int layer) {return layers[layer].size();}
+   virtual void removeArc(int outL,int inL,MDDEdge* arc) {}
 protected:
    virtual bool trimDomains();
    void hookupPropagators();

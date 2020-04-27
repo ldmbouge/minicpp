@@ -22,14 +22,23 @@ namespace Factory {
       mdd.append(x);
       ValueSet values(rawValues);
       auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-      const int minC = mdd.addState(d,0,x.size());
-      const int maxC = mdd.addState(d,0,x.size());
-      const int rem  = mdd.addState(d,(int)x.size(),x.size());
-
-      mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
-         return (p.at(minC) + values.member(val) <= ub) &&
-                ((p.at(maxC) + values.member(val) +  p.at(rem) - 1) >= lb);
-      });
+      const int minC = mdd.addState(d,0,INT_MAX);
+      const int maxC = mdd.addState(d,0,INT_MAX);
+      const int rem  = mdd.addState(d,(int)x.size(),INT_MAX);
+      if (rawValues.size() == 1) {
+         int tv = *rawValues.cbegin();
+         mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
+                           bool vinS = tv == val;// values.member(val);
+                           return (p[minC] + vinS <= ub) &&
+                              ((p[maxC] + vinS +  p[rem] - 1) >= lb);
+                        });         
+      } else {
+         mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
+                           bool vinS = values.member(val);
+                           return (p[minC] + vinS <= ub) &&
+                              ((p[maxC] + vinS +  p[rem] - 1) >= lb);
+                        });
+      }
 
       mdd.transitionDown(minC,[minC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool allMembers = true;
@@ -37,7 +46,7 @@ namespace Factory {
                                    allMembers &= values.member(v);
                                    if (!allMembers) break;
                                 }
-                                out.set(minC,p.at(minC) + allMembers);
+                                out.setInt(minC,p[minC] + allMembers);
                              });
       mdd.transitionDown(maxC,[maxC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool oneMember = false;
@@ -45,16 +54,16 @@ namespace Factory {
                                    oneMember = values.member(v);
                                    if (oneMember) break;
                                 }
-                                out.set(maxC,p.at(maxC) + oneMember);
+                                out.setInt(maxC,p[maxC] + oneMember);
                              });
-      mdd.transitionDown(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(rem,p.at(rem) - 1);});
+      mdd.transitionDown(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.setInt(rem,p[rem] - 1);});
 
-      mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.set(minC,std::min(l.at(minC), r.at(minC)));});
-      mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.set(maxC,std::max(l.at(maxC), r.at(maxC)));});
-      mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.set(rem,std::max(l.at(rem),r.at(rem)));});
+      mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.setInt(minC,std::min(l[minC], r[minC]));});
+      mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.setInt(maxC,std::max(l[maxC], r[maxC]));});
+      mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.setInt(rem,std::max(l[rem],r[rem]));});
 
-      mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l.at(minC) - r.at(minC)); });
-      mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l.at(maxC) - r.at(maxC)); });
+      mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l[minC] - r[minC]); });
+      mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l[maxC] - r[maxC]); });
       mdd.addSimilarity(rem ,[] (auto l,auto r) -> double { return 0; });
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
@@ -289,7 +298,7 @@ namespace Factory {
       spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
       spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
 
       spec.transitionDown(minL,[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool allMembers = true;
