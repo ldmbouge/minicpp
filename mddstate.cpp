@@ -9,6 +9,8 @@
 #include "mddstate.hpp"
 #include <algorithm>
 #include <limits.h>
+#include <future>
+#include <thread>
 
 void printSet(const MDDIntSet& s) {
    std::cout << s << std::endl;
@@ -16,13 +18,13 @@ void printSet(const MDDIntSet& s) {
 
 
 namespace Factory {
-   MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max)
+   MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
    {
       MDDProperty::Ptr rv;
       if (max <= 127)
-         rv = new MDDPByte(id,ofs,init,max);
+         rv = new MDDPByte(id,ofs,init,max,rw);
       else
-         rv = new MDDPInt(id,ofs,init,max);
+         rv = new MDDPInt(id,ofs,init,max,rw);
       return rv;
    }
    MDDProperty::Ptr makeBSProperty(short id,unsigned short ofs,int nbb,unsigned char init)
@@ -87,10 +89,10 @@ void MDDStateSpec::layout()
    std::cout << "State requires:" << _lsz << " bytes" << std::endl;
 }
 
-int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max)
+int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw)
 {
    int aid = (int)_nbp;
-   addProperty(Factory::makeProperty(aid, 0, init, max));
+   addProperty(Factory::makeProperty(aid, 0, init, max,rw));
    d->addProperty(aid);
    return aid;
 }
@@ -117,9 +119,9 @@ std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor::Ptr d,int max,
    return res;
 }
 
-int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max)
+int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw)
 {
-   auto rv = MDDStateSpec::addState(d,init,max);
+   auto rv = MDDStateSpec::addState(d,init,max,rw);
    return rv;
 }
 int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
@@ -369,6 +371,10 @@ void MDDSpec::compile()
    }
    if (fstUp != -1)
       _upZones.emplace_back(Zone(startOfs(fstUp),endOfs(lstUp),upProps));
+   for(int p = 0 ; p < _nbp;p++) {
+      if (_xRelax.find(p) == _xRelax.end())
+         _dRelax.push_back(p);
+   }
 }
 
 void MDDSpec::copyStateUp(MDDState& result,const MDDState& source)
@@ -391,6 +397,12 @@ void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
 
 void MDDSpec::relaxation(MDDState& a,const MDDState& b) const noexcept
 {
+   for(auto p : _dRelax) {
+      switch(_attrs[p]->relaxFun()) {
+         case MinFun: a.minWith(p,b);break;
+         case MaxFun: a.maxWith(p,b);break;           
+      }
+   }
    for(const auto& relax : _relaxation)
       relax(a,a,b);
 }

@@ -131,6 +131,8 @@ public:
 
 void printSet(const MDDIntSet& s);
 
+enum RelaxWith { External, MinFun,MaxFun};
+
 class MDDState;
 class MDDNode;
 typedef std::function<bool(const MDDState&)> NodeFun;
@@ -282,15 +284,17 @@ protected:
    unsigned short _ofs; // offset in bytes within block
    unsigned short _bsz; // size in bytes.
    enum Direction _dir;
+   enum RelaxWith _rw;
    virtual size_t storageSize() const = 0;  // given in _bits_
    virtual size_t setOffset(size_t bitOffset) = 0;
 public:
    typedef handle_ptr<MDDProperty> Ptr;
-   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir) {}
-   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir) {}
-   MDDProperty(short id,unsigned short ofs,unsigned short bsz)
-      : _id(id),_ofs(ofs),_bsz(bsz),_dir(None) {}
-   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_dir = p._dir;return *this;}
+   MDDProperty(const MDDProperty& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw) {}
+   MDDProperty(MDDProperty&& p) : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw) {}
+   MDDProperty(short id,unsigned short ofs,unsigned short bsz,enum RelaxWith rw = External)
+      : _id(id),_ofs(ofs),_bsz(bsz),_dir(None),_rw(rw) {}
+   MDDProperty& operator=(const MDDProperty& p) { _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_dir = p._dir;_rw = p._rw;return *this;}
+   enum RelaxWith relaxFun() const noexcept { return _rw;}
    unsigned short startOfs() const noexcept { return _ofs;}
    unsigned short endOfs() const noexcept   { return _ofs + _bsz;}
    size_t size() const noexcept { return storageSize() >> 3;}
@@ -299,6 +303,8 @@ public:
    bool isDown() const noexcept  { assert(_dir != None);return (_dir & Down) == Down;}
    virtual void init(char* buf) const noexcept              {}
    virtual int get(char* buf) const noexcept                { return 0;}
+   virtual void minWith(char* buf,char* other) const noexcept {}
+   virtual void maxWith(char* buf,char* other) const noexcept {}
    int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
    int getByte(char* buf) const noexcept                    { return buf[_ofs];}
    MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
@@ -341,12 +347,22 @@ class MDDPInt :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPInt> Ptr;
-   MDDPInt(short id,unsigned short ofs,int init,int max=0x7fffffff)
-      : MDDProperty(id,ofs,4),_init(init),_max(max) {}
+   MDDPInt(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
+      : MDDProperty(id,ofs,4,rw),_init(init),_max(max) {}
    void init(char* buf) const noexcept override      { *reinterpret_cast<int*>(buf+_ofs) = _init;}
    int get(char* buf) const noexcept override        { return *reinterpret_cast<int*>(buf+_ofs);}
    void set(char* buf,int v) noexcept override       { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void stream(char* buf,std::ostream& os) const override { os << *reinterpret_cast<int*>(buf+_ofs);}
+   void minWith(char* buf,char* other) const noexcept override {
+      int* o = reinterpret_cast<int*>(buf+_ofs);
+      int* i = reinterpret_cast<int*>(other+_ofs);
+      *o = std::min(*o,*i);
+   }
+   void maxWith(char* buf,char* other) const noexcept override {
+      int* o = reinterpret_cast<int*>(buf+_ofs);
+      int* i = reinterpret_cast<int*>(other+_ofs);
+      *o = std::max(*o,*i);
+   }
    void print(std::ostream& os) const override  {
       os << "PInt(" << _id << ',' << _ofs << ',' << _init << ',' << _max << ')';
    }
@@ -366,12 +382,18 @@ class MDDPByte :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPByte> Ptr;
-   MDDPByte(short id,unsigned short ofs,char init,char max=127)
-      : MDDProperty(id,ofs,1),_init(init),_max(max) {}
+   MDDPByte(short id,unsigned short ofs,char init,char max,enum RelaxWith rw)
+      : MDDProperty(id,ofs,1,rw),_init(init),_max(max) {}
    void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
    int get(char* buf) const  noexcept override       { return buf[_ofs];}
    void set(char* buf,int v) noexcept override       { buf[_ofs] = (char)v;}
    void stream(char* buf,std::ostream& os) const override { int v = buf[_ofs];os << v;}
+   void minWith(char* buf,char* other) const noexcept override {
+      buf[_ofs] = std::min(buf[_ofs],other[_ofs]);
+   }
+   void maxWith(char* buf,char* other) const noexcept override {
+      buf[_ofs] = std::max(buf[_ofs],other[_ofs]);
+   }
    void print(std::ostream& os) const override  {
       os << "PByte(" << _id << ',' << _ofs << ',' << (int)_init << ',' << (int)_max << ')';
    }
@@ -444,6 +466,7 @@ protected:
    short _mxp;
    short _nbp;
    size_t _lsz;
+   enum RelaxWith _relax;
    void addProperty(MDDProperty::Ptr p) noexcept;
 public:
    MDDStateSpec();
@@ -455,7 +478,7 @@ public:
    bool isDown(int p) const noexcept { return _attrs[p]->isDown();}
    unsigned short startOfs(int p) const noexcept { return _attrs[p]->startOfs();}
    unsigned short endOfs(int p) const noexcept { return _attrs[p]->endOfs();}
-   virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff);
+   virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External);
    virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
@@ -574,6 +597,8 @@ public:
    bool isDownRelaxed() const noexcept      { return _flags._drelax;}
    void relaxDown(bool r = true) noexcept   { _flags._drelax = r;}
    void relaxUp(bool r = true) noexcept     { _flags._urelax = r;}
+   void minWith(int i,const MDDState& s) const noexcept { _spec->_attrs[i]->minWith(_mem,s._mem);}
+   void maxWith(int i,const MDDState& s) const noexcept { _spec->_attrs[i]->maxWith(_mem,s._mem);}
    float inner(const MDDState& s) const {
       if (_flags._ripped) 
          return _rip;
@@ -666,8 +691,10 @@ public:
    MDDConstraintDescriptor::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
       return constraints.emplace_back(new MDDConstraintDescriptor(v,n));
    }
-   int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff) override;
-   int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max) {return addState(d,init,(int)max);}
+   int addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External) override;
+   int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max,enum RelaxWith rw=External) {
+      return addState(d,init,(int)max,rw);
+   }
    int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
    void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
    void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
@@ -675,6 +702,7 @@ public:
    void transitionDown(int,lambdaTrans);
    void transitionUp(int,lambdaTrans);
    template <typename LR> void addRelaxation(int p,LR r) {
+      _xRelax.insert(p);
       for(auto& cd : constraints)
          if (cd->ownsProperty(p)) {
             cd->registerRelaxation((int)_relaxation.size());
@@ -739,6 +767,8 @@ private:
    std::vector<std::vector<ArcFun>> _scopedExists; // 1st dimension indexed by varId. 2nd dimension is a list.
    std::vector<std::vector<NodeFun>> _scopedConsistent;
    std::vector<Zone> _upZones;
+   std::set<int>      _xRelax;
+   std::vector<int>   _dRelax;
 };
 
 

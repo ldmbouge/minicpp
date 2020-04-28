@@ -23,9 +23,9 @@ namespace Factory {
       assert(rawValues.size()==1);
       int tv = *rawValues.cbegin();
       auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-      const int minC = mdd.addState(d,0,INT_MAX);
-      const int maxC = mdd.addState(d,0,INT_MAX);
-      const int rem  = mdd.addState(d,(int)x.size(),INT_MAX);
+      const int minC = mdd.addState(d,0,INT_MAX,MinFun);
+      const int maxC = mdd.addState(d,0,INT_MAX,MaxFun);
+      const int rem  = mdd.addState(d,(int)x.size(),INT_MAX,MaxFun);
       mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
                         bool vinS = tv == val;// values.member(val);
                         return (p[minC] + vinS <= ub) &&
@@ -42,9 +42,9 @@ namespace Factory {
                              });
       mdd.transitionDown(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.setInt(rem,p[rem] - 1);});
 
-      mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.setInt(minC,std::min(l[minC], r[minC]));});
-      mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.setInt(maxC,std::max(l[maxC], r[maxC]));});
-      mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.setInt(rem,std::max(l[rem],r[rem]));});
+      // mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.setInt(minC,std::min(l[minC], r[minC]));});
+      // mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.setInt(maxC,std::max(l[maxC], r[maxC]));});
+      // mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.setInt(rem,std::max(l[rem],r[rem]));});
 
       mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l[minC] - r[minC]); });
       mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l[maxC] - r[maxC]); });
@@ -56,9 +56,9 @@ namespace Factory {
       mdd.append(x);
       ValueSet values(rawValues);
       auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-      const int minC = mdd.addState(d,0,INT_MAX);
-      const int maxC = mdd.addState(d,0,INT_MAX);
-      const int rem  = mdd.addState(d,(int)x.size(),INT_MAX);
+      const int minC = mdd.addState(d,0,INT_MAX,MinFun);
+      const int maxC = mdd.addState(d,0,INT_MAX,MaxFun);
+      const int rem  = mdd.addState(d,(int)x.size(),INT_MAX,MaxFun);
       if (rawValues.size() == 1) {
          int tv = *rawValues.cbegin();
          mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
@@ -92,9 +92,9 @@ namespace Factory {
                              });
       mdd.transitionDown(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.setInt(rem,p[rem] - 1);});
 
-      mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.setInt(minC,std::min(l[minC], r[minC]));});
-      mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.setInt(maxC,std::max(l[maxC], r[maxC]));});
-      mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.setInt(rem,std::max(l[rem],r[rem]));});
+      // mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.setInt(minC,std::min(l[minC], r[minC]));});
+      // mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.setInt(maxC,std::max(l[maxC], r[maxC]));});
+      // mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.setInt(rem,std::max(l[rem],r[rem]));});
 
       mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l[minC] - r[minC]); });
       mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l[maxC] - r[maxC]); });
@@ -391,18 +391,13 @@ namespace Factory {
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
       std::vector<int> ps(NIdx+1);
 
-      ps[YminIdx] = spec.addState(desc, 0, nbVars);
-      ps[YmaxIdx] = spec.addState(desc, 0, nbVars);
-      
-      for(int i = AminFIdx;i <= AminLIdx;i++)
-	ps[i] = spec.addState(desc, 0, nbVars);
-      for(int i = AmaxFIdx;i <= AmaxLIdx;i++)
-	ps[i] = spec.addState(desc, 0, nbVars);
-      for(int i = DminFIdx;i <= DminLIdx;i++)
-	ps[i] = spec.addState(desc, 0, nbVars);
-      for(int i = DmaxFIdx;i <= DmaxLIdx;i++)
-	ps[i] = spec.addState(desc, 0, nbVars);
-      ps[NIdx] = spec.addState(desc, 0, nbVars);
+      ps[YminIdx] = spec.addState(desc, 0, nbVars,MinFun);
+      ps[YmaxIdx] = spec.addState(desc, 0, nbVars,MaxFun);     
+      for(int i = AminFIdx;i <= AminLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MinFun);
+      for(int i = AmaxFIdx;i <= AmaxLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MaxFun);
+      for(int i = DminFIdx;i <= DminLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MinFun);
+      for(int i = DmaxFIdx;i <= DmaxLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MaxFun);
+      ps[NIdx] = spec.addState(desc, 0, nbVars,MinFun);
 
       const int Ymin = ps[YminIdx];
       const int Ymax = ps[YmaxIdx];
@@ -498,17 +493,17 @@ namespace Factory {
                          });      
       
       // relaxations
-      spec.addRelaxation(Ymin,[Ymin](auto& out,const auto& l,const auto& r) { out.set(Ymin,std::min(l.at(Ymin),r.at(Ymin)));});
-      spec.addRelaxation(Ymax,[Ymax](auto& out,const auto& l,const auto& r) { out.set(Ymax,std::max(l.at(Ymax),r.at(Ymax)));});
-      for(int i = AminFIdx; i <= AminLIdx; i++)
-	 spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
-      for(int i = AmaxFIdx; i <= AmaxLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
-      for(int i = DminFIdx; i <= DminLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
-      for(int i = DmaxFIdx; i <= DmaxLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
-      spec.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
+      // spec.addRelaxation(Ymin,[Ymin](auto& out,const auto& l,const auto& r) { out.set(Ymin,std::min(l.at(Ymin),r.at(Ymin)));});
+      // spec.addRelaxation(Ymax,[Ymax](auto& out,const auto& l,const auto& r) { out.set(Ymax,std::max(l.at(Ymax),r.at(Ymax)));});
+      // for(int i = AminFIdx; i <= AminLIdx; i++)
+      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
+      // for(int i = AmaxFIdx; i <= AmaxLIdx; i++)
+      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
+      // for(int i = DminFIdx; i <= DminLIdx; i++)
+      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
+      // for(int i = DmaxFIdx; i <= DmaxLIdx; i++)
+      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
+      // spec.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
    }
 
 
