@@ -32,10 +32,6 @@ namespace Factory {
    }
 }
 
-
-MDDConstraintDescriptor::MDDConstraintDescriptor(const Factory::Veci& vars, const char* name)
-   : _vars(vars), _vset(vars), _name(name){}
-
 MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& d)
    : _vars(d._vars), _vset(d._vset), _name(d._name),
      _properties(d._properties),
@@ -47,14 +43,6 @@ MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& 
 
 MDDSpec::MDDSpec()
 {}
-
-void MDDSpec::append(const Factory::Veci& y)
-{
-   for(auto e : y)
-      if(std::find(x.cbegin(),x.cend(),e) == x.cend())
-         x.push_back(e);
-   std::cout << "size of x: " << x.size() << std::endl;
-}
 
 void MDDSpec::varOrder()
 {
@@ -97,11 +85,6 @@ void MDDStateSpec::layout()
    _lsz = (_lsz & 0x7) ? (_lsz | 0x7)+1 : _lsz;
    assert(_lsz % 8 == 0); // # bytes is always a multiple of 8.
    std::cout << "State requires:" << _lsz << " bytes" << std::endl;
-}
-
-MDDConstraintDescriptor::Ptr MDDSpec::makeConstraintDescriptor(const Factory::Veci& v,const char* n)
-{
-   return constraints.emplace_back(new MDDConstraintDescriptor(v,n));
 }
 
 int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max)

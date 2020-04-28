@@ -18,6 +18,40 @@
 #include <limits.h>
 
 namespace Factory {
+   void amongMDD(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub,std::set<int> rawValues) {
+      mdd.append(x);
+      assert(rawValues.size()==1);
+      int tv = *rawValues.cbegin();
+      auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
+      const int minC = mdd.addState(d,0,INT_MAX);
+      const int maxC = mdd.addState(d,0,INT_MAX);
+      const int rem  = mdd.addState(d,(int)x.size(),INT_MAX);
+      mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
+                        bool vinS = tv == val;// values.member(val);
+                        return (p[minC] + vinS <= ub) &&
+                           ((p[maxC] + vinS +  p[rem] - 1) >= lb);
+                     });         
+
+      mdd.transitionDown(minC,[minC,tv] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                 bool allMembers = val.size()==1 && val.singleton() == tv;
+                                 out.setInt(minC,p[minC] + allMembers);
+                             });
+      mdd.transitionDown(maxC,[maxC,tv] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                 bool oneMember = val.contains(tv);
+                                out.setInt(maxC,p[maxC] + oneMember);
+                             });
+      mdd.transitionDown(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.setInt(rem,p[rem] - 1);});
+
+      mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.setInt(minC,std::min(l[minC], r[minC]));});
+      mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.setInt(maxC,std::max(l[maxC], r[maxC]));});
+      mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.setInt(rem,std::max(l[rem],r[rem]));});
+
+      mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l[minC] - r[minC]); });
+      mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l[maxC] - r[maxC]); });
+      mdd.addSimilarity(rem ,[] (auto l,auto r) -> double { return 0; });
+      mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
+   }
+
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
       mdd.append(x);
       ValueSet values(rawValues);

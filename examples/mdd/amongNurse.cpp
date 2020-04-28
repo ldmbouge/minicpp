@@ -41,18 +41,18 @@
 using namespace Factory;
 using namespace std;
 
-Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)> clo)
+template <class Vec>
+Vec all(CPSolver::Ptr cp,const set<int>& over,const Vec& t)
 {
-   auto res = Factory::intVarArray(cp, (int) over.size());
+   Vec res(over.size(),t.get_allocator()); //= Factory::intVarArray(cp, (int) over.size());
    int i = 0;
-   for(auto e : over){
-      res[i++] = clo(e);
-   }
+   for(auto e : over)
+      res[i++] = t[e];
    return res;
 }
 
-
-void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
+template <class Vec>
+void addCumulSeq(CPSolver::Ptr cp, const Vec& vars, int N, int L, int U, const std::set<int> S) {
 
   int H = (int)vars.size();
   
@@ -101,7 +101,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   
   int H = 40; // time horizon (number of workdays)
   
-  auto vars = Factory::intVarArray(cp, H, 0, 1); // vars[i]=1 means that the nurse works on day i
+  //auto vars = Factory::intVarArray(cp, H, 0, 1); // vars[i]=1 means that the nurse works on day i
+  auto vars = Factory::boolVarArray(cp, H); // vars[i]=1 means that the nurse works on day i
 
   std::set<int> workDay = {1};
 
@@ -162,7 +163,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	}
 	cout << endl;
 	
-	auto adv = all(cp, weekVars, [&vars](int i) {return vars[i];});
+	auto adv = all(cp, weekVars,vars);
 	// post as simple sums (baseline model in [Van Hoeve 2009])
 	cp->post(sum(adv) >= L3);
 	cp->post(sum(adv) <= U3);
@@ -183,7 +184,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       }
       cout << endl;
       
-      auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+      auto adv = all(cp, amongVars, vars);
       Factory::amongMDD(mdd->getSpec(), adv, L1, U1, workDay);
     }
     
@@ -198,7 +199,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       }
       cout << endl;
       
-      auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+      auto adv = all(cp, amongVars, vars);
       Factory::amongMDD(mdd->getSpec(), adv, L2, U2, workDay);
     }
   
@@ -214,7 +215,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	}
 	cout << endl;
 	
-	auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+	auto adv = all(cp, amongVars,vars);
 	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
       }
     }
@@ -243,7 +244,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	}
 	cout << endl;
 	
-	auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+	auto adv = all(cp,amongVars,vars);
 	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
       }
     }
@@ -272,7 +273,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	}
 	cout << endl;
 	
-	auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
+	auto adv = all(cp, amongVars, vars);
 	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
       }
     }
@@ -302,7 +303,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	}
 	cout << endl;
 	
-	auto adv = all(cp, weekVars, [&vars](int i) {return vars[i];});
+	auto adv = all(cp, weekVars, vars);
 	// post as simple sums (baseline model in [Van Hoeve 2009])
 	cp->post(sum(adv) >= L3);
 	cp->post(sum(adv) <= U3);
@@ -322,7 +323,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       // 			 [](const auto& x) { return x->size();});
       
       if (x) {
-	int c = x->min();
+	bool c = x->min();
 	
 	return  [=] {
 	  cp->post(x == c);}

@@ -158,7 +158,7 @@ public:
 
 
 class MDDConstraintDescriptor {
-   const Factory::Veci    _vars;
+   Factory::Veci          _vars;
    ValueSet               _vset;
    const char*            _name;
    std::vector<int> _properties;
@@ -168,7 +168,15 @@ class MDDConstraintDescriptor {
    std::vector<int> _utid; // up transition ids
 public:
    typedef handle_ptr<MDDConstraintDescriptor> Ptr;
-   MDDConstraintDescriptor(const Factory::Veci& vars, const char* name);
+   template <class Vec>
+   MDDConstraintDescriptor(const Vec& vars, const char* name) 
+      : _vars(vars.size(),Factory::alloci(vars[0]->getStore())),
+        _vset(vars),
+        _name(name)
+   {
+      for(typename Vec::size_type i=0;i < vars.size();i++)
+         _vars[i] = vars[i];
+   }
    MDDConstraintDescriptor(const MDDConstraintDescriptor&);
    void addProperty(int p) {_properties.push_back(p);}
    bool ownsProperty(int p) const {
@@ -654,7 +662,10 @@ class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
    // End-user API to define an ADD
-   MDDConstraintDescriptor::Ptr makeConstraintDescriptor(const Factory::Veci&, const char*);
+   template <class Container>
+   MDDConstraintDescriptor::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
+      return constraints.emplace_back(new MDDConstraintDescriptor(v,n));
+   }
    int addState(MDDConstraintDescriptor::Ptr d, int init,int max=0x7fffffff) override;
    int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max) {return addState(d,init,(int)max);}
    int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
@@ -688,7 +699,13 @@ public:
    void relaxation(MDDState& a,const MDDState& b) const noexcept;
    MDDState rootState(Storage::Ptr& mem);
    bool usesUp() const { return _uptrans.size() > 0;}
-   void append(const Factory::Veci& x);
+   template <class Container> void append(const Container& y) {
+      for(auto e : y)
+         if(std::find(x.cbegin(),x.cend(),e) == x.cend())
+            x.push_back(e);
+      std::cout << "size of x: " << x.size() << std::endl;
+   }
+
    void reachedFixpoint(const MDDState& sink);
    double splitPriority(const MDDNode& n) const;
    bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
@@ -697,8 +714,8 @@ public:
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
       os << "Spec(";
       for(int p=0;p < s._nbp;p++) {
-         auto a = s._attrs[p];
-         os << a << ' ';
+         s._attrs[p]->print(os);
+         os << ' ';
       }
       os << ')';
       return os;
