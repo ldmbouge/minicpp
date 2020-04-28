@@ -238,7 +238,7 @@ void MDDSpec::transitionUp(const lambdaMap& map)
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
 {
    MDDState rootState(this,(char*)mem->allocate(layoutSize()));
-   for(auto k=0u;k < size();k++)
+   for(auto k=0;k < size();k++)
       rootState.init(k);
    std::cout << "ROOT:" << rootState << std::endl;
    return rootState;
@@ -364,12 +364,37 @@ void MDDSpec::compile()
       for(auto& v : vars) 
          _scopedConsistent[v->getId()].emplace_back(fun);
    }
+   std::set<int> upProps;
+   int fstUp = -1,lstUp = -1;
+   for(int i=0;i < _nbp;i++) {
+      if (!_attrs[i]->isUp()) continue;
+      if (fstUp == -1)
+         upProps.insert(fstUp = lstUp = i);
+      else {
+         if (i == fstUp - 1)
+            upProps.insert(fstUp = i);
+         else if (i == lstUp + 1)
+            upProps.insert(lstUp = i);
+         else if (i >= fstUp && i <= lstUp)
+            upProps.insert(i);
+         else {
+            _upZones.emplace_back(Zone(startOfs(fstUp),endOfs(lstUp),upProps));
+            upProps.clear();
+            upProps.insert(fstUp = lstUp = i);
+         }
+      }
+   }
+   if (fstUp != -1)
+      _upZones.emplace_back(Zone(startOfs(fstUp),endOfs(lstUp),upProps));
 }
 
 void MDDSpec::copyStateUp(MDDState& result,const MDDState& source)
 {
-   if (usesUp())
-      result.copyState(source);
+   if (usesUp()) {
+      for(const auto& z : _upZones)
+         result.copyZone(z,source);
+      //result.copyState(source);
+   }
 }
 
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool hasUp)

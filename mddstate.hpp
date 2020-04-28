@@ -435,7 +435,6 @@ protected:
    MDDProperty** _attrs;
    short _mxp;
    short _nbp;
-   //std::vector<MDDProperty::Ptr> _attrs;
    size_t _lsz;
    void addProperty(MDDProperty::Ptr p) noexcept;
 public:
@@ -722,6 +721,7 @@ private:
    std::vector<LayerDesc> _frameLayer;
    std::vector<std::vector<ArcFun>> _scopedExists; // 1st dimension indexed by varId. 2nd dimension is a list.
    std::vector<std::vector<NodeFun>> _scopedConsistent;
+   std::vector<Zone> _upZones;
 };
 
 
