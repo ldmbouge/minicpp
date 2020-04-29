@@ -45,7 +45,7 @@ public:
    void free()    { delete _ptr;_ptr = nullptr;}
    template<class X> friend bool operator==(const handle_ptr<T>& p1,const handle_ptr<X>& p2)
    {
-      return p1._ptr == p2._ptr;
+      return p1._ptr == p2.get();
    }
 };
 
