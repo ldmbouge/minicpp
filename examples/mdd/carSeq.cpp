@@ -33,7 +33,7 @@
 
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
-
+#include <math.h>
 
 using namespace std;
 using namespace Factory;
@@ -171,30 +171,134 @@ template <typename Fun> vector<int> toVec(int min,int max,Fun f)
    return v;
 }
 
-void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in, int timelimit)
+void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
 {
-   auto start = RuntimeMonitor::now();
+  
+  // Following [Puget&Regin, 1997] calculate slack for each option:
+  //
+
+  int nbVars = line.size();
+  int nbO = (int) in.options().size();
+  
+  /***
+   *  Code taken from from Gen-Sequence paper.  It is based on [Puget&Regin, 1997] search strategy,
+   *  relies on the "capacity" slack of each option: slack[j] = n - q[j](k[j]/p[j]) 
+   *  where n is length of line,
+   *        p[j]/q[j] is the capacity of option j ("p out of q")
+   *        k[j] is total demand for option j.
+   ***/
+  vector<int> nbCarsByOption(nbO, 0);
+  for(int o=0; o<nbO; o++){
+    for(int i=0; i<in.nbConf(); i++) {
+      if ( in.requires(i,o) ) { nbCarsByOption[o] += in.demand(i); }
+    }
+  }
+   
+  pair<int,int> slack[nbO];
+  cout << "slack = [";
+  for (int opt=0; opt<nbO; opt++) {
+    const int N = nbVars, P = in.lb(opt), Q = in.ub(opt), K = nbCarsByOption[opt];
+    slack[opt].first = N - Q*(K/P) - (K%P);   // best bound
+    // slack[opt].first = N - Q*(K/P);        // correct but weaker bound from Regin-Puget
+    // slack[opt].first = N - Q*(1.0*K/P);    // incorrect bound
+    slack[opt].second = opt;
+    cout << slack[opt].first << ' ';
+  }
+  cout << ']' << endl;
+  sort(slack, slack+nbO);
+  
+  vector<int> optionOrder(nbO, 0);
+  for (int i=0; i<nbO; i++){
+    optionOrder[i]=slack[i].second;
+  }
+  cout << "optionOrder = " << optionOrder << endl;
+
+  // variable ordering: uses Boolean encoding of the options (bvars),
+  // which is then ordered from the middle of the line outward (tbvars).
+  int nbCars = (int) line.size();
+  int mx = in.nbConf()-1;
+  auto bvars = Factory::boolVarArray(cp,nbCars*nbO);
+  for(int o = 0; o < nbO; o++){
+    int opt = optionOrder[o];
+    // // version 1: use Boolean membership
+    // std::set<int> S;
+    // for (int i=0; i<=mx; i++)
+    //   if (in.requires(i,opt)) {	S.insert(i); }
+    for(int c = 0; c < nbCars; c++){
+      // // version 1: use Boolean membership
+      // cp->post(isMember(bvars[o*nbCars + c], line[c], S));
+
+      // version 2: use element constraint
+      auto rl = toVec(0,mx,[in,opt](int i) { return in.requires(i,opt);});
+      cp->post(bvars[o*nbCars + c] == element(rl,line[c]));
+    }
+  }
+
+  auto tbvars = Factory::boolVarArray(cp,nbCars*nbO);
+  int mid = nbCars/2 - 1;
+  for(int j=0; j<nbO*nbCars; j+=nbCars){
+    for(int i=0; i<mid+1; i++){
+      tbvars[2*i+j]=bvars[mid-i+j];
+      tbvars[2*i+1+j]=bvars[mid+i+1+j];
+    }
+  }
+  
+  auto start = RuntimeMonitor::now();
+  
    DFSearch search(cp,[=]() {
 
+       // Puget&Regin ordering: first assign options
        unsigned i = 0u;
-       for(i=0u;i < line.size();i++)
-       	 if (line[i]->size()> 1) break;
-       auto x = i< line.size() ? line[i] : nullptr;
-       
-       // auto x = selectMin(line,
+       for(i=0u;i < tbvars.size();i++)
+       	 if (tbvars[i]->size()> 1) break;
+       auto x = i<tbvars.size() ? tbvars[i] : nullptr;
+       // Next assign configurations to line variable (not sure if this is actually needed) 
+       var<int>::Ptr y;
+       if (!x) {
+	 // cout << "try to select line variable" << endl;
+	 y = selectMin(line,
+		       [](const auto& x) { return x->size() > 1;},
+		       [](const auto& x) { return x->size();});
+       }
+
+       // // Lexicographic ordering
+       // unsigned i = 0u;
+       // for(i=0u;i < line.size();i++)
+       // 	 if (line[i]->size()> 1) break;
+       // auto y = i< line.size() ? line[i] : nullptr;
+
+
+       // // MinDomain ordering
+       // auto y = selectMin(line,
        //                   [](const auto& x) { return x->size() > 1;},
        //                   [](const auto& x) { return x->size();});
-
-      if (x) {
-         int c = x->min();
+       
+       if (x) {
+	 bool c = x->max();
          
          return  [=] {
-                    cp->post(x == c);
+	         // std::cout << "tbvars[" << i << "] == " << c << std::endl;
+                 cp->post(x == c);
                  }
             | [=] {
+	         // std::cout << "tbvars[" << i << "] != " << c << std::endl;
                  cp->post(x != c);
-              };
-      } else return Branches({});
+	 };
+      }
+       else if (y){
+	 // cout << "select " << y << endl;
+	 int c = y->min();
+         
+         return  [=] {
+	         // std::cout << y << " == " << c << std::endl;
+                 cp->post(y == c);
+                 }
+            | [=] {
+	         // std::cout << y << " != " << c << std::endl;
+                 cp->post(y != c);
+	 };
+       }
+       else return Branches({});
    });
 
    search.onSolution([&line,&in]() {

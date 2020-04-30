@@ -260,6 +260,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit)
    std::map<int,int> boundsLB = tomap(0, mx,[&in] (int i) { return in.demand(i);} );
    std::map<int,int> boundsUB = tomap(0, mx,[&in] (int i) { return in.demand(i);} );
    Factory::gccMDD2(mdd->getSpec(), line, boundsLB, boundsUB);
+   std::cout << "use gccMDD2 constraints to model the demand" << std::endl;
 
    // // meet demand: use amongMDD (for testing)
    // std::cout << "use amongMDD constraints to model the demand" << std::endl;
@@ -286,7 +287,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit)
      for(int i=0; i<in.nbConf(); i++) {
        if ( in.requires(i,o) ) { Confs.insert(i); }
      }
-     std::cout << "use seqMDD constraint for option " << o << std::endl;
+     std::cout << "use seqMDD3 constraint for option " << o << std::endl;
      seqMDD3(mdd->getSpec(), line, in.ub(o), 0, in.lb(o), Confs);
      // std::cout << "use cumulative domain encoding for option " << o << std::endl;
      // addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
