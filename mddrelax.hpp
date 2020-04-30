@@ -150,7 +150,7 @@ class MDDRelax : public MDD {
    void delState(MDDNode* state,int l);
    bool processNodeUp(MDDNode* n,int i); // i is the layer number
    void computeUp();
-   void computeDown();
+   void computeDown(int iter);
    void postUp();
    void removeArc(int outL,int inL,MDDEdge* arc) override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}

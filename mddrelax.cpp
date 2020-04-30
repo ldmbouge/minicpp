@@ -66,7 +66,7 @@ void MDDRelax::buildDiagram()
    _refs.emplace_back(rootState);
    for(auto i = 0u; i < numVariables; i++) {
       buildNextLayer(i);
-      relaxLayer(i+1,1);//_width);
+      relaxLayer(i+1,std::min(1u,_width));//_width);
    }
    postUp();
    trimDomains();
@@ -607,12 +607,14 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    return dirty;
 }
 
-void MDDRelax::computeDown()
+void MDDRelax::computeDown(int iter)
 {
-   MDDNodeSet delta(2 * _width,(char*)alloca(sizeof(MDDNode*)*2*_width));
-   for(int l=1;l < (int) numVariables;l++) {
-      if (!x[l-1]->isBound() && layers[l].size() < _width) 
-         split(delta,layers[l],l);
+   if (true || iter <= 1) {
+      MDDNodeSet delta(2 * _width,(char*)alloca(sizeof(MDDNode*)*2*_width));
+      for(int l=1;l < (int) numVariables;l++) {
+         if (!x[l-1]->isBound() && layers[l].size() < _width) 
+            split(delta,layers[l],l);
+      }
    }
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
@@ -668,16 +670,18 @@ void MDDRelax::propagate()
    try {      
       bool change = false;
       MDD::propagate();
+      int iter = 0;
       do {
          _fwd->init(); 
          _bwd->init();
          iterMDD++;
          computeUp();
-         computeDown();
+         computeDown(iter);
          assert(layers[numVariables].size() == 1);
          if (!_mddspec.usesUp()) _bwd->clear();
          change = !_fwd->empty() || !_bwd->empty();
-      } while (change);
+      } while (change); //  && iterMDD <= 2
+      //iterMDD += iter;
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
       for(int l=0;l < (int) numVariables;l++)
