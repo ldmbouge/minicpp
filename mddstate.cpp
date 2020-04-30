@@ -386,8 +386,11 @@ void MDDSpec::copyStateUp(MDDState& result,const MDDState& source)
    }
 }
 
+extern int nbCS = 0;
+
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool hasUp)
 {
+   nbCS++;
    result.clear();
    for(const auto& t : _transLayer[l])
       t(result,parent,var,v,hasUp);

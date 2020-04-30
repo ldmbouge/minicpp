@@ -661,16 +661,17 @@ void MDDRelax::computeUp()
    } else _bwd->clear();
 }
 
+int iterMDD = 0;
+
 void MDDRelax::propagate()
 {
    try {      
       bool change = false;
-      int iter = 0;
       MDD::propagate();
       do {
          _fwd->init(); 
          _bwd->init();
-         iter++;
+         iterMDD++;
          computeUp();
          computeDown();
          assert(layers[numVariables].size() == 1);
@@ -680,7 +681,8 @@ void MDDRelax::propagate()
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
       for(int l=0;l < (int) numVariables;l++)
-         trimVariable(l);      
+         trimVariable(l);
+      //std::cout << "FIX=" << iterMDD << '\n';
   } catch(Status s) {
       queue.clear();
       throw s;
