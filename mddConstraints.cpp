@@ -410,7 +410,15 @@ namespace Factory {
       const int DmaxF = ps[DmaxFIdx];
       const int DmaxL = ps[DmaxLIdx];
       const int N = ps[NIdx];
-	
+
+      /*
+      spec.transitionDown(Amin,[](auto& out,const auto& p,auto x,const auto&val, bool up) {
+                                  MDDWindow ow = out.getWin(Amin);
+                                  //ow = p.getWin(Amin) >> 1;
+                                  ow.setWithShift(p.getWin(Amin),1);
+                                  ow.setFirst(p.at(Ymin));
+                               });
+      */
       // down transitions
       spec.transitionDown(toDict(AminF+1,AminL,
                                  [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i-1));};}));
@@ -463,7 +471,7 @@ namespace Factory {
                          int minVal = n.at(Ymin);
                          int maxVal = n.at(Ymax);
                          if (n.at(N) >= len) {
-                            minVal = std::max(lb + n.at(AminL),minVal);
+                            minVal = std::max(lb + n.at(AminL),minVal);  // n.getWin(Amin).getLast()
                             maxVal = std::min(ub + n.at(AmaxL),maxVal);
                          }
                          if (n.at(N) <= nbVars - len) {
