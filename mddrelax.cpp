@@ -229,6 +229,9 @@ void MDDRelax::postUp()
    }
 }
 
+// -----------------------------------------------------------------------------------
+// Propagation code
+// -----------------------------------------------------------------------------------
 
 void MDDRelax::trimLayer(unsigned int layer)
 {
@@ -603,7 +606,8 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    }
    _mddspec.updateNode(ms);
    bool dirty = (n->getState() != ms);
-   n->setState(ms,mem);
+   if (dirty)
+      n->setState(ms,mem);
    return dirty;
 }
 

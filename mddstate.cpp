@@ -403,7 +403,8 @@ void MDDSpec::relaxation(MDDState& a,const MDDState& b) const noexcept
    for(auto p : _dRelax) {
       switch(_attrs[p]->relaxFun()) {
          case MinFun: a.minWith(p,b);break;
-         case MaxFun: a.maxWith(p,b);break;           
+         case MaxFun: a.maxWith(p,b);break;
+         case External: break;
       }
    }
    for(const auto& relax : _relaxation)
