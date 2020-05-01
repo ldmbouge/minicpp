@@ -301,6 +301,18 @@ namespace Factory {
       mdd.addRelaxation(zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)     {
                                 out.getBS(zSomeUp).setBinOR(l.getBS(zSomeUp),r.getBS(zSomeUp));
                             });
+
+      // // This strategy has no impact on performance
+      // mdd.splitOnLargest([=](const auto& in) {
+      // 	  if (in.getState().at(N) == 1) {
+      // 	    MDDBSValue xVals = in.getState().getBS(xSome);
+      // 	    return -(double) xVals.cardinality();
+      // 	  } else if (in.getState().at(N) == 2) {
+      // 	    MDDBSValue yVals = in.getState().getBS(ySome);
+      // 	    return -(double) yVals.cardinality();
+      // 	  } else
+      // 	    return (double)0;
+      // 	});
   }
 }
 
