@@ -174,55 +174,29 @@ namespace Factory {
 
     assert(vars.size()==3);
     
-    // Filtering rules based the following constraint:
-    //   |vars[0]-vars[1]| = vars[2]
+    // Filtering rules based the following constraint:  |vars[0]-vars[1]| = vars[2]
     // referred to below as |x-y| = z.
     mdd.append(vars);    
     auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
 
-    auto udom = domRange(vars);
+    auto udom  = domRange(vars);
     int minDom = udom.first;
-
-    const int xAll    = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int xSome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int yAll    = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int ySome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int yAllUp  = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int ySomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int zAllUp  = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int zSomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int N       = mdd.addState(d,0,2); // layer index 
     
-    mdd.transitionDown(xAll,[xAll,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==0) {
-	  out.setProp(xAll,p);
-	  if (val.size()==1)
-	    out.getBS(xAll).set(val.singleton() - minDom);
-	}
-	else {
-	  out.setProp(xAll,p);
-	}	  
-      });
+    const int xSome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int ySome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int ySomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int zSomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int N       = mdd.addState(d,0,2,MinFun);        // layer index 
+    
     mdd.transitionDown(xSome,[xSome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==0) {	    
+	if (p.at(N)==0) {
 	  out.setProp(xSome,p);
 	  MDDBSValue sv(out.getBS(xSome));
 	  for(auto v : val)
 	    sv.set(v - minDom);
 	}
-	else {
+	else
 	  out.setProp(xSome,p);
-	}
-      });
-    mdd.transitionDown(yAll,[yAll,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==1) {	  
-	  out.setProp(yAll,p);
-	  if (val.size()==1)
-	    out.getBS(yAll).set(val.singleton() - minDom);
-	}
-	else {
-	  out.setProp(yAll,p);
-	}
       });
     mdd.transitionDown(ySome,[ySome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==1) {
@@ -231,23 +205,12 @@ namespace Factory {
 	  for(auto v : val)
 	    sv.set(v - minDom);
 	}
-	else {
+	else
 	  out.setProp(ySome,p);
-	}
       });
 
     mdd.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
 
-    mdd.transitionDown(yAllUp,[yAllUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-	if (c.at(N)==2) {
-	  out.setProp(yAllUp,c);
-	  if (val.size()==1)
-	    out.getBS(yAllUp).set(val.singleton() - minDom);
-	}
-	else {
-	  out.setProp(yAllUp,c);
-	}
-      });
     mdd.transitionUp(ySomeUp,[ySomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==2) {
 	  out.setProp(ySomeUp,c);
@@ -255,19 +218,8 @@ namespace Factory {
 	  for(auto v : val)
 	    sv.set(v - minDom);                                 
 	}
-	else {
+	else 
 	  out.setProp(ySomeUp,c);
-	}
-      });
-    mdd.transitionDown(zAllUp,[zAllUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-	if (c.at(N)==3) {
-	  out.setProp(zAllUp,c);
-	  if (val.size()==1)
-	    out.getBS(zAllUp).set(val.singleton() - minDom);
-	}
-	else {
-	  out.setProp(zAllUp,c);
-	}
       });
     mdd.transitionUp(zSomeUp,[zSomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==3) {
@@ -276,85 +228,80 @@ namespace Factory {
 	  for(auto v : val)
 	    sv.set(v - minDom);                                 
 	}
-	else {
+	else
 	  out.setProp(zSomeUp,c);
-	}
       });
 
-    
-      // mdd.updateNode([=](auto& n) {
-      //                 });
-
-      // mdd.nodeExist(desc,[=](const auto& p) {
-      // 	  return ( );
-      // 	});
-
     mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
-	
+
 	if (p.at(N)==2) {
 	  // filter z variable
-	  bool support = false;
-
-	  // MDDBSValue sbs = p.getBS(some);
-	  // const int ofs = val - minDom;
-	  // const bool notOk = p.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == p[len]);	  
-	  
-	  interval v1(0,INT_MAX);
-	  interval v3(0,INT_MAX);
-	  interval X(p.at(xMin), p.at(xMax));
-	  interval Y(p.at(yMin), p.at(yMax));
-	  interval Z(val, val);
-	  return propagateExpression(&X, &Y, &Z, v1, v3);
+	  MDDBSValue xVals = p.getBS(xSome);
+	  MDDBSValue yVals = p.getBS(ySome);
+	  for (int i=udom.first; i<=udom.second; i++) {
+	    const int xofs = i-minDom;
+	    if (xVals.getBit(xofs)) {
+	      int yval1 = i-val;
+	      int yval2 = i+val;
+	      if ((yval1 >= udom.first && yval1 <= udom.second && yVals.getBit(yval1) && yval1 != i) ||
+		  (yval2 >= udom.first && yval2 <= udom.second && yVals.getBit(yval2) && yval2 != i))
+		return true;
+	    }
+	  }    
+	  return false;
 	}
 	else {
 	  if (up) {
 	    if (p.at(N) == 0) {
 	      // filter x variable
-	      interval v1(0,INT_MAX);
-	      interval v3(0,INT_MAX);
-	      interval X(val, val);
-	      interval Y(p.at(yMinUp), p.at(yMaxUp));
-	      interval Z(p.at(zMinUp), p.at(zMaxUp));
-	      return propagateExpression(&X, &Y, &Z, v1, v3);
+	      MDDBSValue yVals = c.getBS(ySomeUp);
+	      MDDBSValue zVals = c.getBS(zSomeUp);
+	      for (int i=udom.first; i<=udom.second; i++) {
+		const int yofs = i - minDom;
+		if (yVals.getBit(yofs) && val != i) {
+		  int zval1 = val-i;
+		  int zval2 = i-val;
+		  if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
+		      (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2)))
+		    return true;
+		}
+	      }    
+	      return false;
 	    }
 	    else if (p.at(N) == 1) {
 	      // filter y variable
-	      interval v1(0,INT_MAX);
-	      interval v3(0,INT_MAX);
-	      interval X(p.at(xMin), p.at(xMax));
-	      interval Y(val, val);
-	      interval Z(p.at(zMinUp), p.at(zMaxUp));
-	      return propagateExpression(&X, &Y, &Z, v1, v3);
+	      MDDBSValue xVals = p.getBS(xSome);
+	      MDDBSValue zVals = c.getBS(zSomeUp);	  
+	      for (int i=udom.first; i<=udom.second; i++) {
+		const int xofs = i - minDom;
+		if (xVals.getBit(xofs) && i != val) {
+		  int zval1 = val-i;
+		  int zval2 = i-val;
+		  if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
+		      (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2)))
+		    return true;
+		}
+	      }    
+	      return false;
 	    }
-            else return true; // missing return?
-	  }
-	  else {
-	    return 1;
 	  }
 	}
+	return true;
       });
       
-      mdd.addRelaxation(xMin,[xMin](auto& out,const auto& l,const auto& r) { out.set(xMin,std::min(l.at(xMin), r.at(xMin)));});
-      mdd.addRelaxation(xMax,[xMax](auto& out,const auto& l,const auto& r) { out.set(xMax,std::max(l.at(xMax), r.at(xMax)));});
-      mdd.addRelaxation(yMin,[yMin](auto& out,const auto& l,const auto& r) { out.set(yMin,std::min(l.at(yMin), r.at(yMin)));});
-      mdd.addRelaxation(yMax,[yMax](auto& out,const auto& l,const auto& r) { out.set(yMax,std::max(l.at(yMax), r.at(yMax)));});
-      mdd.addRelaxation(yMinUp,[yMinUp](auto& out,const auto& l,const auto& r) { out.set(yMinUp,std::min(l.at(yMinUp), r.at(yMinUp)));});
-      mdd.addRelaxation(yMaxUp,[yMaxUp](auto& out,const auto& l,const auto& r) { out.set(yMaxUp,std::max(l.at(yMaxUp), r.at(yMaxUp)));});
-      mdd.addRelaxation(zMinUp,[zMinUp](auto& out,const auto& l,const auto& r) { out.set(zMinUp,std::min(l.at(zMinUp), r.at(zMinUp)));});
-      mdd.addRelaxation(zMaxUp,[zMaxUp](auto& out,const auto& l,const auto& r) { out.set(zMaxUp,std::max(l.at(zMaxUp), r.at(zMaxUp)));});
-      mdd.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
-
-      mdd.addSimilarity(xMin,[xMin](auto l,auto r) -> double { return abs(l.at(xMin) - r.at(xMin)); });
-      mdd.addSimilarity(xMax,[xMax](auto l,auto r) -> double { return abs(l.at(xMax) - r.at(xMax)); });
-      mdd.addSimilarity(yMin,[yMin](auto l,auto r) -> double { return abs(l.at(yMin) - r.at(yMin)); });
-      mdd.addSimilarity(yMax,[yMax](auto l,auto r) -> double { return abs(l.at(yMax) - r.at(yMax)); });
-      mdd.addSimilarity(yMinUp,[yMinUp](auto l,auto r) -> double { return abs(l.at(yMinUp) - r.at(yMinUp)); });
-      mdd.addSimilarity(yMaxUp,[yMaxUp](auto l,auto r) -> double { return abs(l.at(yMaxUp) - r.at(yMaxUp)); });
-      mdd.addSimilarity(zMinUp,[zMinUp](auto l,auto r) -> double { return abs(l.at(zMinUp) - r.at(zMinUp)); });
-      mdd.addSimilarity(zMaxUp,[zMaxUp](auto l,auto r) -> double { return abs(l.at(zMaxUp) - r.at(zMaxUp)); });
-      mdd.addSimilarity(N,[N](auto l,auto r) -> double { return abs(l.at(N) - r.at(N)); });
+      mdd.addRelaxation(xSome,[xSome](auto& out,const auto& l,const auto& r)     {
+                                out.getBS(xSome).setBinOR(l.getBS(xSome),r.getBS(xSome));
+                            });
+      mdd.addRelaxation(ySome,[ySome](auto& out,const auto& l,const auto& r)     {
+                                out.getBS(ySome).setBinOR(l.getBS(ySome),r.getBS(ySome));
+                            });
+      mdd.addRelaxation(ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)     {
+                                out.getBS(ySomeUp).setBinOR(l.getBS(ySomeUp),r.getBS(ySomeUp));
+                            });
+      mdd.addRelaxation(zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)     {
+                                out.getBS(zSomeUp).setBinOR(l.getBS(zSomeUp),r.getBS(zSomeUp));
+                            });
   }
-
 }
 
 
@@ -476,8 +423,7 @@ int main(int argc,char* argv[])
      Factory::allDiffMDD(mdd->getSpec(),xVars);
      Factory::allDiffMDD(mdd->getSpec(),yVars);
      cp->post(mdd);
-     //mdd->saveGraph();
-
+     // mdd->saveGraph();
    }
    if ((mode < 0) || (mode > 3)) {
      cout << "Exit: specify a mode in {0,1,2,3}:" << endl;
@@ -520,6 +466,7 @@ int main(int argc,char* argv[])
    search.onSolution([&cnt,xVars,yVars]() {
        cnt++;
        std::cout << "\rNumber of solutions:" << cnt << std::flush;
+       // cout << endl;
        // std::cout << "x = " << xVars << endl;
        // std::cout << "y = " << yVars << endl;
      });
@@ -532,8 +479,13 @@ int main(int argc,char* argv[])
 
    auto end = RuntimeMonitor::cputime();
    cout << stat << endl;
-   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
-      
+   extern int iterMDD;
+   extern int nbCS;
+   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
+   std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
+   std::cout << "#CS  : " << nbCS << '\n';
+   std::cout << "#L   : " << mdd->nbLayers() << '\n';
+   
    cp.dealloc();
    return 0;
 }
