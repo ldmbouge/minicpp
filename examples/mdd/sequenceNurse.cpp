@@ -113,6 +113,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   // mapping: 0 = Off, 1 = Day, 2 = Evening, 3 = Night
   auto vars = Factory::intVarArray(cp, H, 0, 3);
 
+  auto mdd = new MDDRelax(cp,relaxSize);
+
   if (mode == 0 ) {
 
     cout << "Cumulative Sums encoding" << endl;
@@ -128,9 +130,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   else if (mode == 1) {
 
     cout << "seqMDD encoding" << endl;
-    
-    auto mdd = new MDDRelax(cp,relaxSize);
-  
+      
     //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
     Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 14, {0});
 
@@ -258,8 +258,12 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   cout << stat << endl;
 
   auto end = RuntimeMonitor::cputime();
-  std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
- 
+  extern int iterMDD;
+  extern int nbCS;
+  std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
+  std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
+  std::cout << "#CS  : " << nbCS << '\n';
+  std::cout << "#L   : " << mdd->nbLayers() << '\n'; 
 }
 
 int main(int argc,char* argv[])
