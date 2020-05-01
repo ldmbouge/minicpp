@@ -179,106 +179,105 @@ namespace Factory {
     // referred to below as |x-y| = z.
     mdd.append(vars);    
     auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
-    
-    const int xMin = mdd.addState(d,0,-INT_MAX);
-    const int xMax = mdd.addState(d,0,INT_MAX);
-    const int yMin = mdd.addState(d,0,-INT_MAX);
-    const int yMax = mdd.addState(d,0,INT_MAX);
-    const int yMinUp = mdd.addState(d,0,-INT_MAX);
-    const int yMaxUp = mdd.addState(d,0,INT_MAX);
-    const int zMinUp = mdd.addState(d,0,-INT_MAX);
-    const int zMaxUp = mdd.addState(d,0,INT_MAX);
-    const int N = mdd.addState(d,0,2); // layer index 
 
-    mdd.transitionDown(xMin,[xMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==0) {	  
-	  int min=INT_MAX;
-	  for(int v : val)
-	    if (v<min) { min = v; }
-	  out.set(xMin,min);
+    auto udom = domRange(vars);
+    int minDom = udom.first;
+
+    const int xAll    = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int xSome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int yAll    = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int ySome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int yAllUp  = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int ySomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int zAllUp  = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int zSomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int N       = mdd.addState(d,0,2); // layer index 
+    
+    mdd.transitionDown(xAll,[xAll,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+	if (p.at(N)==0) {
+	  out.setProp(xAll,p);
+	  if (val.size()==1)
+	    out.getBS(xAll).set(val.singleton() - minDom);
 	}
 	else {
-	  out.set(xMin,p.at(xMin));
+	  out.setProp(xAll,p);
 	}	  
       });
-    mdd.transitionDown(xMax,[xMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(xSome,[xSome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==0) {	    
-	  int max=-INT_MAX;
-	  for(int v : val)
-	    if (v>max) { max = v; }
-	  out.set(xMax,max);
+	  out.setProp(xSome,p);
+	  MDDBSValue sv(out.getBS(xSome));
+	  for(auto v : val)
+	    sv.set(v - minDom);
 	}
 	else {
-	  out.set(xMax, p.at(xMax));
+	  out.setProp(xSome,p);
 	}
       });
-    mdd.transitionDown(yMin,[yMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(yAll,[yAll,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==1) {	  
-	  int min=INT_MAX;
-	  for(int v : val)
-	    if (v<min) { min = v; }
-	  out.set(yMin,min);
+	  out.setProp(yAll,p);
+	  if (val.size()==1)
+	    out.getBS(yAll).set(val.singleton() - minDom);
 	}
 	else {
-	  out.set(yMin, p.at(yMin));
+	  out.setProp(yAll,p);
 	}
       });
-    mdd.transitionDown(yMax,[yMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(ySome,[ySome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==1) {
-	  int max=-INT_MAX;
-	  for(int v : val)
-	    if (v>max) { max = v; }
-	  out.set(yMax,max);
+	  out.setProp(ySome,p);
+	  MDDBSValue sv(out.getBS(ySome));
+	  for(auto v : val)
+	    sv.set(v - minDom);
 	}
 	else {
-	  out.set(yMax, p.at(yMax));
+	  out.setProp(ySome,p);
 	}
       });
 
     mdd.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
 
-    mdd.transitionDown(yMinUp,[yMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionDown(yAllUp,[yAllUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==2) {
-	  int min=INT_MAX;
-	  for(int v : val)
-	    if (v<min) { min = v; }
-	  out.set(yMinUp,min);
+	  out.setProp(yAllUp,c);
+	  if (val.size()==1)
+	    out.getBS(yAllUp).set(val.singleton() - minDom);
 	}
 	else {
-	  out.set(yMinUp, c.at(yMinUp));
+	  out.setProp(yAllUp,c);
 	}
       });
-    mdd.transitionUp(yMaxUp,[yMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionUp(ySomeUp,[ySomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==2) {
-	  int max=-INT_MAX;
-	  for(int v : val)
-	    if (v>max) { max = v; }
-	  out.set(yMaxUp,max);
+	  out.setProp(ySomeUp,c);
+	  MDDBSValue sv(out.getBS(ySomeUp));
+	  for(auto v : val)
+	    sv.set(v - minDom);                                 
 	}
 	else {
-	  out.set(yMaxUp, c.at(yMaxUp));
+	  out.setProp(ySomeUp,c);
 	}
       });
-    mdd.transitionDown(zMinUp,[zMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionDown(zAllUp,[zAllUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==3) {
-	  int min=INT_MAX;
-	  for(int v : val)
-	    if (v<min) { min = v; }
-	  out.set(zMinUp,min);
+	  out.setProp(zAllUp,c);
+	  if (val.size()==1)
+	    out.getBS(zAllUp).set(val.singleton() - minDom);
 	}
 	else {
-	  out.set(zMinUp, c.at(zMinUp));
+	  out.setProp(zAllUp,c);
 	}
       });
-    mdd.transitionUp(zMaxUp,[zMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionUp(zSomeUp,[zSomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==3) {
-	  int max=-INT_MAX;
-	  for(int v : val)
-	    if (v>max) { max = v; }
-	  out.set(zMaxUp,max);
+	  out.setProp(zSomeUp,c);
+	  MDDBSValue sv(out.getBS(zSomeUp));
+	  for(auto v : val)
+	    sv.set(v - minDom);                                 
 	}
 	else {
-	  out.set(zMaxUp, c.at(zMaxUp));
+	  out.setProp(zSomeUp,c);
 	}
       });
 
@@ -294,6 +293,12 @@ namespace Factory {
 	
 	if (p.at(N)==2) {
 	  // filter z variable
+	  bool support = false;
+
+	  // MDDBSValue sbs = p.getBS(some);
+	  // const int ofs = val - minDom;
+	  // const bool notOk = p.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == p[len]);	  
+	  
 	  interval v1(0,INT_MAX);
 	  interval v3(0,INT_MAX);
 	  interval X(p.at(xMin), p.at(xMax));
