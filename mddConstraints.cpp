@@ -152,10 +152,6 @@ namespace Factory {
           } else
 	    return (p.at(L) + values.member(val) <= ub);
       });
-
-      // mdd.splitOnLargest([=](const auto& in) { return -(in[U]+in[Uup]-in[L]-in[Lup]);});
-      // mdd.splitOnLargest([=](const auto& in) { return in[L];});
-
       
       mdd.addRelaxation(L,[L](auto& out,const auto& l,const auto& r) { out.set(L,std::min(l.at(L), r.at(L)));});
       mdd.addRelaxation(U,[U](auto& out,const auto& l,const auto& r) { out.set(U,std::max(l.at(U), r.at(U)));});
@@ -385,6 +381,7 @@ namespace Factory {
       int DminFIdx = 2+2*len, DminLIdx = 2+3*len-1; // First and Last index of Dmin array (maximum value among Descendants)
       int DmaxFIdx = 2+3*len, DmaxLIdx = 2+4*len-1; // First and Last index of Dmax array (maximum value among Descendants)
       int NIdx = 2+4*len;                        // Layer index (N-th variable)
+      int ExactIdx = NIdx+1; // is Ymin = Ymax?
       
       spec.append(vars);
       ValueSet values(rawValues);
@@ -398,6 +395,7 @@ namespace Factory {
       for(int i = DminFIdx;i <= DminLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MinFun);
       for(int i = DmaxFIdx;i <= DmaxLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MaxFun);
       ps[NIdx] = spec.addState(desc, 0, nbVars,MinFun);
+      ps[ExactIdx] = spec.addState(desc, 1, 1,MinFun);
 
       const int Ymin = ps[YminIdx];
       const int Ymax = ps[YmaxIdx];
@@ -410,6 +408,7 @@ namespace Factory {
       const int DmaxF = ps[DmaxFIdx];
       const int DmaxL = ps[DmaxLIdx];
       const int N = ps[NIdx];
+      const int Exact = ps[ExactIdx];
 
       /*
       spec.transitionDown(Amin,[](auto& out,const auto& p,auto x,const auto&val, bool up) {
@@ -429,7 +428,7 @@ namespace Factory {
       spec.transitionDown(AmaxF,[AmaxF,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(AmaxF,p.at(Ymax)); });
 
       spec.transitionDown(Ymin,[values,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) {
-          bool hasMemberOutS = val.memberOutside(values);	  
+          bool hasMemberOutS = val.memberOutside(values);
 	  int minVal = p.at(Ymin) + !hasMemberOutS;
 	  if (up) 
              minVal = std::max(minVal, out.at(Ymin));	  
@@ -445,6 +444,9 @@ namespace Factory {
 	});
 
       spec.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+      spec.transitionDown(Exact,[Exact,values](auto& out,const auto& p,auto x,const auto& val,bool up) {
+	  out.set(Exact, (p.at(Exact)==1) && (val.memberOutside(values) != val.memberInside(values)));
+	});
 
       // up transitions
       spec.transitionUp(toDict(DminF+1,DminL,
@@ -498,20 +500,19 @@ namespace Factory {
                                c1 = (p.at(Ymax) + inS >= c.at(Ymin));
                             }
                             return c0 && c1;
-                         });      
+                         });
+
+      // std::cout << "Splitting on Largest NumParents" << std::endl;
+      // spec.splitOnLargest([](const auto& in) { return (double)in.getNumParents();});
+      // spec.splitOnLargest([Ymin,Ymax](const auto& in) {
+      // 	  int numPar = in.getNumParents();
+      // 	  int diff = in.getState().at(Ymax) - in.getState().at(Ymin);
+      // 	  return -(double)(numPar + diff);
+      // 	});
+      spec.splitOnLargest([Exact](const auto& in) {
+       	  return (double)(in.getState().at(Exact));
+       	});
       
-      // relaxations
-      // spec.addRelaxation(Ymin,[Ymin](auto& out,const auto& l,const auto& r) { out.set(Ymin,std::min(l.at(Ymin),r.at(Ymin)));});
-      // spec.addRelaxation(Ymax,[Ymax](auto& out,const auto& l,const auto& r) { out.set(Ymax,std::max(l.at(Ymax),r.at(Ymax)));});
-      // for(int i = AminFIdx; i <= AminLIdx; i++)
-      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
-      // for(int i = AmaxFIdx; i <= AmaxLIdx; i++)
-      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
-      // for(int i = DminFIdx; i <= DminLIdx; i++)
-      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
-      // for(int i = DmaxFIdx; i <= DmaxLIdx; i++)
-      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
-      // spec.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
    }
 
 

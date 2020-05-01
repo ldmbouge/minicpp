@@ -278,7 +278,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       }
     }
     cp->post(mdd);
-    mdd->saveGraph();
+    // mdd->saveGraph();
   }
   else if (mode == 4) {
     cout << "Cumulative Sums with isMember encoding" << endl;
