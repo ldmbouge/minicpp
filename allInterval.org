@@ -1,0 +1,37 @@
+All-Interval (time in ms)
+
+N=8
+
+| Mode                   | Fails | Time | I/C |
+| Domain AllDiff + BC    |   442 |   12 |     |
+| Domain AllDiffAC+Table |   282 |   13 |     |
+| MDD width 1            |   282 |   42 | 2.7 |
+| MDD width 2            |   263 |   66 | 2.8 |
+| MDD width 4            |   186 |   95 | 3.1 |
+| MDD width 8            |   129 |  116 | 3.0 |
+
+N=10
+
+| Mode                   | Fails | Time | I/C |
+| Domain AllDiff + BC    |  5828 |  162 |     |
+| Domain AllDiffAC+Table |  2813 |  109 |     |
+| MDD width 1            |  2849 |  513 | 2.8 |
+| MDD width 2            |  2737 |  931 | 3.0 |
+| MDD width 4            |  2429 | 1420 | 3.1 |
+| MDD width 8            |  1783 | 2047 | 3.2 |
+| MDD width 64           |  280  | 3396 | 3.3 |
+
+N=11
+
+| Mode                   | Fails |  Time | I/C |
+| Domain AllDiff + BC    | 23659 |   711 |     |
+| Domain AllDiffAC+Table | 10062 |   398 |     |
+| MDD width 1            | 10211 |  1950 | 2.8 |
+| MDD width 2            |  9838 |  3387 | 3.1 |
+| MDD width 4            |  8999 |  5192 | 3.1 |
+| MDD width 8            |  7003 |  7939 | 3.2 |
+| MDD width 64           |  1871 | 17495 | 3.2 |
+
+
+
+
