@@ -276,9 +276,9 @@ public:
    }
 };
 
+enum Direction { None=0,Down=1,Up=2,Bi=3 };
+
 class MDDProperty {
-public:
-   enum Direction { None=0,Down=1,Up=2,Bi=3 };
 protected:
    short _id;
    unsigned short _ofs; // offset in bytes within block
@@ -552,6 +552,7 @@ public:
       _flags = s._flags;
       _rip = s._rip;      
    }
+   MDDStateSpec* getSpec() const noexcept { return _spec;}
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
       auto sz = _spec->layoutSize();
       char* block = (char*)mem->allocate(sizeof(char)* sz);//new (mem) char[sz];

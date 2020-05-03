@@ -75,6 +75,7 @@ public:
    typedef handle_ptr<Pool> Ptr;
    void* allocate(std::size_t sz);
    void free(void* ptr) {}
+   void clear() { _top = 0;_seg = 0;}
    std::size_t capacity() const noexcept { return _segSize;}
    std::size_t usage() const noexcept { return (_store.size() - 1) * _segSize  + _top;}
 };

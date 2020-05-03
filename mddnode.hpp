@@ -95,9 +95,9 @@ public:
       t->trail(new (t) TrailEntry<int>(&pos));
       pos = p;
    }
-   void enterQueue() const noexcept { _inQueue = true;}
-   void leaveQueue() const noexcept { _inQueue = false;}
-   bool inQueue() const noexcept { return _inQueue;}
+   void enterQueue(enum Direction d) const noexcept { _inQueue = (enum Direction)(_inQueue | d);}
+   void leaveQueue(enum Direction d) const noexcept { _inQueue = (enum Direction)(_inQueue & ~d);}
+   bool inQueue(enum Direction d) const noexcept    { return (_inQueue & d)==d;}
    bool isActive() const noexcept { return _active;}
    void deactivate() {
       auto t = children.getTrail();
@@ -108,6 +108,7 @@ public:
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<bool>(&_active));
       _active = true;
+      _inQueue = None;
    }
    void print(std::ostream& os) {
       os << "L[" << layer << "," << pos <<  "] " << state;
@@ -115,8 +116,8 @@ public:
 private:   
    int pos;
    int _nid;
+   mutable trail<enum Direction> _inQueue;
    bool _active;
-   mutable bool _inQueue;
    const unsigned short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;

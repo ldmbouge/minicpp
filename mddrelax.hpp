@@ -91,9 +91,11 @@ template <class op> class MDDQueue {
    int _nbe;
    int _cl;
    int _init;
+   enum Direction _dir;
 public:
    MDDQueue(int nb) : _nbq(nb),_nbe(0),_cl(0) {
       _init = std::is_same<op,std::plus<int>>::value ? 0 : _nbq - 1;
+      _dir  = std::is_same<op,std::plus<int>>::value ? Down : Up;
       _queues = new std::deque<MDDNode*>[_nbq];
    }
    ~MDDQueue()  { delete []_queues;}
@@ -105,8 +107,10 @@ public:
    void init() noexcept { _cl = _init;}
    bool empty() const    { return _nbe == 0;}
    void enQueue(MDDNode* n) {
-      if (std::find(_queues[n->getLayer()].begin(),_queues[n->getLayer()].end(),n) == _queues[n->getLayer()].end()) {
+      if (!n->inQueue(_dir)) {
          _queues[n->getLayer()].emplace_back(n);
+         assert(n->inQueue(_dir) == false);
+         n->enterQueue(_dir);
          _nbe += 1;
       }
    }
@@ -117,11 +121,11 @@ public:
          while (_cl >= 0 && _cl < _nbq && _queues[_cl].size() == 0)
             _cl = opName(_cl,1);
          if (_cl < 0 || _cl >= _nbq) {
-            //assert(_nbe == 0);
             return nullptr;
          }
          rv = _queues[_cl].front();
          _queues[_cl].pop_front();
+         rv->leaveQueue(_dir);
          _nbe -= 1;
       } while (!rv->isActive());
       return rv;
@@ -141,13 +145,14 @@ class MDDRelax : public MDD {
    MDDNode**              _src;
    MDDFQueue*             _fwd;
    MDDBQueue*             _bwd;
+   Pool::Ptr             _pool;
    const MDDState& pickReference(int layer,int layerSize);
    void checkGraph();
    bool refreshNode(MDDNode* n,int l);
    bool trimVariable(int i);
    bool filterKids(MDDNode* n,int l);
-   bool split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l); // delta is essentially an out argument. 
-   void delState(MDDNode* state,int l);
+   int split(TVec<MDDNode*>& layer,int l); // delta is essentially an out argument. 
+   int delState(MDDNode* state,int l); // return lowest layer where a deletion occurred.
    bool processNodeUp(MDDNode* n,int i); // i is the layer number
    void computeUp();
    void computeDown(int iter);

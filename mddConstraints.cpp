@@ -510,9 +510,8 @@ namespace Factory {
       // 	  return -(double)(numPar + diff);
       // 	});
       spec.splitOnLargest([Exact](const auto& in) {
-       	  return (double)(in.getState().at(Exact));
-       	});
-      
+                             return (double)(in.getState().at(Exact));
+                          });      
    }
 
 

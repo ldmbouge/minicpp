@@ -17,6 +17,7 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
    _src = new MDDNode*[width];
    _fwd = nullptr;
    _bwd = nullptr;
+   _pool = new Pool;
 }
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
@@ -444,17 +445,108 @@ public:
    }
 };
 
-bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
+class MDDPotential {
+   Pool::Ptr        _mem;
+   MDDNode*         _par;
+   int            _mxPar;
+   int            _nbPar;
+   MDDEdge::Ptr*    _arc;
+   MDDState       _child;
+   double           _key;
+   int       _val;
+   int      _nbk;
+   bool*   _keepKids;
+public:
+   MDDPotential(Pool::Ptr pool,const int mxPar,MDDNode* par,MDDEdge::Ptr arc,const MDDState& child,int v,int nbKids,bool* kk)
+      : _mem(pool),_par(par),_mxPar(mxPar),_nbPar(0) {
+      MDDStateSpec* spec = child.getSpec();
+      _child = MDDState(spec,new (_mem) char[spec->layoutSize()]);
+      _child.copyState(child);
+      _arc = new (pool) MDDEdge::Ptr[_mxPar];
+      _arc[_nbPar++] = arc;
+      _val = v;
+      _nbk = nbKids;
+      _keepKids = new (_mem) bool[_nbk];
+      for(int i=0;i < _nbk;i++) _keepKids[i] = kk[i];
+   }
+   void computeKey(const MDDSpec& mddspec) {
+      if  (mddspec.hasSplitRule())
+         _key = mddspec.splitPriority(*_par);
+      else _key = (double) _par->getPosition();
+   }
+   double getKey() const noexcept { return _key;}
+   bool hasState(const MDDState& s) const { return _child == s;}
+   void link(MDDEdge::Ptr arc) {
+      assert(_nbPar < _mxPar);
+      _arc[_nbPar++] = arc;
+   }
+   template <class Callback> void instantiate(const Callback& cb,Trailer::Ptr trail,Storage::Ptr mem)
+   {
+      MDDNode* nc = cb(_par,_child,_val,_nbk,_keepKids);
+      for(int i=0;i < _nbPar;i++)
+         _arc[i]->moveTo(nc,trail,mem);      
+   }
+};
+
+class MDDSplitter {
+   Pool::Ptr                        _pool;
+   std::vector<MDDPotential*> _candidates;
+   const MDDSpec&                _mddspec;
+public:
+   MDDSplitter(Pool::Ptr pool,const MDDSpec& spec) : _pool(pool),_mddspec(spec) {}
+   void clear() { _candidates.clear();}
+   template <class... Args> 
+   void addPotential(Args&&... args) {
+      _candidates.push_back(new (_pool) MDDPotential(std::forward<Args>(args)...));
+   }
+   int hasState(const MDDState& s) {
+      for(auto i = 0u;i  < _candidates.size();i++)
+         if (_candidates[i]->hasState(s))
+            return i;
+      return -1;
+   }
+   void linkChild(int reuse,MDDEdge::Ptr arc) {
+      _candidates[reuse]->link(arc);
+   }
+   template <class CB>
+   void process(TVec<MDDNode*>& layer,unsigned long width,Trailer::Ptr trail,Storage::Ptr mem,const CB& cb) {
+      if (_candidates.size() + layer.size() <= width) {
+         for(auto i = 0u;i < _candidates.size() && layer.size() < width;i++) 
+            _candidates[i]->instantiate(cb,trail,mem);       
+      } else {
+         for(auto& c : _candidates)
+            c->computeKey(_mddspec);
+         auto order = [](const auto& a,const auto& b) { return a->getKey() < b->getKey();};
+         std::make_heap(_candidates.begin(),_candidates.end(),order);
+         auto first = _candidates.begin(),last = _candidates.end();
+         while (first != last) {
+            MDDPotential* p = *first;
+            std::pop_heap(first,last,order);
+            _candidates.pop_back();
+            last = _candidates.end();
+            p->instantiate(cb,trail,mem);
+            if (layer.size() >= width)
+               break;
+         }
+      }
+   }
+};
+
+int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
 {
    using namespace std;
-   bool changed = false;
+   int lowest = l;
    //std::cout << "\nStarting: LS=" << layer.size() << "\n";
    MDDNodeSim nSim(layer,_refs[l],_mddspec);
    MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
    MDDNode* n = nullptr;
-   while (layer.size() < _width && (n = nSim.extractNode()) != nullptr) {
-      assert(n->getNumParents() > 0);
+   MDDSplitter splitter(_pool,_mddspec);
+   _pool->clear();
+   while (layer.size() < _width && lowest == l && (n = nSim.extractNode()) != nullptr) {
+      //assert(n->getNumParents() > 0);
       assert(n->getState().isRelaxed());
+      splitter.clear();
+      const int nbParents = n->getNumParents();
       for(auto pit = n->getParents().rbegin(); pit != n->getParents().rend();pit++) {
          auto a = *pit;                // a is the arc p --(v)--> n
          auto p = a->getParent();      // p is the parent
@@ -465,11 +557,11 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
          bool isOk = _mddspec.consistent(ms,x[l-1]);
          if (!isOk) {
             p->unhook(a);
-            if (p->getNumChildren()==0) delState(p,l-1);
-            changed = true;
+            if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
             delSupport(l-1,v);
             removeArc(l-1,l,a.get());
             _bwd->enQueue(p);
+            if (lowest < l) return lowest;
             continue;
          }
          MDDNode* bj = nSim.findSimilar(ms);
@@ -479,40 +571,50 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
             // If we matched to n nothing to do. We already point to n.
          } else { // There is an approximate match
             // So, if there is room create a new node
-            if (layer.size() >= _width)  continue;
-            bool keepArc[n->getNumChildren()];
+            //if (layer.size() >= _width)  continue;
+            int nbk = n->getNumChildren();
+            bool keepArc[nbk];
             unsigned idx = 0,cnt = 0;
             for(auto ca : n->getChildren()) 
                cnt += keepArc[idx++] = _mddspec.exist(ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
             if (cnt == 0) {
                p->unhook(a);
-               if (p->getNumChildren()==0) delState(p,l-1);
+               if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
                delSupport(l-1,v);
                removeArc(l-1,l,a.get());
                _bwd->enQueue(p);
-               changed = true;
+               if (lowest < l) return lowest;
             } else {
-               MDDNode* nc = new (mem) MDDNode(_lastNid++,mem,trail,ms.clone(mem),x[l-1]->size(),l,(int)layer.size());
-               layer.push_back(nc,mem);
-               a->moveTo(nc,trail,mem);
-               idx = 0;
-               for(auto ca : n->getChildren()) {
-                  if (keepArc[idx++]) {
-                     nc->addArc(mem,ca->getChild(),ca->getValue());
-                     addSupport(l,ca->getValue());
-                     _fwd->enQueue(ca->getChild());
-                  }
+               int reuse = splitter.hasState(ms);
+               if (reuse != -1) {
+                  splitter.linkChild(reuse,a);
+               } else {
+                  splitter.addPotential(_pool,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
                }
-               _bwd->enQueue(nc);
-               changed = true;
-               nSim.insert(nc);
             }
          }
-      }
+      } // end of loop over parents.
+      splitter.process(layer,_width,trail,mem,
+                       [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
+                          MDDNode* nc = new (mem) MDDNode(_lastNid++,mem,trail,ms.clone(mem),
+                                                          x[l-1]->size(),l,(int)layer.size());
+                          layer.push_back(nc,mem);
+                          unsigned int idx = 0;
+                          for(auto ca : n->getChildren()) {
+                             if (kk[idx++]) {
+                                nc->addArc(mem,ca->getChild(),ca->getValue());
+                                addSupport(l,ca->getValue());
+                                _fwd->enQueue(ca->getChild());
+                             }
+                          }
+                          _bwd->enQueue(nc);
+                          nSim.insert(nc);
+                          return nc;
+                       });
+      
       if (n->getNumParents()==0) {
          delState(n,l);
          nSim.removeMatch(n);
-         changed = true;
       } else {
          bool refreshed = refreshNode(n,l);
          filterKids(n,l);
@@ -522,19 +624,19 @@ bool MDDRelax::split(MDDNodeSet& delta,TVec<MDDNode*>& layer,int l) // this can 
             for(const auto& arc : n->getChildren())
                _fwd->enQueue(arc->getChild());
          }
-         changed = refreshed || changed;
       }
-   }
-   return changed;
+   } // end of loop over relaxed node in layer l
+   return lowest;
 }
 
 struct MDDStateEqual {
    bool operator()(const MDDState* s1,const MDDState* s2) const { return *s1 == *s2;}
 };
 
-void MDDRelax::delState(MDDNode* node,int l)
+int MDDRelax::delState(MDDNode* node,int l)
 {
-   if (l==0 || l == (int)numVariables) return;
+   if (l==0 || l == (int)numVariables) return numVariables+1;
+   int lowest = l;
    assert(node->isActive());
    node->deactivate();
    assert(l == node->getLayer());
@@ -546,7 +648,7 @@ void MDDRelax::delState(MDDNode* node,int l)
    if (node->getNumParents() > 0) {
       for(auto& arc : node->getParents()) {
          if (arc->getParent()->unhookOutgoing(arc))
-            delState(arc->getParent(),l-1);
+            lowest = std::min(lowest,delState(arc->getParent(),l-1));
          delSupport(l-1,arc->getValue());         
          removeArc(l-1,l,arc.get());
       }
@@ -555,12 +657,13 @@ void MDDRelax::delState(MDDNode* node,int l)
    if (node->getNumChildren() > 0) {
       for(auto& arc : node->getChildren()) {
          if (arc->getChild()->unhookIncoming(arc))
-            delState(arc->getChild(),l+1);
+            lowest = std::min(lowest,delState(arc->getChild(),l+1));
          delSupport(l,arc->getValue());
          removeArc(l,l+1,arc.get());
       }
       node->clearChildren();
    }
+   return lowest;
 }
 
 bool MDDRelax::trimVariable(int i)
@@ -614,10 +717,12 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
 void MDDRelax::computeDown(int iter)
 {
    if (true || iter <= 1) {
-      MDDNodeSet delta(2 * _width,(char*)alloca(sizeof(MDDNode*)*2*_width));
-      for(int l=1;l < (int) numVariables;l++) {
+      int l=1;
+      while (l < (int) numVariables) {
+         int lowest = l;
          if (!x[l-1]->isBound() && layers[l].size() < _width) 
-            split(delta,layers[l],l);
+            lowest = split(layers[l],l);
+         l = (lowest < l) ? lowest : l + 1;
       }
    }
    while(!_fwd->empty()) {
@@ -702,6 +807,7 @@ void MDDRelax::checkGraph()
    for(unsigned l=0u;l < numVariables;l++) {
       for(unsigned i=0u;i < layers[l].size();i++) {
          auto n = layers[l][i];
+         n->isActive(); // silence the compiler warnings
          assert(n->isActive());
          assert(l == 0 || n->getNumParents() > 0);
          assert(l == numVariables || n->getNumChildren() > 0);

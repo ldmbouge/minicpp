@@ -11,8 +11,8 @@
 MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id)
    : pos(id),
      _nid(nid),
+     _inQueue(t,None),
      _active(true),
-     _inQueue(false),
      layer(layer),
      children(t,mem,2),
      parents(t,mem,2)
@@ -22,8 +22,8 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
 		 int dsz,unsigned layer, int id)
    : pos(id),
      _nid(nid),
+     _inQueue(t,None),
      _active(true),
-     _inQueue(false),
      layer(layer),
      children(t,mem,std::max(dsz,1)),
      parents(t,mem,std::max(dsz,1)),

@@ -181,7 +181,7 @@ void MDDSpec::transitionDown(int p,lambdaTrans t)
    for(auto& cd : constraints)
       if (cd->ownsProperty(p)) {
          cd->registerDown((int)_transition.size());
-         _attrs[p]->setDirection(MDDProperty::Down);
+         _attrs[p]->setDirection(Down);
          _transition.emplace_back(std::move(t));
          break;
       }
@@ -192,7 +192,7 @@ void MDDSpec::transitionUp(int p,lambdaTrans t)
    for(auto& cd : constraints)
       if (cd->ownsProperty(p)) {
          cd->registerUp((int)_uptrans.size());
-         _attrs[p]->setDirection(MDDProperty::Up);
+         _attrs[p]->setDirection(Up);
          _uptrans.emplace_back(std::move(t));
          break;
       }     
