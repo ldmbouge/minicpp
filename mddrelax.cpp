@@ -355,7 +355,11 @@ class MDDNodeSim {
    bool _ready;
    const MDDState& _refDir;
    const MDDSpec& _mddspec;
-   std::multimap<float,MDDNode*,std::less<float> > _cl;
+   struct NRec {
+      MDDNode* n;
+      float   ip;
+   };
+   std::vector<NRec> _cl;
    std::vector<std::pair<double,MDDNode*>> _pq;
    std::vector<std::pair<double,MDDNode*>>::iterator _first,_last;
    void initialize() {
@@ -363,7 +367,9 @@ class MDDNodeSim {
       if (_cl.size()==0) {
          int nbR = sum(_layer,0,[](const auto& n) { return n->getState().isRelaxed();});
          if (nbR==0) return;
-         for(auto& n : _layer) _cl.insert({n->getState().inner(_refDir),n});
+         _cl.reserve(32);
+         for(auto& n : _layer)
+            _cl.push_back(NRec {n,n->getState().inner(_refDir)});
       }     
    }
 public:
@@ -384,49 +390,27 @@ public:
       _first = _pq.begin();
       _last  = _pq.end();
    }
-   MDDNode* findSimilar(const MDDState& s) {
+   MDDNode* findMatch(const MDDState& s) {
       if (!_ready) initialize();
-      float query = s.inner(_refDir);
-      auto nlt = _cl.lower_bound(query);
-      if (nlt == _cl.end()) {
-         nlt--;      
-         return nlt->second;
-      } else {
-         auto cur = nlt;
-         while(cur != _cl.end() && cur->first == query) {
-            bool isEqual = cur->second->getState() == s;
-            if (cur->second->isActive() && isEqual)
-               return cur->second;
-            cur++;
-         }
-         return nlt->second;
-      }      
-   }
-   bool findMatch(MDDNode* n) {
-      float key = n->getState().inner(_refDir);
-      auto i = _cl.lower_bound(key);
-      while (i != _cl.end() && i->first == key) {
-         if (i->second == n)
-            return true;
-         i++;
-      }
-      return false;
+      //std::cout << "CLSIZE:" << _cl.size() << '\n';
+      //float query = s.inner(_refDir);
+      for(const auto& rec : _cl)
+         if (rec.n->getState() == s)
+            return rec.n;
+      return nullptr;
    }
    void removeMatch(MDDNode* n) {
       if (!_ready) return;
-      float key = n->getState().inner(_refDir);
-      auto i = _cl.lower_bound(key);
-      while (i != _cl.end() && i->first == key) {
-         if (i->second == n) {
+      for(auto i=_cl.begin();i != _cl.end();i++) {
+         if ((*i).n == n) {
             _cl.erase(i);
             return;
          }
-         i++;
       }
       assert(false);
    }
    void insert(MDDNode* nc) {
-      _cl.insert({nc->getState().inner(_refDir),nc});
+      _cl.emplace_back(NRec { nc,nc->getState().inner(_refDir) } );
    }
    MDDNode* extractNode() {
       while (_first != _last) {
@@ -490,10 +474,13 @@ public:
 
 class MDDSplitter {
    Pool::Ptr                        _pool;
+   int                             _width;
    std::vector<MDDPotential*> _candidates;
    const MDDSpec&                _mddspec;
 public:
-   MDDSplitter(Pool::Ptr pool,const MDDSpec& spec) : _pool(pool),_mddspec(spec) {}
+   MDDSplitter(Pool::Ptr pool,const MDDSpec& spec,int w) : _pool(pool),_width(w),_mddspec(spec){
+      _candidates.reserve(2 * _width);
+   }
    void clear() { _candidates.clear();}
    template <class... Args> 
    void addPotential(Args&&... args) {
@@ -540,7 +527,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
    MDDNodeSim nSim(layer,_refs[l],_mddspec);
    MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
    MDDNode* n = nullptr;
-   MDDSplitter splitter(_pool,_mddspec);
+   MDDSplitter splitter(_pool,_mddspec,_width);
    _pool->clear();
    while (layer.size() < _width && lowest == l && (n = nSim.extractNode()) != nullptr) {
       //assert(n->getNumParents() > 0);
@@ -564,14 +551,17 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             if (lowest < l) return lowest;
             continue;
          }
-         MDDNode* bj = nSim.findSimilar(ms);
-         if (bj->getState() == ms) { // there is a perfect match
+         
+         MDDNode* bj = nSim.findMatch(ms);
+         if (bj) {
+         //if (bj->getState() == ms) { // there is a perfect match
             if (bj != n) 
                a->moveTo(bj,trail,mem);            
             // If we matched to n nothing to do. We already point to n.
          } else { // There is an approximate match
             // So, if there is room create a new node
             //if (layer.size() >= _width)  continue;
+            
             int nbk = n->getNumChildren();
             bool keepArc[nbk];
             unsigned idx = 0,cnt = 0;
@@ -592,7 +582,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                   splitter.addPotential(_pool,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
                }
             }
-         }
+         }//out-comment
       } // end of loop over parents.
       splitter.process(layer,_width,trail,mem,
                        [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
