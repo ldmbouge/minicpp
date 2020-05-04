@@ -52,6 +52,8 @@ void MDDRelax::buildDiagram()
    std::cout << _mddspec << '\n';
    auto uDom = domRange(x);
    const int sz = uDom.second - uDom.first + 1;
+   _domMin = uDom.first;
+   _domMax = uDom.second;
 
    for(auto i=0u;i < _width;i++)
       _afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz * _width),sz * _width);
@@ -482,6 +484,7 @@ public:
       _candidates.reserve(2 * _width);
    }
    void clear() { _candidates.clear();}
+   auto size() { return _candidates.size();}
    template <class... Args> 
    void addPotential(Args&&... args) {
       _candidates.push_back(new (_pool) MDDPotential(std::forward<Args>(args)...));
@@ -583,6 +586,10 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                }
             }
          }//out-comment
+         //if (splitter.size() >= (_domMax - _domMin + 1)) {
+            //std::cout << "BEARLY\n";
+         // break;
+         //}         
       } // end of loop over parents.
       splitter.process(layer,_width,trail,mem,
                        [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
@@ -766,28 +773,31 @@ int iterMDD = 0;
 
 void MDDRelax::propagate()
 {
-   try {      
+   try {
+      setScheduled(true);
       bool change = false;
       MDD::propagate();
       int iter = 0;
       do {
          _fwd->init(); 
          _bwd->init();
-         iterMDD++;
+         ++iterMDD;++iter;
          computeUp();
          computeDown(iter);
          assert(layers[numVariables].size() == 1);
          if (!_mddspec.usesUp()) _bwd->clear();
          change = !_fwd->empty() || !_bwd->empty();
-      } while (change); //  && iterMDD <= 2
+      } while (change); //  && iter <= 2);
       //iterMDD += iter;
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
       for(int l=0;l < (int) numVariables;l++)
          trimVariable(l);
-      //std::cout << "FIX=" << iterMDD << '\n';
+      setScheduled(false);
+      //std::cout << "FIX=" << iter << '\n';
   } catch(Status s) {
       queue.clear();
+      setScheduled(false);
       throw s;
    }
 }

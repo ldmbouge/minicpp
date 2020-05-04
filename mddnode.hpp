@@ -126,6 +126,19 @@ private:
 };
 
 
+class MDDNodeFactory {
+   Storage::Ptr       _mem;
+   Trailer::Ptr   _trailer;
+   int              _width;
+   int _lastID;
+   std::list<MDDNode*> _pool;
+public:
+   MDDNodeFactory(Storage::Ptr mem,Trailer::Ptr trailer,int width) : _mem(mem),_trailer(trailer),_width(width),_lastID(0) {}
+   void setWidth(int w) noexcept { _width = w;}
+   MDDNode* makeNode(const MDDState& ms,int val,int domSize,int layer,int layerSize);
+   void returnNode(MDDNode* n);
+};
+
 inline void MDDEdge::moveTo(MDDNode* n,Trailer::Ptr t,Storage::Ptr mem) 
 {
    child->unhookChild(this);

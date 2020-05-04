@@ -16,6 +16,7 @@
 
 class MDDNode;
 class MDDEdge;
+class MDDNodeFactory;
 
 class MDD  : public Constraint {
 public:
@@ -51,8 +52,6 @@ protected:
    std::vector<TVec<MDDNode*>> layers;
    std::deque<MDDNode*> queue;
    ::trail<bool> _firstTime;
-   ::trail<int>  _ff;
-   ::trail<int>  _lf;
    std::vector<std::vector<::trail<int>>> supports;
    std::vector<int> oft;
    unsigned numVariables;
@@ -61,6 +60,7 @@ protected:
    var<int>::Ptr objective = nullptr;
    MDDSpec _mddspec;
    bool    _posting;
+   MDDNodeFactory* _nf;
 };
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
