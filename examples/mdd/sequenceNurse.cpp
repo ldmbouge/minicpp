@@ -112,104 +112,57 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   // vars[i] is shift on day i
   // mapping: 0 = Off, 1 = Day, 2 = Evening, 3 = Night
   auto vars = Factory::intVarArray(cp, H, 0, 3);
-
   auto mdd = new MDDRelax(cp,relaxSize);
 
+  int Q1=14, L1= 4, U1=14; std::set<int> S1 = {0};
+  int Q2=28, L2=20, U2=28; std::set<int> S2 = {1,2,3};
+  int Q3=14, L3= 1, U3= 4; std::set<int> S3 = {3};
+  int Q4=14, L4= 4, U4= 8; std::set<int> S4 = {2};
+  int Q5= 2, L5= 0, U5= 1; std::set<int> S5 = {3};
+  int Q6= 7, L6= 2, U6= 4; std::set<int> S6 = {2,3};
+  int Q7= 7, L7= 0, U7= 6; std::set<int> S7 = {1,2,3};
+  
   if (mode == 0 ) {
-
     cout << "Cumulative Sums encoding" << endl;
-    addCumulSeq(cp, vars, 14, 4, 14, {0});
-    addCumulSeq(cp, vars, 28, 20, 28, {1,2,3});
-    addCumulSeq(cp, vars, 14, 1, 4, {3});
-    addCumulSeq(cp, vars, 14, 4, 8, {2});
-    addCumulSeq(cp, vars, 2, 0, 1, {3});
-    addCumulSeq(cp, vars, 7, 2, 4, {2,3});
-    addCumulSeq(cp, vars, 7, 0, 6, {1,2,3});
-      
+    addCumulSeq(cp, vars, Q1, L1, U1, S1);
+    addCumulSeq(cp, vars, Q2, L2, U2, S2);
+    addCumulSeq(cp, vars, Q3, L3, U3, S3);
+    addCumulSeq(cp, vars, Q4, L4, U4, S4);
+    addCumulSeq(cp, vars, Q5, L5, U5, S5);
+    addCumulSeq(cp, vars, Q6, L6, U6, S6);
+    addCumulSeq(cp, vars, Q7, L7, U7, S7);
   }
   else if (mode == 1) {
-
     cout << "seqMDD encoding" << endl;
-      
-    //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
-    Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 14, {0});
-
-    //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
-    Factory::seqMDD(mdd->getSpec(), vars, 28, 20, 28, {1,2,3});
-  
-    //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
-    Factory::seqMDD(mdd->getSpec(), vars, 14, 1, 4, {3});
-    
-    //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
-    Factory::seqMDD(mdd->getSpec(), vars, 14, 4, 8, {2});
-    
-    //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
-    Factory::seqMDD(mdd->getSpec(), vars, 2, 0, 1, {3});
-    
-    //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
-    Factory::seqMDD(mdd->getSpec(), vars, 7, 2, 4, {2,3});
-    
-    //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
-    Factory::seqMDD(mdd->getSpec(), vars, 7, 0, 6, {1,2,3});
-    
+    seqMDD(mdd->getSpec(), vars, Q1, L1, U1, S1);
+    seqMDD(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    seqMDD(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    seqMDD(mdd->getSpec(), vars, Q4, L4, U4, S4);
+    seqMDD(mdd->getSpec(), vars, Q5, L5, U5, S5);
+    seqMDD(mdd->getSpec(), vars, Q6, L6, U6, S6);
+    seqMDD(mdd->getSpec(), vars, Q7, L7, U7, S7);
     cp->post(mdd);
   }
   else if (mode == 2) {
-
     cout << "seqMDD2 encoding" << endl;
-  
-    auto mdd = new MDDRelax(cp,relaxSize);
-  
-    //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
-    Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 14, {0});
-
-    //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 28, 20, 28, {1,2,3});
-  
-    //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 14, 1, 4, {3});
-    
-    //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
-    Factory::seqMDD2(mdd->getSpec(), vars, 14, 4, 8, {2});
-    
-    //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 2, 0, 1, {3});
-    
-    //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 7, 2, 4, {2,3});
-    
-    //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
-    Factory::seqMDD2(mdd->getSpec(), vars, 7, 0, 6, {1,2,3});
-    
+    seqMDD2(mdd->getSpec(), vars, Q1, L1, U1, S1);
+    seqMDD2(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    seqMDD2(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    seqMDD2(mdd->getSpec(), vars, Q4, L4, U4, S4);
+    seqMDD2(mdd->getSpec(), vars, Q5, L5, U5, S5);
+    seqMDD2(mdd->getSpec(), vars, Q6, L6, U6, S6);
+    seqMDD2(mdd->getSpec(), vars, Q7, L7, U7, S7);
     cp->post(mdd);
   }
   else if (mode == 3) {
-
     cout << "seqMDD3 encoding" << endl;
-
-    auto mdd = new MDDRelax(cp,relaxSize);
-  
-    //  - at least 4 off-days every 14 days:                 Sequence(X, 14, 4, 14, {O})
-    Factory::seqMDD3(mdd->getSpec(), vars, 14, 4, 14, {0});
-
-    //  - at least 20 work shifts every 28 days:             Sequence(X, 28, 20, 28, {D, E, N})
-    Factory::seqMDD3(mdd->getSpec(), vars, 28, 20, 28, {1,2,3});
-  
-    //  - between 1 and 4 night shifts every 14 days:        Sequence(X, 14, 1, 4, {N})
-    Factory::seqMDD3(mdd->getSpec(), vars, 14, 1, 4, {3});
-    
-    //  - between 4 and 8 evening shifts every 14 days:      Sequence(X, 14, 4, 8, {E})
-    Factory::seqMDD3(mdd->getSpec(), vars, 14, 4, 8, {2});
-    
-    //  - night shifts cannot appear on consecutive days:    Sequence(X, 2, 0, 1, {N})
-    Factory::seqMDD3(mdd->getSpec(), vars, 2, 0, 1, {3});
-    
-    //  - between 2 and 4 evening/night shifts every 7 days: Sequence(X, 7, 2, 4, {E, N})
-    Factory::seqMDD3(mdd->getSpec(), vars, 7, 2, 4, {2,3});
-    
-    //  - at most 6 work shifts every 7 days:                Sequence(X, 7, 0, 6, {D, E, N})
-    Factory::seqMDD3(mdd->getSpec(), vars, 7, 0, 6, {1,2,3});
-    
+    seqMDD3(mdd->getSpec(), vars, Q1, L1, U1, S1);
+    seqMDD3(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    seqMDD3(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    seqMDD3(mdd->getSpec(), vars, Q4, L4, U4, S4);
+    seqMDD3(mdd->getSpec(), vars, Q5, L5, U5, S5);
+    seqMDD3(mdd->getSpec(), vars, Q6, L6, U6, S6);
+    seqMDD3(mdd->getSpec(), vars, Q7, L7, U7, S7);
     cp->post(mdd);
   }
   
