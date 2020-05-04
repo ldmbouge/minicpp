@@ -30,13 +30,12 @@ MDD::MDD(CPSolver::Ptr cp)
    _lastNid(0),
    trail(cp->getStateManager()),
    cp(cp),
-   _firstTime(trail,true),
-   _ff(trail,0),
-   _lf(trail,0)
+   _firstTime(trail,true)
 {
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
    _posting = true;
+   _nf = new (mem) MDDNodeFactory(mem,trail,std::numeric_limits<int>::max());
 }
 
 /*
@@ -59,8 +58,6 @@ void MDD::post()
          supports[i].emplace_back(trail,0);
       oft.push_back(x[i]->min());
    }
-   _ff = 0;
-   _lf = numVariables - 1;
    buildDiagram();
    _posting = false;
 }

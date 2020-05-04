@@ -8,6 +8,15 @@
 
 #include "mddnode.hpp"
 
+MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int val,int domSize,int layer,int layerSize)
+{
+   return new (_mem) MDDNode(_lastID++,_mem,_trailer,ms.clone(_mem),domSize,layer,layerSize);
+}
+
+void MDDNodeFactory::returnNode(MDDNode* n)
+{}
+
+
 MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id)
    : pos(id),
      _nid(nid),
