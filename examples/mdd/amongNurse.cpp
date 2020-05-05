@@ -264,7 +264,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     // constraint 3
     cout << "Constraint type 3" << endl;
     for (int i=0; i<H/N3; i++) {
-      cout << "Among for week " << i << ": ";
+      cout << "amongMDD2 for week " << i << ": ";
       if (7*i+7<H) {
 	set<int> amongVars;
 	for (int j=7*i; j<7*i+7; j++) {
@@ -274,7 +274,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	cout << endl;
 	
 	auto adv = all(cp, amongVars, vars);
-	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+	// Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+	Factory::amongMDD2(mdd->getSpec(), adv, L3, U3, workDay);
       }
     }
     cp->post(mdd);
