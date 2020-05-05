@@ -214,8 +214,8 @@ namespace Factory {
 
       
       mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
-	  // return -(double)(in.getState().at(U)-in.getState().at(L));
-	  return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
+	  return -(double)(in.getState().at(U)-in.getState().at(L));
+	  // return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
 	  // return 0;
 	});
    }
