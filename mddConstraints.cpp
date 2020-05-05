@@ -153,7 +153,9 @@ namespace Factory {
 	    return (p.at(L) + values.member(val) <= ub);
       });
 
-      return -(double)(in.getState().at(U)-in.getState().at(L));
+      mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
+	  return -(double)(in.getState().at(U)-in.getState().at(L));
+	});
    }
   
    void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues) {
