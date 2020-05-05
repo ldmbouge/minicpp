@@ -106,6 +106,14 @@ public:
    }
    void init() noexcept { _cl = _init;}
    bool empty() const    { return _nbe == 0;}
+   void retract(MDDNode* n) {
+      assert(n->inQueue(_dir));
+      auto& tc = _queues[n->getLayer()]; // queue to clear
+      auto at  = std::find(tc.begin(),tc.end(),n);
+      tc.erase(at);
+      n->leaveQueue(_dir);
+      --_nbe;
+   }
    void enQueue(MDDNode* n) {
       if (!n->inQueue(_dir)) {
          _queues[n->getLayer()].emplace_back(n);
@@ -125,9 +133,10 @@ public:
          }
          rv = _queues[_cl].front();
          _queues[_cl].pop_front();
-         rv->leaveQueue(_dir);
+         if (rv)
+            rv->leaveQueue(_dir);
          _nbe -= 1;
-      } while (!rv->isActive());
+      } while (rv==nullptr || !rv->isActive());
       return rv;
    }
 };

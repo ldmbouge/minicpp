@@ -91,6 +91,12 @@ public:
       _sz += 1;
        assert(_sz > 0);
    }
+   T pop_back() {
+      T rv = _data[_sz - 1];
+      _t->trail(new (_t) TrailEntry<SZT>(&_sz));
+      _sz -= 1;
+      return rv;
+   }
    SZT remove(SZT i) {
       assert(_sz > 0);
       assert(i >= 0 && i < _sz);

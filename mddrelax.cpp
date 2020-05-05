@@ -18,6 +18,7 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
    _fwd = nullptr;
    _bwd = nullptr;
    _pool = new Pool;
+   _nf->setWidth(width);
 }
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
@@ -60,8 +61,8 @@ void MDDRelax::buildDiagram()
    
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
-   sink = new (mem) MDDNode(_lastNid++,mem, trail, sinkState, 0,(int) numVariables, 0);
-   root = new (mem) MDDNode(_lastNid++,mem, trail, rootState, x[0]->size(),0, 0);
+   sink = _nf->makeNode(sinkState,0,(int)numVariables,0);
+   root = _nf->makeNode(rootState,x[0]->size(),0,0);
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
 
@@ -586,15 +587,10 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                }
             }
          }//out-comment
-         //if (splitter.size() >= (_domMax - _domMin + 1)) {
-            //std::cout << "BEARLY\n";
-         // break;
-         //}         
       } // end of loop over parents.
       splitter.process(layer,_width,trail,mem,
                        [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
-                          MDDNode* nc = new (mem) MDDNode(_lastNid++,mem,trail,ms.clone(mem),
-                                                          x[l-1]->size(),l,(int)layer.size());
+                          MDDNode* nc = _nf->makeNode(ms,x[l-1]->size(),l,(int)layer.size());
                           layer.push_back(nc,mem);
                           unsigned int idx = 0;
                           for(auto ca : n->getChildren()) {
@@ -659,7 +655,17 @@ int MDDRelax::delState(MDDNode* node,int l)
          removeArc(l,l+1,arc.get());
       }
       node->clearChildren();
+   }   
+   switch(node->curQueue()) {
+      case Down: _fwd->retract(node);break;
+      case Up: _bwd->retract(node);break;
+      case Bi:
+         _fwd->retract(node);
+         _bwd->retract(node);
+         break;
+      case None: break;
    }
+   _nf->returnNode(node);
    return lowest;
 }
 
@@ -720,6 +726,7 @@ void MDDRelax::computeDown(int iter)
          if (!x[l-1]->isBound() && layers[l].size() < _width) 
             lowest = split(layers[l],l);
          l = (lowest < l) ? lowest : l + 1;
+         //l += 1;
       }
    }
    while(!_fwd->empty()) {

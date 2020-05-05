@@ -8,29 +8,52 @@
 
 #include "mddnode.hpp"
 
-MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int val,int domSize,int layer,int layerSize)
+static int nbAlloc = 0;
+static int nbRet = 0;
+
+std::ostream& operator<<(std::ostream& os,enum Direction d)
 {
-   return new (_mem) MDDNode(_lastID++,_mem,_trailer,ms.clone(_mem),domSize,layer,layerSize);
+   switch(d) {
+      case Down: return os << "Down";
+      case Up:   return os << "Up";
+      case Bi:   return os << "Bi";
+      case None: return os << "None";
+   }
+}
+
+MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int domSize,int layer,int layerSize)
+{
+   if (_pool.size() > 0) {
+      MDDNode* n = _pool.pop_back();
+      n->setState(ms,_mem);
+      n->setPosition(layerSize,_mem);
+      n->setLayer(layer,_mem);
+      n->activate();
+      return n;
+   } else {
+      nbAlloc++;
+      // if (nbAlloc % 1000==0)
+      //    std::cout << "ALLOC/RET: " << nbAlloc << '/' << nbRet << "\t DELTA:" << nbAlloc - nbRet <<  '\n';
+      return new (_mem) MDDNode(_lastID++,_mem,_trailer,ms.clone(_mem),domSize,layer,layerSize);
+   }
 }
 
 void MDDNodeFactory::returnNode(MDDNode* n)
-{}
-
-
-MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,unsigned layer, int id)
-   : pos(id),
-     _nid(nid),
-     _inQueue(t,None),
-     _active(true),
-     layer(layer),
-     children(t,mem,2),
-     parents(t,mem,2)
-{}
+{
+   _pool.push_back(n,_mem);
+   enum Direction d = n->curQueue();
+   if (d != None) {
+      std::cout << "This node is in a queue " << d << " \t" << _trailer->magic()  - n->age() << '\n';
+      exit(1);
+   }
+   nbRet++;
+}
 
 MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
 		 int dsz,unsigned layer, int id)
    : pos(id),
      _nid(nid),
+     _age(t->magic()),
      _inQueue(t,None),
      _active(true),
      layer(layer),

@@ -92,7 +92,7 @@ void MDD::buildNextLayer(unsigned int i)
             auto found = umap.find(&state);
             MDDNode* child = nullptr;
             if (found == umap.end()){
-               child = new (mem) MDDNode(_lastNid++,mem, trail, state.clone(mem), x[i]->size(),i+1, (int)layers[i+1].size());
+               child = _nf->makeNode(state,x[i]->size(),i+1,(int)layers[i+1].size());
                umap.insert({child->key(),child});
                layers[i+1].push_back(child,mem);
             }  else {
@@ -162,8 +162,8 @@ void MDD::buildDiagram()
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
-   sink = new (mem) MDDNode(_lastNid++,mem, trail, sinkState, 0,(int) numVariables, 0);
-   root = new (mem) MDDNode(_lastNid++,mem, trail, rootState, x[0]->size(),0, 0);
+   sink = _nf->makeNode(sinkState,0,(int)numVariables,0);
+   root = _nf->makeNode(rootState,x[0]->size(),0,0);
    layers[0].push_back(root,mem);
    layers[numVariables].push_back(sink,mem);
 
