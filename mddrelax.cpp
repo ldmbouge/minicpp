@@ -721,11 +721,13 @@ void MDDRelax::computeDown(int iter)
 {
    if (true || iter <= 1) {
       int l=1;
+      const int maxDistance = 16; //std::numeric_limits<int>::max();
       while (l < (int) numVariables) {
          int lowest = l;
          if (!x[l-1]->isBound() && layers[l].size() < _width) 
             lowest = split(layers[l],l);
-         l = (lowest < l) ? lowest : l + 1;
+         auto jump = std::min(l - lowest,maxDistance);
+         l = (lowest < l) ? l-jump : l + 1;
          //l += 1;
       }
    }

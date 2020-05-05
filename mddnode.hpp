@@ -107,7 +107,6 @@ public:
    bool inQueue(enum Direction d) const noexcept    { return (_inQueue & d)==d;}
    enum Direction curQueue() const noexcept { return _inQueue;}
    bool isActive() const noexcept { return _active;}
-   int age() const noexcept { return _age;}
    void deactivate() {
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<bool>(&_active));
@@ -125,7 +124,6 @@ public:
 private:   
    int pos;
    int _nid;
-   int _age;
    mutable trail<enum Direction> _inQueue;
    bool _active;
    unsigned short layer;

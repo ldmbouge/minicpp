@@ -214,8 +214,8 @@ namespace Factory {
 
       
       mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
-	  // return -(double)(in.getState().at(U)-in.getState().at(L));
-	  return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
+	  return -(double)(in.getState().at(U)-in.getState().at(L));
+	  //return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
 	  // return 0;
 	});
    }
@@ -560,8 +560,8 @@ namespace Factory {
 
       spec.splitOnLargest([Exact,Ymin,Ymax,AminL,DmaxL,lb,ub,nbVars](const auto& in) {
 
-	  return (double)std::max(lb+in.getState().at(AminL)-in.getState().at(Ymin),0);
-	  // return (double)(in.getState().at(Exact));
+                             // return (double)std::max(lb+in.getState().at(AminL)-in.getState().at(Ymin),0);
+                             return (double)(in.getState().at(Exact));
 	  // return -(double)(in.getState().at(Ymax)-in.getState().at(Ymin));
 	  // return -(double)(in.getState().at(Ymin));
 	  // return -(double)(in.getNumParents());

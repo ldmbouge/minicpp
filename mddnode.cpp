@@ -42,10 +42,6 @@ void MDDNodeFactory::returnNode(MDDNode* n)
 {
    _pool.push_back(n,_mem);
    enum Direction d = n->curQueue();
-   if (d != None) {
-      std::cout << "This node is in a queue " << d << " \t" << _trailer->magic()  - n->age() << '\n';
-      exit(1);
-   }
    nbRet++;
 }
 
@@ -53,7 +49,6 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
 		 int dsz,unsigned layer, int id)
    : pos(id),
      _nid(nid),
-     _age(t->magic()),
      _inQueue(t,None),
      _active(true),
      layer(layer),
