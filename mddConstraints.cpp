@@ -106,10 +106,10 @@ namespace Factory {
       mdd.append(x);
       ValueSet values(rawValues);
       auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-      const int L = mdd.addState(d,0,x.size());
-      const int U = mdd.addState(d,0,x.size());
-      const int Lup = mdd.addState(d,0,x.size());
-      const int Uup = mdd.addState(d,0,x.size());
+      const int L = mdd.addState(d,0,x.size(),MinFun);
+      const int U = mdd.addState(d,0,x.size(),MaxFun);
+      const int Lup = mdd.addState(d,0,x.size(),MinFun);
+      const int Uup = mdd.addState(d,0,x.size(),MaxFun);
 
       mdd.transitionDown(L,[L,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool allMembers = true;
@@ -153,15 +153,71 @@ namespace Factory {
 	    return (p.at(L) + values.member(val) <= ub);
       });
       
-      mdd.addRelaxation(L,[L](auto& out,const auto& l,const auto& r) { out.set(L,std::min(l.at(L), r.at(L)));});
-      mdd.addRelaxation(U,[U](auto& out,const auto& l,const auto& r) { out.set(U,std::max(l.at(U), r.at(U)));});
-      mdd.addRelaxation(Lup,[Lup](auto& out,const auto& l,const auto& r) { out.set(Lup,std::min(l.at(Lup), r.at(Lup)));});
-      mdd.addRelaxation(Uup,[Uup](auto& out,const auto& l,const auto& r) { out.set(Uup,std::max(l.at(Uup), r.at(Uup)));});
+   }
+  
+   void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues) {
+      mdd.append(x);
+      ValueSet values(rawValues);
+      auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
+      const int L = mdd.addState(d,0,x.size(),MinFun);
+      const int U = mdd.addState(d,0,x.size(),MaxFun);
+      const int Lup = mdd.addState(d,0,x.size(),MinFun);
+      const int Uup = mdd.addState(d,0,x.size(),MaxFun);
 
-      mdd.addSimilarity(L,[L](auto l,auto r) -> double { return abs(l.at(L) - r.at(L)); });
-      mdd.addSimilarity(U,[U](auto l,auto r) -> double { return abs(l.at(U) - r.at(U)); });
-      mdd.addSimilarity(Lup,[Lup](auto l,auto r) -> double { return abs(l.at(Lup) - r.at(Lup)); });
-      mdd.addSimilarity(Uup,[Uup](auto l,auto r) -> double { return abs(l.at(Uup) - r.at(Uup)); });
+      mdd.transitionDown(L,[L,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                bool allMembers = true;
+                                for(int v : val) {
+                                   allMembers &= values.member(v);
+                                   if (!allMembers) break;
+                                }
+                                out.set(L,p.at(L) + allMembers);
+                             });
+      mdd.transitionDown(U,[U,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                bool oneMember = false;
+                                for(int v : val) {
+                                   oneMember = values.member(v);
+                                   if (oneMember) break;
+                                }
+                                out.set(U,p.at(U) + oneMember);
+                             });
+
+      mdd.transitionUp(Lup,[Lup,values] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+                                bool allMembers = true;
+                                for(int v : val) {
+                                   allMembers &= values.member(v);
+                                   if (!allMembers) break;
+                                }
+                                out.set(Lup,c.at(Lup) + allMembers);
+                             });
+      mdd.transitionUp(Uup,[Uup,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                bool oneMember = false;
+                                for(int v : val) {
+                                   oneMember = values.member(v);
+                                   if (oneMember) break;
+                                }
+                                out.set(Uup,p.at(Uup) + oneMember);
+                             });
+
+      mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
+	  if (up) {
+	    return ((p.at(U) + values.member(val) + c.at(Uup) >= lb) &&
+		    (p.at(L) + values.member(val) + c.at(Lup) <= ub));
+          } else
+	    return (p.at(L) + values.member(val) <= ub);
+      });
+
+      // This function needs an 'up' flag?
+      // mdd.nodeExist(d,[=](const auto& n) {
+      // 	  return ( (n.at(L) + n.at(Lup) >= lb) &&
+      // 		   (n.at(U) + n.at(Uup) <= ub));
+      // 	});
+
+      
+      mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
+	  // return -(double)(in.getState().at(U)-in.getState().at(L));
+	  return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
+	  // return 0;
+	});
    }
 
   
@@ -502,16 +558,19 @@ namespace Factory {
                             return c0 && c1;
                          });
 
-      // std::cout << "Splitting on Largest NumParents" << std::endl;
-      // spec.splitOnLargest([](const auto& in) { return (double)in.getNumParents();});
-      // spec.splitOnLargest([Ymin,Ymax](const auto& in) {
-      // 	  int numPar = in.getNumParents();
-      // 	  int diff = in.getState().at(Ymax) - in.getState().at(Ymin);
-      // 	  return -(double)(numPar + diff);
-      // 	});
-      spec.splitOnLargest([Exact](const auto& in) {
-                             return (double)(in.getState().at(Exact));
-                          });      
+      spec.splitOnLargest([Exact,Ymin,Ymax,AminL,DmaxL,lb,ub,nbVars](const auto& in) {
+
+	  return (double)std::max(lb+in.getState().at(AminL)-in.getState().at(Ymin),0);
+	  // return (double)(in.getState().at(Exact));
+	  // return -(double)(in.getState().at(Ymax)-in.getState().at(Ymin));
+	  // return -(double)(in.getState().at(Ymin));
+	  // return -(double)(in.getNumParents());
+	  /** bad performance **
+	  // return (double)(std::max(lb+in.getState().at(AminL)-in.getState().at(Ymin),0)+
+	  // 		  std::max(in.getState().at(DmaxL)-lb-in.getState().at(Ymin),0));
+	  **/	  
+
+	});      
    }
 
 
