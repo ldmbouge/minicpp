@@ -6,9 +6,10 @@
 #include <cmath>
 #include "RuntimeMonitor.hpp"
 
-MDDRelax::MDDRelax(CPSolver::Ptr cp,int width)
+MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance)
    : MDD(cp),
      _width(width),
+     _maxDistance(maxDistance),
      _rnG(42),
      _sampler(0.0,1.0)
   
@@ -721,12 +722,11 @@ void MDDRelax::computeDown(int iter)
 {
    if (true || iter <= 1) {
       int l=1;
-      const int maxDistance = 16; //std::numeric_limits<int>::max();
       while (l < (int) numVariables) {
          int lowest = l;
          if (!x[l-1]->isBound() && layers[l].size() < _width) 
             lowest = split(layers[l],l);
-         auto jump = std::min(l - lowest,maxDistance);
+         auto jump = std::min(l - lowest,_maxDistance);
          l = (lowest < l) ? l-jump : l + 1;
          //l += 1;
       }

@@ -146,6 +146,7 @@ using MDDBQueue = MDDQueue<std::minus<int>>;
 
 class MDDRelax : public MDD {
    const unsigned int _width;
+   const int    _maxDistance;
    ::trail<unsigned> _lowest;
    std::mt19937 _rnG;
    std::uniform_real_distribution<double> _sampler;
@@ -170,7 +171,7 @@ class MDDRelax : public MDD {
    void removeArc(int outL,int inL,MDDEdge* arc) override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:
-   MDDRelax(CPSolver::Ptr cp,int width = 32);
+   MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max());
    void buildDiagram() override;
    void relaxLayer(int i,unsigned int width);
    void propagate() override;
