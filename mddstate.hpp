@@ -700,7 +700,7 @@ public:
    void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
    void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
    void updateNode(UpdateFun update);
-   void transitionDown(int,lambdaTrans);
+   void transitionDown(int/*,std::set<int> sp*/,lambdaTrans);
    void transitionUp(int,lambdaTrans);
    template <typename LR> void addRelaxation(int p,LR r) {
       _xRelax.insert(p);
