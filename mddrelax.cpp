@@ -149,7 +149,7 @@ void MDDRelax::relaxLayer(int i)
 */
 
 // "inner product"  based relaxation.
-
+/*
 void MDDRelax::relaxLayer(int i,unsigned int width)
 {
    _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
@@ -163,9 +163,9 @@ void MDDRelax::relaxLayer(int i,unsigned int width)
    for(auto& n : layers[i])
       cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
 
-   std::stable_sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
-                                           return std::get<0>(p1) < std::get<0>(p2);
-                                        });
+   // std::stable_sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
+   //                                         return std::get<0>(p1) < std::get<0>(p2);
+   //                                      });
 
    const int bucketSize = iSize / width;
    int   rem = iSize % width;
@@ -211,6 +211,50 @@ void MDDRelax::relaxLayer(int i,unsigned int width)
       n->setPosition(k++,mem);
    }
    //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << '\n';
+}
+*/
+
+ 
+void MDDRelax::relaxLayer(int i,unsigned int width)
+{
+   assert(width == 1);
+   _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
+   if (layers[i].size() <= width)
+      return;   
+   const int iSize = (int)layers[i].size();  
+   const MDDState& refDir = _refs[i];
+
+   // The 'cl' data-structure is, strictly speaking, not necessary. It gives a permutation of the
+   // node from most similar to least simiar to the chosen reference.
+   // This is _not_ helpful, since we are merging all of the nodes into a single one anyway. So the
+   // resulting state _must_ be the same. Yet, the parent list will have, as a result, a permutation of
+   // the arcs. And since splitting proceeds by pulling out arcs in order, the splitting will be different
+   // in the end. So I'm leaving this in place for now, but ultimately it should go. 
+   std::vector<std::tuple<float,MDDNode*>> cl(iSize);
+   int k=0;
+   for(auto& n : layers[i])
+      cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
+   std::stable_sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
+                                           return std::get<0>(p1) < std::get<0>(p2);
+                                        });
+
+
+   char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
+   memset(buf,0,_mddspec.layoutSize());
+   MDDState acc(&_mddspec,buf);
+   MDDNode* target = std::get<1>(cl[0]);
+   acc.initState(target->getState());
+   for(int k=1;k < cl.size();k++) {
+      const auto& strip = std::get<1>(cl[k]);
+      _mddspec.relaxation(acc,strip->getState());
+      acc.relaxDown();
+      for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) 
+         (*i)->moveTo(target,trail,mem);      
+      target->setState(acc,mem);
+   }
+   layers[i].clear();
+   layers[i].push_back(target,mem);
+   target->setPosition(0,mem);
 }
 
 void MDDRelax::postUp()
