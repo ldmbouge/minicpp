@@ -8,9 +8,6 @@
 
 #include "mddnode.hpp"
 
-static int nbAlloc = 0;
-static int nbRet = 0;
-
 std::ostream& operator<<(std::ostream& os,enum Direction d)
 {
    switch(d) {
@@ -31,10 +28,8 @@ MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int domSize,int layer,int l
       n->activate();
       return n;
    } else {
-      nbAlloc++;
-      // if (nbAlloc % 1000==0)
-      //    std::cout << "ALLOC/RET: " << nbAlloc << '/' << nbRet << "\t DELTA:" << nbAlloc - nbRet <<  '\n';
-      return new (_mem) MDDNode(_lastID++,_mem,_trailer,ms.clone(_mem),domSize,layer,layerSize);
+      MDDNode* retVal = new (_mem) MDDNode(_lastID++,_mem,_trailer,ms.clone(_mem),domSize,layer,layerSize);
+      return retVal;
    }
 }
 
@@ -42,7 +37,6 @@ void MDDNodeFactory::returnNode(MDDNode* n)
 {
    _pool.push_back(n,_mem);
    enum Direction d = n->curQueue();
-   nbRet++;
 }
 
 MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,

@@ -138,11 +138,11 @@ class MDDNodeFactory {
    Storage::Ptr       _mem;
    Trailer::Ptr   _trailer;
    int              _width;
-   int _lastID;
+   trail<int>      _lastID;
    TVec<MDDNode*> _pool;
 public:
    MDDNodeFactory(Storage::Ptr mem,Trailer::Ptr trailer,int width)
-      : _mem(mem),_trailer(trailer),_width(width),_lastID(0),_pool(trailer,mem,2048) {}
+      : _mem(mem),_trailer(trailer),_width(width),_lastID(trailer,0),_pool(trailer,mem,2048) {}
    void setWidth(int w) noexcept { _width = w;}
    MDDNode* makeNode(const MDDState& ms,int domSize,int layer,int layerSize);
    void returnNode(MDDNode* n);

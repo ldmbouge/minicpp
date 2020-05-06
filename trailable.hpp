@@ -37,6 +37,8 @@ public:
    trail<T>& operator=(const T& v);
    trail<T>& operator+=(const T& v);
    trail<T>& operator-=(const T& v);
+   trail<T>& operator++(); // pre-increment
+   T operator++(int); // post-increment
    class TrailEntry: public Entry {
       T*  _at;
       T  _old;
@@ -55,6 +57,26 @@ trail<T>& trail<T>::operator=(const T& v)
    _value = v;
    return *this;        
 }
+
+template <class T>
+trail<T>& trail<T>::operator++() { // pre-increment
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);    
+   _value += 1;
+   return *this;           
+}
+
+template <class T>
+T trail<T>::operator++(int) { // post-increment
+   T rv = _value;
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);    
+   ++_value;
+   return rv;
+}
+
 
 template<class T>
 trail<T>& trail<T>::operator+=(const T& v) {
