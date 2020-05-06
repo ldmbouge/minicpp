@@ -149,17 +149,17 @@ namespace Factory {
     mdd.append(vars);    
     auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
     
-    const int xMin = mdd.addState(d,0,-INT_MAX);
-    const int xMax = mdd.addState(d,0,INT_MAX);
-    const int yMin = mdd.addState(d,0,-INT_MAX);
-    const int yMax = mdd.addState(d,0,INT_MAX);
-    const int yMinUp = mdd.addState(d,0,-INT_MAX);
-    const int yMaxUp = mdd.addState(d,0,INT_MAX);
-    const int zMinUp = mdd.addState(d,0,-INT_MAX);
-    const int zMaxUp = mdd.addState(d,0,INT_MAX);
-    const int N = mdd.addState(d,0,2); // layer index 
+    const int xMin = mdd.addState(d,0,-INT_MAX,MinFun);
+    const int xMax = mdd.addState(d,0,INT_MAX,MaxFun);
+    const int yMin = mdd.addState(d,0,-INT_MAX,MinFun);
+    const int yMax = mdd.addState(d,0,INT_MAX,MaxFun);
+    const int yMinUp = mdd.addState(d,0,-INT_MAX,MinFun);
+    const int yMaxUp = mdd.addState(d,0,INT_MAX,MaxFun);
+    const int zMinUp = mdd.addState(d,0,-INT_MAX,MinFun);
+    const int zMaxUp = mdd.addState(d,0,INT_MAX,MaxFun);
+    const int N = mdd.addState(d,0,2,MinFun); // layer index 
 
-    mdd.transitionDown(xMin,[xMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(xMin,{xMin,N},[xMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==0) {	  
 	  int min=INT_MAX;
 	  for(int v : val)
@@ -170,7 +170,7 @@ namespace Factory {
 	  out.set(xMin,p.at(xMin));
 	}	  
       });
-    mdd.transitionDown(xMax,[xMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(xMax,{xMax,N},[xMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==0) {	    
 	  int max=-INT_MAX;
 	  for(int v : val)
@@ -181,7 +181,7 @@ namespace Factory {
 	  out.set(xMax, p.at(xMax));
 	}
       });
-    mdd.transitionDown(yMin,[yMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(yMin,{yMin,N},[yMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==1) {	  
 	  int min=INT_MAX;
 	  for(int v : val)
@@ -192,7 +192,7 @@ namespace Factory {
 	  out.set(yMin, p.at(yMin));
 	}
       });
-    mdd.transitionDown(yMax,[yMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(yMax,{yMax,N},[yMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==1) {
 	  int max=-INT_MAX;
 	  for(int v : val)
@@ -204,9 +204,9 @@ namespace Factory {
 	}
       });
 
-    mdd.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+    mdd.transitionDown(N,{N},[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
 
-    mdd.transitionDown(yMinUp,[yMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionDown(yMinUp,{yMinUp,N},[yMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==2) {
 	  int min=INT_MAX;
 	  for(int v : val)
@@ -217,7 +217,7 @@ namespace Factory {
 	  out.set(yMinUp, c.at(yMinUp));
 	}
       });
-    mdd.transitionUp(yMaxUp,[yMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionUp(yMaxUp,{yMaxUp,N},[yMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==2) {
 	  int max=-INT_MAX;
 	  for(int v : val)
@@ -228,7 +228,7 @@ namespace Factory {
 	  out.set(yMaxUp, c.at(yMaxUp));
 	}
       });
-    mdd.transitionDown(zMinUp,[zMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionDown(zMinUp,{zMinUp,N},[zMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==3) {
 	  int min=INT_MAX;
 	  for(int v : val)
@@ -239,7 +239,7 @@ namespace Factory {
 	  out.set(zMinUp, c.at(zMinUp));
 	}
       });
-    mdd.transitionUp(zMaxUp,[zMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionUp(zMaxUp,{zMaxUp,N},[zMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==3) {
 	  int max=-INT_MAX;
 	  for(int v : val)
@@ -309,15 +309,15 @@ namespace Factory {
 	return true;
       });
       
-      mdd.addRelaxation(xMin,[xMin](auto& out,const auto& l,const auto& r) { out.set(xMin,std::min(l.at(xMin), r.at(xMin)));});
-      mdd.addRelaxation(xMax,[xMax](auto& out,const auto& l,const auto& r) { out.set(xMax,std::max(l.at(xMax), r.at(xMax)));});
-      mdd.addRelaxation(yMin,[yMin](auto& out,const auto& l,const auto& r) { out.set(yMin,std::min(l.at(yMin), r.at(yMin)));});
-      mdd.addRelaxation(yMax,[yMax](auto& out,const auto& l,const auto& r) { out.set(yMax,std::max(l.at(yMax), r.at(yMax)));});
-      mdd.addRelaxation(yMinUp,[yMinUp](auto& out,const auto& l,const auto& r) { out.set(yMinUp,std::min(l.at(yMinUp), r.at(yMinUp)));});
-      mdd.addRelaxation(yMaxUp,[yMaxUp](auto& out,const auto& l,const auto& r) { out.set(yMaxUp,std::max(l.at(yMaxUp), r.at(yMaxUp)));});
-      mdd.addRelaxation(zMinUp,[zMinUp](auto& out,const auto& l,const auto& r) { out.set(zMinUp,std::min(l.at(zMinUp), r.at(zMinUp)));});
-      mdd.addRelaxation(zMaxUp,[zMaxUp](auto& out,const auto& l,const auto& r) { out.set(zMaxUp,std::max(l.at(zMaxUp), r.at(zMaxUp)));});
-      mdd.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
+      // mdd.addRelaxation(xMin,[xMin](auto& out,const auto& l,const auto& r) { out.set(xMin,std::min(l.at(xMin), r.at(xMin)));});
+      // mdd.addRelaxation(xMax,[xMax](auto& out,const auto& l,const auto& r) { out.set(xMax,std::max(l.at(xMax), r.at(xMax)));});
+      // mdd.addRelaxation(yMin,[yMin](auto& out,const auto& l,const auto& r) { out.set(yMin,std::min(l.at(yMin), r.at(yMin)));});
+      // mdd.addRelaxation(yMax,[yMax](auto& out,const auto& l,const auto& r) { out.set(yMax,std::max(l.at(yMax), r.at(yMax)));});
+      // mdd.addRelaxation(yMinUp,[yMinUp](auto& out,const auto& l,const auto& r) { out.set(yMinUp,std::min(l.at(yMinUp), r.at(yMinUp)));});
+      // mdd.addRelaxation(yMaxUp,[yMaxUp](auto& out,const auto& l,const auto& r) { out.set(yMaxUp,std::max(l.at(yMaxUp), r.at(yMaxUp)));});
+      // mdd.addRelaxation(zMinUp,[zMinUp](auto& out,const auto& l,const auto& r) { out.set(zMinUp,std::min(l.at(zMinUp), r.at(zMinUp)));});
+      // mdd.addRelaxation(zMaxUp,[zMaxUp](auto& out,const auto& l,const auto& r) { out.set(zMaxUp,std::max(l.at(zMaxUp), r.at(zMaxUp)));});
+      // mdd.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
 
       mdd.addSimilarity(xMin,[xMin](auto l,auto r) -> double { return abs(l.at(xMin) - r.at(xMin)); });
       mdd.addSimilarity(xMax,[xMax](auto l,auto r) -> double { return abs(l.at(xMax) - r.at(xMax)); });

@@ -143,7 +143,8 @@ typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr,const MDDInt
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
-typedef std::map<int,lambdaTrans> lambdaMap;
+typedef std::pair<std::set<int>,lambdaTrans> TransDesc;
+typedef std::map<int,TransDesc> lambdaMap;
 class MDDStateSpec;
 
 class Zone {
@@ -700,8 +701,8 @@ public:
    void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
    void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
    void updateNode(UpdateFun update);
-   void transitionDown(int/*,std::set<int> sp*/,lambdaTrans);
-   void transitionUp(int,lambdaTrans);
+   void transitionDown(int,std::set<int> sp,lambdaTrans);
+   void transitionUp(int,std::set<int> sp,lambdaTrans);
    template <typename LR> void addRelaxation(int p,LR r) {
       _xRelax.insert(p);
       for(auto& cd : constraints)

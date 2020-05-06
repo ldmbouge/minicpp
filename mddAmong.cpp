@@ -27,26 +27,24 @@ namespace Factory {
       const int minC = mdd.addState(d,0,INT_MAX,MinFun);
       const int maxC = mdd.addState(d,0,INT_MAX,MaxFun);
       const int rem  = mdd.addState(d,(int)x.size(),INT_MAX,MaxFun);
-      mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
+      mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,auto var,const auto& val,bool) -> bool {
                         bool vinS = tv == val;// values.member(val);
                         return (p[minC] + vinS <= ub) &&
                            ((p[maxC] + vinS +  p[rem] - 1) >= lb);
                      });         
 
-      mdd.transitionDown(minC,[minC,tv] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-                                 bool allMembers = val.size()==1 && val.singleton() == tv;
-                                 out.setInt(minC,p[minC] + allMembers);
-                             });
-      mdd.transitionDown(maxC,[maxC,tv] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-                                 bool oneMember = val.contains(tv);
-                                out.setInt(maxC,p[maxC] + oneMember);
-                             });
-      mdd.transitionDown(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.setInt(rem,p[rem] - 1);});
-
-      // mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.setInt(minC,std::min(l[minC], r[minC]));});
-      // mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.setInt(maxC,std::max(l[maxC], r[maxC]));});
-      // mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.setInt(rem,std::max(l[rem],r[rem]));});
-
+      mdd.transitionDown(minC,{minC}, [minC,tv] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                         bool allMembers = val.size()==1 && val.singleton() == tv;
+                                         out.setInt(minC,p[minC] + allMembers);
+                                      });
+      mdd.transitionDown(maxC,{maxC},[maxC,tv] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                        bool oneMember = val.contains(tv);
+                                        out.setInt(maxC,p[maxC] + oneMember);
+                                     });
+       mdd.transitionDown(rem,{rem},[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                       out.setInt(rem,p[rem] - 1);
+                                    });
+       
       mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l[minC] - r[minC]); });
       mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l[maxC] - r[maxC]); });
       mdd.addSimilarity(rem ,[] (auto l,auto r) -> double { return 0; });
@@ -62,7 +60,7 @@ namespace Factory {
       const int rem  = mdd.addState(d,(int)x.size(),INT_MAX,MaxFun);
       if (rawValues.size() == 1) {
          int tv = *rawValues.cbegin();
-         mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
+         mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,auto var, const auto& val,bool) -> bool {
                            bool vinS = tv == val;// values.member(val);
                            return (p[minC] + vinS <= ub) &&
                               ((p[maxC] + vinS +  p[rem] - 1) >= lb);
@@ -75,7 +73,7 @@ namespace Factory {
                         });
       }
 
-      mdd.transitionDown(minC,[minC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionDown(minC,{minC},[minC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool allMembers = true;
                                 for(int v : val) {
                                    allMembers &= values.member(v);
@@ -83,7 +81,7 @@ namespace Factory {
                                 }
                                 out.setInt(minC,p[minC] + allMembers);
                              });
-      mdd.transitionDown(maxC,[maxC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionDown(maxC,{maxC},[maxC,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool oneMember = false;
                                 for(int v : val) {
                                    oneMember = values.member(v);
@@ -91,11 +89,7 @@ namespace Factory {
                                 }
                                 out.setInt(maxC,p[maxC] + oneMember);
                              });
-      mdd.transitionDown(rem,[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.setInt(rem,p[rem] - 1);});
-
-      // mdd.addRelaxation(minC,[minC](auto& out,const auto& l,const auto& r) { out.setInt(minC,std::min(l[minC], r[minC]));});
-      // mdd.addRelaxation(maxC,[maxC](auto& out,const auto& l,const auto& r) { out.setInt(maxC,std::max(l[maxC], r[maxC]));});
-      // mdd.addRelaxation(rem ,[rem](auto& out,const auto& l,const auto& r)  { out.setInt(rem,std::max(l[rem],r[rem]));});
+      mdd.transitionDown(rem,{rem},[rem] (auto& out,const auto& p,auto x,const auto& val,bool up) { out.setInt(rem,p[rem] - 1);});
 
       mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l[minC] - r[minC]); });
       mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l[maxC] - r[maxC]); });
@@ -112,7 +106,7 @@ namespace Factory {
       const int Lup = mdd.addState(d,0,x.size(),MinFun);
       const int Uup = mdd.addState(d,0,x.size(),MaxFun);
 
-      mdd.transitionDown(L,[L,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionDown(L,{L},[L,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool allMembers = true;
                                 for(int v : val) {
                                    allMembers &= values.member(v);
@@ -120,7 +114,7 @@ namespace Factory {
                                 }
                                 out.set(L,p.at(L) + allMembers);
                              });
-      mdd.transitionDown(U,[U,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionDown(U,{U},[U,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool oneMember = false;
                                 for(int v : val) {
                                    oneMember = values.member(v);
@@ -129,7 +123,7 @@ namespace Factory {
                                 out.set(U,p.at(U) + oneMember);
                              });
 
-      mdd.transitionUp(Lup,[Lup,values] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+      mdd.transitionUp(Lup,{Lup},[Lup,values] (auto& out,const auto& c,auto x, const auto& val,bool up) {
                                 bool allMembers = true;
                                 for(int v : val) {
                                    allMembers &= values.member(v);
@@ -137,7 +131,7 @@ namespace Factory {
                                 }
                                 out.set(Lup,c.at(Lup) + allMembers);
                              });
-      mdd.transitionUp(Uup,[Uup,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionUp(Uup,{Uup},[Uup,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool oneMember = false;
                                 for(int v : val) {
                                    oneMember = values.member(v);
@@ -168,7 +162,7 @@ namespace Factory {
       const int Lup = mdd.addState(d,0,x.size(),MinFun);
       const int Uup = mdd.addState(d,0,x.size(),MaxFun);
 
-      mdd.transitionDown(L,[L,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionDown(L,{L},[L,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool allMembers = true;
                                 for(int v : val) {
                                    allMembers &= values.member(v);
@@ -176,7 +170,7 @@ namespace Factory {
                                 }
                                 out.set(L,p.at(L) + allMembers);
                              });
-      mdd.transitionDown(U,[U,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionDown(U,{U},[U,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool oneMember = false;
                                 for(int v : val) {
                                    oneMember = values.member(v);
@@ -185,7 +179,7 @@ namespace Factory {
                                 out.set(U,p.at(U) + oneMember);
                              });
 
-      mdd.transitionUp(Lup,[Lup,values] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+      mdd.transitionUp(Lup,{Lup},[Lup,values] (auto& out,const auto& c,auto x, const auto& val,bool up) {
                                 bool allMembers = true;
                                 for(int v : val) {
                                    allMembers &= values.member(v);
@@ -193,7 +187,7 @@ namespace Factory {
                                 }
                                 out.set(Lup,c.at(Lup) + allMembers);
                              });
-      mdd.transitionUp(Uup,[Uup,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+      mdd.transitionUp(Uup,{Uup},[Uup,values] (auto& out,const auto& p,auto x, const auto& val,bool up) {
                                 bool oneMember = false;
                                 for(int v : val) {
                                    oneMember = values.member(v);
@@ -215,7 +209,6 @@ namespace Factory {
       // 	  return ( (n.at(L) + n.at(Lup) >= lb) &&
       // 		   (n.at(U) + n.at(Uup) <= ub));
       // 	});
-
       
       mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
 	  return -(double)(in.getState().at(U)-in.getState().at(L));

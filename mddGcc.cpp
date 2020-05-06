@@ -37,13 +37,20 @@ namespace Factory {
                           return p.at(ps[v-min]) < values[v];
                        });
 
-      lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,ps] (int i,int pi) -> lambdaTrans {
-             // LDM: TOFIX
-              if (i <= minLDom)
-                 return [=] (auto& out,const auto& p,auto x, const auto& val,bool up) { out.set(pi,p.at(pi) + ((val.singleton() - min) == i));};
-              return [=] (auto& out,const auto& p,auto x, const auto& val,bool up)    { out.set(pi,p.at(pi) + ((val.singleton() - min) == (i - dz)));};
-           });
-      spec.transitionDown(d);
+      lambdaMap d0 = toDict(minFDom,minLDom,ps,
+                            [min,ps] (int i,int pi) -> auto {
+                               return tDesc({pi},[=] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                                    out.set(pi,p.at(pi) + ((val.singleton() - min) == i));
+                                                 });
+                            });
+      spec.transitionDown(d0);
+      lambdaMap d1 = toDict(maxFDom,maxLDom,ps,
+                            [dz,min,ps] (int i,int pi) -> auto {
+                               return tDesc({pi},[=] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+                                                    out.set(pi,p.at(pi) + ((val.singleton() - min) == (i - dz)));
+                                                 });
+                            });
+      spec.transitionDown(d1);
 
       for(ORInt i = minFDom; i <= minLDom; i++){
          int p = ps[i];
@@ -117,60 +124,34 @@ namespace Factory {
       	  return (fixedValues+remainingLB<=sz);
       	});
       
-      spec.transitionDown(toDict(minFDom,minLDom, [min,ps] (int i) {
-      	    return [=](auto& out,const auto& p,auto x,const auto& val,bool up) {
-      	      int tmp = p.at(ps[i]);
-      	      if (val.isSingleton() && (val.singleton() - min) == i) tmp++;
-      	      out.set(ps[i], tmp);
-      	    }; }));
-      spec.transitionDown(toDict(maxFDom,maxLDom, [min,ps,maxFDom](int i) {
-      	    return [=](auto& out,const auto& p,auto x,const auto& val,bool up) {
-     	      out.set(ps[i], p.at(ps[i])+val.contains(i-maxFDom+min));
-      	    }; }));
+      spec.transitionDown(toDict(minFDom,minLDom,
+                                 [min,ps] (int i) {
+                                    return tDesc({ps[i]},[=](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                            int tmp = p.at(ps[i]);
+                                                            if (val.isSingleton() && (val.singleton() - min) == i) tmp++;
+                                                            out.set(ps[i], tmp);
+                                                         });
+                                 }));
+      spec.transitionDown(toDict(maxFDom,maxLDom,
+                                 [min,ps,maxFDom](int i) {
+                                    return tDesc({ps[i]},[=](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                            out.set(ps[i], p.at(ps[i])+val.contains(i-maxFDom+min));
+                                                         });
+                                 }));
 
-      spec.transitionUp(toDict(minFDomUp,minLDomUp, [min,ps,minFDomUp] (int i) {
-      	    return [=](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(toDict(minFDomUp,minLDomUp,
+                               [min,ps,minFDomUp] (int i) {
+                                  return tDesc({ps[i]},[=](auto& out,const auto& c,auto x,const auto& val,bool up) {
 	      out.set(ps[i], c.at(ps[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
-      	    }; }));
-      spec.transitionUp(toDict(maxFDomUp,maxLDomUp, [min,ps,maxFDomUp](int i) {
-      	    return [=](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                                       });
+                               }));
+      spec.transitionUp(toDict(maxFDomUp,maxLDomUp,
+                               [min,ps,maxFDomUp](int i) {
+                                  return tDesc({ps[i]},[=](auto& out,const auto& c,auto x,const auto& val,bool up) {
 	      out.set(ps[i], c.at(ps[i])+val.contains(i-maxFDomUp+min));
-      	    }; }));
+                                                       });
+                               }));
 
-      
-      // lambdaMap d = toDict(minFDom,maxLDom,ps,[dz,min,minLDom,maxFDom,ps] (int i,int pi) -> lambdaTrans {
-      // 	  if (i <= minLDom)
-      // 	    return [=] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-      // 	      out.set(pi,p.at(pi) + (val.isSingleton() && (val.singleton() - min) == i));};
-      // 	  return [=] (auto& out,const auto& p,auto x, const auto& val,bool up)    {
-      // 	    int tmp = p.at(ps[i]);
-      // 	    for(int v : val) {
-      // 	      if (i-maxFDom+min == v) {
-      // 		tmp++;
-      // 		break;
-      // 	      }
-      // 	    }
-      // 	    out.set(pi,tmp);};
-      //      });
-      // spec.transitionDown(d);
-
-      // lambdaMap dUp = toDict(minFDomUp,maxLDomUp,ps,[dz,min,minFDomUp,minLDomUp,maxFDom,ps] (int i,int pi) -> lambdaTrans {
-      // 	  if (i <= minLDomUp)
-      // 	    return [=] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-      // 	      out.set(pi,c.at(pi) + (val.isSingleton() && (i-minFDomUp+min==val.singleton())));};
-      // 	  return [=] (auto& out,const auto& c,auto x, const auto& val,bool up)    {
-      // 	    int tmp = c.at(ps[i]);
-      // 	    for(int v : val) {
-      // 	      if (i-maxFDom+min == v) {
-      // 		tmp++;
-      // 		break;
-      // 	      }
-      // 	    }
-      // 	    out.set(pi,tmp);};
-      // 	});
-      // spec.transitionUp(dUp);
-
-      
       for(ORInt i = minFDom; i <= minLDom; i++){
          int p = ps[i];
          spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});

@@ -188,7 +188,7 @@ namespace Factory {
     const int zSomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
     const int N       = mdd.addState(d,0,2,MinFun);        // layer index 
     
-    mdd.transitionDown(xSome,[xSome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(xSome,{xSome,N},[xSome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==0) {
 	  out.setProp(xSome,p);
 	  MDDBSValue sv(out.getBS(xSome));
@@ -198,7 +198,7 @@ namespace Factory {
 	else
 	  out.setProp(xSome,p);
       });
-    mdd.transitionDown(ySome,[ySome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
+    mdd.transitionDown(ySome,{ySome,N},[ySome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
 	if (p.at(N)==1) {
 	  out.setProp(ySome,p);
 	  MDDBSValue sv(out.getBS(ySome));
@@ -209,9 +209,9 @@ namespace Factory {
 	  out.setProp(ySome,p);
       });
 
-    mdd.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+    mdd.transitionDown(N,{N},[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
 
-    mdd.transitionUp(ySomeUp,[ySomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionUp(ySomeUp,{ySomeUp,N},[ySomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==2) {
 	  out.setProp(ySomeUp,c);
 	  MDDBSValue sv(out.getBS(ySomeUp));
@@ -221,7 +221,7 @@ namespace Factory {
 	else 
 	  out.setProp(ySomeUp,c);
       });
-    mdd.transitionUp(zSomeUp,[zSomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
+    mdd.transitionUp(zSomeUp,{zSomeUp,N},[zSomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
 	if (c.at(N)==3) {
 	  out.setProp(zSomeUp,c);
 	  MDDBSValue sv(out.getBS(zSomeUp));

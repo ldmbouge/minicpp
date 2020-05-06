@@ -26,12 +26,16 @@ namespace Factory {
          r[i] = clo(i);
       return r;
    }
-   inline lambdaMap toDict(int min, int max,std::vector<int>& p,std::function<lambdaTrans(int,int)> clo)
+   template <typename Fun>
+   lambdaMap toDict(int min, int max,std::vector<int>& p,Fun clo)
    {
       lambdaMap r;
       for(int i = min; i <= max; i++)
          r[p[i]] = clo(i,p[i]);
       return r;
+   }
+   inline TransDesc tDesc(std::initializer_list<int> sp,lambdaTrans f) {
+      return std::make_pair<std::set<int>,lambdaTrans>(sp,std::move(f));
    }
    void amongMDD(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub,std::set<int> rawValues);
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);

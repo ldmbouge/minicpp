@@ -44,33 +44,46 @@ namespace Factory {
       
       spec.transitionDown(toDict(ps[minFIdx],
                                  ps[minLIdx]-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) {
+                                    return tDesc({i+1},[i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                          out.set(i,p.at(i+1));
+                                                       });
+                                 }));      
       spec.transitionDown(toDict(ps[maxFIdx],
                                  ps[maxLIdx]-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
-      spec.transitionDown(ps[minLIdx],[values,minL=ps[minLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
-                                        bool allMembers = true;
-                                        for(int v : val) {
-                                           allMembers &= values.member(v);
-                                           if (!allMembers) break;
-                                        }
-                                        out.set(minL,p.at(minL)+allMembers);
-                                        //out.set(k,p.at(k)+values.member(v));
-                                     });
-      spec.transitionDown(ps[maxLIdx],[values,maxL=ps[maxLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
-                                        bool oneMember = false;
-                                        for(int v : val) {
-                                           oneMember = values.member(v);
-                                           if (oneMember) break;
-                                        }
-                                        out.set(maxL,p.at(maxL)+oneMember);
-                                        //out.set(k,p.at(k)+values.member(v));
-                                     });
+                                 [](int i) {
+                                    return tDesc({i+1},[i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                          out.set(i,p.at(i+1));
+                                                       });                                            
+                                 }));
+      
+      spec.transitionDown(ps[minLIdx],{pminL},
+                          [values,minL=ps[minLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                             bool allMembers = true;
+                             for(int v : val) {
+                                allMembers &= values.member(v);
+                                if (!allMembers) break;
+                             }
+                             out.set(minL,p.at(minL)+allMembers);
+                          });
+      spec.transitionDown(ps[maxLIdx],{ps[maxLIdx]},
+                          [values,maxL=ps[maxLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                             bool oneMember = false;
+                             for(int v : val) {
+                                oneMember = values.member(v);
+                                if (oneMember) break;
+                             }
+                             out.set(maxL,p.at(maxL)+oneMember);
+                          });
       
       for(int i = minFIdx; i <= minLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
+                                     out.set(p,std::min(l.at(p),r.at(p)));
+                                  });
       for(int i = maxFIdx; i <= maxLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
+                                     out.set(p,std::max(l.at(p),r.at(p)));
+                                  });
       
       for(auto i : ps)
          spec.addSimilarity(i,[i](auto l,auto r)->double{return abs(l.at(i)- r.at(i));});
@@ -96,11 +109,19 @@ namespace Factory {
       const int pnb  = ps[nb];
 
       spec.transitionDown(toDict(minF,minL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return tDesc({i+1},
+                                                          [i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                             out.set(i,p.at(i+1));
+                                                          });
+                                 }));
       spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i+1));};}));
+                                 [](int i) { return tDesc({i+1},
+                                                          [i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                             out.set(i,p.at(i+1));
+                                                          });
+                                 }));
 
-      spec.transitionDown(minL,[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(minL,{minL},[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool allMembers = true;
                                  for(int v : val) {
                                     allMembers &= values.member(v);
@@ -108,7 +129,7 @@ namespace Factory {
                                  }
                                  out.set(minL,p.at(minL)+allMembers);
                               });
-      spec.transitionDown(maxL,[values,maxL](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(maxL,{maxL},[values,maxL](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                  bool oneMember = false;
                                  for(int v : val) {
                                     oneMember = values.member(v);
@@ -116,7 +137,7 @@ namespace Factory {
                                  }
                                  out.set(maxL,p.at(maxL)+oneMember);
                               });
-      spec.transitionDown(pnb,[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(pnb,{pnb},[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
                                 out.setInt(pnb,p[pnb]+1);
                              });
 
@@ -134,10 +155,16 @@ namespace Factory {
                        });      
       
       for(int i = minFIdx; i <= minLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
+                                     out.set(p,std::min(l.at(p),r.at(p)));
+                                  });
       for(int i = maxFIdx; i <= maxLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) { out.set(p,std::max(l.at(p),r.at(p)));});
-      spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) { out.set(pnb,std::min(l.at(pnb),r.at(pnb)));});
+         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
+                                     out.set(p,std::max(l.at(p),r.at(p)));
+                                  });
+      spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) {
+                                out.set(pnb,std::min(l.at(pnb),r.at(pnb)));
+                             });
    }
 
    void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
@@ -190,14 +217,27 @@ namespace Factory {
       */
       // down transitions
       spec.transitionDown(toDict(AminF+1,AminL,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i-1));};}));
+                                 [](int i) { return tDesc({i-1},
+                                                          [i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                             out.set(i,p.at(i-1));
+                                                          });
+                                 }));
+      
       spec.transitionDown(toDict(AmaxF+1,AmaxL,
-                                 [](int i) { return [i](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(i,p.at(i-1));};}));
+                                 [](int i) { return tDesc({i-1},
+                                                          [i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                             out.set(i,p.at(i-1));
+                                                          });
+                                 }));
 
-      spec.transitionDown(AminF,[AminF,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(AminF,p.at(Ymin)); });
-      spec.transitionDown(AmaxF,[AmaxF,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(AmaxF,p.at(Ymax)); });
+      spec.transitionDown(AminF,{Ymin},[AminF,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                   out.set(AminF,p.at(Ymin));
+                                });
+      spec.transitionDown(AmaxF,{Ymax},[AmaxF,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                   out.set(AmaxF,p.at(Ymax));
+                                });
 
-      spec.transitionDown(Ymin,[values,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(Ymin,{Ymin},[values,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) {
           bool hasMemberOutS = val.memberOutside(values);
 	  int minVal = p.at(Ymin) + !hasMemberOutS;
 	  if (up) 
@@ -205,7 +245,7 @@ namespace Factory {
 	  out.set(Ymin,minVal);
 	});
 
-      spec.transitionDown(Ymax,[values,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(Ymax,{Ymax},[values,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) {
           bool hasMemberInS = val.memberInside(values);
 	  int maxVal = p.at(Ymax) + hasMemberInS;
 	  if (up)
@@ -213,26 +253,38 @@ namespace Factory {
 	  out.set(Ymax,maxVal);
 	});
 
-      spec.transitionDown(N,[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
-      spec.transitionDown(Exact,[Exact,values](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(N,{N},[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+      spec.transitionDown(Exact,{Exact},[Exact,values](auto& out,const auto& p,auto x,const auto& val,bool up) {
 	  out.set(Exact, (p.at(Exact)==1) && (val.memberOutside(values) != val.memberInside(values)));
-	});
+      });
 
       // up transitions
       spec.transitionUp(toDict(DminF+1,DminL,
-                               [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i-1));};}));
+                               [](int i) { return tDesc({i-1},
+                                                        [i](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                                           out.set(i,c.at(i-1));
+                                                        });
+                               }));
       spec.transitionUp(toDict(DmaxF+1,DmaxL,
-                               [](int i) { return [i](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(i,c.at(i-1));};}));
-      spec.transitionUp(DminF,[DminF,Ymin](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DminF,c.at(Ymin)); });
-      spec.transitionUp(DmaxF,[DmaxF,Ymax](auto& out,const auto& c,auto x,const auto& val,bool up) { out.set(DmaxF,c.at(Ymax)); });
+                               [](int i) { return tDesc({i-1},
+                                                        [i](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                                           out.set(i,c.at(i-1));
+                                                        });
+                               }));
+      spec.transitionUp(DminF,{Ymin},[DminF,Ymin](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                        out.set(DminF,c.at(Ymin));
+                                     });
+      spec.transitionUp(DmaxF,{Ymax},[DmaxF,Ymax](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                        out.set(DmaxF,c.at(Ymax));
+                                     });
 
-      spec.transitionUp(Ymin,[Ymin,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(Ymin,{Ymin},[Ymin,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
                                 bool hasMemberInS = val.memberInside(values);
                                 int minVal = std::max(out.at(Ymin), c.at(Ymin) - hasMemberInS);
                                 out.set(Ymin,minVal);
                              });
 
-      spec.transitionUp(Ymax,[Ymax,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(Ymax,{Ymax},[Ymax,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
                                 // std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
                                 bool hasMemberOutS = val.memberOutside(values);
                                 int maxVal = std::min(out.at(Ymax), c.at(Ymax) - !hasMemberOutS);

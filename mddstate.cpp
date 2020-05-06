@@ -176,7 +176,7 @@ void MDDSpec::updateNode(UpdateFun nf)
 {
    _updates.emplace_back(std::move(nf));
 }
-void MDDSpec::transitionDown(int p,lambdaTrans t)
+void MDDSpec::transitionDown(int p,std::set<int> sp,lambdaTrans t)
 {   
    for(auto& cd : constraints)
       if (cd->ownsProperty(p)) {
@@ -187,7 +187,7 @@ void MDDSpec::transitionDown(int p,lambdaTrans t)
       }
 }
 
-void MDDSpec::transitionUp(int p,lambdaTrans t)
+void MDDSpec::transitionUp(int p,std::set<int> sp,lambdaTrans t)
 {
    for(auto& cd : constraints)
       if (cd->ownsProperty(p)) {
@@ -210,14 +210,20 @@ void MDDSpec::addSimilarity(int p,lambdaSim s)
 
 void MDDSpec::transitionDown(const lambdaMap& map)
 {
-   for(auto& kv : map)
-      transitionDown(kv.first,kv.second);
+   for(auto& kv : map) {
+      const auto& sp = std::get<0>(kv.second);
+      const auto& f  = std::get<1>(kv.second);
+      transitionDown(kv.first,sp,f);
+   }
 }
 
 void MDDSpec::transitionUp(const lambdaMap& map)
 {
-   for(auto& kv : map)
-      transitionUp(kv.first,kv.second);
+   for(auto& kv : map) {
+      const auto& sp = std::get<0>(kv.second);
+      const auto& f  = std::get<1>(kv.second);
+      transitionUp(kv.first,sp,f);
+   }
 }
 
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
