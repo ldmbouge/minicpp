@@ -110,9 +110,11 @@ public:
       assert(n->inQueue(_dir));
       auto& tc = _queues[n->getLayer()]; // queue to clear
       auto at  = std::find(tc.begin(),tc.end(),n);
-      tc.erase(at);
+      if (at != tc.end()) {
+         tc.erase(at);
+         --_nbe;
+      }
       n->leaveQueue(_dir);
-      --_nbe;
    }
    void enQueue(MDDNode* n) {
       if (!n->inQueue(_dir)) {

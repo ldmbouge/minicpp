@@ -8,6 +8,14 @@
 
 #include "mddnode.hpp"
 
+MDDNodeFactory::MDDNodeFactory(Storage::Ptr mem,Trailer::Ptr trailer,int width)
+   : _mem(mem),_trailer(trailer),_width(width),
+     _lastID(trailer,0),
+     //_lastID(0),
+     _pool(trailer,mem,2048)
+{}
+
+
 std::ostream& operator<<(std::ostream& os,enum Direction d)
 {
    switch(d) {
@@ -36,7 +44,7 @@ MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int domSize,int layer,int l
 void MDDNodeFactory::returnNode(MDDNode* n)
 {
    _pool.push_back(n,_mem);
-   enum Direction d = n->curQueue();
+   //enum Direction d = n->curQueue();
 }
 
 MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
