@@ -25,6 +25,12 @@ void pS(const MDDState& s)
    std::cout << s << std::endl;
 }
 
+void pP(const MDDPropSet& p)
+{
+   std::cout << p << '\n';
+}
+
+
 MDD::MDD(CPSolver::Ptr cp)
 :  Constraint(cp),
    _lastNid(0),

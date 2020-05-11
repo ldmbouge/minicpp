@@ -58,6 +58,7 @@ MDDStateSpec::MDDStateSpec()
    _mxp = 4;
    _nbp = 0;
    _attrs = new MDDProperty*[_mxp];
+   _omap = nullptr;
 }
 
 void MDDStateSpec::addProperty(MDDProperty::Ptr p) noexcept
@@ -180,8 +181,11 @@ void MDDSpec::transitionDown(int p,std::set<int> sp,lambdaTrans t)
 {   
    for(auto& cd : constraints)
       if (cd->ownsProperty(p)) {
-         cd->registerDown((int)_transition.size());
+         int tid = (int)_transition.size();
+         cd->registerDown(tid);
          _attrs[p]->setDirection(Down);
+         _attrs[p]->setAntecedents(sp);
+         _attrs[p]->setDown(tid);
          _transition.emplace_back(std::move(t));
          break;
       }
@@ -191,8 +195,10 @@ void MDDSpec::transitionUp(int p,std::set<int> sp,lambdaTrans t)
 {
    for(auto& cd : constraints)
       if (cd->ownsProperty(p)) {
-         cd->registerUp((int)_uptrans.size());
+         int tid = (int)_uptrans.size();
+         cd->registerUp(tid);
          _attrs[p]->setDirection(Up);
+         _attrs[p]->setUp(tid);
          _uptrans.emplace_back(std::move(t));
          break;
       }     
@@ -246,6 +252,7 @@ void LayerDesc::zoning(const MDDSpec& spec)
 {
    zoningDown(spec);
    zoningUp(spec);
+   for(auto p : _dframe) _dprop.setProp(p);
 }
 
 void LayerDesc::zoningUp(const MDDSpec& spec)
@@ -308,9 +315,21 @@ void LayerDesc::zoningDown(const MDDSpec& spec)
    }
 }
 
-
 void MDDSpec::compile()
 {
+   _omap = new MDDPropSet[_nbp];
+   for(int i=0;i < _nbp;i++) _omap[i] = MDDPropSet(_nbp);
+   for(int p=0;p < _nbp;p++) {
+      auto& out = _omap[p];
+      for(int s=0;s < _nbp;s++) {
+         const auto& ants = _attrs[s]->antecedents();
+         if (ants.find(p)!= ants.end()) {
+            //std::cout << "add(" << s << ") to " << p << " " <<  out << '\n';
+            out.setProp(s);
+         }
+      }
+      std::cout << "omap[" << p << "] = " << out << '\n';
+   }
    const unsigned nbL = (unsigned)x.size();
    _transLayer.reserve(nbL);
    _frameLayer.reserve(nbL);
@@ -318,7 +337,7 @@ void MDDSpec::compile()
    for(auto i = 0u;i < nbL;i++) {      
       auto& layer   = _transLayer.emplace_back(std::vector<lambdaTrans>());
       auto& upLayer = _uptransLayer.emplace_back(std::vector<lambdaTrans>());
-      auto& frame   = _frameLayer.emplace_back(LayerDesc());
+      auto& frame   = _frameLayer.emplace_back(LayerDesc(_nbp));
       for(auto& c : constraints) {
          if (c->inScope(x[i]))  {
             for(auto j : c->transitions())
@@ -404,6 +423,20 @@ void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
    result.relaxDown(parent.isDownRelaxed() || v.size() > 1);
 }
 
+void MDDSpec::createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,
+                              const MDDIntSet& v,bool hasUp)
+{
+   result.clear();
+   for(auto p : out) {     
+      int tid = _frameLayer[l].hasProp(p) ? -1 : _attrs[p]->getDown();
+      if (tid != -1)
+         _transition[tid](result,parent,var,v,hasUp); // actual transition
+      else 
+         result.setProp(p,parent); // frame axiom           
+   }
+   result.relaxDown(parent.isDownRelaxed() || v.size() > 1);
+}
+
 void MDDSpec::relaxation(MDDState& a,const MDDState& b) const noexcept
 {
    for(auto p : _dRelax) {
@@ -415,6 +448,19 @@ void MDDSpec::relaxation(MDDState& a,const MDDState& b) const noexcept
    }
    for(const auto& relax : _relaxation)
       relax(a,a,b);
+}
+
+void MDDSpec::relaxationIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept
+{
+   for(auto p : out) {
+      switch(_attrs[p]->relaxFun()) {
+         case MinFun: a.minWith(p,b);break;
+         case MaxFun: a.maxWith(p,b);break;
+         case External:
+            _relaxation[_attrs[p]->getRelax()](a,a,b);
+            break;
+      }
+   }
 }
 
 void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v)

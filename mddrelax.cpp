@@ -19,6 +19,7 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance)
    _fwd = nullptr;
    _bwd = nullptr;
    _pool = new Pool;
+   _delta = nullptr;
    _nf->setWidth(width);
 }
 
@@ -49,6 +50,8 @@ void MDDRelax::buildDiagram()
    std::cout << "MDDRelax::buildDiagram" << '\n';
    _mddspec.layout();
    _mddspec.compile();
+   _delta = new MDDDelta(_nf,_mddspec.size());
+
    _fwd = new (mem) MDDFQueue(numVariables+1);
    _bwd = new (mem) MDDBQueue(numVariables+1);
    std::cout << _mddspec << '\n';
@@ -244,7 +247,7 @@ void MDDRelax::relaxLayer(int i,unsigned int width)
    MDDState acc(&_mddspec,buf);
    MDDNode* target = std::get<1>(cl[0]);
    acc.initState(target->getState());
-   for(int k=1;k < cl.size();k++) {
+   for(auto k=1u;k < cl.size();k++) {
       const auto& strip = std::get<1>(cl[k]);
       _mddspec.relaxation(acc,strip->getState());
       acc.relaxDown();
@@ -310,18 +313,56 @@ void MDDRelax::removeArc(int outL,int inL,MDDEdge* arc) // notified when arc is 
    _fwd->enQueue(arc->getChild());
 }
 
-
-bool MDDRelax::refreshNode(MDDNode* n,int l)
+bool MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l)
 {
-   if (l == 0) {
-      assert(n->getNumParents() == 0);
-      bool isOk = _mddspec.consistent(n->getState(), x[0]);
-      if (!isOk) failNow();
-      return false;
-   }
-   MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-   MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    bool first = true;
+   for(auto i = 0u;i < _width;i++) {
+      if (_src[i]==nullptr) continue;
+      auto p = _src[i];                           // this is the parent
+      assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
+      _mddspec.copyStateUp(cs,n->getState());     // grab the up information from the old state
+      _mddspec.createState(cs,p->getState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      if (first)
+         ms.copyState(cs); // install the result into an accumulator
+      else {
+         if (ms != cs) {
+            _mddspec.relaxation(ms,cs);   // compute a full scale relaxation of cs with the accumulator (ms). 
+            ms.relaxDown();               // indidcate this is a down relaxation.
+         }
+      }
+      first = false;
+   }
+   _mddspec.updateNode(ms);
+   bool isOk =  _mddspec.consistent(ms,x[l-1]);
+   return isOk;
+}
+
+bool MDDRelax::incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNode* n,int l)
+{
+   bool first = true;
+   for(auto i = 0u;i < _width;i++) {
+      if (_src[i]==nullptr) continue;
+      auto p = _src[i];                           // this is the parent
+      assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
+      cs.copyState(n->getState());       // grab the up information from the old state
+      _mddspec.createStateIncr(out,cs,p->getState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      if (first)
+         ms.copyState(cs); // install the result into an accumulator
+      else {
+         if (ms != cs) {
+            _mddspec.relaxationIncr(out,ms,cs);   // compute an incremental  relaxation of cs with the accumulator (ms). 
+            ms.relaxDown();               // indidcate this is a down relaxation.
+         } else ms.relaxDown(n->getState().isDownRelaxed());
+      }
+      first = false;
+   }
+   _mddspec.updateNode(ms);
+   bool isOk =  _mddspec.consistent(ms,x[l-1]);
+   return isOk;
+}
+   
+void MDDRelax::aggregateValueSet(MDDNode* n)
+{
    assert(n->getNumParents() > 0);
    for(auto i=0u;i < _width;i++) {
       _afp[i].clear();
@@ -333,25 +374,21 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       _afp[p->getPosition()].add(v);
       _src[p->getPosition()] = p;
    }
+}
 
-   for(auto i = 0u;i < _width;i++) {
-      if (_src[i]==nullptr) continue;
-      auto p = _src[i];      
-      assert(_afp[i].size() > 0);
-      _mddspec.copyStateUp(cs,n->getState());     
-      _mddspec.createState(cs,p->getState(),l-1,x[l-1],_afp[i],true);
-      if (first)
-         ms.copyState(cs);
-      else {
-         if (ms != cs) {
-            _mddspec.relaxation(ms,cs);
-            ms.relaxDown();
-         }
-      }
-      first = false;
+bool MDDRelax::refreshNodeFull(MDDNode* n,int l)
+{
+   if (l == 0) {
+      assert(n->getNumParents() == 0);
+      bool isOk = _mddspec.consistent(n->getState(), x[0]);
+      if (!isOk) failNow();
+      return false;
    }
-   _mddspec.updateNode(ms);
-   bool isOk =  _mddspec.consistent(ms,x[l-1]);
+   aggregateValueSet(n);
+   MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+   MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+
+   bool isOk = fullStateDown(ms,cs,n,l);
    bool internal = l > 0 && l < (int)numVariables;
    if (!internal) {
       if (!isOk) failNow();
@@ -362,8 +399,81 @@ bool MDDRelax::refreshNode(MDDNode* n,int l)
       }
    }
    bool changed = n->getState() != ms;
-   if (changed) 
-      n->setState(ms,mem);  
+   if (changed) {
+      _delta->setDelta(n,ms);
+      n->setState(ms,mem);
+   }
+   return changed;
+}
+
+bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
+{
+   if (l == 0) {
+      assert(n->getNumParents() == 0);
+      bool isOk = _mddspec.consistent(n->getState(), x[0]);
+      if (!isOk) failNow();
+      return false;
+   }
+   aggregateValueSet(n);
+   MDDPropSet changes((long long*)alloca(sizeof(long long)*propNbWords(_mddspec.size())),_mddspec.size());   
+   for(auto& a : n->getParents()) 
+      changes.unionWith(_delta->getDelta(a->getParent()));
+   const bool parentsChanged = n->parentsChanged();
+      
+   MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+   MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+
+   // static int nbTC = 0;
+   // static int nbDQ = 0;
+   // nbDQ++;
+   // nbTC += parentsChanged;
+   // if (nbDQ % 1000 == 0)
+   //    std::cout << ' ' << (double)nbTC / nbDQ << "\t " << _nf->peakNodes() << "\t " << nbDQ << '\n';
+
+   //std::cout << "STATE:" << changes <<  "\t PAR:" << (parentsChanged ? "T" : "F") << '\n';
+   // Causes of "parentsChanged":
+   // (1) arc removal, (2) arc addition to an existing parent, (3) arc addition to a new parent node.
+   // Causes of changes != empty:
+   // at least one Parent state is different.
+   MDDPropSet out((long long*)alloca(sizeof(long long)*changes.nbWords()),changes.nbProps());
+   _mddspec.outputSet(out,changes);
+
+   bool isOk;
+   if (parentsChanged)
+      isOk = fullStateDown(ms,cs,n,l);
+   else {
+      // MDDState csF(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+      // MDDState msF(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+      // bool isOkF = fullStateDown(msF,csF,n,l);
+
+      isOk = incrStateDown(out,ms,cs,n,l);
+      // if (ms != msF) {
+      //    std::cout << "Something went wrong...\n";
+      //    MDDState csA(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+      //    MDDState msA(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+      //    fullStateDown(msA,csA,n,l);
+
+      //    MDDState csD(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+      //    MDDState msD(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
+      //    incrStateDown(out,msD,csD,n,l);   
+      //    exit(1);
+      // }
+   }
+
+   bool internal = l > 0 && l < (int)numVariables;
+   if (!internal) {
+      if (!isOk) failNow();
+   } else {
+      if (!isOk) {
+         delState(n,l);
+         return true;
+      }
+   }
+   bool changed = n->getState() != ms;
+   if (changed) {
+      _delta->setDelta(n,ms);
+      n->setState(ms,mem);
+   }
    return changed;
 }
 
@@ -654,7 +764,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
          delState(n,l);
          nSim.removeMatch(n);
       } else {
-         bool refreshed = refreshNode(n,l);
+         bool refreshed = refreshNodeFull(n,l);
          filterKids(n,l);
          if (refreshed && n->isActive()) {
             for(const auto& arc : n->getParents())
@@ -757,13 +867,16 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    }
    _mddspec.updateNode(ms);
    bool dirty = (n->getState() != ms);
-   if (dirty)
+   if (dirty) {
+      _delta->setDelta(n,ms);
       n->setState(ms,mem);
+   }
    return dirty;
 }
 
 void MDDRelax::computeDown(int iter)
 {
+   //std::cout << "START:" << *_delta << '\n';
    if (true || iter <= 1) {
       int l=1;
       while (l < (int) numVariables) {
@@ -777,7 +890,7 @@ void MDDRelax::computeDown(int iter)
    }
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
-      if (node==nullptr) break;
+      if (node==nullptr) break;            
       int l = node->getLayer();
       if (l > 0 && node->getNumParents() == 0) {
          if (l == (int)numVariables) failNow();
@@ -789,12 +902,8 @@ void MDDRelax::computeDown(int iter)
          delState(node,l);
          continue;
       }
-      assert(layers[numVariables].size() == 1);
-      assert(node->isActive());
-      bool dirty = refreshNode(node,l);
-      assert(layers[numVariables].size() == 1);
+      bool dirty = refreshNodeIncr(node,l);
       filterKids(node,l);   // must filter unconditionally after a refresh since children may have changed.
-      assert(layers[numVariables].size() == 1);
       if (dirty && node->isActive()) {
          for(const auto& arc : node->getParents())
             _bwd->enQueue(arc->getParent());
@@ -802,6 +911,7 @@ void MDDRelax::computeDown(int iter)
             _fwd->enQueue(arc->getChild());
       } 
    }
+   //std::cout << "ITERATION:" << iter << '\n' << *_delta << '\n';
 }
 
 void MDDRelax::computeUp()
@@ -835,6 +945,7 @@ void MDDRelax::propagate()
          _fwd->init(); 
          _bwd->init();
          ++iterMDD;++iter;
+         _delta->clear();
          computeUp();
          computeDown(iter);
          assert(layers[numVariables].size() == 1);

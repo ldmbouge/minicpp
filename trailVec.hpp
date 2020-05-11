@@ -27,6 +27,7 @@ template <class T,typename SZT = std::size_t> class TVec {
    SZT           _sz;
    SZT          _msz;
    T*          _data;
+   int        _magic; // only to know whether the container changed (_sz up or down).
 public:
    class TVecSetter {
       Trailer::Ptr _t;
@@ -53,26 +54,29 @@ public:
       TrailEntry(U* ptr) : _at(ptr),_old(*ptr) {}
       void restore() noexcept { *_at = _old;}
    };
-   TVec() : _t(nullptr),_sz(0),_msz(0),_data(nullptr) {}
+   TVec() : _t(nullptr),_sz(0),_msz(0),_data(nullptr),_magic(0) {}
    TVec(Trailer::Ptr t,Storage::Ptr mem,SZT s)
-      : _t(t),_sz(0),_msz(s) {
+      : _t(t),_sz(0),_msz(s),_magic(t->magic()) {
       _data = new (mem) T[_msz];
    }
    TVec(TVec&& v)
       : _t(v._t),_sz(v._sz),_msz(v._msz),
-        _data(std::move(v._data))
+        _data(std::move(v._data)),
+        _magic(v._magic)
    {}
    TVec& operator=(TVec&& s) {
       _t = std::move(s._t);
       _sz = s._sz;
       _msz = s._msz;
       _data = std::move(s._data);
+      _magic = s._magic;
       return *this;
    }
    Trailer::Ptr getTrail() { return _t;}
    void clear() {
       _t->trail(new (_t) TrailEntry<SZT>(&_sz));
       _sz = 0;
+      _magic = _t->magic();
    }
    SZT size() const { return _sz;}
    void push_back(const T& p,Storage::Ptr mem) {
@@ -89,12 +93,14 @@ public:
       at(_sz,p);
       _t->trail(new (_t) TrailEntry<SZT>(&_sz));
       _sz += 1;
-       assert(_sz > 0);
+      _magic = _t->magic();
+      assert(_sz > 0);
    }
    T pop_back() {
       T rv = _data[_sz - 1];
       _t->trail(new (_t) TrailEntry<SZT>(&_sz));
       _sz -= 1;
+      _magic = _t->magic();
       return rv;
    }
    SZT remove(SZT i) {
@@ -104,6 +110,7 @@ public:
          at(i,_data[_sz - 1]);      
       _t->trail(new (_t) TrailEntry<SZT>(&_sz));
       _sz -= 1;
+      _magic = _t->magic();
       return _sz;
    }
    const T get(SZT i) const noexcept           { return _data[i];}
@@ -113,6 +120,7 @@ public:
       _t->trail(new (_t) TrailEntry<T>(_data+i));
       _data[i] = nv;
    }
+   bool changed() const noexcept { return _magic == _t->magic();}
    class iterator: public std::iterator<std::input_iterator_tag,T,long> {
       T*    _data;
       long   _num;

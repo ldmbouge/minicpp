@@ -4,6 +4,7 @@
 #include "mdd.hpp"
 #include "trailable.hpp"
 #include "mddnode.hpp"
+#include "mdddelta.hpp"
 #include <set>
 #include <tuple>
 #include <random>
@@ -158,10 +159,15 @@ class MDDRelax : public MDD {
    MDDFQueue*             _fwd;
    MDDBQueue*             _bwd;
    Pool::Ptr             _pool;
+   MDDDelta*            _delta;
    int _domMin,_domMax;
    const MDDState& pickReference(int layer,int layerSize);
    void checkGraph();
-   bool refreshNode(MDDNode* n,int l);
+   bool fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l);
+   bool incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNode* n,int l);
+   void aggregateValueSet(MDDNode* n);
+   bool refreshNodeIncr(MDDNode* n,int l);
+   bool refreshNodeFull(MDDNode* n,int l);
    bool trimVariable(int i);
    bool filterKids(MDDNode* n,int l);
    int split(TVec<MDDNode*>& layer,int l); // delta is essentially an out argument. 

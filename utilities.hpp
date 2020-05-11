@@ -92,4 +92,80 @@ public:
    }
 };
 
+inline short propNbWords(short nb) { return (nb >> 6) + (((nb & 63) != 0) ? 1 : 0);}
+
+class MDDPropSet {
+   short    _mxw;
+   short    _nbp;
+   long long* _t;
+public:
+   MDDPropSet() : _mxw(0),_nbp(0),_t(nullptr) {}
+   MDDPropSet(int nb) {
+      _mxw = (nb >> 6) + (((nb & 63) != 0) ? 1 : 0);
+      _nbp = nb;
+      _t   = new long long[_mxw];
+      for(int i=0;i<_mxw;i++) _t[i]=0;
+   }
+   MDDPropSet(long long* buf,int nb) {
+      _mxw = (nb >> 6) + (((nb & 63) != 0) ? 1 : 0);
+      _nbp = nb;
+      _t   = buf;
+      for(int i=0;i<_mxw;i++) _t[i]=0;
+   }
+   short nbWords() const noexcept { return _mxw;}
+   short nbProps() const noexcept { return _nbp;}
+   void clear() noexcept {
+      for(short i=0;i < _mxw;i++)
+         _t[i] = 0;
+   }
+   short size() const noexcept {
+      short ttl = 0;
+      for(short i=0;i < _mxw;++i)
+         ttl += __builtin_popcountl(_t[i]);
+      return ttl;
+   }
+   void setProp(int p) noexcept       { _t[p >> 6] |= (1ull << (p & 63));}
+   bool hasProp(int p) const noexcept { return (_t[p >> 6] &  (1ull << (p & 63))) != 0;}
+   void unionWith(const MDDPropSet& ps) noexcept {
+      for(short i=0;i < _mxw;i++)
+         _t[i] |= ps._t[i];
+   }
+   void interWith(const MDDPropSet& ps) noexcept {
+      for(short i=0;i < _mxw;i++)
+         _t[i] &= ps._t[i];
+   }
+   class iterator : public std::iterator<std::input_iterator_tag,short,short> {
+      long long* _t;
+      const short _nbw;
+      short _cwi;    // current word index
+      long long _cw; // current word
+      iterator(long long* t,short nbw,short at)
+         : _t(t),_nbw(nbw),_cwi(at),_cw((at < nbw) ? t[at] : 0) {
+         while (_cw == 0 && ++_cwi < _nbw) 
+            _cw = _t[_cwi];         
+      }
+      iterator(long long* t,short nbw) : _t(t),_nbw(nbw),_cwi(nbw),_cw(0) {} // end constructor
+   public:
+      iterator& operator++()  noexcept {
+         long long test = _cw & -_cw;  // only leaves LSB at 1
+         _cw ^= test;                  // clear LSB
+         while (_cw == 0 && ++_cwi < _nbw)  // all bits at zero-> done with this word.            
+            _cw = _t[_cwi];        
+         return *this;
+      }
+      iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
+      bool operator==(iterator other) const {return _cwi == other._cwi && _cw == other._cw;}
+      bool operator!=(iterator other) const {return !(*this == other);}
+      short operator*() const   { return (_cwi<<6) + __builtin_ctzl(_cw);}
+      friend class MDDPropSet;
+   };
+   iterator begin() const { return iterator(_t,_mxw,0);}
+   iterator end()   const { return iterator(_t,_mxw);}
+   friend std::ostream& operator<<(std::ostream& os,const MDDPropSet& ps) {
+      os << '[' << ps.size() << ']' << '{';
+      for(short i : ps) os << i << ' ';
+      return os << '}';
+   }
+};
+
 #endif /* utilities_h */

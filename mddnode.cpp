@@ -7,11 +7,12 @@
 //
 
 #include "mddnode.hpp"
+#include <algorithm>
 
 MDDNodeFactory::MDDNodeFactory(Storage::Ptr mem,Trailer::Ptr trailer,int width)
    : _mem(mem),_trailer(trailer),_width(width),
      _lastID(trailer,0),
-     //_lastID(0),
+     _peakID(0),
      _pool(trailer,mem,2048)
 {}
 
@@ -37,6 +38,8 @@ MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int domSize,int layer,int l
       return n;
    } else {
       MDDNode* retVal = new (_mem) MDDNode(_lastID++,_mem,_trailer,ms.clone(_mem),domSize,layer,layerSize);
+      _peakID = std::max(_peakID,_lastID.value());
+      //std::cout  << "#Nodes: " << _peakID << '\n';
       return retVal;
    }
 }
@@ -44,7 +47,6 @@ MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int domSize,int layer,int l
 void MDDNodeFactory::returnNode(MDDNode* n)
 {
    _pool.push_back(n,_mem);
-   //enum Direction d = n->curQueue();
 }
 
 MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,

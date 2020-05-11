@@ -121,6 +121,8 @@ public:
    void print(std::ostream& os) {
       os << "L[" << layer << "," << pos <<  "] " << state;
    }
+   bool parentsChanged() const noexcept { return parents.changed();}
+   bool childrenChanged() const noexcept { return children.changed();}
 private:   
    int pos;
    int _nid;
@@ -139,6 +141,7 @@ class MDDNodeFactory {
    Trailer::Ptr   _trailer;
    int              _width;
    trail<int>      _lastID;
+   int             _peakID;
    //int _lastID;
    TVec<MDDNode*> _pool;
 public:
@@ -146,6 +149,8 @@ public:
    void setWidth(int w) noexcept { _width = w;}
    MDDNode* makeNode(const MDDState& ms,int domSize,int layer,int layerSize);
    void returnNode(MDDNode* n);
+   int nbNodes() const noexcept { return _lastID;}
+   int peakNodes() const noexcept { return _peakID;}
 };
 
 inline void MDDEdge::moveTo(MDDNode* n,Trailer::Ptr t,Storage::Ptr mem) 

@@ -16,7 +16,7 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")
 
 include_directories(.)
-add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp
+add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp
 	mddAlldiff.cpp mddAmong.cpp mddGcc.cpp mddSeq.cpp mddSum.cpp
 	store.cpp bitset.cpp table.cpp
 	acstr.cpp domain.cpp mddnode.cpp constraint.cpp     
