@@ -35,8 +35,9 @@ template <typename T> class CQueue  {
    int _enter;
    int _exit;
    int _mask;
-   int _nbs;
    int _mxSeg;
+   int _nbs;
+   int _cnt;
    Location<T>*  _locs;
    Location<T>** _vlocs;
    Location<T>** _data;
@@ -58,7 +59,7 @@ template <typename T> class CQueue  {
       }
       delete[]_data;
       if (_nbs >= _mxSeg) {
-         Location** nvl = new Location<T>*[_mxSeg << 1];
+         Location<T>** nvl = new Location<T>*[_mxSeg << 1];
          for(int i=0;i < _mxSeg;++i) nvl[i] = _vlocs[i];
          delete[]_vlocs;
          _vlocs = nvl;
@@ -77,10 +78,11 @@ public:
       _vlocs = new Location<T>*[_mxSeg];
       _data = new Location<T>*[_mxs];
       _vlocs[0] = _locs;
-      for(auto i=0u;i < _mxs;++i)
+      for(auto i=0;i < _mxs;++i)
          _data[i] = _locs+i;
       _mask = _mxs - 1;
       _enter = _exit = 0;
+      _cnt = 0;
    }
    ~CQueue() {
       for(int i=0u;i < _nbs;++i)
@@ -88,35 +90,41 @@ public:
       delete[]_vlocs;
       delete[]_data;
    }
-   void clear() noexcept { _enter = _exit = 0;}
+   void clear() noexcept { _enter = _exit = 0;_cnt=0;}
    bool empty() const noexcept { return _enter == _exit;}
-   const Location<T>* enQueue(const T& v) {
+   Location<T>* enQueue(const T& v) {
       int nb = (_mxs + _enter - _exit) & _mask;
       if (nb == _mxs - 1) resize();
       Location<T>* at = _data[_enter];
       at->_val = v;
       at->_pos = _enter;
       _enter = (_enter + 1) & _mask;
+      ++_cnt;
       return at;
    }
    T deQueue() {
       if (_enter != _exit) {
          T rv = _data[_exit]->_val;
          _exit = (_exit + 1) & _mask;
+         --_cnt;
+         assert(_cnt >=0);
          return rv;
       } else return T();
    }
-   void retract(const T& val) {
+   bool retract(const T& val) {
+      assert(_cnt > 0);
       int cur = _exit;
       do {
          if (_data[cur]->_val == val) {
             retract(_data[cur]);
-            return;
+            return true;
          }
          cur = (cur + 1) & _mask;
-      } while (cur != _enter);      
+      } while (cur != _enter);
+      return false;
    }
-   void retract(const Location<T>* loc) {
+   void retract(Location<T>* loc) {
+      assert(_cnt > 0);
       int at = loc->_pos;
       if (at == _exit)
          _exit = (_exit + 1) & _mask;
@@ -127,6 +135,9 @@ public:
          _data[at]->_pos = at;
          _exit = (_exit + 1) & _mask;
       }
+      loc->_val = T();
+      --_cnt;
+      assert(_cnt>=0);
    }
 };
 

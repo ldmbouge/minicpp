@@ -146,7 +146,7 @@ void MDDSpec::updateNode(MDDState& a) const noexcept
       fun(a);
 }
 
-bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept
+bool MDDSpec::exist(const MDDState& a,const MDDState& c,const var<int>::Ptr& x,int v,bool up) const noexcept
 {
    bool arcOk = true;
    for(auto& exist : _scopedExists[x->getId()]) {
@@ -155,7 +155,7 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bo
    }
    return arcOk;
 }
-bool MDDSpec::consistent(const MDDState& a,var<int>::Ptr x) const noexcept
+bool MDDSpec::consistent(const MDDState& a,const var<int>::Ptr& x) const noexcept
 {
    bool cons = true;
    for(auto& consFun : _scopedConsistent[x->getId()]) {
@@ -413,7 +413,7 @@ void MDDSpec::copyStateUp(MDDState& result,const MDDState& source)
 
 extern int nbCS = 0;
 
-void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool hasUp)
+void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
 {
    nbCS++;
    result.clear();
@@ -423,7 +423,7 @@ void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,var
    result.relaxDown(parent.isDownRelaxed() || v.size() > 1);
 }
 
-void MDDSpec::createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,
+void MDDSpec::createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,
                               const MDDIntSet& v,bool hasUp)
 {
    result.clear();
@@ -463,7 +463,7 @@ void MDDSpec::relaxationIncr(const MDDPropSet& out,MDDState& a,const MDDState& b
    }
 }
 
-void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v)
+void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
    for(const auto& t : _uptransLayer[l])
       t(target,source,var,v,true);

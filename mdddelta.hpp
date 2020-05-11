@@ -29,6 +29,7 @@ public:
    operator const MDDPropSet&() const { return _set;}
    void clear() noexcept { _set.clear();}
    short size() const noexcept { return _set.size();}
+   void add(const MDDPropSet& ps) { _set.unionWith(ps);}
    friend std::ostream& operator<<(std::ostream& os,const MDDStateDelta& sd) {
       return os << sd._set;
    }
@@ -65,6 +66,10 @@ public:
    void setDelta(MDDNode* n,const MDDState& ns) {      
       auto entry = makeDelta(n);
       n->getState().diffWith(ns,*entry);
+   }
+   void setDelta(MDDNode* n,const MDDPropSet& ps) {
+      auto entry = makeDelta(n);
+      entry->add(ps);
    }
    const MDDStateDelta& getDelta(MDDNode* n) {
       if (n->getId() >= _csz)

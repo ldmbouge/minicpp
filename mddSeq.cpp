@@ -35,7 +35,7 @@ namespace Factory {
       const int pmaxF = ps[maxFIdx];
       const int pmin = ps[minFIdx];
       const int pmax = ps[maxLIdx];
-      spec.arcExist(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
+      spec.arcExist(desc,[=] (const auto& p,const auto& c,const auto& x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           int minv = p.at(pmax) - p.at(pmin) + inS;
                           return (p.at(p0) < 0 &&  minv >= lb && p.at(pminL) + inS               <= ub)
@@ -45,20 +45,20 @@ namespace Factory {
       spec.transitionDown(toDict(ps[minFIdx],
                                  ps[minLIdx]-1,
                                  [](int i) {
-                                    return tDesc({i+1},[i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                    return tDesc({i+1},[i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                                           out.set(i,p.at(i+1));
                                                        });
                                  }));      
       spec.transitionDown(toDict(ps[maxFIdx],
                                  ps[maxLIdx]-1,
                                  [](int i) {
-                                    return tDesc({i+1},[i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                    return tDesc({i+1},[i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                                           out.set(i,p.at(i+1));
                                                        });                                            
                                  }));
       
       spec.transitionDown(ps[minLIdx],{pminL},
-                          [values,minL=ps[minLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                          [values,minL=ps[minLIdx]](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                              bool allMembers = true;
                              for(int v : val) {
                                 allMembers &= values.member(v);
@@ -67,7 +67,7 @@ namespace Factory {
                              out.set(minL,p.at(minL)+allMembers);
                           });
       spec.transitionDown(ps[maxLIdx],{ps[maxLIdx]},
-                          [values,maxL=ps[maxLIdx]](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                          [values,maxL=ps[maxLIdx]](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                              bool oneMember = false;
                              for(int v : val) {
                                 oneMember = values.member(v);
@@ -110,18 +110,18 @@ namespace Factory {
 
       spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) { return tDesc({i+1},
-                                                          [i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                          [i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                                              out.set(i,p.at(i+1));
                                                           });
                                  }));
       spec.transitionDown(toDict(maxF,maxL-1,
                                  [](int i) { return tDesc({i+1},
-                                                          [i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                          [i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                                              out.set(i,p.at(i+1));
                                                           });
                                  }));
 
-      spec.transitionDown(minL,{minL},[values,minL](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(minL,{minL},[values,minL](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                  bool allMembers = true;
                                  for(int v : val) {
                                     allMembers &= values.member(v);
@@ -129,7 +129,7 @@ namespace Factory {
                                  }
                                  out.set(minL,p.at(minL)+allMembers);
                               });
-      spec.transitionDown(maxL,{maxL},[values,maxL](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(maxL,{maxL},[values,maxL](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                  bool oneMember = false;
                                  for(int v : val) {
                                     oneMember = values.member(v);
@@ -137,11 +137,11 @@ namespace Factory {
                                  }
                                  out.set(maxL,p.at(maxL)+oneMember);
                               });
-      spec.transitionDown(pnb,{pnb},[pnb](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(pnb,{pnb},[pnb](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                 out.setInt(pnb,p[pnb]+1);
                              });
 
-      spec.arcExist(desc,[=] (const auto& p,const auto& c,auto x,int v,bool) -> bool {
+      spec.arcExist(desc,[=] (const auto& p,const auto& c,const auto& x,int v,bool) -> bool {
                           bool inS = values.member(v);
                           if (p.at(pnb) >= len - 1) {
                              bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
@@ -208,7 +208,7 @@ namespace Factory {
       const int Exact = ps[ExactIdx];
 
       /*
-      spec.transitionDown(Amin,[](auto& out,const auto& p,auto x,const auto&val, bool up) {
+      spec.transitionDown(Amin,[](auto& out,const auto& p,const auto& x,const auto&val, bool up) {
                                   MDDWindow ow = out.getWin(Amin);
                                   //ow = p.getWin(Amin) >> 1;
                                   ow.setWithShift(p.getWin(Amin),1);
@@ -218,26 +218,26 @@ namespace Factory {
       // down transitions
       spec.transitionDown(toDict(AminF+1,AminL,
                                  [](int i) { return tDesc({i-1},
-                                                          [i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                          [i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                                              out.set(i,p.at(i-1));
                                                           });
                                  }));
       
       spec.transitionDown(toDict(AmaxF+1,AmaxL,
                                  [](int i) { return tDesc({i-1},
-                                                          [i](auto& out,const auto& p,auto x,const auto& val,bool up) {
+                                                          [i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                                              out.set(i,p.at(i-1));
                                                           });
                                  }));
 
-      spec.transitionDown(AminF,{Ymin},[AminF,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(AminF,{Ymin},[AminF,Ymin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                    out.set(AminF,p.at(Ymin));
                                 });
-      spec.transitionDown(AmaxF,{Ymax},[AmaxF,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(AmaxF,{Ymax},[AmaxF,Ymax](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                    out.set(AmaxF,p.at(Ymax));
                                 });
 
-      spec.transitionDown(Ymin,{Ymin},[values,Ymin](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(Ymin,{Ymin},[values,Ymin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
           bool hasMemberOutS = val.memberOutside(values);
 	  int minVal = p.at(Ymin) + !hasMemberOutS;
 	  if (up) 
@@ -245,7 +245,7 @@ namespace Factory {
 	  out.set(Ymin,minVal);
 	});
 
-      spec.transitionDown(Ymax,{Ymax},[values,Ymax](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(Ymax,{Ymax},[values,Ymax](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
           bool hasMemberInS = val.memberInside(values);
 	  int maxVal = p.at(Ymax) + hasMemberInS;
 	  if (up)
@@ -253,38 +253,38 @@ namespace Factory {
 	  out.set(Ymax,maxVal);
 	});
 
-      spec.transitionDown(N,{N},[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
-      spec.transitionDown(Exact,{Exact},[Exact,values](auto& out,const auto& p,auto x,const auto& val,bool up) {
+      spec.transitionDown(N,{N},[N](auto& out,const auto& p,const auto& x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+      spec.transitionDown(Exact,{Exact},[Exact,values](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
 	  out.set(Exact, (p.at(Exact)==1) && (val.memberOutside(values) != val.memberInside(values)));
       });
 
       // up transitions
       spec.transitionUp(toDict(DminF+1,DminL,
                                [](int i) { return tDesc({i-1},
-                                                        [i](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                                        [i](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
                                                            out.set(i,c.at(i-1));
                                                         });
                                }));
       spec.transitionUp(toDict(DmaxF+1,DmaxL,
                                [](int i) { return tDesc({i-1},
-                                                        [i](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                                        [i](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
                                                            out.set(i,c.at(i-1));
                                                         });
                                }));
-      spec.transitionUp(DminF,{Ymin},[DminF,Ymin](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(DminF,{Ymin},[DminF,Ymin](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
                                         out.set(DminF,c.at(Ymin));
                                      });
-      spec.transitionUp(DmaxF,{Ymax},[DmaxF,Ymax](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(DmaxF,{Ymax},[DmaxF,Ymax](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
                                         out.set(DmaxF,c.at(Ymax));
                                      });
 
-      spec.transitionUp(Ymin,{Ymin},[Ymin,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(Ymin,{Ymin},[Ymin,values](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
                                 bool hasMemberInS = val.memberInside(values);
                                 int minVal = std::max(out.at(Ymin), c.at(Ymin) - hasMemberInS);
                                 out.set(Ymin,minVal);
                              });
 
-      spec.transitionUp(Ymax,{Ymax},[Ymax,values](auto& out,const auto& c,auto x,const auto& val,bool up) {
+      spec.transitionUp(Ymax,{Ymax},[Ymax,values](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
                                 // std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
                                 bool hasMemberOutS = val.memberOutside(values);
                                 int maxVal = std::min(out.at(Ymax), c.at(Ymax) - !hasMemberOutS);
@@ -315,7 +315,7 @@ namespace Factory {
 	});
       
       // arc definitions
-      spec.arcExist(desc,[=] (const auto& p,const auto& c,auto x,int v,bool up) -> bool {
+      spec.arcExist(desc,[=] (const auto& p,const auto& c,const auto& x,int v,bool up) -> bool {
                             bool c0 = true,c1 = true,inS = values.member(v);
                             if (up) { // during the initial post, I do test arc existence and up isn't there yet.
                                c0 = (p.at(Ymin) + inS <= c.at(Ymax));

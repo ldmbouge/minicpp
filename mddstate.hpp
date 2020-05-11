@@ -136,10 +136,10 @@ enum RelaxWith { External, MinFun,MaxFun};
 class MDDState;
 class MDDNode;
 typedef std::function<bool(const MDDState&)> NodeFun;
-typedef std::function<bool(const MDDState&,const MDDState&,var<int>::Ptr,int,bool)> ArcFun;
+typedef std::function<bool(const MDDState&,const MDDState&,const var<int>::Ptr&,int,bool)> ArcFun;
 typedef std::function<void(const MDDState&)> FixFun;
 typedef std::function<void(MDDState&)> UpdateFun;
-typedef std::function<void(MDDState&,const MDDState&, var<int>::Ptr,const MDDIntSet&,bool)> lambdaTrans;
+typedef std::function<void(MDDState&,const MDDState&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
@@ -194,7 +194,7 @@ public:
    void registerUp(int t)         { _utid.emplace_back(t);}
    void registerRelaxation(int t) { _rid.emplace_back(t);}
    void registerSimilarity(int t) { _sid.emplace_back(t);}
-   bool inScope(var<int>::Ptr x) const noexcept { return _vset.member(x->getId());}
+   bool inScope(const var<int>::Ptr& x) const noexcept { return _vset.member(x->getId());}
    const Factory::Veci& vars() const { return _vars;}
    std::vector<int>& properties() { return _properties;}
    auto begin() { return _properties.begin();}
@@ -772,13 +772,13 @@ public:
    void splitOnLargest(SplitFun onSplit);
    // Internal methods.
    void varOrder() override;
-   bool consistent(const MDDState& a,var<int>::Ptr x) const noexcept;
+   bool consistent(const MDDState& a,const var<int>::Ptr& x) const noexcept;
    void updateNode(MDDState& a) const noexcept;
-   bool exist(const MDDState& a,const MDDState& c,var<int>::Ptr x,int v,bool up) const noexcept;
+   bool exist(const MDDState& a,const MDDState& c,const var<int>::Ptr& x,int v,bool up) const noexcept;
    void copyStateUp(MDDState& result,const MDDState& source);
-   void createState(MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool up);
-   void createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parent,unsigned l,var<int>::Ptr var,const MDDIntSet& v,bool hasUp);
-   void updateState(MDDState& target,const MDDState& source,unsigned l,var<int>::Ptr var,const MDDIntSet& v);
+   void createState(MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
+   void createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
+   void updateState(MDDState& target,const MDDState& source,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
    void relaxation(MDDState& a,const MDDState& b) const noexcept;
    void relaxationIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
    MDDState rootState(Storage::Ptr& mem);

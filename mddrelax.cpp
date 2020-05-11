@@ -272,8 +272,10 @@ void MDDRelax::postUp()
          for(auto& n : layers[i]) {
             bool dirty = processNodeUp(n,i);
             if (dirty) {
-               for(const auto& pa  : n->getParents())
-                  _bwd->enQueue(pa->getParent());
+               if (_mddspec.usesUp()) {
+                  for(const auto& pa  : n->getParents())
+                     _bwd->enQueue(pa->getParent());
+               }
                for(const auto& arc : n->getChildren())
                   _fwd->enQueue(arc->getChild());
             }
@@ -309,7 +311,8 @@ void MDDRelax::trimLayer(unsigned int layer)
 void MDDRelax::removeArc(int outL,int inL,MDDEdge* arc) // notified when arc is deleted.
 {
    assert(outL + 1 == inL);
-   _bwd->enQueue(arc->getParent());
+   if (_mddspec.usesUp())
+      _bwd->enQueue(arc->getParent());
    _fwd->enQueue(arc->getChild());
 }
 
@@ -439,26 +442,10 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    _mddspec.outputSet(out,changes);
 
    bool isOk;
-   if (parentsChanged)
+   if (parentsChanged) 
       isOk = fullStateDown(ms,cs,n,l);
-   else {
-      // MDDState csF(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-      // MDDState msF(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-      // bool isOkF = fullStateDown(msF,csF,n,l);
-
-      isOk = incrStateDown(out,ms,cs,n,l);
-      // if (ms != msF) {
-      //    std::cout << "Something went wrong...\n";
-      //    MDDState csA(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-      //    MDDState msA(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-      //    fullStateDown(msA,csA,n,l);
-
-      //    MDDState csD(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-      //    MDDState msD(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
-      //    incrStateDown(out,msD,csD,n,l);   
-      //    exit(1);
-      // }
-   }
+   else 
+      isOk = incrStateDown(out,ms,cs,n,l);   
 
    bool internal = l > 0 && l < (int)numVariables;
    if (!internal) {
@@ -470,9 +457,16 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
       }
    }
    bool changed = n->getState() != ms;
-   if (changed) {
-      _delta->setDelta(n,ms);
-      n->setState(ms,mem);
+   if (parentsChanged) {
+      if (changed) {
+         _delta->setDelta(n,ms);
+         n->setState(ms,mem);
+      }
+   } else {
+      if (changed) {
+         _delta->setDelta(n,out);
+         n->setState(ms,mem);
+      }
    }
    return changed;
 }
@@ -692,7 +686,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
       //assert(n->getNumParents() > 0);
       assert(n->getState().isRelaxed());
       splitter.clear();
-      const int nbParents = n->getNumParents();
+      const int nbParents = (int) n->getNumParents();
       for(auto pit = n->getParents().rbegin(); pit != n->getParents().rend();pit++) {
          auto a = *pit;                // a is the arc p --(v)--> n
          auto p = a->getParent();      // p is the parent
@@ -706,7 +700,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
             delSupport(l-1,v);
             removeArc(l-1,l,a.get());
-            _bwd->enQueue(p);
+            if (_mddspec.usesUp()) _bwd->enQueue(p);
             if (lowest < l) return lowest;
             continue;
          }
@@ -731,7 +725,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
                delSupport(l-1,v);
                removeArc(l-1,l,a.get());
-               _bwd->enQueue(p);
+               if (_mddspec.usesUp()) _bwd->enQueue(p);
                if (lowest < l) return lowest;
             } else {
                int reuse = splitter.hasState(ms);
@@ -755,7 +749,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                                 _fwd->enQueue(ca->getChild());
                              }
                           }
-                          _bwd->enQueue(nc);
+                          if (_mddspec.usesUp()) _bwd->enQueue(nc);
                           nSim.insert(nc);
                           return nc;
                        });
@@ -767,8 +761,10 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
          bool refreshed = refreshNodeFull(n,l);
          filterKids(n,l);
          if (refreshed && n->isActive()) {
-            for(const auto& arc : n->getParents())
-               _bwd->enQueue(arc->getParent());
+            if (_mddspec.usesUp()) {
+               for(const auto& arc : n->getParents())
+                  _bwd->enQueue(arc->getParent());
+            }
             for(const auto& arc : n->getChildren())
                _fwd->enQueue(arc->getChild());
          }
@@ -868,7 +864,7 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    _mddspec.updateNode(ms);
    bool dirty = (n->getState() != ms);
    if (dirty) {
-      _delta->setDelta(n,ms);
+      //_delta->setDelta(n,ms);
       n->setState(ms,mem);
    }
    return dirty;
@@ -905,8 +901,10 @@ void MDDRelax::computeDown(int iter)
       bool dirty = refreshNodeIncr(node,l);
       filterKids(node,l);   // must filter unconditionally after a refresh since children may have changed.
       if (dirty && node->isActive()) {
-         for(const auto& arc : node->getParents())
-            _bwd->enQueue(arc->getParent());
+         if (_mddspec.usesUp()) {
+            for(const auto& arc : node->getParents())
+               _bwd->enQueue(arc->getParent());
+         }
          for(const auto& arc : node->getChildren())
             _fwd->enQueue(arc->getChild());
       } 
@@ -923,8 +921,10 @@ void MDDRelax::computeUp()
          bool dirty = processNodeUp(n,n->getLayer());
          filterKids(n,n->getLayer());
          if (dirty && n->isActive()) {
-            for(const auto& pa  : n->getParents())
-               _bwd->enQueue(pa->getParent());
+            if (_mddspec.usesUp()) {
+               for(const auto& pa  : n->getParents())
+                  _bwd->enQueue(pa->getParent());
+            }
             for(const auto& arc : n->getChildren())
                _fwd->enQueue(arc->getChild());
          }

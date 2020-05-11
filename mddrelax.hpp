@@ -5,6 +5,7 @@
 #include "trailable.hpp"
 #include "mddnode.hpp"
 #include "mdddelta.hpp"
+#include "queue.hpp"
 #include <set>
 #include <tuple>
 #include <random>
@@ -87,7 +88,7 @@ struct MDDNodePtrOrder {
 
 
 template <class op> class MDDQueue {
-   std::deque<MDDNode*>* _queues;
+   CQueue<MDDNode*>* _queues;
    int _nbq;
    int _nbe;
    int _cl;
@@ -97,7 +98,7 @@ public:
    MDDQueue(int nb) : _nbq(nb),_nbe(0),_cl(0) {
       _init = std::is_same<op,std::plus<int>>::value ? 0 : _nbq - 1;
       _dir  = std::is_same<op,std::plus<int>>::value ? Down : Up;
-      _queues = new std::deque<MDDNode*>[_nbq];
+      _queues = new CQueue<MDDNode*>[_nbq];
    }
    ~MDDQueue()  { delete []_queues;}
    void clear() {
@@ -105,21 +106,24 @@ public:
          _queues[i].clear();
       _nbe = 0;
    }
-   void init() noexcept { _cl = _init;}
+   void init() noexcept  { _cl = _init;}
    bool empty() const    { return _nbe == 0;}
    void retract(MDDNode* n) {
       assert(n->inQueue(_dir));
       auto& tc = _queues[n->getLayer()]; // queue to clear
-      auto at  = std::find(tc.begin(),tc.end(),n);
-      if (at != tc.end()) {
-         tc.erase(at);
-         --_nbe;
-      }
+      if (std::is_same<op,std::plus<int>>::value)
+         tc.retract(n->_fq);
+      else
+         tc.retract(n->_bq);
+      --_nbe;
       n->leaveQueue(_dir);
    }
    void enQueue(MDDNode* n) {
       if (!n->inQueue(_dir)) {
-         _queues[n->getLayer()].emplace_back(n);
+         Location<MDDNode*>* lq = _queues[n->getLayer()].enQueue(n);
+         if (std::is_same<op,std::plus<int>>::value)
+            n->_fq = lq;
+         else n->_bq = lq;
          assert(n->inQueue(_dir) == false);
          n->enterQueue(_dir);
          _nbe += 1;
@@ -129,13 +133,12 @@ public:
       op opName;
       MDDNode* rv = nullptr;
       do {
-         while (_cl >= 0 && _cl < _nbq && _queues[_cl].size() == 0)
+         while (_cl >= 0 && _cl < _nbq && _queues[_cl].empty())
             _cl = opName(_cl,1);
          if (_cl < 0 || _cl >= _nbq) {
             return nullptr;
          }
-         rv = _queues[_cl].front();
-         _queues[_cl].pop_front();
+         rv = _queues[_cl].deQueue();
          if (rv)
             rv->leaveQueue(_dir);
          _nbe -= 1;

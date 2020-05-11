@@ -13,6 +13,7 @@
 #include "mdd.hpp"
 #include "trailable.hpp"
 #include "trailVec.hpp"
+#include "queue.hpp"
 
 class MDDNode;
 
@@ -123,6 +124,7 @@ public:
    }
    bool parentsChanged() const noexcept { return parents.changed();}
    bool childrenChanged() const noexcept { return children.changed();}
+   Location<MDDNode*> *_fq, *_bq;
 private:   
    int pos;
    int _nid;

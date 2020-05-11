@@ -32,26 +32,26 @@ namespace Factory {
       const int allu = mdd.addBSState(d,udom.second - udom.first + 1,0);
       const int someu = mdd.addBSState(d,udom.second - udom.first + 1,0);
       
-      mdd.transitionDown(all,{all},[minDom,all](auto& out,const auto& in,auto var,const auto& val,bool up) {
+      mdd.transitionDown(all,{all},[minDom,all](auto& out,const auto& in,const auto& var,const auto& val,bool up) {
                                out.setProp(all,in);
                                if (val.size()==1)
                                   out.getBS(all).set(val.singleton() - minDom);
                                //out.setBS(all,in.getBS(all)).set(val - minDom);
                             });
-      mdd.transitionDown(some,{some},[minDom,some](auto& out,const auto& in,auto var,const auto& val,bool up) {
+      mdd.transitionDown(some,{some},[minDom,some](auto& out,const auto& in,const auto& var,const auto& val,bool up) {
                                 out.setProp(some,in);
                                 MDDBSValue sv(out.getBS(some));
                                 for(auto v : val)
                                    sv.set(v - minDom);
                                 //out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
-      mdd.transitionDown(len,{len},[len](auto& out,const auto& in,auto var,const auto& val,bool up) { out.set(len,in[len] + 1);});
-      mdd.transitionUp(allu,{allu},[minDom,allu](auto& out,const auto& in,auto var,const auto& val,bool up) {
+      mdd.transitionDown(len,{len},[len](auto& out,const auto& in,const auto& var,const auto& val,bool up) { out.set(len,in[len] + 1);});
+      mdd.transitionUp(allu,{allu},[minDom,allu](auto& out,const auto& in,const auto& var,const auto& val,bool up) {
                                out.setProp(allu,in);
                                if (val.size()==1)
                                   out.getBS(allu).set(val.singleton() - minDom);
                             });
-      mdd.transitionUp(someu,{someu},[minDom,someu](auto& out,const auto& in,auto var,const auto& val,bool up) {
+      mdd.transitionUp(someu,{someu},[minDom,someu](auto& out,const auto& in,const auto& var,const auto& val,bool up) {
                                 out.setProp(someu,in);
                                 MDDBSValue sv(out.getBS(someu));
                                 for(auto v : val)
@@ -72,7 +72,7 @@ namespace Factory {
                                 out.getBS(someu).setBinOR(l.getBS(someu),r.getBS(someu));
                             });
 
-      mdd.arcExist(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,auto var,const auto& val,bool up) -> bool  {
+      mdd.arcExist(d,[minDom,some,all,len,someu,allu,n](const auto& p,const auto& c,const auto& var,const auto& val,bool up) -> bool  {
                       MDDBSValue sbs = p.getBS(some);
                       const int ofs = val - minDom;
                       const bool notOk = p.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == p[len]);
