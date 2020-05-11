@@ -444,8 +444,10 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    bool isOk;
    if (parentsChanged) 
       isOk = fullStateDown(ms,cs,n,l);
-   else 
-      isOk = incrStateDown(out,ms,cs,n,l);   
+   else  {
+      //std::cout << "PROPS:" << out << '\n';
+      isOk = incrStateDown(out,ms,cs,n,l);
+   }
 
    bool internal = l > 0 && l < (int)numVariables;
    if (!internal) {

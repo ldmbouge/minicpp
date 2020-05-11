@@ -93,16 +93,28 @@ int main(int argc,char* argv[])
                         });
       
       std::cout << "starting..." << std::endl;
-      auto ss = RuntimeMonitor::now();
       auto stat = search.solve([](const SearchStatistics& stats) {
                                   return stats.numberOfSolutions() > 0;
                                });
       std::cout << stat << std::endl;
-      auto atEndS = RuntimeMonitor::elapsedSince(ss);
-      auto atEnd = RuntimeMonitor::elapsedSince(start);
-      std::cout << "total:" << atEnd << "\t search:" << atEndS << std::endl;
+      auto end = RuntimeMonitor::now();
+      extern int iterMDD;
+      extern int nbCS;
+      std::cout << "{ \"JSON\" :\n {";
+      std::cout << "\n\t\"among4Relax\" :" << "{\n";
+      std::cout << "\t\t\"m\" : " << 1 << ",\n";
+      std::cout << "\t\t\"w\" : " << width << ",\n";
+      std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
+      std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
+      std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
+      std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
+      std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
+      std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
+      std::cout << "\t}\n";  
+      std::cout << "}\n}";
+
    }
-   cp.dealloc();
+   //cp.dealloc();
    return 0;
 }
 

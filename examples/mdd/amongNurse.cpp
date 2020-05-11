@@ -355,6 +355,19 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
   std::cout << "#CS  : " << nbCS << '\n';
   std::cout << "#L   : " << mdd->nbLayers() << '\n';
+
+  std::cout << "{ \"JSON\" :\n {";
+  std::cout << "\n\t\"amongNurse\" :" << "{\n";
+  std::cout << "\t\t\"m\" : " << mode << ",\n";
+  std::cout << "\t\t\"w\" : " << relaxSize << ",\n";
+  std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
+  std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
+  std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
+  std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
+  std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
+  std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
+  std::cout << "\t}\n";  
+  std::cout << "}\n}";
 }
 
 int main(int argc,char* argv[])
