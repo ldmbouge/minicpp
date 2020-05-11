@@ -156,52 +156,39 @@ namespace Factory {
    void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues) {
       mdd.append(x);
       ValueSet values(rawValues);
+      assert(rawValues.size()==1);
+      int tv = *rawValues.cbegin();
       auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-      const int L = mdd.addState(d,0,x.size(),MinFun);
-      const int U = mdd.addState(d,0,x.size(),MaxFun);
-      const int Lup = mdd.addState(d,0,x.size(),MinFun);
-      const int Uup = mdd.addState(d,0,x.size(),MaxFun);
+      const int L = mdd.addState(d,0,INT_MAX,MinFun);
+      const int U = mdd.addState(d,0,INT_MAX,MaxFun);
+      const int Lup = mdd.addState(d,0,INT_MAX,MinFun);
+      const int Uup = mdd.addState(d,0,INT_MAX,MaxFun);
 
-      mdd.transitionDown(L,{L},[L,values] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
-                                bool allMembers = true;
-                                for(int v : val) {
-                                   allMembers &= values.member(v);
-                                   if (!allMembers) break;
-                                }
-                                out.set(L,p.at(L) + allMembers);
-                             });
-      mdd.transitionDown(U,{U},[U,values] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
-                                bool oneMember = false;
-                                for(int v : val) {
-                                   oneMember = values.member(v);
-                                   if (oneMember) break;
-                                }
-                                out.set(U,p.at(U) + oneMember);
-                             });
+      mdd.transitionDown(L,{L},[L,tv] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
+                                  bool allMembers = val.size() == 1 && val.singleton() == tv;
+                                  out.setInt(L,p[L] + allMembers);
+                               });
+      mdd.transitionDown(U,{U},[U,tv] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
+                                  bool oneMember = val.contains(tv);
+                                  out.setInt(U,p[U] + oneMember);
+                               });
 
-      mdd.transitionUp(Lup,{Lup},[Lup,values] (auto& out,const auto& c,const auto& x, const auto& val,bool up) {
-                                bool allMembers = true;
-                                for(int v : val) {
-                                   allMembers &= values.member(v);
-                                   if (!allMembers) break;
-                                }
-                                out.set(Lup,c.at(Lup) + allMembers);
-                             });
-      mdd.transitionUp(Uup,{Uup},[Uup,values] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
-                                bool oneMember = false;
-                                for(int v : val) {
-                                   oneMember = values.member(v);
-                                   if (oneMember) break;
-                                }
-                                out.set(Uup,p.at(Uup) + oneMember);
-                             });
+      mdd.transitionUp(Lup,{Lup},[Lup,tv] (auto& out,const auto& c,const auto& x, const auto& val,bool up) {
+                                    bool allMembers = val.size() == 1 && val.singleton() == tv;
+                                    out.setInt(Lup,c[Lup] + allMembers);
+                                 });
+      mdd.transitionUp(Uup,{Uup},[Uup,tv] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
+                                    bool oneMember = val.contains(tv);
+                                    out.setInt(Uup,p[Uup] + oneMember);
+                                 });
 
       mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
-	  if (up) {
-	    return ((p.at(U) + values.member(val) + c.at(Uup) >= lb) &&
-		    (p.at(L) + values.member(val) + c.at(Lup) <= ub));
-          } else
-	    return (p.at(L) + values.member(val) <= ub);
+                        bool vinS = tv == val;//values.member(val);
+                        if (up) {
+                           return ((p[U] + vinS + c[Uup] >= lb) &&
+                                   (p[L] + vinS + c[Lup] <= ub));
+                        } else
+                           return (p[L] + vinS <= ub);
       });
 
       // This function needs an 'up' flag?

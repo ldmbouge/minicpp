@@ -185,14 +185,14 @@ namespace Factory {
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
       std::vector<int> ps(NIdx+1);
 
-      ps[YminIdx] = spec.addState(desc, 0, nbVars,MinFun);
-      ps[YmaxIdx] = spec.addState(desc, 0, nbVars,MaxFun);     
-      for(int i = AminFIdx;i <= AminLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MinFun);
-      for(int i = AmaxFIdx;i <= AmaxLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MaxFun);
-      for(int i = DminFIdx;i <= DminLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MinFun);
-      for(int i = DmaxFIdx;i <= DmaxLIdx;i++)	ps[i] = spec.addState(desc, 0, nbVars,MaxFun);
-      ps[NIdx] = spec.addState(desc, 0, nbVars,MinFun);
-      ps[ExactIdx] = spec.addState(desc, 1, 1,MinFun);
+      ps[YminIdx] = spec.addState(desc, 0, INT_MAX,MinFun);
+      ps[YmaxIdx] = spec.addState(desc, 0, INT_MAX,MaxFun);     
+      for(int i = AminFIdx;i <= AminLIdx;i++)	ps[i] = spec.addState(desc, 0, INT_MAX,MinFun);
+      for(int i = AmaxFIdx;i <= AmaxLIdx;i++)	ps[i] = spec.addState(desc, 0, INT_MAX,MaxFun);
+      for(int i = DminFIdx;i <= DminLIdx;i++)	ps[i] = spec.addState(desc, 0, INT_MAX,MinFun);
+      for(int i = DmaxFIdx;i <= DmaxLIdx;i++)	ps[i] = spec.addState(desc, 0, INT_MAX,MaxFun);
+      ps[NIdx] = spec.addState(desc, 0, INT_MAX,MinFun);
+      ps[ExactIdx] = spec.addState(desc, 1, INT_MAX,MinFun);
 
       const int Ymin = ps[YminIdx];
       const int Ymax = ps[YmaxIdx];
@@ -212,128 +212,128 @@ namespace Factory {
                                   MDDWindow ow = out.getWin(Amin);
                                   //ow = p.getWin(Amin) >> 1;
                                   ow.setWithShift(p.getWin(Amin),1);
-                                  ow.setFirst(p.at(Ymin));
+                                  ow.setFirst(p[Ymin]);
                                });
       */
       // down transitions
       spec.transitionDown(toDict(AminF+1,AminL,
                                  [](int i) { return tDesc({i-1},
                                                           [i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                                             out.set(i,p.at(i-1));
+                                                             out.setInt(i,p[i-1]);
                                                           });
                                  }));
       
       spec.transitionDown(toDict(AmaxF+1,AmaxL,
                                  [](int i) { return tDesc({i-1},
                                                           [i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                                             out.set(i,p.at(i-1));
+                                                             out.setInt(i,p[i-1]);
                                                           });
                                  }));
 
       spec.transitionDown(AminF,{Ymin},[AminF,Ymin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                   out.set(AminF,p.at(Ymin));
+                                   out.setInt(AminF,p[Ymin]);
                                 });
       spec.transitionDown(AmaxF,{Ymax},[AmaxF,Ymax](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                   out.set(AmaxF,p.at(Ymax));
+                                   out.setInt(AmaxF,p[Ymax]);
                                 });
 
       spec.transitionDown(Ymin,{Ymin},[values,Ymin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
           bool hasMemberOutS = val.memberOutside(values);
-	  int minVal = p.at(Ymin) + !hasMemberOutS;
+	  int minVal = p[Ymin] + !hasMemberOutS;
 	  if (up) 
-             minVal = std::max(minVal, out.at(Ymin));	  
-	  out.set(Ymin,minVal);
+             minVal = std::max(minVal, out[Ymin]);	  
+	  out.setInt(Ymin,minVal);
 	});
 
       spec.transitionDown(Ymax,{Ymax},[values,Ymax](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
           bool hasMemberInS = val.memberInside(values);
-	  int maxVal = p.at(Ymax) + hasMemberInS;
+	  int maxVal = p[Ymax] + hasMemberInS;
 	  if (up)
-	    maxVal = std::min(maxVal, out.at(Ymax));
-	  out.set(Ymax,maxVal);
+	    maxVal = std::min(maxVal, out[Ymax]);
+	  out.setInt(Ymax,maxVal);
 	});
 
-      spec.transitionDown(N,{N},[N](auto& out,const auto& p,const auto& x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+      spec.transitionDown(N,{N},[N](auto& out,const auto& p,const auto& x,const auto& val,bool up) { out.setInt(N,p[N]+1); });
       spec.transitionDown(Exact,{Exact},[Exact,values](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-	  out.set(Exact, (p.at(Exact)==1) && (val.memberOutside(values) != val.memberInside(values)));
+	  out.setInt(Exact, (p[Exact]==1) && (val.memberOutside(values) != val.memberInside(values)));
       });
 
       // up transitions
       spec.transitionUp(toDict(DminF+1,DminL,
                                [](int i) { return tDesc({i-1},
                                                         [i](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
-                                                           out.set(i,c.at(i-1));
+                                                           out.setInt(i,c[i-1]);
                                                         });
                                }));
       spec.transitionUp(toDict(DmaxF+1,DmaxL,
                                [](int i) { return tDesc({i-1},
                                                         [i](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
-                                                           out.set(i,c.at(i-1));
+                                                           out.setInt(i,c[i-1]);
                                                         });
                                }));
       spec.transitionUp(DminF,{Ymin},[DminF,Ymin](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
-                                        out.set(DminF,c.at(Ymin));
+                                        out.setInt(DminF,c[Ymin]);
                                      });
       spec.transitionUp(DmaxF,{Ymax},[DmaxF,Ymax](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
-                                        out.set(DmaxF,c.at(Ymax));
+                                        out.setInt(DmaxF,c[Ymax]);
                                      });
 
       spec.transitionUp(Ymin,{Ymin},[Ymin,values](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
                                 bool hasMemberInS = val.memberInside(values);
-                                int minVal = std::max(out.at(Ymin), c.at(Ymin) - hasMemberInS);
-                                out.set(Ymin,minVal);
+                                int minVal = std::max(out[Ymin], c[Ymin] - hasMemberInS);
+                                out.setInt(Ymin,minVal);
                              });
 
       spec.transitionUp(Ymax,{Ymax},[Ymax,values](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
-                                // std::cout << "entering Ymax Up at layer " << c.at(N) << " with values " << val;
+                                // std::cout << "entering Ymax Up at layer " << c[N] << " with values " << val;
                                 bool hasMemberOutS = val.memberOutside(values);
-                                int maxVal = std::min(out.at(Ymax), c.at(Ymax) - !hasMemberOutS);
-                                out.set(Ymax,maxVal);
+                                int maxVal = std::min(out[Ymax], c[Ymax] - !hasMemberOutS);
+                                out.setInt(Ymax,maxVal);
                              });
 
       spec.updateNode([=](auto& n) {
-                         int minVal = n.at(Ymin);
-                         int maxVal = n.at(Ymax);
-                         if (n.at(N) >= len) {
-                            minVal = std::max(lb + n.at(AminL),minVal);  // n.getWin(Amin).getLast()
-                            maxVal = std::min(ub + n.at(AmaxL),maxVal);
+                         int minVal = n[Ymin];
+                         int maxVal = n[Ymax];
+                         if (n[N] >= len) {
+                            minVal = std::max(lb + n[AminL],minVal);  // n.getWin(Amin).getLast()
+                            maxVal = std::min(ub + n[AmaxL],maxVal);
                          }
-                         if (n.at(N) <= nbVars - len) {
-                            minVal = std::max(n.at(DminL) - ub,minVal);
-                            maxVal = std::min(n.at(DmaxL) - lb,maxVal);
+                         if (n[N] <= nbVars - len) {
+                            minVal = std::max(n[DminL] - ub,minVal);
+                            maxVal = std::min(n[DmaxL] - lb,maxVal);
 			 }
-                         n.set(Ymin,minVal);
-                         n.set(Ymax,maxVal);
+                         n.setInt(Ymin,minVal);
+                         n.setInt(Ymax,maxVal);
                       });
 
       spec.nodeExist(desc,[=](const auto& p) {
-	  return ( (p.at(Ymin) <= p.at(Ymax)) &&
-		   (p.at(Ymax) >= 0) &&
-		   (p.at(Ymax) <= p.at(N)) &&
-		   (p.at(Ymin) >= 0) &&
-		   (p.at(Ymin) <= p.at(N)) );
+	  return ( (p[Ymin] <= p[Ymax]) &&
+		   (p[Ymax] >= 0) &&
+		   (p[Ymax] <= p[N]) &&
+		   (p[Ymin] >= 0) &&
+		   (p[Ymin] <= p[N]) );
 	});
       
       // arc definitions
       spec.arcExist(desc,[=] (const auto& p,const auto& c,const auto& x,int v,bool up) -> bool {
                             bool c0 = true,c1 = true,inS = values.member(v);
                             if (up) { // during the initial post, I do test arc existence and up isn't there yet.
-                               c0 = (p.at(Ymin) + inS <= c.at(Ymax));
-                               c1 = (p.at(Ymax) + inS >= c.at(Ymin));
+                               c0 = (p[Ymin] + inS <= c[Ymax]);
+                               c1 = (p[Ymax] + inS >= c[Ymin]);
                             }
                             return c0 && c1;
                          });
 
       spec.splitOnLargest([Exact,Ymin,Ymax,AminL,DmaxL,lb,ub,nbVars](const auto& in) {
 
-                             // return (double)std::max(lb+in.getState().at(AminL)-in.getState().at(Ymin),0);
-                             return (double)(in.getState().at(Exact));
-	  // return -(double)(in.getState().at(Ymax)-in.getState().at(Ymin));
-	  // return -(double)(in.getState().at(Ymin));
+                             // return (double)std::max(lb+in.getState()[AminL]-in.getState()[Ymin],0);
+                             return (double)(in.getState()[Exact]);
+	  // return -(double)(in.getState()[Ymax]-in.getState()[Ymin]);
+	  // return -(double)(in.getState()[Ymin]);
 	  // return -(double)(in.getNumParents());
 	  /** bad performance **
-	  // return (double)(std::max(lb+in.getState().at(AminL)-in.getState().at(Ymin),0)+
-	  // 		  std::max(in.getState().at(DmaxL)-lb-in.getState().at(Ymin),0));
+	  // return (double)(std::max(lb+in.getState()[AminL]-in.getState()[Ymin],0)+
+	  // 		  std::max(in.getState()[DmaxL]-lb-in.getState()[Ymin],0));
 	  **/	  
 
 	});      
