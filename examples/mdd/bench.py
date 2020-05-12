@@ -1,29 +1,10 @@
 #!/usr/local/bin/python3
 # Filename bench.py
-
 import json
 from subprocess import Popen, PIPE
 import os
 import sys
-import json
-import calendar
-import time
-import datetime
-import platform, re
 import csv
-
-def readRecord(fName):
-    with open(fName) as f:
-        al = f.readlines()
-        keep = ""
-        cat = False
-        for l in al:
-            if l.startswith("{ \"JSON\""):
-                cat = True
-            if cat:
-                keep = keep + l
-        return json.loads(keep)
-
 
 def readRecordFromLineArray(al):
     keep = ""
@@ -34,14 +15,6 @@ def readRecordFromLineArray(al):
         if cat:
             keep = keep + l
     return json.loads(keep)
-
-# rec = readRecord('test.json')
-    
-# run = rec['JSON']['amongNurse']
-# for fields in run:
-#     print(fields)
-#     print(run[fields])
-    
 
 class Runner:
     def __init__(self,bin):
@@ -62,12 +35,8 @@ class Runner:
         os.chdir(self.path)
         full = './' + self.bin
         flags = (full,'-w{0}'.format(width),'-m{0}'.format(model))
-        #print(flags)
         h = Popen(flags,stdout=PIPE,stderr=PIPE)
         allLines = h.communicate()[0].strip().decode('ascii').splitlines()
-        #rc = h.wait()
-        #print('Return code {0}'.format(rc))
-        #print("BACK")
         rec = {}
         fulltext = []
         for line in allLines:
@@ -76,14 +45,27 @@ class Runner:
         return rec
             
 
-nbRun = 2
-#r = Runner('build/among4Relax')
-r = Runner('build/amongNurse')
+name = "among4Relax"
+r = Runner('build/'+name)
 
-for m in range(1,4):
-    for i in range(0,6):
+ar = []
+
+for m in range(1,2):             # This is the models to conver (-m<x>)
+    for i in range(0,12):        # This is the width to consider 2^0 .. 2^k
         w = 2**i
         rec = r.run(w,m)
-        rec = rec['JSON']['amongNurse']
+        rec = rec['JSON'][name]
         rec['time'] = rec['time'] / 1000.0
+        ar.append(rec)
         print(rec)
+
+
+jsonObject = json.dumps(ar,indent=4)
+with open("/tmp/saved.json","w") as outfile:
+    outfile.write(jsonObject)
+
+with open("/tmp/saved.csv","w") as f:
+    w = csv.writer(f,delimiter=",")
+    w.writerow(ar[0])
+    for row in ar:
+        w.writerow([row[k] for k in row])
