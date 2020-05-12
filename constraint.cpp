@@ -464,8 +464,8 @@ void AllDifferentAC::propagate()
    for(int i=0;i < _nVar;i++) 
        for(int v = _minVal; v <= _maxVal;v++) 
            if (_match[i] != v && scc[i] != scc[valNode(v)]) {
-               if (_x[i]->size() > 1)
-                    _ex.explain(_x[i], v);  // this is for testing purposes - will be removed.
+            //    if (_x[i]->size() > 1)
+            //         _ex.explain(_x[i], v);  // this is for testing purposes - will be removed.
                _x[i]->remove(v);
            }
 }

@@ -44,7 +44,7 @@ int main(int argc,char* argv[])
    q.push_back(z);
 
     cp->post(Factory::allDifferentAC(q));
-
+    std::cout << "done posting" << std::endl;
     DFSearch search(cp,[=]() {
                           auto x = selectMin(q,
                                              [](const auto& x) { return x->size() > 1;},

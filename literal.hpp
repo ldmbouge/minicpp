@@ -22,6 +22,15 @@ public:
     void makeVar() {};
     void explain() {};  // TODO: delegate to cPtr->explain(this) when this is implemented and adjust return type
     friend class LitVar;
+    friend class LitHash;
+};
+
+class LitHash {
+public:
+    size_t operator()(const Literal& l) const
+    { 
+        return (size_t) l._x; 
+    } 
 };
 
 class LitVar : public AVar {

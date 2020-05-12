@@ -1,7 +1,7 @@
 HOST=$(shell uname)
 
-CXXFLAGS=-O0 -g3 -std=c++14
-#CXXFLAGS=-O3 -std=c++14
+#CXXFLAGS=-O0 -g3 -std=c++14
+CXXFLAGS=-O3 -std=c++14
 
 LIBBASE = copl
 
@@ -33,7 +33,7 @@ CXXFLAGS += -fPIC
 CC=clang++-6.0
 CC=c++
 LLIBFLAGS=-Wl,-soname,$(LIBNAME)
-LFLAGSX  = -L. -Wl,-rpath=$(CWD)/../src
+LFLAGSX  = -L. -Wl,-rpath=$(CWD)/..
 LIBNAME = lib$(LIBBASE).so.1
 
 endif
