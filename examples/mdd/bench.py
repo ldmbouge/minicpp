@@ -22,14 +22,6 @@ class Runner:
         self.path = os.environ['PWD']
         self.bin = bin
         self.pwd = os.getcwd()
-        if os.path.exists('results.json'):
-            self.all = open('results.json','r')
-            self.ab  = json.loads(self.all.read())
-            self.all.close()
-        else:
-            self.ab = {}
-            print("CWD is:" + self.pwd)
-            os.environ['DYLD_FRAMEWORK_PATH'] = self.path
 
     def run(self,width,model):
         os.chdir(self.path)
@@ -37,11 +29,7 @@ class Runner:
         flags = (full,'-w{0}'.format(width),'-m{0}'.format(model))
         h = Popen(flags,stdout=PIPE,stderr=PIPE)
         allLines = h.communicate()[0].strip().decode('ascii').splitlines()
-        rec = {}
-        fulltext = []
-        for line in allLines:
-            fulltext.append(line)
-        rec = readRecordFromLineArray(fulltext)
+        rec = readRecordFromLineArray(allLines)
         return rec
             
 
