@@ -498,7 +498,22 @@ int main(int argc,char* argv[])
    std::cout << "#CS  : " << nbCS << '\n';
    std::cout << "#L   : " << mdd->nbLayers() << '\n';
    
-   cp.dealloc();
+   //cp.dealloc();
+
+   std::cout << "{ \"JSON\" :\n {";
+   std::cout << "\n\t\"allInterval\" :" << "{\n";
+   std::cout << "\t\t\"size\" : " << N << ",\n";
+   std::cout << "\t\t\"m\" : " << mode << ",\n";
+   std::cout << "\t\t\"w\" : " << width << ",\n";
+   std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
+   std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
+   std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
+   std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
+   std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
+   std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
+   std::cout << "\t}\n";  
+   std::cout << "}\n}";
+
    return 0;
 }
 
