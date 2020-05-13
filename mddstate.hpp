@@ -706,20 +706,20 @@ public:
          return _hash;
       return computeHash();
    }
-   
-   int computeHash() const noexcept {
-      const auto nbw = _spec->layoutSize() / 4;
-      int nlb = _spec->layoutSize() & 0x3;
-      char* sfx = _mem + (nbw << 2);
-      unsigned int* b = reinterpret_cast<unsigned int*>(_mem);
-      unsigned int ttl = 0;
-      for(auto s = 0u;s <nbw;s++)
-         ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
-      while(nlb-- > 0)
-         ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
-      _flags._hashed = true;
-      return _hash = ttl;
-   }
+   constexpr int computeHash() const noexcept { return 0;}
+   // int computeHash() const noexcept {
+   //    const auto nbw = _spec->layoutSize() / 4;
+   //    int nlb = _spec->layoutSize() & 0x3;
+   //    char* sfx = _mem + (nbw << 2);
+   //    unsigned int* b = reinterpret_cast<unsigned int*>(_mem);
+   //    unsigned int ttl = 0;
+   //    for(auto s = 0u;s <nbw;s++)
+   //       ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
+   //    while(nlb-- > 0)
+   //       ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
+   //    _flags._hashed = true;
+   //    return _hash = ttl;
+   // }
    bool stateEqual(const MDDState& b) const noexcept {
       return memcmp(_mem,b._mem,_spec->layoutSize())==0;
    }
@@ -727,7 +727,7 @@ public:
       return memcmp(_mem,b._mem,_spec->layoutSize())!=0;
    }
    bool operator==(const MDDState& s) const {    
-      return (!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
+      return //(!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
          _flags._drelax == s._flags._drelax &&         
          //_flags._urelax == s._flags._urelax &&
          memcmp(_mem,s._mem,_spec->layoutSize())==0;
