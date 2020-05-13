@@ -118,7 +118,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   int U3 = 5;
   int N3 = 7;
   
-  auto mdd = new MDDRelax(cp,relaxSize);
+  auto mdd = new MDDRelax(cp,relaxSize,0);
 
   if (mode == 0) {
     cout << "domain encoding of cumulative sums" << endl;
@@ -343,8 +343,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   auto start = RuntimeMonitor::cputime();
 
   auto stat = search.solve([](const SearchStatistics& stats) {
-      return stats.numberOfSolutions() > INT_MAX;
-      //return stats.numberOfSolutions() > 0;
+                              //return stats.numberOfNodes() > 1;
+                              return stats.numberOfSolutions() > INT_MAX;
+                              //return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   
@@ -368,6 +369,14 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
   std::cout << "\t}\n";  
   std::cout << "}\n}";
+
+  extern int splitCS,pruneCS,potEXEC;
+  extern int nbCONSCall,nbCONSFail;
+  extern int nbAECall,nbAEFail;
+
+  std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
+  std::cout << "CONS:" << nbCONSCall << " \tFAIL:" << nbCONSFail << '\n';
+  std::cout << "NBAE:" << nbAECall << " \tAEFAIL:" << nbAEFail << '\n';
 }
 
 int main(int argc,char* argv[])

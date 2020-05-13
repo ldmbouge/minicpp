@@ -674,6 +674,10 @@ public:
    }
 };
 
+int splitCS = 0;
+int pruneCS = 0;
+int potEXEC = 0;
+
 int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
 {
    using namespace std;
@@ -697,7 +701,10 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
          _mddspec.createState(ms,p->getState(),l-1,x[l-1],MDDIntSet(v),true);
          _mddspec.updateNode(ms);
          bool isOk = _mddspec.consistent(ms,x[l-1]);
+         splitCS++;
+         
          if (!isOk) {
+            pruneCS++;
             p->unhook(a);
             if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
             delSupport(l-1,v);
@@ -723,6 +730,9 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             for(auto ca : n->getChildren()) 
                cnt += keepArc[idx++] = _mddspec.exist(ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
             if (cnt == 0) {
+
+               pruneCS++;
+               
                p->unhook(a);
                if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
                delSupport(l-1,v);
@@ -741,6 +751,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
       } // end of loop over parents.
       splitter.process(layer,_width,trail,mem,
                        [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
+                          potEXEC++;
                           MDDNode* nc = _nf->makeNode(ms,x[l-1]->size(),l,(int)layer.size());
                           layer.push_back(nc,mem);
                           unsigned int idx = 0;

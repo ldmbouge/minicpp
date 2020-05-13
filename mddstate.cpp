@@ -146,21 +146,36 @@ void MDDSpec::updateNode(MDDState& a) const noexcept
       fun(a);
 }
 
+int nbAECall = 0;
+int nbAEFail = 0;
+
 bool MDDSpec::exist(const MDDState& a,const MDDState& c,const var<int>::Ptr& x,int v,bool up) const noexcept
 {
+   ++nbAECall;
    bool arcOk = true;
    for(auto& exist : _scopedExists[x->getId()]) {
       arcOk = exist(a,c,x,v,up);
-      if (!arcOk) break;
+      if (!arcOk) {
+         ++nbAEFail;
+         break;
+      }
    }
    return arcOk;
 }
+
+int nbCONSCall = 0;
+int nbCONSFail = 0;
+
 bool MDDSpec::consistent(const MDDState& a,const var<int>::Ptr& x) const noexcept
 {
+   ++nbCONSCall;
    bool cons = true;
    for(auto& consFun : _scopedConsistent[x->getId()]) {
       cons = consFun(a);
-      if (!cons) break;      
+      if (!cons) {
+         ++nbCONSFail;
+         break;
+      }
    }
    return cons;
 }

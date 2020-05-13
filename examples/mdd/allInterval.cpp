@@ -514,6 +514,9 @@ int main(int argc,char* argv[])
    std::cout << "\t}\n";  
    std::cout << "}\n}";
 
+   extern int splitCS,pruneCS,potEXEC;
+
+   std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
    return 0;
 }
 
