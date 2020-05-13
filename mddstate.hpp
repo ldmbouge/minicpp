@@ -608,19 +608,14 @@ class MDDState {  // An actual state of an MDDNode.
       }
    };
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),_flags({false,false,false}) {}
+   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_rip(0),_flags({false,false,false,false}) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
-      : _spec(s),_mem(b),_flags({relax,false}) {
+      : _spec(s),_mem(b),_hash(0),_rip(0),_flags({relax,false,false,false}) {
       if (_spec)
          memset(_mem,0,_spec->layoutSize());
    }
-   MDDState(MDDStateSpec* s,char* b,int hash,bool drelax,bool urelax,float rip,bool ripped,bool hashed) 
-      : _spec(s),_mem(b),_hash(hash),_rip(rip) {
-         _flags._drelax = drelax;
-         _flags._urelax = urelax;
-         _flags._ripped = ripped;
-         _flags._hashed = hashed;
-      }
+   MDDState(MDDStateSpec* s,char* b,int hash,float rip,const Flags& f) 
+      : _spec(s),_mem(b),_hash(hash),_rip(rip),_flags(f) {}
    MDDState(const MDDState& s) 
       : _spec(s._spec),_mem(s._mem),_hash(s._hash),_rip(s._rip),_flags(s._flags) {}
    void initState(const MDDState& s) {
@@ -664,7 +659,7 @@ public:
    MDDState clone(Allocator pool) const {
       char* block = _spec ? new (pool) char[_spec->layoutSize()] : nullptr;
       if (_spec)  memcpy(block,_mem,_spec->layoutSize());
-      return MDDState(_spec,block,_hash,_flags._drelax,_flags._urelax,_rip,_flags._ripped,_flags._hashed);
+      return MDDState(_spec,block,_hash,_rip,_flags);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize();}   
@@ -732,8 +727,8 @@ public:
       return memcmp(_mem,b._mem,_spec->layoutSize())!=0;
    }
    bool operator==(const MDDState& s) const {    
-      return _flags._drelax == s._flags._drelax &&
-         (!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
+      return (!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
+         _flags._drelax == s._flags._drelax &&         
          //_flags._urelax == s._flags._urelax &&
          memcmp(_mem,s._mem,_spec->layoutSize())==0;
    }

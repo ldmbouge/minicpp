@@ -145,6 +145,7 @@ void MDDSpec::updateNode(MDDState& a) const noexcept
 {
    for(auto& fun : _updates)
       fun(a);
+   a.computeHash();
 }
 
 int nbAECall = 0;
@@ -461,6 +462,7 @@ void MDDSpec::relaxation(MDDState& a,const MDDState& b) const noexcept
    }
    for(const auto& relax : _relaxation)
       relax(a,a,b);
+   a.computeHash();
 }
 
 void MDDSpec::relaxationIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept
@@ -474,6 +476,7 @@ void MDDSpec::relaxationIncr(const MDDPropSet& out,MDDState& a,const MDDState& b
             break;
       }
    }
+   a.computeHash();
 }
 
 void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
@@ -491,6 +494,7 @@ double MDDSpec::similarity(const MDDState& a,const MDDState& b)
    for(auto& cstr : constraints) {
       for(auto p : cstr->similarities()) {
          double abSim = _similarity[p](a,b);
+
          dist += abSim;
       }
    }
@@ -505,8 +509,23 @@ void MDDStateFactory::createState(MDDState& result,const MDDState& parent,int la
 {
    nbCS++;
    _mddspec->createState(result,parent,layer,x,vals,up);
+   result.computeHash();
 }
 
+bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
+{
+   nbCS++;
+   result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSize()]);
+   _mddspec->copyStateUp(*result,n->getState());
+   _mddspec->createState(*result,parent,layer,x,MDDIntSet(val),true);
+   _mddspec->updateNode(*result);
+   bool isOk = _mddspec->consistent(*result,x);
+   if (isOk) 
+      result->computeHash();
+   return isOk;
+}
+
+/*
 bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
 {
    MDDSKey key { &parent, val };
@@ -523,6 +542,7 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
       _mddspec->updateNode(*result);
       bool isOk = _mddspec->consistent(*result,x);
       if (isOk) {
+         result->computeHash();
          MDDState* pc = new (_mem) MDDState(parent.clone(_mem));
          MDDSKey ikey { pc,val };
          _hash[ikey] = result;
@@ -530,6 +550,7 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
       return isOk;
    }
 }
+*/
 
 
 void MDDStateFactory::clear()

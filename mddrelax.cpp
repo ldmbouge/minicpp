@@ -66,6 +66,8 @@ void MDDRelax::buildDiagram()
    
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
+   sinkState.computeHash();
+   rootState.computeHash();
    sink = _nf->makeNode(sinkState,0,(int)numVariables,0);
    root = _nf->makeNode(rootState,x[0]->size(),0,0);
    layers[0].push_back(root,mem);
