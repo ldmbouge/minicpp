@@ -61,6 +61,7 @@ protected:
    MDDSpec _mddspec;
    bool    _posting;
    MDDNodeFactory* _nf;
+   MDDStateFactory* _sf;
 };
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.

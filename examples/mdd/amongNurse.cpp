@@ -118,7 +118,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   int U3 = 5;
   int N3 = 7;
   
-  auto mdd = new MDDRelax(cp,relaxSize,0);
+  auto mdd = new MDDRelax(cp,relaxSize);
 
   if (mode == 0) {
     cout << "domain encoding of cumulative sums" << endl;
@@ -373,10 +373,12 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   extern int splitCS,pruneCS,potEXEC;
   extern int nbCONSCall,nbCONSFail;
   extern int nbAECall,nbAEFail;
-
+  extern int hitCS;
+  
   std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
   std::cout << "CONS:" << nbCONSCall << " \tFAIL:" << nbCONSFail << '\n';
   std::cout << "NBAE:" << nbAECall << " \tAEFAIL:" << nbAEFail << '\n';
+  std::cout << "HIT: " << (double)hitCS /nbCS << '\n';
 }
 
 int main(int argc,char* argv[])

@@ -22,6 +22,7 @@
 #include <set>
 #include <cstring>
 #include <map>
+#include <unordered_map>
 #include <bitset>
 #include <utility>
 #include <xmmintrin.h>
@@ -35,6 +36,20 @@ class MDDIntSet {
       int    _single;
    };
 public:
+   template <class Allocator>
+   MDDIntSet(Allocator p,const MDDIntSet& s) {
+      if (s._isSingle) {
+         _single = s._single;
+         _mxs = _sz = 1;
+         _isSingle = true; 
+      } else {
+         _mxs = s._mxs;
+         _sz  = s._sz;
+         _isSingle = false;
+         _buf = new (p) int[_mxs];
+         memcpy(_buf,s._buf,sizeof(int)*_mxs);
+      }
+   }
    MDDIntSet() { _buf = 0;_mxs=_sz=0;_isSingle=false;}
    MDDIntSet(int v) : _mxs(1),_sz(1),_isSingle(true) {
       _single = v;
@@ -84,6 +99,27 @@ public:
          for(short k=0;k <_sz;k++)
             if (S.member(_buf[k])) return true;
          return false;
+      }
+   }
+   friend bool operator==(const MDDIntSet& a,const MDDIntSet& b) {
+      if (a._isSingle == b._isSingle) {
+         if (a._isSingle) return a._single == b._single;
+         else {
+            if (a._sz == b._sz) {
+               for(auto i : a) 
+                  if (!b.contains(i)) return false;               
+               return true;
+            } else return false;
+         }
+      } else return false;
+   }
+   int hash() const noexcept {
+      if (_isSingle) return _single;
+      else {
+         int ttl=0;
+         for(int k=0;k < _sz;++k)
+            ttl += _buf[k];
+         return ttl * _sz;
       }
    }
    constexpr const short size() const { return _sz;}
@@ -543,12 +579,14 @@ inline std::ostream& operator<<(std::ostream& os,MDDConstraintDescriptor& p)
 class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
+   mutable int       _hash;
    mutable float      _rip;
    struct Flags {
       bool          _drelax:1;
       bool          _urelax:1;
       mutable bool  _ripped:1;
-      bool          _unused:5;
+      mutable bool  _hashed:1;
+      bool          _unused:4;
    } _flags;
    class TrailState : public Entry {
       MDDState* _at;
@@ -576,25 +614,28 @@ public:
       if (_spec)
          memset(_mem,0,_spec->layoutSize());
    }
-   MDDState(MDDStateSpec* s,char* b,/*int hash,*/bool drelax,bool urelax,float rip,bool ripped) 
-      : _spec(s),_mem(b),_rip(rip) {
+   MDDState(MDDStateSpec* s,char* b,int hash,bool drelax,bool urelax,float rip,bool ripped,bool hashed) 
+      : _spec(s),_mem(b),_hash(hash),_rip(rip) {
          _flags._drelax = drelax;
          _flags._urelax = urelax;
          _flags._ripped = ripped;
+         _flags._hashed = hashed;
       }
    MDDState(const MDDState& s) 
-      : _spec(s._spec),_mem(s._mem),/*_hash(s._hash),*/_rip(s._rip),_flags(s._flags) {}
+      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_rip(s._rip),_flags(s._flags) {}
    void initState(const MDDState& s) {
       _spec = s._spec;
       _mem = s._mem;
       _flags = s._flags;
       _rip  = s._rip;
+      _hash = s._hash;
    }
    void copyState(const MDDState& s) {
       auto sz = _spec->layoutSize();
       memcpy(_mem,s._mem,sz);
       _flags = s._flags;
-      _rip = s._rip;      
+      _rip = s._rip;
+      _hash = s._hash;
    }
    MDDStateSpec* getSpec() const noexcept { return _spec;}
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
@@ -607,6 +648,7 @@ public:
       memcpy(_mem,s._mem,sz);
       _flags = s._flags;
       _rip = s._rip;
+      _hash = s._hash;
       return *this;
    }
    MDDState& operator=(MDDState&& s) { 
@@ -614,13 +656,15 @@ public:
       _spec = std::move(s._spec);
       _mem  = std::move(s._mem);      
       _rip  = std::move(s._rip);
+      _hash = std::move(s._hash);
       _flags = std::move(s._flags);
       return *this;
    }
-   MDDState clone(Storage::Ptr mem) const {
-      char* block = _spec ? (char*)mem->allocate(sizeof(char)*_spec->layoutSize()) : nullptr;
+   template <class Allocator>
+   MDDState clone(Allocator pool) const {
+      char* block = _spec ? new (pool) char[_spec->layoutSize()] : nullptr;
       if (_spec)  memcpy(block,_mem,_spec->layoutSize());
-      return MDDState(_spec,block,/*_hash,*/_flags._drelax,_flags._urelax,_rip,_flags._ripped);
+      return MDDState(_spec,block,_hash,_flags._drelax,_flags._urelax,_rip,_flags._ripped,_flags._hashed);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize();}   
@@ -636,7 +680,7 @@ public:
    void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);} // (fast)
    int byteSize(int i) const noexcept   { return (int)_spec->_attrs[i]->size();}
    void copyZone(const Zone& z,const MDDState& in) noexcept { z.copy(_mem,in._mem);}
-   void clear() noexcept                { _flags._ripped = false;_flags._drelax = false;_flags._urelax = false;}
+   void clear() noexcept                { _flags._ripped = false;_flags._drelax = false;_flags._urelax = false;_flags._hashed=false;}
    bool isRelaxed() const noexcept          { return _flags._drelax || _flags._urelax;}
    bool isUpRelaxed() const noexcept        { return _flags._urelax;}
    bool isDownRelaxed() const noexcept      { return _flags._drelax;}
@@ -662,8 +706,13 @@ public:
       } else _rip = 0;
       return _rip;
    }
+   int hash() const noexcept {
+      if (_flags._hashed)
+         return _hash;
+      return computeHash();
+   }
    
-   int hash() {
+   int computeHash() const noexcept {
       const auto nbw = _spec->layoutSize() / 4;
       int nlb = _spec->layoutSize() & 0x3;
       char* sfx = _mem + (nbw << 2);
@@ -673,7 +722,8 @@ public:
          ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
       while(nlb-- > 0)
          ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
-      return ttl;
+      _flags._hashed = true;
+      return _hash = ttl;
    }
    bool stateEqual(const MDDState& b) const noexcept {
       return memcmp(_mem,b._mem,_spec->layoutSize())==0;
@@ -683,6 +733,7 @@ public:
    }
    bool operator==(const MDDState& s) const {    
       return _flags._drelax == s._flags._drelax &&
+         (!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
          //_flags._urelax == s._flags._urelax &&
          memcmp(_mem,s._mem,_spec->layoutSize())==0;
    }
@@ -828,6 +879,36 @@ private:
 };
 
 
+class MDDSpec;
+class MDDStateFactory {
+   struct MDDSKey {
+      const MDDState*   _s;
+      const int         _v;
+   };
+   struct EQtoMDDSKey {
+      bool operator()(const MDDSKey& a,const MDDSKey& b) const {
+         return a._v == b._v && a._s->operator==(*b._s);
+      }
+   };
+   struct HashMDDSKey {
+      std::size_t operator()(const MDDSKey& key) const noexcept {
+         return key._s->hash() ^ key._v;
+      }
+   };
+   MDDSpec*      _mddspec;
+   Pool::Ptr         _mem;
+   std::unordered_map<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
+   bool _enabled;
+public:
+   MDDStateFactory(MDDSpec* spec) : _mddspec(spec),_mem(new Pool()),_hash(131071),_enabled(false) {}
+   void createState(MDDState& result,const MDDState& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
+   bool splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val);
+   void clear();
+   void enable() noexcept { _enabled = true;}
+   void disable() noexcept { _enabled = false;}
+};
+
+
 template <typename Container> std::pair<int,int> domRange(const Container& vars) {
    std::pair<int,int> udom;
    udom.first = INT_MAX;
@@ -848,7 +929,8 @@ template <typename Container> std::pair<int,int> idRange(const Container& vars) 
    }       
    return std::make_pair(low,up);
 }
-   
+
+
 
 #endif /* mddstate_hpp */
 

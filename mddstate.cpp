@@ -7,6 +7,7 @@
 //
 
 #include "mddstate.hpp"
+#include "mddnode.hpp"
 #include <algorithm>
 #include <limits.h>
 #include <future>
@@ -426,11 +427,8 @@ void MDDSpec::copyStateUp(MDDState& result,const MDDState& source)
    }
 }
 
-extern int nbCS = 0;
-
 void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
 {
-   nbCS++;
    result.clear();
    for(const auto& t : _transLayer[l])
       t(result,parent,var,v,hasUp);
@@ -499,3 +497,45 @@ double MDDSpec::similarity(const MDDState& a,const MDDState& b)
    return dist;
 }
 
+int nbCS  = 0;
+int hitCS = 0;
+int vs = 0;
+
+void MDDStateFactory::createState(MDDState& result,const MDDState& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
+{
+   nbCS++;
+   _mddspec->createState(result,parent,layer,x,vals,up);
+}
+
+bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
+{
+   MDDSKey key { &parent, val };
+   auto loc = _hash.find(key);
+   if (loc != _hash.end()) {
+      ++hitCS;
+      result = loc->second;
+      return true;
+   } else {
+      nbCS++;
+      result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSize()]);
+      _mddspec->copyStateUp(*result,n->getState());
+      _mddspec->createState(*result,parent,layer,x,MDDIntSet(val),true);
+      _mddspec->updateNode(*result);
+      bool isOk = _mddspec->consistent(*result,x);
+      if (isOk) {
+         MDDState* pc = new (_mem) MDDState(parent.clone(_mem));
+         MDDSKey ikey { pc,val };
+         _hash[ikey] = result;
+      }
+      return isOk;
+   }
+}
+
+
+void MDDStateFactory::clear()
+{
+   //std::cout << "LF=" << _hash.load_factor() << "\t MLF:" << _hash.max_load_factor() << " \tSZ:" << _hash.size() << '\n';
+   _hash.clear();
+   _mem->clear();
+   _enabled = true;
+}

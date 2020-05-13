@@ -61,7 +61,8 @@ void MDDRelax::buildDiagram()
    _domMax = uDom.second;
 
    for(auto i=0u;i < _width;i++)
-      _afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz * _width),sz * _width);
+      _afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz),sz);
+   //_afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz * _width),sz * _width);
    
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
@@ -324,7 +325,7 @@ bool MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l)
       auto p = _src[i];                           // this is the parent
       assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
       _mddspec.copyStateUp(cs,n->getState());     // grab the up information from the old state
-      _mddspec.createState(cs,p->getState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      _sf->createState(cs,p->getState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
       if (first)
          ms.copyState(cs); // install the result into an accumulator
       else {
@@ -523,7 +524,7 @@ class MDDNodeSim {
          if (nbR==0) return;
          _cl.reserve(32);
          for(auto& n : _layer)
-            _cl.push_back(NRec {n,n->getState().inner(_refDir)});
+            _cl.push_back(NRec {n,0}); //n->getState().inner(_refDir)});
       }     
    }
 public:
@@ -564,7 +565,7 @@ public:
       assert(false);
    }
    void insert(MDDNode* nc) {
-      _cl.emplace_back(NRec { nc,nc->getState().inner(_refDir) } );
+      _cl.emplace_back(NRec { nc, 0 }); //nc->getState().inner(_refDir) } );
    }
    MDDNode* extractNode() {
       while (_first != _last) {
@@ -589,17 +590,18 @@ class MDDPotential {
    int            _mxPar;
    int            _nbPar;
    MDDEdge::Ptr*    _arc;
-   MDDState       _child;
+   const MDDState* _child;
    double           _key;
    int       _val;
    int      _nbk;
    bool*   _keepKids;
 public:
-   MDDPotential(Pool::Ptr pool,const int mxPar,MDDNode* par,MDDEdge::Ptr arc,const MDDState& child,int v,int nbKids,bool* kk)
+   MDDPotential(Pool::Ptr pool,const int mxPar,MDDNode* par,MDDEdge::Ptr arc,const MDDState* child,int v,int nbKids,bool* kk)
       : _mem(pool),_par(par),_mxPar(mxPar),_nbPar(0) {
-      MDDStateSpec* spec = child.getSpec();
-      _child = MDDState(spec,new (_mem) char[spec->layoutSize()]);
-      _child.copyState(child);
+      //MDDStateSpec* spec = child.getSpec();
+      //_child = MDDState(spec,new (_mem) char[spec->layoutSize()]);
+      //_child.copyState(child);
+      _child = child;
       _arc = new (pool) MDDEdge::Ptr[_mxPar];
       _arc[_nbPar++] = arc;
       _val = v;
@@ -613,14 +615,14 @@ public:
       else _key = (double) _par->getPosition();
    }
    double getKey() const noexcept { return _key;}
-   bool hasState(const MDDState& s) const { return _child == s;}
+   bool hasState(const MDDState& s) const { return *_child == s;}
    void link(MDDEdge::Ptr arc) {
       assert(_nbPar < _mxPar);
       _arc[_nbPar++] = arc;
    }
    template <class Callback> void instantiate(const Callback& cb,Trailer::Ptr trail,Storage::Ptr mem)
    {
-      MDDNode* nc = cb(_par,_child,_val,_nbk,_keepKids);
+      MDDNode* nc = cb(_par,*_child,_val,_nbk,_keepKids);
       for(int i=0;i < _nbPar;i++)
          _arc[i]->moveTo(nc,trail,mem);      
    }
@@ -684,7 +686,8 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
    int lowest = l;
    //std::cout << "\nStarting: LS=" << layer.size() << "\n";
    MDDNodeSim nSim(layer,_refs[l],_mddspec);
-   MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+   //MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+   MDDState* ms = nullptr;
    MDDNode* n = nullptr;
    MDDSplitter splitter(_pool,_mddspec,_width);
    _pool->clear();
@@ -693,14 +696,12 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
       assert(n->getState().isRelaxed());
       splitter.clear();
       const int nbParents = (int) n->getNumParents();
-      for(auto pit = n->getParents().rbegin(); pit != n->getParents().rend();pit++) {
+      auto last = n->getParents().rend()++;
+      for(auto pit = n->getParents().rbegin(); pit != last;pit++) {
          auto a = *pit;                // a is the arc p --(v)--> n
          auto p = a->getParent();      // p is the parent
          auto v = a->getValue();       // value on arc from parent
-         _mddspec.copyStateUp(ms,n->getState());
-         _mddspec.createState(ms,p->getState(),l-1,x[l-1],MDDIntSet(v),true);
-         _mddspec.updateNode(ms);
-         bool isOk = _mddspec.consistent(ms,x[l-1]);
+         bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v);
          splitCS++;
          
          if (!isOk) {
@@ -714,9 +715,9 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             continue;
          }
          
-         MDDNode* bj = nSim.findMatch(ms);
+         MDDNode* bj = nSim.findMatch(*ms);
          if (bj) {
-         //if (bj->getState() == ms) { // there is a perfect match
+         //if (bj->getState() == *ms) { // there is a perfect match
             if (bj != n) 
                a->moveTo(bj,trail,mem);            
             // If we matched to n nothing to do. We already point to n.
@@ -728,7 +729,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             bool keepArc[nbk];
             unsigned idx = 0,cnt = 0;
             for(auto ca : n->getChildren()) 
-               cnt += keepArc[idx++] = _mddspec.exist(ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
+               cnt += keepArc[idx++] = _mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
             if (cnt == 0) {
 
                pruneCS++;
@@ -740,7 +741,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                if (_mddspec.usesUp()) _bwd->enQueue(p);
                if (lowest < l) return lowest;
             } else {
-               int reuse = splitter.hasState(ms);
+               int reuse = splitter.hasState(*ms);
                if (reuse != -1) {
                   splitter.linkChild(reuse,a);
                } else {
@@ -771,7 +772,9 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
          delState(n,l);
          nSim.removeMatch(n);
       } else {
+         //_sf->disable();
          bool refreshed = refreshNodeFull(n,l);
+         //_sf->enable();
          filterKids(n,l);
          if (refreshed && n->isActive()) {
             if (_mddspec.usesUp()) {
@@ -897,6 +900,7 @@ void MDDRelax::computeDown(int iter)
          //l += 1;
       }
    }
+   _sf->disable();
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
       if (node==nullptr) break;            
@@ -960,6 +964,7 @@ void MDDRelax::propagate()
          ++iterMDD;++iter;
          _delta->clear();
          computeUp();
+         _sf->clear();
          computeDown(iter);
          assert(layers[numVariables].size() == 1);
          if (!_mddspec.usesUp()) _bwd->clear();
