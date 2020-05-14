@@ -184,6 +184,7 @@ class MDDRelax : public MDD {
 public:
    MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max());
    void buildDiagram() override;
+   void buildNextLayer(unsigned int i);
    void relaxLayer(int i,unsigned int width);
    void propagate() override;
    void trimLayer(unsigned int layer) override;

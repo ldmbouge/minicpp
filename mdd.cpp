@@ -108,6 +108,7 @@ void MDD::buildNextLayer(unsigned int i)
             parent->addArc(mem,child, v);
          } else {
             MDDState sinkState(sink->getState());
+            _mddspec.copyStateUp(state,sink->getState());
             _sf->createState(state, parent->getState(), i, x[i], MDDIntSet(v),false);
             if (sink->getNumParents() == 0) {
                sinkState.copyState(state);
