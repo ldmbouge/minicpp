@@ -16,10 +16,9 @@ set(CMAKE_CXX_FLAGS_DEBUG "-g")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")
 
 include_directories(.)
-add_library(copl 
-	store.cpp bitset.cpp 
+add_library(copl store.cpp bitset.cpp 
 	acstr.cpp domain.cpp constraint.cpp     
-	intvar.cpp trail.cpp mallocWatch.cpp    
+	intvar.cpp literal.cpp trail.cpp mallocWatch.cpp    
 	search.cpp trailable.cpp matching.cpp solver.cpp)
 
 file(GLOB files "examples/*.cpp" )
