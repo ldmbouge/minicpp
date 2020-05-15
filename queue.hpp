@@ -90,7 +90,11 @@ public:
       delete[]_vlocs;
       delete[]_data;
    }
-   void clear() noexcept { _enter = _exit = 0;_cnt=0;}
+   void clear() noexcept {
+      _enter = _exit = 0;
+      _cnt=0;
+   }
+   int size() const noexcept   { return _cnt;}
    bool empty() const noexcept { return _enter == _exit;}
    Location<T>* enQueue(const T& v) {
       int nb = (_mxs + _enter - _exit) & _mask;
@@ -109,7 +113,10 @@ public:
          --_cnt;
          assert(_cnt >=0);
          return rv;
-      } else return T();
+      } else {
+         assert(_cnt == 0);
+         return T();
+      }
    }
    bool retract(const T& val) {
       assert(_cnt > 0);
@@ -124,6 +131,7 @@ public:
       return false;
    }
    void retract(Location<T>* loc) {
+      if (loc==nullptr) return;
       assert(_cnt > 0);
       int at = loc->_pos;
       if (at == _exit)
