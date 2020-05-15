@@ -577,7 +577,7 @@ public:
    {
       _pq.reserve(_layer.size());      
       for(auto& n : _layer)
-         if (n->getState().isRelaxed()) { // } && n->getNumParents() > 1) {            
+         if (n->getState().isRelaxed() && n->getNumParents() > 1) {
             double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(*n) 
                : (double)n->getPosition();
             //std::cout << "A(" << key << ',' << n << "),";
@@ -757,7 +757,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
             delSupport(l-1,v);
             removeArc(l-1,l,a.get());
-            if (_mddspec.usesUp()) _bwd->enQueue(p);
+            if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
             if (lowest < l) return lowest;
             continue;
          }
@@ -784,7 +784,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
                delSupport(l-1,v);
                removeArc(l-1,l,a.get());
-               if (_mddspec.usesUp()) _bwd->enQueue(p);
+               if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
                if (lowest < l) return lowest;
             } else {
                int reuse = splitter.hasState(*ms);
@@ -942,17 +942,22 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
 void MDDRelax::computeDown(int iter)
 {
    //std::cout << "START:" << *_delta << '\n';
-   if (true || iter <= 5) {
+   if (iter <= 5) {
       int l=1;
+      int nbScans = numVariables;
+      int nbSplits = 0;
       while (l < (int) numVariables) {
          int lowest = l;
          trimVariable(l-1);
-         if (!x[l-1]->isBound() && layers[l].size() < _width) 
+         if (!x[l-1]->isBound() && layers[l].size() < _width) {
             lowest = split(layers[l],l);
+            ++nbSplits;
+         }
          auto jump = std::min(l - lowest,_maxDistance);
          l = (lowest < l) ? l-jump : l + 1;
          //l += 1;
       }
+      //std::cout << "#SC:" << nbScans << " \tnbS:" << nbSplits << " \tR:" << (double)nbSplits / nbScans << '\n';
    }
    _sf->disable();
    while(!_fwd->empty()) {
