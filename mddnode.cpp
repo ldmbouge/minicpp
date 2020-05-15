@@ -59,7 +59,9 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
      children(t,mem,std::max(dsz,1)),
      parents(t,mem,std::max(dsz,1)),
      state(state)
-{}
+{
+   _fq = _bq = nullptr;
+}
 
 
 bool MDDNode::unhookOutgoing(MDDEdge::Ptr arc)

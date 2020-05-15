@@ -180,11 +180,12 @@ class MDDRelax : public MDD {
    void computeDown(int iter);
    void postUp();
    void removeArc(int outL,int inL,MDDEdge* arc) override;
+   void refreshAll() override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:
    MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max());
    void buildDiagram() override;
-   void buildNextLayer(unsigned int i);
+   void buildNextLayer(unsigned int i) override;
    void relaxLayer(int i,unsigned int width);
    void propagate() override;
    void trimLayer(unsigned int layer) override;
