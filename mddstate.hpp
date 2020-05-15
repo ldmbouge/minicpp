@@ -243,7 +243,7 @@ class MDDBSValue {
    const  short        _nbw;
 public:
    MDDBSValue(char* buf,short nbw)
-      : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw) {}
+      : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw) {}   
    MDDBSValue(MDDBSValue&& v) : _buf(v._buf),_nbw(v._nbw) { v._buf = nullptr;}
    short nbWords() const noexcept { return _nbw;}
    MDDBSValue& operator=(const MDDBSValue& v) noexcept {
@@ -835,12 +835,18 @@ public:
             x.push_back(e);
       std::cout << "size of x: " << x.size() << std::endl;
    }
-
+   template <class Container> void addGlobal(const Container& y) {
+      for(auto e : y)
+         if(std::find(z.cbegin(),z.cend(),e) == z.cend())
+            z.push_back(e);
+      std::cout << "size of z: " << z.size() << std::endl;
+   }
    void reachedFixpoint(const MDDState& sink);
    double splitPriority(const MDDNode& n) const;
    bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
+   std::vector<var<int>::Ptr>& getGlobals() { return z;}
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
       os << "Spec(";
       for(int p=0;p < s._nbp;p++) {
@@ -854,6 +860,7 @@ private:
    void init();
    std::vector<MDDConstraintDescriptor::Ptr> constraints;
    std::vector<var<int>::Ptr> x;
+   std::vector<var<int>::Ptr> z;
    std::vector<std::pair<MDDConstraintDescriptor::Ptr,ArcFun>>  _exists;
    std::vector<std::pair<MDDConstraintDescriptor::Ptr,NodeFun>> _nodeExists;
    std::vector<UpdateFun>      _updates; // this is a list of function that applies to every node. 

@@ -52,6 +52,7 @@ void MDD::post()
 {
    _mddspec.varOrder();
    x = _mddspec.getVars();
+   z = _mddspec.getGlobals();
    numVariables = (unsigned int) x.size();
    layers = std::vector<TVec<MDDNode*>>(numVariables+1);
    for(auto i = 0u; i < numVariables+1; i++)
@@ -153,12 +154,19 @@ bool MDD::trimDomains()
 
 void MDD::hookupPropagators()
 {
-   for(auto i = 0u; i < numVariables; i++){
+   for(auto i = 0u; i < numVariables; ++i){
       if (!x[i]->isBound()) {
          x[i]->propagateOnDomainChange(new (cp) MDDTrim(cp, this,i));
          x[i]->propagateOnDomainChange(this);
       }
-   }   
+   }
+   for(auto i= 0u;i < z.size();++i) {
+      if (!z[i]->isBound()) {
+         z[i]->whenDomainChange([this]() {
+                                   refreshAll();
+                                });
+      }
+   }
 }
 
 // Builds the diagram with the MDD-based constraints specified in the root state.

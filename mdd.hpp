@@ -33,6 +33,7 @@ public:
    void removeSupport(int layer, int value);
    void removeNode(MDDNode* node);
    void propagate() override;
+   virtual void refreshAll() {}
    std::size_t usage() const { return mem->usage();}
    unsigned long nbLayers() const { return numVariables;}
    std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
@@ -41,7 +42,7 @@ public:
 protected:
    virtual bool trimDomains();
    void hookupPropagators();
-   void buildNextLayer(unsigned int i);
+   virtual void buildNextLayer(unsigned int i);
    virtual void buildDiagram();
    void addNodeToLayer(int layer,MDDNode* n,int forValue);
    int _lastNid;
@@ -49,6 +50,7 @@ protected:
    CPSolver::Ptr cp;
    Storage::Ptr mem;
    std::vector<var<int>::Ptr> x;
+   std::vector<var<int>::Ptr> z;
    std::vector<TVec<MDDNode*>> layers;
    std::deque<MDDNode*> queue;
    ::trail<bool> _firstTime;

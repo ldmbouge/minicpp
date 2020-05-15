@@ -202,6 +202,7 @@ namespace Factory {
       // Enforce MDD bounds consistency on
       //   sum(i, matrix[i][vars[i]]) == z 
       mdd.append(vars);
+      mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
 
       // Create lower and upper bounds as proxy for bottom-up values.
       // At layer i, the proxy sums the minimum (resp. maximum) value
