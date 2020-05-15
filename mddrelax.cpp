@@ -819,6 +819,9 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
          delState(n,l);
          nSim.removeMatch(n);
       } else {
+         _fwd->enQueue(n);
+         _bwd->enQueue(n);
+         /*
          //_sf->disable();
          bool refreshed = refreshNodeFull(n,l);
          //_sf->enable();
@@ -832,7 +835,8 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             for(const auto& arc : n->getChildren())
                if (arc->getChild()->isActive())
                   _fwd->enQueue(arc->getChild());
-         }
+         }         
+         */
       }
    } // end of loop over relaxed node in layer l
    return lowest;

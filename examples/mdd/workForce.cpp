@@ -330,12 +330,43 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << '\n';
    cout << stat << endl;
+
+   extern int iterMDD;
+   extern int nbCS;
+   extern int splitCS,pruneCS,potEXEC;
+   extern int nbCONSCall,nbCONSFail;
+   extern int nbAECall,nbAEFail;
+   extern int hitCS;
+
+   std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
+   std::cout << "#CS  : " << nbCS << '\n';
+   std::cout << "#L   : " << theOne->nbLayers() << '\n';
+
+   extern int splitCS,pruneCS,potEXEC;
+   std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
+
+   std::cout << "{ \"JSON\" :\n {";
+   std::cout << "\n\t\"workForce\" :" << "{\n";
+   std::cout << "\t\t\"m\" : " << 0 << ",\n";
+   std::cout << "\t\t\"w\" : " << relaxSize << ",\n";
+   std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
+   std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
+   std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
+   std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
+   std::cout << "\t\t\"layers\" : " << theOne->nbLayers() << ",\n";
+   std::cout << "\t\t\"splitCS\" : " << splitCS << ",\n";
+   std::cout << "\t\t\"pruneCS\" : " << pruneCS << ",\n";
+   std::cout << "\t\t\"pot\" : " << potEXEC << ",\n";  
+   std::cout << "\t\t\"hitCS\" : " << hitCS << ",\n";  
+   std::cout << "\t\t\"time\" : " << dur << "\n";
+   std::cout << "\t}\n";  
+   std::cout << "}\n}";
 }
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "data/workforce100-jobs.csv";
-   const char* compatFile = "data/workforce100.csv";
+   const char* jobsFile = "build/data/workforce100-jobs.csv";
+   const char* compatFile = "build/data/workforce100.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
    std::cout << "overlap = " << over << "\twidth=" << width << '\n';

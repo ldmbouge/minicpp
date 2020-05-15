@@ -512,20 +512,20 @@ void MDDStateFactory::createState(MDDState& result,const MDDState& parent,int la
    result.computeHash();
 }
 
-bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
-{
-   nbCS++;
-   result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSize()]);
-   _mddspec->copyStateUp(*result,n->getState());
-   _mddspec->createState(*result,parent,layer,x,MDDIntSet(val),true);
-   _mddspec->updateNode(*result);
-   bool isOk = _mddspec->consistent(*result,x);
-   if (isOk) 
-      result->computeHash();
-   return isOk;
-}
+// bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
+// {
+//    nbCS++;
+//    result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSize()]);
+//    _mddspec->copyStateUp(*result,n->getState());
+//    _mddspec->createState(*result,parent,layer,x,MDDIntSet(val),true);
+//    _mddspec->updateNode(*result);
+//    bool isOk = _mddspec->consistent(*result,x);
+//    if (isOk) 
+//       result->computeHash();
+//    return isOk;
+// }
 
-/*
+
 bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
 {
    MDDSKey key { &parent, val };
@@ -549,7 +549,7 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
       }
       return isOk;
    }
-   }*/
+}
 
 
 

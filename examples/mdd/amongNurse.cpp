@@ -352,10 +352,19 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   auto end = RuntimeMonitor::cputime();
   extern int iterMDD;
   extern int nbCS;
+  extern int splitCS,pruneCS,potEXEC;
+  extern int nbCONSCall,nbCONSFail;
+  extern int nbAECall,nbAEFail;
+  extern int hitCS;
+  
   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
   std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
   std::cout << "#CS  : " << nbCS << '\n';
   std::cout << "#L   : " << mdd->nbLayers() << '\n';
+  std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
+  std::cout << "CONS:" << nbCONSCall << " \tFAIL:" << nbCONSFail << '\n';
+  std::cout << "NBAE:" << nbAECall << " \tAEFAIL:" << nbAEFail << '\n';
+  std::cout << "HIT: " << (double)hitCS /nbCS << '\n';
 
   std::cout << "{ \"JSON\" :\n {";
   std::cout << "\n\t\"amongNurse\" :" << "{\n";
@@ -366,19 +375,12 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
   std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
   std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
+  std::cout << "\t\t\"splitCS\" : " << splitCS << ",\n";
+  std::cout << "\t\t\"pruneCS\" : " << pruneCS << ",\n";
+  std::cout << "\t\t\"pot\" : " << potEXEC << ",\n";  
   std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
   std::cout << "\t}\n";  
   std::cout << "}\n}";
-
-  extern int splitCS,pruneCS,potEXEC;
-  extern int nbCONSCall,nbCONSFail;
-  extern int nbAECall,nbAEFail;
-  extern int hitCS;
-  
-  std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
-  std::cout << "CONS:" << nbCONSCall << " \tFAIL:" << nbCONSFail << '\n';
-  std::cout << "NBAE:" << nbAECall << " \tAEFAIL:" << nbAEFail << '\n';
-  std::cout << "HIT: " << (double)hitCS /nbCS << '\n';
 }
 
 int main(int argc,char* argv[])

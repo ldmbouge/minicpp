@@ -26,7 +26,7 @@ class Runner:
     def run(self,width,model):
         os.chdir(self.path)
         full = './' + self.bin
-        flags = (full,'-w{0}'.format(width),'-m{0}'.format(model))
+        flags = (full,'-w{0}'.format(width),'-o{0}'.format(model))
         print(flags)
         h = Popen(flags,stdout=PIPE,stderr=PIPE)
         allLines = h.communicate()[0].strip().decode('ascii').splitlines()
@@ -34,19 +34,18 @@ class Runner:
         return rec
             
 
-name = "amongNurse"
+name = "workForce"
 r = Runner('build/'+name)
 
 ar = []
 
-for m in range(1,4):             # This is the models to conver (-m<x>)
-    for i in range(0,7):        # This is the width to consider 2^0 .. 2^k
-        w = 2**i
-        rec = r.run(w,m)
-        rec = rec['JSON'][name]
-        rec['time'] = rec['time'] / 1000.0
-        ar.append(rec)
-        print(rec)
+for i in range(0,6):        # This is the width to consider 2^0 .. 2^k
+    w = 2**i
+    rec = r.run(w,0)
+    rec = rec['JSON'][name]
+    rec['time'] = rec['time'] / 1000.0
+    ar.append(rec)
+    print(rec)
 
 
 jsonObject = json.dumps(ar,indent=4)

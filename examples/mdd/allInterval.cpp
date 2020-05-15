@@ -493,12 +493,18 @@ int main(int argc,char* argv[])
    cout << stat << endl;
    extern int iterMDD;
    extern int nbCS;
+   extern int splitCS,pruneCS,potEXEC;
+   extern int nbCONSCall,nbCONSFail;
+   extern int nbAECall,nbAEFail;
+   extern int hitCS;
+
    std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
    std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
    std::cout << "#CS  : " << nbCS << '\n';
    std::cout << "#L   : " << mdd->nbLayers() << '\n';
-   
-   //cp.dealloc();
+
+   extern int splitCS,pruneCS,potEXEC;
+   std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
 
    std::cout << "{ \"JSON\" :\n {";
    std::cout << "\n\t\"allInterval\" :" << "{\n";
@@ -510,15 +516,17 @@ int main(int argc,char* argv[])
    std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
    std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
    std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
+   std::cout << "\t\t\"splitCS\" : " << splitCS << ",\n";
+   std::cout << "\t\t\"pruneCS\" : " << pruneCS << ",\n";
+   std::cout << "\t\t\"pot\" : " << potEXEC << ",\n";  
+   std::cout << "\t\t\"hitCS\" : " << hitCS << ",\n";  
    std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
    std::cout << "\t}\n";  
    std::cout << "}\n}";
 
-   extern int splitCS,pruneCS,potEXEC;
-
-   std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
-   return 0;
+   //cp.dealloc();
 }
+ 
 
 
 
