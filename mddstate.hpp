@@ -493,6 +493,8 @@ class MDDPBitSequence : public MDDProperty {
    {}   
    void init(char* buf) const noexcept override {
       unsigned long long* ptr = reinterpret_cast<unsigned long long*>(buf + _ofs);
+      unsigned short nbw = _bsz >> 3;
+      for(unsigned short i=0u;i < nbw;++i) ptr[i] = 0x0ull;
       unsigned long long bmask = (_init) ? ~0x0ull : 0x0ull;
       short nbWords = _bsz >> 3;
       for(int i=0;i < nbWords - 1;i++)
@@ -744,12 +746,11 @@ public:
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << (s._flags._drelax ? 'T' : 'F')
          << (s._flags._urelax ? 'T' : 'F') << '[';
-      if(s._spec != nullptr)
-         for(int p=0;p < s._spec->_nbp;p++) {
-            auto atr = s._spec->_attrs[p];
-            atr->stream(s._mem,os);
-            os << ' ';
-         }
+      for(int p=0;p < s._spec->_nbp;p++) {
+         auto atr = s._spec->_attrs[p];
+         atr->stream(s._mem,os);
+         os << ' ';
+      }      
       return os << ']';
    }
 };
