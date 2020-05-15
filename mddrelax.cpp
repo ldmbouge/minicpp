@@ -1034,6 +1034,7 @@ void MDDRelax::propagate()
          change = !_fwd->empty() || !_bwd->empty();
          for(int l=0;l < (int) numVariables;l++)
             trimVariable(l);
+         //if (iter % 100 == 0) std::cout << "looping in main fix\n";
       } while (change);//  && iter <= 10);
       //iterMDD += iter;
       assert(layers[numVariables].size() == 1);
