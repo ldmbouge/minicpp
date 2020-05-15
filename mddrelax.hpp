@@ -142,7 +142,8 @@ public:
          if (rv)
             rv->leaveQueue(_dir);
          _nbe -= 1;
-      } while (rv==nullptr || !rv->isActive());
+         assert(_nbe >= 0);
+      } while (rv==nullptr || !rv->isActive());      
       return rv;
    }
 };
