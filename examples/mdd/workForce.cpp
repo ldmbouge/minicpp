@@ -247,7 +247,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
       //auto mdd = new MDD(cp);
-      auto mdd = new MDDRelax(cp,relaxSize);
+      auto mdd = new MDDRelax(cp,relaxSize,0);
       for(auto theClique : ctm) {  // merge on cliques if normal alldiff.
          auto c = cv[theClique];
          std::cout << "Clique: " << c << '\n';
