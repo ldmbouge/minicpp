@@ -102,32 +102,41 @@ public:
    }
    ~MDDQueue()  { delete []_queues;}
    void clear() {
-      for(int i = 0;i < _nbq;i++)
-         _queues[i].clear();
-      _nbe = 0;
+      assert(_nbe >= 0);
+      if (_nbe > 0) {
+         for(int i = 0;i < _nbq;i++)
+            while (!_queues[i].empty())
+               _queues[i].deQueue()->leaveQueue(_dir);
+         _nbe = 0;
+      }
    }
    void init() noexcept  { _cl = _init;}
    bool empty() const    { return _nbe == 0;}
    void retract(MDDNode* n) {
+      assert(_nbe >= 1);
       assert(n->inQueue(_dir));
       auto& tc = _queues[n->getLayer()]; // queue to clear
-      if (std::is_same<op,std::plus<int>>::value)
+      if (std::is_same<op,std::plus<int>>::value) {
          tc.retract(n->_fq);
-      else
+         _nbe -= n->_fq != nullptr;
+      } else {
          tc.retract(n->_bq);
-      --_nbe;
-      n->leaveQueue(_dir);
+         _nbe -= n->_bq != nullptr;
+      }      
+      n->leaveQueue(_dir);   
    }
    void enQueue(MDDNode* n) {
+      assert(n->isActive());
       if (!n->inQueue(_dir)) {
          Location<MDDNode*>* lq = _queues[n->getLayer()].enQueue(n);
+         assert(n->inQueue(_dir) == false);
+         n->enterQueue(_dir);
          if (std::is_same<op,std::plus<int>>::value)
             n->_fq = lq;
          else n->_bq = lq;
-         assert(n->inQueue(_dir) == false);
-         n->enterQueue(_dir);
          _nbe += 1;
       }
+      assert(_nbe>=0);
    }
    MDDNode* deQueue() {
       op opName;
