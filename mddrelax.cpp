@@ -942,10 +942,11 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
 void MDDRelax::computeDown(int iter)
 {
    //std::cout << "START:" << *_delta << '\n';
-   if (true || iter <= 1) {
+   if (true || iter <= 5) {
       int l=1;
       while (l < (int) numVariables) {
          int lowest = l;
+         trimVariable(l-1);
          if (!x[l-1]->isBound() && layers[l].size() < _width) 
             lowest = split(layers[l],l);
          auto jump = std::min(l - lowest,_maxDistance);
@@ -1026,12 +1027,12 @@ void MDDRelax::propagate()
          assert(layers[numVariables].size() == 1);
          if (!_mddspec.usesUp()) _bwd->clear();
          change = !_fwd->empty() || !_bwd->empty();
-      } while (change); //  && iter <= 2);
+         for(int l=0;l < (int) numVariables;l++)
+            trimVariable(l);
+      } while (change);//  && iter <= 10);
       //iterMDD += iter;
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
-      for(int l=0;l < (int) numVariables;l++)
-         trimVariable(l);
       setScheduled(false);
       //std::cout << "FIX=" << iter << '\n';
   } catch(Status s) {
