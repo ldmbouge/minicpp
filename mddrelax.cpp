@@ -1021,6 +1021,22 @@ void MDDRelax::propagate()
    }
 }
 
+void MDDRelax::refreshAll()
+{
+   _fwd->clear();
+   _bwd->clear();
+   for(unsigned l=0u;l < numVariables;++l) {
+      for(unsigned p=0u;p < layers[l].size();++p) {
+         auto n = layers[l][p];
+         assert(n->isActive());
+         _fwd->enQueue(n);
+         if (_mddspec.usesUp())
+            _bwd->enQueue(n);
+      }
+   }
+   propagate();
+}
+
 void MDDRelax::checkGraph()
 {
    for(unsigned l=0u;l < numVariables;l++) {
