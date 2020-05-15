@@ -259,10 +259,10 @@ void MDDRelax::relaxLayer(int i,unsigned int width)
 {
    assert(width == 1);
    _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
-   if (layers[i].size() <= width)
-      return;   
-   const int iSize = (int)layers[i].size();  
-   const MDDState& refDir = _refs[i];
+   // if (layers[i].size() <= width)
+   //    return;   
+   // const int iSize = (int)layers[i].size();  
+   // const MDDState& refDir = _refs[i];
 
    // The 'cl' data-structure is, strictly speaking, not necessary. It gives a permutation of the
    // node from most similar to least simiar to the chosen reference.
