@@ -103,8 +103,22 @@ public:
       pos = p;
    }
    void clearQueue() const noexcept { _inQueue = None;}
-   void enterQueue(enum Direction d) const noexcept { _inQueue = (enum Direction)(_inQueue | d);}
-   void leaveQueue(enum Direction d) const noexcept { _inQueue = (enum Direction)(_inQueue & ~d);}
+   void enterQueue(enum Direction d) const noexcept {
+      _inQueue = (enum Direction)(_inQueue | d);
+//      switch(d) {
+//         case Down: assert(_fq == nullptr);break;
+//         case Up:   assert(_bq == nullptr);break;
+//         default: break;
+//      }
+   }
+   void leaveQueue(enum Direction d) const noexcept {
+      _inQueue = (enum Direction)(_inQueue & ~d);
+      switch(d) {
+         case Down: _fq = nullptr;break;
+         case Up:   _bq = nullptr;break;
+         default: break;
+      }
+   }
    bool inQueue(enum Direction d) const noexcept    { return (_inQueue & d)==d;}
    enum Direction curQueue() const noexcept { return _inQueue;}
    bool isActive() const noexcept { return _active;}
@@ -118,13 +132,14 @@ public:
       t->trail(new (t) TrailEntry<bool>(&_active));
       _active = true;
       _inQueue = None;
+      _fq = _bq = nullptr;
    }
    void print(std::ostream& os) {
-      os << "L[" << layer << "," << pos <<  "] " << state;
+      os << "[" << layer << "," << pos <<  "] " << _nid; //state;
    }
    bool parentsChanged() const noexcept { return parents.changed();}
    bool childrenChanged() const noexcept { return children.changed();}
-   Location<MDDNode*> *_fq, *_bq;
+   mutable Location<MDDNode*> *_fq, *_bq;
 private:   
    int pos;
    int _nid;
