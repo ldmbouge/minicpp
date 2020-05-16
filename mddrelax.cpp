@@ -770,26 +770,24 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             // If we matched to n nothing to do. We already point to n.
          } else { // There is an approximate match
             // So, if there is room create a new node
-            //if (layer.size() >= _width)  continue;            
-            int nbk = n->getNumChildren();
-            bool keepArc[nbk];
-            unsigned idx = 0,cnt = 0;
-            for(auto ca : n->getChildren()) 
-               cnt += keepArc[idx++] = _mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
-            if (cnt == 0) {
-
-               pruneCS++;
-               
-               p->unhook(a);
-               if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
-               delSupport(l-1,v);
-               removeArc(l-1,l,a.get());
-               if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-               if (lowest < l) return lowest;
+            //if (layer.size() >= _width)  continue;
+            int reuse = splitter.hasState(*ms);
+            if (reuse != -1) {
+               splitter.linkChild(reuse,a);
             } else {
-               int reuse = splitter.hasState(*ms);
-               if (reuse != -1) {
-                  splitter.linkChild(reuse,a);
+               int nbk = n->getNumChildren();
+               bool keepArc[nbk];
+               unsigned idx = 0,cnt = 0;
+               for(auto ca : n->getChildren()) 
+                  cnt += keepArc[idx++] = _mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
+               if (cnt == 0) {
+                  pruneCS++;               
+                  p->unhook(a);
+                  if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+                  delSupport(l-1,v);
+                  removeArc(l-1,l,a.get());
+                  if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+                  if (lowest < l) return lowest;
                } else {
                   splitter.addPotential(_pool,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
                }

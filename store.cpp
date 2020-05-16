@@ -80,9 +80,20 @@ Pool::Pool(std::size_t defSize)
    : _store(0),
      _segSize(defSize),
      _top(0),
-     _seg(0)
+     _seg(0),
+     _nbSeg(1),
+     _mxs(32)
 {
-   _store.push_back(std::make_shared<Pool::Segment>(_segSize));
+   //_store.push_back(std::make_shared<Pool::Segment>(_segSize));
+   _store = new Segment*[_mxs];
+   _store[0] = new Segment(_segSize);
+}
+
+Pool::~Pool()
+{
+   for(auto i = 0u;i < _nbSeg;++i)
+      delete[] _store[i];
+   delete[] _store;
 }
 
 void* Pool::allocate(std::size_t sz)
@@ -91,11 +102,18 @@ void* Pool::allocate(std::size_t sz)
       sz = (sz | 0xF) + 1; // increase to align
    assert((sz & 0xF) == 0 && sz != 0);           // check alignment
    auto s = _store[_seg];
-   if (_top + sz >= s->_sz) {
-      while (_store.size() != _seg + 1)
-         _store.pop_back();                    // discard old segments
-      _store.push_back(std::make_shared<Pool::Segment>(std::max(_segSize,sz)));
-      _seg = _seg + 1;
+   while(_top + sz >= s->_sz) {
+      ++_seg;
+      if (_seg >= _nbSeg) {
+         if (_nbSeg == _mxs) {
+            Segment** tab = new Segment*[_mxs << 1];
+            for(auto i = 0u;i < _mxs;++i) tab[i] = _store[i];
+            delete []_store;
+            _store = tab;
+            _mxs <<= 1;
+         }
+         _store[_nbSeg++] = new Segment(std::max(_segSize,sz));
+      }
       _top = 0;
       s = _store[_seg];
    }

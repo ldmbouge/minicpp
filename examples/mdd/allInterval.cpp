@@ -186,10 +186,10 @@ namespace Factory {
     const int ySome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
     const int ySomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
     const int zSomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int N       = mdd.addState(d,0,2,MinFun);        // layer index 
+    const int N       = mdd.addState(d,0,INT_MAX,MinFun);        // layer index 
     
-    mdd.transitionDown(xSome,{xSome},[xSome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==0) {
+    mdd.transitionDown(xSome,{xSome},[xSome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up)  noexcept {
+	if (p[N]==0) {
 	  out.setProp(xSome,p);
 	  MDDBSValue sv(out.getBS(xSome));
 	  for(auto v : val)
@@ -198,8 +198,8 @@ namespace Factory {
 	else
 	  out.setProp(xSome,p);
       });
-    mdd.transitionDown(ySome,{ySome},[ySome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==1) {
+    mdd.transitionDown(ySome,{ySome},[ySome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up)  noexcept {
+	if (p[N]==1) {
 	  out.setProp(ySome,p);
 	  MDDBSValue sv(out.getBS(ySome));
 	  for(auto v : val)
@@ -209,10 +209,10 @@ namespace Factory {
 	  out.setProp(ySome,p);
       });
 
-    mdd.transitionDown(N,{},[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+    mdd.transitionDown(N,{},[N](auto& out,const auto& p,auto x,const auto& val,bool up) noexcept { out.setInt(N,p[N]+1); });
 
-    mdd.transitionUp(ySomeUp,{ySomeUp},[ySomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-	if (c.at(N)==2) {
+    mdd.transitionUp(ySomeUp,{ySomeUp},[ySomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) noexcept {
+	if (c[N]==2) {
 	  out.setProp(ySomeUp,c);
 	  MDDBSValue sv(out.getBS(ySomeUp));
 	  for(auto v : val)
@@ -221,8 +221,8 @@ namespace Factory {
 	else 
 	  out.setProp(ySomeUp,c);
       });
-    mdd.transitionUp(zSomeUp,{zSomeUp},[zSomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-	if (c.at(N)==3) {
+    mdd.transitionUp(zSomeUp,{zSomeUp},[zSomeUp,N,minDom] (auto& out,const auto& c,auto x, const auto& val,bool up) noexcept  {
+	if (c[N]==3) {
 	  out.setProp(zSomeUp,c);
 	  MDDBSValue sv(out.getBS(zSomeUp));
 	  for(auto v : val)
@@ -232,82 +232,74 @@ namespace Factory {
 	  out.setProp(zSomeUp,c);
       });
 
-    mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
-
-	if (p.at(N)==2) {
+    mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up)  noexcept -> bool {
+	if (p[N]==2) {
 	  // filter z variable
-	  MDDBSValue xVals = p.getBS(xSome);
-	  MDDBSValue yVals = p.getBS(ySome);
-	  for (int i=udom.first; i<=udom.second; i++) {
-	    const int xofs = i-minDom;
-	    if (xVals.getBit(xofs)) {
-	      int yval1 = i-val;
-	      int yval2 = i+val;
-	      if ((yval1 >= udom.first && yval1 <= udom.second && yVals.getBit(yval1) && yval1 != i) ||
-		  (yval2 >= udom.first && yval2 <= udom.second && yVals.getBit(yval2) && yval2 != i))
+           MDDBSValue xVals = p.getBS(xSome),yVals = p.getBS(ySome);
+          for(const auto xofs : xVals) {
+             const auto i = xofs + minDom;
+             if (val==0) continue;
+             int yval1 = i-val,yval2 = i+val;
+             if ((yval1 >= udom.first && yval1 <= udom.second && yVals.getBit(yval1)) ||
+                 (yval2 >= udom.first && yval2 <= udom.second && yVals.getBit(yval2)))
 		return true;
-	    }
 	  }    
 	  return false;
 	}
 	else {
 	  if (up) {
-	    if (p.at(N) == 0) {
+	    if (p[N] == 0) {
 	      // filter x variable
-	      MDDBSValue yVals = c.getBS(ySomeUp);
-	      MDDBSValue zVals = c.getBS(zSomeUp);
-	      for (int i=udom.first; i<=udom.second; i++) {
-		const int yofs = i - minDom;
-		if (yVals.getBit(yofs) && val != i) {
-		  int zval1 = val-i;
-		  int zval2 = i-val;
-		  if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
-		      (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2)))
-		    return true;
+               MDDBSValue yVals = c.getBS(ySomeUp),zVals = c.getBS(zSomeUp);
+              for(auto yofs : yVals) {
+                 auto i = yofs + minDom;
+                 if (val != i) {
+                    int zval1 = val-i,zval2 = i-val;
+                    if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
+                        (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2)))
+                       return true;
 		}
 	      }    
 	      return false;
 	    }
-	    else if (p.at(N) == 1) {
+	    else if (p[N] == 1) {
 	      // filter y variable
-	      MDDBSValue xVals = p.getBS(xSome);
-	      MDDBSValue zVals = c.getBS(zSomeUp);	  
-	      for (int i=udom.first; i<=udom.second; i++) {
-		const int xofs = i - minDom;
-		if (xVals.getBit(xofs) && i != val) {
-		  int zval1 = val-i;
-		  int zval2 = i-val;
-		  if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
-		      (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2)))
-		    return true;
-		}
-	      }    
-	      return false;
+               MDDBSValue xVals = p.getBS(xSome),zVals = c.getBS(zSomeUp);
+               for(auto xofs : xVals) {
+                  auto i = xofs + minDom;
+                  if (i != val) {
+                     int zval1 = val-i,zval2 = i-val;
+                     if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
+                         (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2)))
+                        return true;
+                  }
+               }    
+               return false;
 	    }
 	  }
 	}
 	return true;
       });
       
-      mdd.addRelaxation(xSome,[xSome](auto& out,const auto& l,const auto& r)     {
+      mdd.addRelaxation(xSome,[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
                                 out.getBS(xSome).setBinOR(l.getBS(xSome),r.getBS(xSome));
                             });
-      mdd.addRelaxation(ySome,[ySome](auto& out,const auto& l,const auto& r)     {
+      mdd.addRelaxation(ySome,[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
                                 out.getBS(ySome).setBinOR(l.getBS(ySome),r.getBS(ySome));
                             });
-      mdd.addRelaxation(ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)     {
+      mdd.addRelaxation(ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)  noexcept     {
                                 out.getBS(ySomeUp).setBinOR(l.getBS(ySomeUp),r.getBS(ySomeUp));
                             });
-      mdd.addRelaxation(zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)     {
+      mdd.addRelaxation(zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)  noexcept      {
                                 out.getBS(zSomeUp).setBinOR(l.getBS(zSomeUp),r.getBS(zSomeUp));
                             });
 
       // // This strategy has no impact on performance
       // mdd.splitOnLargest([=](const auto& in) {
-      // 	  if (in.getState().at(N) == 1) {
+      // 	  if (in.getState()[N] == 1) {
       // 	    MDDBSValue xVals = in.getState().getBS(xSome);
       // 	    return -(double) xVals.cardinality();
-      // 	  } else if (in.getState().at(N) == 2) {
+      // 	  } else if (in.getState()[N] == 2) {
       // 	    MDDBSValue yVals = in.getState().getBS(ySome);
       // 	    return -(double) yVals.cardinality();
       // 	  } else

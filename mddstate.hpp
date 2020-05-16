@@ -29,6 +29,9 @@
 #include <limits.h>
 #include "xxhash.hpp"
 
+#define CACHING 1
+
+
 class MDDIntSet {
    short  _mxs,_sz;
    bool  _isSingle;
@@ -256,8 +259,9 @@ public:
    constexpr bool getBit(const int ofs) const noexcept {
       const int wIdx = ofs >> 6;
       const int bOfs = ofs & ((1<<6) - 1);
-      const unsigned long long bmask = 0x1ull << bOfs;
-      return (_buf[wIdx] & bmask) == bmask;
+      //const unsigned long long bmask = 0x1ull << bOfs;
+      //return (_buf[wIdx] & bmask) == bmask;
+      return (_buf[wIdx] >> bOfs) & 0x1;
    }
    void clear(const int ofs) noexcept {
       const int wIdx = ofs >> 6;
@@ -274,10 +278,11 @@ public:
    constexpr int cardinality() const noexcept {
       int nbb = 0;
       for(int i = (int)_nbw-1;i >= 0;--i) 
-         nbb += __builtin_popcountl(_buf[i]);      
+         //nbb += __builtin_popcountll(_buf[i]);
+         nbb += _mm_popcnt_u64(_buf[i]);
       return nbb;
    }
-   MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {
+   __attribute__((always_inline)) inline MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {
       switch(_nbw) {
          case 1: _buf[0] = a._buf[0] | b._buf[0];return *this;
          case 2: {
@@ -306,6 +311,34 @@ public:
          _buf[i] = ~_buf[i];
       return *this;
    }
+   class iterator : public std::iterator<std::input_iterator_tag,short,short> {
+      unsigned long long* _t;
+      const short _nbw;
+      short _cwi;    // current word index
+      unsigned long long _cw; // current word
+      iterator(unsigned long long* t,short nbw,short at)
+         : _t(t),_nbw(nbw),_cwi(at),_cw((at < nbw) ? t[at] : 0) {
+         while (_cw == 0 && ++_cwi < _nbw) 
+            _cw = _t[_cwi];         
+      }
+      iterator(unsigned long long* t,short nbw) : _t(t),_nbw(nbw),_cwi(nbw),_cw(0) {} // end constructor
+   public:
+      iterator& operator++()  noexcept {
+         unsigned long long test = _cw & -_cw;  // only leaves LSB at 1
+         _cw ^= test;                  // clear LSB
+         while (_cw == 0 && ++_cwi < _nbw)  // all bits at zero-> done with this word.            
+            _cw = _t[_cwi];        
+         return *this;
+      }
+      iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
+      bool operator==(iterator other) const {return _cwi == other._cwi && _cw == other._cw;}
+      bool operator!=(iterator other) const {return !(*this == other);}
+      short operator*() const   { return (_cwi<<6) + __builtin_ctzl(_cw);}
+      friend class MDDBSValue;
+   };
+   iterator begin() const { return iterator(_buf,_nbw,0);}
+   iterator end()   const { return iterator(_buf,_nbw);}
+
    friend bool operator==(const MDDBSValue& a,const MDDBSValue& b) {
       bool eq = a._nbw == b._nbw;
       for(short i = 0 ;eq && i < a._nbw;i++)
@@ -711,9 +744,11 @@ public:
    }
    //constexpr int computeHash() const noexcept { return 0;}
    int computeHash() const noexcept {
-      xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
-      return _hash = (int)hv;
-      /*
+#if 0 && !defined(CACHING)
+      return _hash = 0;
+#else      
+      // xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
+      // return _hash = (int)hv;
       const auto nbw = _spec->layoutSize() / 4;
       int nlb = _spec->layoutSize() & 0x3;
       char* sfx = _mem + (nbw << 2);
@@ -725,7 +760,7 @@ public:
          ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
       _flags._hashed = true;
       return _hash = ttl;
-      */
+#endif  
    }
    bool stateEqual(const MDDState& b) const noexcept {
       return memcmp(_mem,b._mem,_spec->layoutSize())==0;
