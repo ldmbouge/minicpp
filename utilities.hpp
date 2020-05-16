@@ -12,6 +12,8 @@
 #include <set>
 #include <map>
 #include <string.h>
+#include <xmmintrin.h>
+
 
 class ValueSet {
    char* _data;
@@ -127,8 +129,24 @@ public:
    void setProp(int p) noexcept       { _t[p >> 6] |= (1ull << (p & 63));}
    bool hasProp(int p) const noexcept { return (_t[p >> 6] &  (1ull << (p & 63))) != 0;}
    void unionWith(const MDDPropSet& ps) noexcept {
-      for(short i=0;i < _mxw;i++)
-         _t[i] |= ps._t[i];
+      switch (_mxw) {
+         case 1: _t[0] |= ps._t[0];break;
+         case 2: {
+            __m128i op0 = *(__m128i*)_t;
+            __m128i op1 = *(__m128i*)ps._t;
+            *(__m128i*)_t = _mm_or_si128(op0,op1);
+         }break;
+         case 3: {
+            __m128i op0 = *(__m128i*)_t;
+            __m128i op1 = *(__m128i*)ps._t;
+            *(__m128i*)_t = _mm_or_si128(op0,op1);
+            _t[2] |= ps._t[2];
+         }break;
+         default: {
+            for(short i=0;i < _mxw;++i)
+               _t[i] |= ps._t[i]; 
+         }
+      }
    }
    void interWith(const MDDPropSet& ps) noexcept {
       for(short i=0;i < _mxw;i++)

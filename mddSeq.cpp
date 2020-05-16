@@ -315,7 +315,7 @@ namespace Factory {
 	});
       
       // arc definitions
-      spec.arcExist(desc,[=] (const auto& p,const auto& c,const auto& x,int v,bool up) -> bool {
+      spec.arcExist(desc,[values,Ymin,Ymax](const auto& p,const auto& c,const auto& x,int v,bool up) -> bool {
                             bool c0 = true,c1 = true,inS = values.member(v);
                             if (up) { // during the initial post, I do test arc existence and up isn't there yet.
                                c0 = (p[Ymin] + inS <= c[Ymax]);

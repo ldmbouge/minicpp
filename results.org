@@ -300,7 +300,8 @@ createState stick out even more.
 
 
 * New Serie <2020-05-15 Fri>
-- Reboot unrestricted
+- Reboot unrestricted for everything except workForce 
+- WorkForce restricts reboot to maxDistance=0
 
 ** ~AmongNurse~
 *** ~AmongNurse~ With refresh on node split.

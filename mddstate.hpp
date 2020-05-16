@@ -27,6 +27,7 @@
 #include <utility>
 #include <xmmintrin.h>
 #include <limits.h>
+#include "xxhash.hpp"
 
 class MDDIntSet {
    short  _mxs,_sz;
@@ -710,6 +711,9 @@ public:
    }
    //constexpr int computeHash() const noexcept { return 0;}
    int computeHash() const noexcept {
+      xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
+      return _hash = (int)hv;
+      /*
       const auto nbw = _spec->layoutSize() / 4;
       int nlb = _spec->layoutSize() & 0x3;
       char* sfx = _mem + (nbw << 2);
@@ -721,6 +725,7 @@ public:
          ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
       _flags._hashed = true;
       return _hash = ttl;
+      */
    }
    bool stateEqual(const MDDState& b) const noexcept {
       return memcmp(_mem,b._mem,_spec->layoutSize())==0;

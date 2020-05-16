@@ -182,7 +182,7 @@ namespace Factory {
                                     out.setInt(Uup,p[Uup] + oneMember);
                                  });
 
-      mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
+      mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
                         bool vinS = tv == val;//values.member(val);
                         if (up) {
                            return ((p[U] + vinS + c[Uup] >= lb) &&

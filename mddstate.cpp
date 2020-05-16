@@ -155,7 +155,7 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,const var<int>::Ptr& x,i
 {
    ++nbAECall;
    bool arcOk = true;
-   for(auto& exist : _scopedExists[x->getId()]) {
+   for(const auto& exist : _scopedExists[x->getId()]) {
       arcOk = exist(a,c,x,v,up);
       if (!arcOk) {
          ++nbAEFail;
