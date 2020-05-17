@@ -29,7 +29,9 @@ template <class K,class T,class Hash = std::hash<K>,class Equal = std::equal_to<
    Hash _hash;
    Equal _equal;
    HTNode**  _tab;
+   unsigned* _mgc;
    int  _mxs;
+   unsigned _magic;
 public:
    Hashtable(Pool::Ptr p,int sz) : _pool(p) {
       constexpr const int tsz = sizeof(_primes)/sizeof(int);
@@ -48,11 +50,15 @@ public:
       _mxs = low >= tsz ? sz :  _primes[low];
       std::cout << "SIZE:" << _mxs << '\n';
       _tab = new (_pool) HTNode*[_mxs];
-      for(int i=0;i <_mxs;++i) _tab[i] = nullptr;
+      _mgc = new (_pool) unsigned[_mxs];
+      bzero(_tab,sizeof(HTNode*)*_mxs);
+      bzero(_mgc,sizeof(unsigned)*_mxs);
+      _magic = 0;
    }
    void insert(const K& key,const T& val) noexcept {
       int at = _hash(key) % _mxs;
-      HTNode* cur = _tab[at];
+      HTNode* head = _mgc[at]==_magic ? _tab[at] : nullptr;
+      HTNode* cur = head;
       while (cur != nullptr) {
          if (_equal(cur->_key,key)) {
             cur->_data = val;
@@ -60,11 +66,12 @@ public:
          }
          cur = cur->_next;
       }
-      _tab[at] = new (_pool) HTNode {key,val,_tab[at]};
+      _tab[at] = new (_pool) HTNode {key,val,head};
+      _mgc[at] = _magic;
    }
    bool get(const K& key,T& val) const noexcept {
       int at = _hash(key) % _mxs;
-      HTNode* cur = _tab[at];
+      HTNode* cur =  _mgc[at]==_magic ? _tab[at] : nullptr;
       while (cur != nullptr) {
          if (_equal(cur->_key,key)) {
             val = cur->_data;
@@ -75,7 +82,8 @@ public:
       return false;      
    }
    void clear() noexcept {
-      bzero(_tab,_mxs*sizeof(HTNode*));
+      ++_magic;
+      //bzero(_tab,_mxs*sizeof(HTNode*));
       //for(int i=0;i <_mxs;++i) _tab[i] = nullptr;
    }
 };

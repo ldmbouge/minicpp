@@ -746,19 +746,20 @@ public:
 #if 0 && !defined(CACHING)
       return _hash = 0;
 #else      
-      // xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
-      // return _hash = (int)hv;
-      const auto nbw = _spec->layoutSize() / 4;
-      int nlb = _spec->layoutSize() & 0x3;
-      char* sfx = _mem + (nbw << 2);
-      unsigned int* b = reinterpret_cast<unsigned int*>(_mem);
-      unsigned int ttl = 0;
-      for(auto s = 0u;s <nbw;s++)
-         ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
-      while(nlb-- > 0)
-         ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
+      xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
       _flags._hashed = true;
-      return _hash = ttl;
+      return _hash = (int)hv;
+      // const auto nbw = _spec->layoutSize() / 4;
+      // int nlb = _spec->layoutSize() & 0x3;
+      // char* sfx = _mem + (nbw << 2);
+      // unsigned int* b = reinterpret_cast<unsigned int*>(_mem);
+      // unsigned int ttl = 0;
+      // for(auto s = 0u;s <nbw;s++)
+      //    ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
+      // while(nlb-- > 0)
+      //    ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
+      // _flags._hashed = true;
+      // return _hash = ttl;
 #endif  
    }
    bool stateEqual(const MDDState& b) const noexcept {
