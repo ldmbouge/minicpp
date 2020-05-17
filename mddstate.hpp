@@ -27,6 +27,7 @@
 #include <utility>
 #include <xmmintrin.h>
 #include <limits.h>
+#include "hashtable.hpp"
 #include "xxhash.hpp"
 
 #define CACHING 1
@@ -259,8 +260,6 @@ public:
    constexpr bool getBit(const int ofs) const noexcept {
       const int wIdx = ofs >> 6;
       const int bOfs = ofs & ((1<<6) - 1);
-      //const unsigned long long bmask = 0x1ull << bOfs;
-      //return (_buf[wIdx] & bmask) == bmask;
       return (_buf[wIdx] >> bOfs) & 0x1;
    }
    void clear(const int ofs) noexcept {
@@ -929,7 +928,7 @@ class MDDStateFactory {
       const int         _v;
    };
    struct EQtoMDDSKey {
-      bool operator()(const MDDSKey& a,const MDDSKey& b) const {
+      bool operator()(const MDDSKey& a,const MDDSKey& b) const noexcept {
          return a._v == b._v && a._s->operator==(*b._s);
       }
    };
@@ -940,10 +939,12 @@ class MDDStateFactory {
    };
    MDDSpec*      _mddspec;
    Pool::Ptr         _mem;
-   std::unordered_map<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
-   bool _enabled;
+   //std::unordered_map<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
+   Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
+   PoolMark         _mark;
+   bool          _enabled;
 public:
-   MDDStateFactory(MDDSpec* spec) : _mddspec(spec),_mem(new Pool()),_hash(131071),_enabled(false) {}
+   MDDStateFactory(MDDSpec* spec);
    void createState(MDDState& result,const MDDState& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
    bool splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val);
    void clear();

@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <cmath>
 #include "RuntimeMonitor.hpp"
+#include "heap.hpp"
 
 MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance)
    : MDD(cp),
@@ -672,20 +673,26 @@ public:
    }
 };
 
+
 class MDDSplitter {
+   struct COrder {
+      bool operator()(MDDPotential* a,MDDPotential* b) const noexcept {
+         return a->getKey() > b->getKey();
+      }
+   };
    Pool::Ptr                        _pool;
    int                             _width;
-   std::vector<MDDPotential*> _candidates;
+   Heap<MDDPotential*,COrder> _candidates;
    const MDDSpec&                _mddspec;
 public:
-   MDDSplitter(Pool::Ptr pool,const MDDSpec& spec,int w) : _pool(pool),_width(w),_mddspec(spec){
-      _candidates.reserve(2 * _width);
-   }
+   MDDSplitter(Pool::Ptr pool,const MDDSpec& spec,int w)
+      : _pool(pool),_width(w),
+        _candidates(pool, 4 * _width),
+        _mddspec(spec) {}
    void clear() { _candidates.clear();}
    auto size() { return _candidates.size();}
-   template <class... Args> 
-   void addPotential(Args&&... args) {
-      _candidates.push_back(new (_pool) MDDPotential(std::forward<Args>(args)...));
+   template <class... Args> void addPotential(Args&&... args) {
+      _candidates.insert(new (_pool) MDDPotential(std::forward<Args>(args)...));
    }
    int hasState(const MDDState& s) {
       for(auto i = 0u;i  < _candidates.size();i++)
@@ -702,16 +709,11 @@ public:
          for(auto i = 0u;i < _candidates.size() && layer.size() < width;i++) 
             _candidates[i]->instantiate(cb,trail,mem);       
       } else {
-         for(auto& c : _candidates)
-            c->computeKey(_mddspec);
-         auto order = [](const auto& a,const auto& b) { return a->getKey() < b->getKey();};
-         std::make_heap(_candidates.begin(),_candidates.end(),order);
-         auto first = _candidates.begin(),last = _candidates.end();
-         while (first != last) {
-            MDDPotential* p = *first;
-            std::pop_heap(first,last,order);
-            _candidates.pop_back();
-            last = _candidates.end();
+         for(auto i = 0u;i < _candidates.size();++i)
+            _candidates[i]->computeKey(_mddspec);
+         _candidates.buildHeap();
+         while (!_candidates.empty()) {
+            MDDPotential* p = _candidates.extractMax();
             p->instantiate(cb,trail,mem);
             if (layer.size() >= width)
                break;
@@ -733,8 +735,8 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
    //MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
    MDDState* ms = nullptr;
    MDDNode* n = nullptr;
-   MDDSplitter splitter(_pool,_mddspec,_width);
    _pool->clear();
+   MDDSplitter splitter(_pool,_mddspec,_width);
    while (layer.size() < _width && lowest == l && (n = nSim.extractNode()) != nullptr) {
       //assert(n->getNumParents() > 0);
       assert(n->getState().isRelaxed());
@@ -793,6 +795,7 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                }
             }
          }//out-comment
+         //if (splitter.size() >= _width * 1) break;
       } // end of loop over parents.
       assert(nbParents == nbIter+1);
       splitter.process(layer,_width,trail,mem,

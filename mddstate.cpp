@@ -505,6 +505,16 @@ int nbCS  = 0;
 int hitCS = 0;
 int vs = 0;
 
+MDDStateFactory::MDDStateFactory(MDDSpec* spec)
+   : _mddspec(spec),
+     _mem(new Pool()),
+     _hash(_mem,300149), // 131071), // 10093), // 30103), // 300149),
+     _mark(_mem->mark()),
+     _enabled(false)
+{
+}
+
+
 void MDDStateFactory::createState(MDDState& result,const MDDState& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
 {
    nbCS++;
@@ -530,10 +540,9 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
 bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
 {
    MDDSKey key { &parent, val };
-   auto loc = _hash.find(key);
-   if (loc != _hash.end()) {
+   auto loc = _hash.get(key,result);
+   if (loc) {
       ++hitCS;
-      result = loc->second;
       return true;
    } else {
       nbCS++;
@@ -546,7 +555,7 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
          result->computeHash();
          MDDState* pc = new (_mem) MDDState(parent.clone(_mem));
          MDDSKey ikey { pc,val };
-         _hash[ikey] = result;
+         _hash.insert(ikey,result);
       }
       return isOk;
    }
@@ -558,6 +567,6 @@ void MDDStateFactory::clear()
 {
    //std::cout << "LF=" << _hash.load_factor() << "\t MLF:" << _hash.max_load_factor() << " \tSZ:" << _hash.size() << '\n';
    _hash.clear();
-   _mem->clear();
+   _mem->clear(_mark);
    _enabled = true;
 }
