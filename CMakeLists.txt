@@ -13,7 +13,7 @@ option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
 set(CMAKE_CXX_FLAGS "-Wall -Wsign-compare")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2") #[[ -D_NDEBUG -DNDEBUG") ]]
 
 include_directories(.)
 add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp

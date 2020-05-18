@@ -644,9 +644,6 @@ class MDDPotential {
 public:
    MDDPotential(Pool::Ptr pool,const int mxPar,MDDNode* par,MDDEdge::Ptr arc,const MDDState* child,int v,int nbKids,bool* kk)
       : _mem(pool),_par(par),_mxPar(mxPar),_nbPar(0) {
-      //MDDStateSpec* spec = child.getSpec();
-      //_child = MDDState(spec,new (_mem) char[spec->layoutSize()]);
-      //_child.copyState(child);
       _child = child;
       _arc = new (pool) MDDEdge::Ptr[_mxPar];
       _arc[_nbPar++] = arc;
@@ -708,7 +705,8 @@ public:
    void process(TVec<MDDNode*>& layer,unsigned long width,Trailer::Ptr trail,Storage::Ptr mem,const CB& cb) {
       if (_candidates.size() + layer.size() <= width) {
          for(auto i = 0u;i < _candidates.size() && layer.size() < width;i++) 
-            _candidates[i]->instantiate(cb,trail,mem);       
+            _candidates[i]->instantiate(cb,trail,mem);
+         _candidates.clear();
       } else {
          for(auto i = 0u;i < _candidates.size();++i)
             _candidates[i]->computeKey(_mddspec);
@@ -731,29 +729,21 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
 {
    using namespace std;
    int lowest = l;
-   //std::cout << "\nStarting: LS=" << layer.size() << "\n";
    MDDNodeSim nSim(layer,_refs[l],_mddspec);
-   //MDDState ms(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
    MDDState* ms = nullptr;
    MDDNode* n = nullptr;
    _pool->clear();
    MDDSplitter splitter(_pool,_mddspec,_width);
    while (layer.size() < _width && lowest == l && (n = nSim.extractNode()) != nullptr) {
-      //assert(n->getNumParents() > 0);
-      assert(n->getState().isRelaxed());
-      splitter.clear();
+      assert(splitter.size()==0);
       const int nbParents = (int) n->getNumParents();
-      //auto last = --(n->getParents().rend());
       auto last = --(n->getParents().rend());
-      int nbIter = 0;
       for(auto pit = n->getParents().rbegin(); pit != last;pit++) {
-         nbIter++;
          auto a = *pit;                // a is the arc p --(v)--> n
          auto p = a->getParent();      // p is the parent
          auto v = a->getValue();       // value on arc from parent
          bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v);
-         splitCS++;
-         
+         splitCS++;         
          if (!isOk) {
             pruneCS++;
             p->unhook(a);
@@ -763,17 +753,14 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
             if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
             if (lowest < l) return lowest;
             continue;
-         }
-         
+         }         
          MDDNode* bj = nSim.findMatch(*ms);
          if (bj) {
-         //if (bj->getState() == *ms) { // there is a perfect match
             if (bj != n) 
                a->moveTo(bj,trail,mem);            
             // If we matched to n nothing to do. We already point to n.
          } else { // There is an approximate match
             // So, if there is room create a new node
-            //if (layer.size() >= _width)  continue;
             int reuse = splitter.hasState(*ms);
             if (reuse != -1) {
                splitter.linkChild(reuse,a);
@@ -795,10 +782,10 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                   splitter.addPotential(_pool,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
                }
             }
-         }//out-comment
-         //if (splitter.size() >= _width * 1) break;
+         } //out-comment
       } // end of loop over parents.
-      assert(nbParents == nbIter+1);
+      _fwd->enQueue(n);
+      _bwd->enQueue(n);
       splitter.process(layer,_width,trail,mem,
                        [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
                           potEXEC++;
@@ -816,30 +803,6 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                           nSim.insert(nc);
                           return nc;
                        });
-      
-      if (n->getNumParents()==0) {
-         delState(n,l);
-         nSim.removeMatch(n);
-      } else {
-         _fwd->enQueue(n);
-         _bwd->enQueue(n);
-         /*
-         //_sf->disable();
-         bool refreshed = refreshNodeFull(n,l);
-         //_sf->enable();
-         filterKids(n,l);
-         if (refreshed && n->isActive()) {
-            if (_mddspec.usesUp()) {
-               for(const auto& arc : n->getParents())
-                  if (arc->getParent()->isActive())
-                     _bwd->enQueue(arc->getParent());
-            }
-            for(const auto& arc : n->getChildren())
-               if (arc->getChild()->isActive())
-                  _fwd->enQueue(arc->getChild());
-         }         
-         */
-      }
    } // end of loop over relaxed node in layer l
    return lowest;
 }
