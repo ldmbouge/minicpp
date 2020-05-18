@@ -801,7 +801,7 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
             assert(splitter.size()==0);
             lowest = splitNode(n,l,nSim,splitter);
             splitter.process(layer,_width,trail,mem,
-                             [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
+                             [this,&nSim,l,&layer](MDDNode* n,MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
                                 potEXEC++;
                                 MDDNode* nc = _nf->makeNode(ms,x[l-1]->size(),l,(int)layer.size());
                                 layer.push_back(nc,mem);
