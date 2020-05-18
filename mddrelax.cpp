@@ -630,6 +630,7 @@ public:
 
 class MDDPotential {
    Pool::Ptr        _mem;
+   MDDNode*           _n;
    MDDNode*         _par;
    int            _mxPar;
    int            _nbPar;
@@ -640,8 +641,9 @@ class MDDPotential {
    int      _nbk;
    bool*   _keepKids;
 public:
-   MDDPotential(Pool::Ptr pool,const int mxPar,MDDNode* par,MDDEdge::Ptr arc,const MDDState* child,int v,int nbKids,bool* kk)
-      : _mem(pool),_par(par),_mxPar(mxPar),_nbPar(0) {
+   MDDPotential(Pool::Ptr pool,MDDNode* n,const int mxPar,MDDNode* par,MDDEdge::Ptr arc,
+                const MDDState* child,int v,int nbKids,bool* kk)
+      : _mem(pool),_n(n),_par(par),_mxPar(mxPar),_nbPar(0) {
       _child = child;
       _arc = new (pool) MDDEdge::Ptr[_mxPar];
       _arc[_nbPar++] = arc;
@@ -663,7 +665,7 @@ public:
    }
    template <class Callback> void instantiate(const Callback& cb,Trailer::Ptr trail,Storage::Ptr mem)
    {
-      MDDNode* nc = cb(_par,*_child,_val,_nbk,_keepKids);
+      MDDNode* nc = cb(_n,_par,*_child,_val,_nbk,_keepKids);
       for(int i=0;i < _nbPar;i++)
          _arc[i]->moveTo(nc,trail,mem);      
    }
@@ -768,7 +770,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDNodeSim& nSim,MDDSplitter& splitter)
                if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
                if (lowest < l) return lowest;
             } else {
-               splitter.addPotential(_pool,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
+               splitter.addPotential(_pool,n,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
             }
          }
       } //out-comment

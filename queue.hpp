@@ -59,7 +59,7 @@ template <typename T> class CQueue  {
       }
       delete[]_data;
       if (_nbs >= _mxSeg) {
-         Location<T>** nvl = new Location<T>*[_mxSeg << 1];
+<         Location<T>** nvl = new Location<T>*[_mxSeg << 1];
          for(int i=0;i < _mxSeg;++i) nvl[i] = _vlocs[i];
          delete[]_vlocs;
          _vlocs = nvl;
