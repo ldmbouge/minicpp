@@ -779,37 +779,49 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDNodeSim& nSim,MDDSplitter& splitter)
 }
 
 
-int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
+void MDDRelax::splitLayers() // this can use node from recycled or add node to recycle
 {
    using namespace std;
-   int lowest = l;
-   MDDNodeSim nSim(layer,_refs[l],_mddspec);
-   MDDNode* n = nullptr;
-   _pool->clear();
-   MDDSplitter splitter(_pool,_mddspec,_width);
-   while (layer.size() < _width && lowest == l && (n = nSim.extractNode()) != nullptr) {
-      assert(splitter.size()==0);
-      lowest = splitNode(n,l,nSim,splitter);
-      splitter.process(layer,_width,trail,mem,
-                       [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
-                          potEXEC++;
-                          MDDNode* nc = _nf->makeNode(ms,x[l-1]->size(),l,(int)layer.size());
-                          layer.push_back(nc,mem);
-                          unsigned int idx = 0;
-                          for(auto ca : n->getChildren()) {
-                             if (kk[idx++]) {
-                                nc->addArc(mem,ca->getChild(),ca->getValue());
-                                addSupport(l,ca->getValue());
-                                _fwd->enQueue(ca->getChild());
-                             }
-                          }
-                          if (_mddspec.usesUp()) _bwd->enQueue(nc);
-                          nSim.insert(nc);
-                          return nc;
-                       });
-      cout << "SSZ[" << l << "]:" << splitter.size() << endl;
-   } 
-   return lowest;
+   int nbScans = 0,nbSplits = 0;
+   int l = 1;
+   const int ub = 300 * (int)numVariables;
+   while (l < (int)numVariables && nbSplits < ub) {
+      auto& layer = layers[l];
+      int lowest = l;
+      trimVariable(l-1);
+      ++nbScans;
+      if (!x[l-1]->isBound() && layers[l].size() < _width) {
+         MDDNodeSim nSim(layer,_refs[l],_mddspec);
+         MDDNode* n = nullptr;
+         _pool->clear();
+         MDDSplitter splitter(_pool,_mddspec,_width);
+         while (layer.size() < _width && lowest == l && (n = nSim.extractNode()) != nullptr) {
+            assert(splitter.size()==0);
+            lowest = splitNode(n,l,nSim,splitter);
+            splitter.process(layer,_width,trail,mem,
+                             [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
+                                potEXEC++;
+                                MDDNode* nc = _nf->makeNode(ms,x[l-1]->size(),l,(int)layer.size());
+                                layer.push_back(nc,mem);
+                                unsigned int idx = 0;
+                                for(auto ca : n->getChildren()) {
+                                   if (kk[idx++]) {
+                                      nc->addArc(mem,ca->getChild(),ca->getValue());
+                                      addSupport(l,ca->getValue());
+                                      _fwd->enQueue(ca->getChild());
+                                   }
+                                }
+                                if (_mddspec.usesUp()) _bwd->enQueue(nc);
+                                nSim.insert(nc);
+                                return nc;
+                             });
+            // cout << "SSZ[" << l << "]:" << splitter.size() << endl;
+         } // end-while
+         ++nbSplits;
+      } // end-if
+      auto jump = std::min(l - lowest,_maxDistance);
+      l = (lowest < l) ? l-jump : l + 1;      
+   }
 }
 
 struct MDDStateEqual {
@@ -917,27 +929,8 @@ int __nbn = 0,__nbf = 0;
 
 void MDDRelax::computeDown(int iter)
 {
-   int nbScans = 0,nbSplits = 0;
-   if (iter <= 5) {
-      int l=1;
-      const int ub = 300 * (int)numVariables;
-      while (l < (int) numVariables && nbSplits < ub) { // The extra test adds 6000 splits. That's .5 seconds.
-         int lowest = l;
-         trimVariable(l-1);
-         ++nbScans;
-         if (!x[l-1]->isBound() && layers[l].size() < _width) {
-            lowest = split(layers[l],l);
-            ++nbSplits;
-         }
-         auto jump = std::min(l - lowest,_maxDistance);
-         //if (jump>0) std::cout << l << '.' << jump << " -> " << l-jump << '\n';
-         l = (lowest < l) ? l-jump : l + 1;
-         //l += 1;
-         //std::cout << "scan:" << nbScans << " \tsplit:" << nbSplits << " \tM:" << (double)nbSplits/numVariables << '\r';
-         //std::cout << "M=" <<  (double)nbSplits/numVariables << " ";
-      }
-      //char ch;std::cin >> ch;
-   }
+   if (iter <= 5)
+      splitLayers();
    _sf->disable();
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
