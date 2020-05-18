@@ -335,9 +335,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
   int cnt = 0;
   search.onSolution([&cnt]() {
-      cnt++;
-      std::cout << "\rNumber of solutions:" << cnt << std::flush;
-      //std::cout << "Assignment:" << vars << std::endl;
+                       ++cnt;
+                       //std::cout << "\rNumber of solutions:" << cnt << std::flush;
+                       //std::cout << "Assignment:" << vars << std::endl;
     });
 
   auto start = RuntimeMonitor::cputime();

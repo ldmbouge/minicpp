@@ -553,7 +553,7 @@ template <typename Container,typename T,typename Fun> T sum(Container& c,T acc,c
 class MDDNodeSim {
    const TVec<MDDNode*>& _layer;
    bool _ready;
-   const MDDState& _refDir;
+   //const MDDState& _refDir;
    const MDDSpec& _mddspec;
    struct NRec {
       MDDNode* n;
@@ -574,7 +574,8 @@ class MDDNodeSim {
    }
 public:
    MDDNodeSim(const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec)
-      : _layer(layer),_ready(false),_refDir(ref),_mddspec(mddspec) 
+      : _layer(layer),_ready(false),//_refDir(ref),
+        _mddspec(mddspec) 
    {
       _pq.reserve(_layer.size());      
       for(auto& n : _layer)
@@ -944,25 +945,29 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    return dirty;
 }
 
+int __nbn = 0,__nbf = 0;
+
 void MDDRelax::computeDown(int iter)
 {
-   //std::cout << "START:" << *_delta << '\n';
+   int nbScans = 0,nbSplits = 0;
    if (iter <= 5) {
       int l=1;
-      int nbScans = numVariables;
-      int nbSplits = 0;
-      while (l < (int) numVariables) {
+      while (l < (int) numVariables && nbSplits < 200 * numVariables) {
          int lowest = l;
          trimVariable(l-1);
+         ++nbScans;
          if (!x[l-1]->isBound() && layers[l].size() < _width) {
             lowest = split(layers[l],l);
             ++nbSplits;
          }
          auto jump = std::min(l - lowest,_maxDistance);
+         //if (jump>0) std::cout << l << '.' << jump << " -> " << l-jump << '\n';
          l = (lowest < l) ? l-jump : l + 1;
          //l += 1;
+         //std::cout << "scan:" << nbScans << " \tsplit:" << nbSplits << " \tM:" << (double)nbSplits/numVariables << '\r';
+         //std::cout << "M=" <<  (double)nbSplits/numVariables << " ";
       }
-      //std::cout << "#SC:" << nbScans << " \tnbS:" << nbSplits << " \tR:" << (double)nbSplits / nbScans << '\n';
+      //char ch;std::cin >> ch;
    }
    _sf->disable();
    while(!_fwd->empty()) {
@@ -992,7 +997,8 @@ void MDDRelax::computeDown(int iter)
                _fwd->enQueue(arc->getChild());
       } 
    }
-   //std::cout << "ITERATION:" << iter << '\n' << *_delta << '\n';
+   // std::cout << "n/f:" << __nbn << '/' << __nbf << "\t ITER:" << iter << " \tHTS:" << _sf->size() 
+   //           << " scan:" << nbScans << " \tsplit:" << nbSplits << " \tM:" << (double)nbSplits/numVariables << std::endl;
 }
 
 void MDDRelax::computeUp()

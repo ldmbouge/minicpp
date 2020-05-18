@@ -57,15 +57,15 @@ public:
    SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {
       _startTime = RuntimeMonitor::cputime();
    }
-   void incrFailures() { _nFailures++; }
-   void incrNodes() { _nNodes++; }
-   void incrSolutions() { _nSolutions++; }
-   void setCompleted() { _completed = true; }
-   int numberOfFailures() const { return _nFailures; }
-   int numberOfNodes() const { return _nNodes; }
-   int numberOfSolutions() const { return _nSolutions; }
+   void incrFailures()  noexcept { ++_nFailures;extern int __nbf;__nbf = _nFailures; }
+   void incrNodes()     noexcept { ++_nNodes;extern int __nbn;__nbn = _nNodes;}
+   void incrSolutions() noexcept { ++_nSolutions; }
+   void setCompleted()  noexcept { _completed = true; }
+   int numberOfFailures() const noexcept     { return _nFailures; }
+   int numberOfNodes() const noexcept        { return _nNodes; }
+   int numberOfSolutions() const noexcept    { return _nSolutions; }
    RuntimeMonitor::HRClock startTime() const { return _startTime;}
-   bool isCompleted() const { return _completed; }
+   bool isCompleted() const noexcept         { return _completed; }
    friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
       return os << "\n\t#choice   : " << ss._nNodes
                 << "\n\t#fail     : " << ss._nFailures

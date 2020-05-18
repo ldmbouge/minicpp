@@ -951,6 +951,7 @@ public:
    void clear();
    void enable() noexcept { _enabled = true;}
    void disable() noexcept { _enabled = false;}
+   unsigned size() const noexcept { return _hash.size();}
 };
 
 

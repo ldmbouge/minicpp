@@ -32,6 +32,7 @@ template <class K,class T,class Hash = std::hash<K>,class Equal = std::equal_to<
    unsigned* _mgc;
    int  _mxs;
    unsigned _magic;
+   unsigned _nbp;   // number of pairs
 public:
    Hashtable(Pool::Ptr p,int sz) : _pool(p) {
       constexpr const int tsz = sizeof(_primes)/sizeof(int);
@@ -54,6 +55,7 @@ public:
       bzero(_tab,sizeof(HTNode*)*_mxs);
       bzero(_mgc,sizeof(unsigned)*_mxs);
       _magic = 0;
+      _nbp = 0;
    }
    void insert(const K& key,const T& val) noexcept {
       int at = _hash(key) % _mxs;
@@ -68,6 +70,7 @@ public:
       }
       _tab[at] = new (_pool) HTNode {key,val,head};
       _mgc[at] = _magic;
+      ++_nbp;
    }
    bool get(const K& key,T& val) const noexcept {
       int at = _hash(key) % _mxs;
@@ -81,8 +84,10 @@ public:
       }
       return false;      
    }
+   unsigned size() const noexcept { return _nbp;}
    void clear() noexcept {
       ++_magic;
+      _nbp = 0;
       //bzero(_tab,_mxs*sizeof(HTNode*));
       //for(int i=0;i <_mxs;++i) _tab[i] = nullptr;
    }
