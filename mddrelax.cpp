@@ -593,8 +593,6 @@ public:
    }
    MDDNode* findMatch(const MDDState& s) {
       if (!_ready) initialize();
-      //std::cout << "CLSIZE:" << _cl.size() << '\n';
-      //float query = s.inner(_refDir);
       for(const auto& rec : _cl)
          if (rec.n->getState() == s)
             return rec.n;
@@ -721,71 +719,77 @@ public:
    }
 };
 
-int splitCS = 0;
-int pruneCS = 0;
-int potEXEC = 0;
+int splitCS = 0,pruneCS = 0,potEXEC = 0;
+
+int MDDRelax::splitNode(MDDNode* n,int l,MDDNodeSim& nSim,MDDSplitter& splitter)
+{
+   int lowest = l;
+   MDDState* ms = nullptr;
+   const int nbParents = (int) n->getNumParents();
+   auto last = --(n->getParents().rend());
+   for(auto pit = n->getParents().rbegin(); pit != last;pit++) {
+      auto a = *pit;                // a is the arc p --(v)--> n
+      auto p = a->getParent();      // p is the parent
+      auto v = a->getValue();       // value on arc from parent
+      bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v);
+      splitCS++;         
+      if (!isOk) {
+         pruneCS++;
+         p->unhook(a);
+         if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+         delSupport(l-1,v);
+         removeArc(l-1,l,a.get());
+         if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+         if (lowest < l) return lowest;
+         continue;
+      }         
+      MDDNode* bj = nSim.findMatch(*ms);
+      if (bj) {
+         if (bj != n) 
+            a->moveTo(bj,trail,mem);            
+         // If we matched to n nothing to do. We already point to n.
+      } else { // There is an approximate match
+         // So, if there is room create a new node
+         int reuse = splitter.hasState(*ms);
+         if (reuse != -1) {
+            splitter.linkChild(reuse,a);
+         } else {
+            int nbk = n->getNumChildren();
+            bool keepArc[nbk];
+            unsigned idx = 0,cnt = 0;
+            for(auto ca : n->getChildren()) 
+               cnt += keepArc[idx++] = _mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
+            if (cnt == 0) {
+               pruneCS++;               
+               p->unhook(a);
+               if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+               delSupport(l-1,v);
+               removeArc(l-1,l,a.get());
+               if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+               if (lowest < l) return lowest;
+            } else {
+               splitter.addPotential(_pool,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
+            }
+         }
+      } //out-comment
+   } // end of loop over parents.
+   _fwd->enQueue(n);
+   _bwd->enQueue(n);
+   return lowest;
+}
+
 
 int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recycled or add node to recycle
 {
    using namespace std;
    int lowest = l;
    MDDNodeSim nSim(layer,_refs[l],_mddspec);
-   MDDState* ms = nullptr;
    MDDNode* n = nullptr;
    _pool->clear();
    MDDSplitter splitter(_pool,_mddspec,_width);
    while (layer.size() < _width && lowest == l && (n = nSim.extractNode()) != nullptr) {
       assert(splitter.size()==0);
-      const int nbParents = (int) n->getNumParents();
-      auto last = --(n->getParents().rend());
-      for(auto pit = n->getParents().rbegin(); pit != last;pit++) {
-         auto a = *pit;                // a is the arc p --(v)--> n
-         auto p = a->getParent();      // p is the parent
-         auto v = a->getValue();       // value on arc from parent
-         bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v);
-         splitCS++;         
-         if (!isOk) {
-            pruneCS++;
-            p->unhook(a);
-            if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
-            delSupport(l-1,v);
-            removeArc(l-1,l,a.get());
-            if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-            if (lowest < l) return lowest;
-            continue;
-         }         
-         MDDNode* bj = nSim.findMatch(*ms);
-         if (bj) {
-            if (bj != n) 
-               a->moveTo(bj,trail,mem);            
-            // If we matched to n nothing to do. We already point to n.
-         } else { // There is an approximate match
-            // So, if there is room create a new node
-            int reuse = splitter.hasState(*ms);
-            if (reuse != -1) {
-               splitter.linkChild(reuse,a);
-            } else {
-               int nbk = n->getNumChildren();
-               bool keepArc[nbk];
-               unsigned idx = 0,cnt = 0;
-               for(auto ca : n->getChildren()) 
-                  cnt += keepArc[idx++] = _mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
-               if (cnt == 0) {
-                  pruneCS++;               
-                  p->unhook(a);
-                  if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
-                  delSupport(l-1,v);
-                  removeArc(l-1,l,a.get());
-                  if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-                  if (lowest < l) return lowest;
-               } else {
-                  splitter.addPotential(_pool,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
-               }
-            }
-         } //out-comment
-      } // end of loop over parents.
-      _fwd->enQueue(n);
-      _bwd->enQueue(n);
+      lowest = splitNode(n,l,nSim,splitter);
       splitter.process(layer,_width,trail,mem,
                        [this,&nSim,n,l,&layer](MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
                           potEXEC++;
@@ -803,7 +807,8 @@ int MDDRelax::split(TVec<MDDNode*>& layer,int l) // this can use node from recyc
                           nSim.insert(nc);
                           return nc;
                        });
-   } // end of loop over relaxed node in layer l
+      cout << "SSZ[" << l << "]:" << splitter.size() << endl;
+   } 
    return lowest;
 }
 
@@ -915,7 +920,8 @@ void MDDRelax::computeDown(int iter)
    int nbScans = 0,nbSplits = 0;
    if (iter <= 5) {
       int l=1;
-      while (l < (int) numVariables && nbSplits < 200 * numVariables) {
+      const int ub = 300 * (int)numVariables;
+      while (l < (int) numVariables && nbSplits < ub) { // The extra test adds 6000 splits. That's .5 seconds.
          int lowest = l;
          trimVariable(l-1);
          ++nbScans;
