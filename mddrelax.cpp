@@ -552,29 +552,12 @@ template <typename Container,typename T,typename Fun> T sum(Container& c,T acc,c
 
 class MDDNodeSim {
    const TVec<MDDNode*>& _layer;
-   bool _ready;
-   //const MDDState& _refDir;
    const MDDSpec& _mddspec;
-   struct NRec {
-      MDDNode* n;
-      float   ip;
-   };
-   std::vector<NRec> _cl;
    std::vector<std::pair<double,MDDNode*>> _pq;
    std::vector<std::pair<double,MDDNode*>>::iterator _first,_last;
-   void initialize() {
-      _ready = true;
-      if (_cl.size()==0) {
-         int nbR = sum(_layer,0,[](const auto& n) { return n->getState().isRelaxed();});
-         if (nbR==0) return;
-         _cl.reserve(32);
-         for(auto& n : _layer)
-            _cl.push_back(NRec {n,0}); //n->getState().inner(_refDir)});
-      }     
-   }
 public:
    MDDNodeSim(const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec)
-      : _layer(layer),_ready(false),//_refDir(ref),
+      : _layer(layer),
         _mddspec(mddspec) 
    {
       _pq.reserve(_layer.size());      
@@ -590,26 +573,6 @@ public:
                                            });
       _first = _pq.begin();
       _last  = _pq.end();
-   }
-   MDDNode* findMatch(const MDDState& s) {
-      if (!_ready) initialize();
-      for(const auto& rec : _cl)
-         if (rec.n->getState() == s)
-            return rec.n;
-      return nullptr;
-   }
-   void removeMatch(MDDNode* n) {
-      if (!_ready) return;
-      for(auto i=_cl.begin();i != _cl.end();i++) {
-         if ((*i).n == n) {
-            _cl.erase(i);
-            return;
-         }
-      }
-      assert(false);
-   }
-   void insert(MDDNode* nc) {
-      _cl.emplace_back(NRec { nc, 0 }); //nc->getState().inner(_refDir) } );
    }
    MDDNode* extractNode() {
       while (_first != _last) {
@@ -721,9 +684,18 @@ public:
    }
 };
 
+MDDNode* findMatchInLayer(const TVec<MDDNode*>& layer,const MDDState& s)
+{
+   for(MDDNode* p : layer)
+      if (p->getState() == s)
+         return p;   
+   return nullptr;
+}
+
+
 int splitCS = 0,pruneCS = 0,potEXEC = 0;
 
-int MDDRelax::splitNode(MDDNode* n,int l,MDDNodeSim& nSim,MDDSplitter& splitter)
+int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
 {
    int lowest = l;
    MDDState* ms = nullptr;
@@ -745,7 +717,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDNodeSim& nSim,MDDSplitter& splitter)
          if (lowest < l) return lowest;
          continue;
       }         
-      MDDNode* bj = nSim.findMatch(*ms);
+      MDDNode* bj = findMatchInLayer(layers[l],*ms);
       if (bj) {
          if (bj != n) 
             a->moveTo(bj,trail,mem);            
@@ -787,19 +759,27 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
    int nbScans = 0,nbSplits = 0;
    int l = 1;
    const int ub = 300 * (int)numVariables;
-   while (l < (int)numVariables && nbSplits < ub) {
+   _pool->clear();
+   MDDSplitter splitter(_pool,_mddspec,_width);
+   
+   while (l < (int)numVariables) { // } && nbSplits < ub) {
       auto& layer = layers[l];
+      splitter.clear();
       int lowest = l;
       trimVariable(l-1);
       ++nbScans;
       if (!x[l-1]->isBound() && layers[l].size() < _width) {
-         MDDNodeSim nSim(layer,_refs[l],_mddspec);
+         MDDNodeSim nSim(layers[l],_refs[l],_mddspec);
          MDDNode* n = nullptr;
-         _pool->clear();
-         MDDSplitter splitter(_pool,_mddspec,_width);
-         while (layer.size() < _width && lowest == l && (n = nSim.extractNode()) != nullptr) {
-            assert(splitter.size()==0);
-            lowest = splitNode(n,l,nSim,splitter);
+         while (layer.size() < _width && lowest==l) {
+            while(splitter.size() == 0)  {
+               n = nSim.extractNode();
+               assert(n->isActive());
+               if (n)
+                  lowest = splitNode(n,l,splitter);
+               if (n==nullptr) break;
+            }
+            if (lowest < l) break;
             splitter.process(layer,_width,trail,mem,
                              [this,&nSim,l,&layer](MDDNode* n,MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
                                 potEXEC++;
@@ -814,13 +794,12 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
                                    }
                                 }
                                 if (_mddspec.usesUp()) _bwd->enQueue(nc);
-                                nSim.insert(nc);
                                 return nc;
                              });
-            // cout << "SSZ[" << l << "]:" << splitter.size() << endl;
-         } // end-while
+            if (n==nullptr) break;
+         }
          ++nbSplits;
-      } // end-if
+      } // end-if (there is room and variable is not bound)
       auto jump = std::min(l - lowest,_maxDistance);
       l = (lowest < l) ? l-jump : l + 1;      
    }

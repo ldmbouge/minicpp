@@ -160,7 +160,6 @@ public:
 using MDDFQueue = MDDQueue<std::plus<int>>;
 using MDDBQueue = MDDQueue<std::minus<int>>;
 class MDDSplitter;
-class MDDNodeSim;
 
 class MDDRelax : public MDD {
    const unsigned int _width;
@@ -185,7 +184,7 @@ class MDDRelax : public MDD {
    bool refreshNodeFull(MDDNode* n,int l);
    bool trimVariable(int i);
    bool filterKids(MDDNode* n,int l);
-   int splitNode(MDDNode* n,int l,MDDNodeSim& nSim,MDDSplitter& splitter);
+   int splitNode(MDDNode* n,int l,MDDSplitter& splitter);
    void splitLayers(); // delta is essentially an out argument. 
    int delState(MDDNode* state,int l); // return lowest layer where a deletion occurred.
    bool processNodeUp(MDDNode* n,int i); // i is the layer number
