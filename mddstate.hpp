@@ -277,8 +277,8 @@ public:
    constexpr int cardinality() const noexcept {
       int nbb = 0;
       for(int i = (int)_nbw-1;i >= 0;--i) 
-         //nbb += __builtin_popcountll(_buf[i]);
-         nbb += _mm_popcnt_u64(_buf[i]);
+         nbb += __builtin_popcountll(_buf[i]);
+      //nbb += _mm_popcnt_u64(_buf[i]);
       return nbb;
    }
    __attribute__((always_inline)) inline MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {

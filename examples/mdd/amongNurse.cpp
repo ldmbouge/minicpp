@@ -117,7 +117,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   int L3 = 4;
   int U3 = 5;
   int N3 = 7;
-  
+  auto start = RuntimeMonitor::cputime();
+
   auto mdd = new MDDRelax(cp,relaxSize);
 
   if (mode == 0) {
@@ -340,7 +341,6 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
                        //std::cout << "Assignment:" << vars << std::endl;
     });
 
-  auto start = RuntimeMonitor::cputime();
 
   auto stat = search.solve([](const SearchStatistics& stats) {
                               //return stats.numberOfNodes() > 1;
