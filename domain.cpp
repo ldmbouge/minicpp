@@ -22,15 +22,16 @@ BitDomain::BitDomain(Trailer::Ptr eng,Storage::Ptr store,int min,int max)
       _max(eng,max),
       _sz(eng,max - min + 1),
       _imin(min),
-      _imax(max)
+      _imax(max),
+      _nbw((_sz >> 5) + ((_sz & 0x1f) != 0)) // number of 32-bit words
 {
-    const int nb = (_sz >> 5) + ((_sz & 0x1f) != 0); // number of 32-bit words
-    _dom = (trail<int>*)store->allocate(sizeof(trail<int>) * nb); // allocate storage from stack allocator
-    for(int i=0;i<nb;i++)
+    // const int nb = (_sz >> 5) + ((_sz & 0x1f) != 0); // number of 32-bit words
+    _dom = (trail<int>*)store->allocate(sizeof(trail<int>) * _nbw); // allocate storage from stack allocator
+    for(int i=0;i<_nbw;i++)
        new (_dom+i) trail<int>(eng,0xffffffff);  // placement-new for each reversible.
     const bool partial = _sz & 0x1f;
     if (partial)
-        _dom[nb - 1] = _dom[nb - 1] & ~(0xffffffff << (max - min + 1) % 32);    
+        _dom[_nbw - 1] = _dom[_nbw - 1] & ~(0xffffffff << (max - min + 1) % 32);    
 }
 
 int BitDomain::count(int from,int to) const
@@ -184,6 +185,30 @@ void BitDomain::removeAbove(int newMax,IntNotifier& x)
     x.change();
     if (_sz==0) x.empty();
     if (_sz==1) x.bind();
+}
+
+BitDomain::iterator& BitDomain::iterator::operator++() {
+    int test = _cw & -_cw;              // only leaves LSB at 1
+    _cw ^= test;                        // clear LSB
+    while(_cw == 0 && ++_cwi < _nbw)    // all bits at zero -> done with this word
+        _cw = (_dom + _cwi)->value();   // get value from next trail<int> word
+    return *this;
+}
+
+bool BitDomain::iterator::operator==(BitDomain::iterator other) const {
+    return (_cwi == other._cwi) && (_cw == other._cw);
+}
+
+bool BitDomain::iterator::operator!=(BitDomain::iterator other) const {
+    return !(*this == other);
+}
+
+int BitDomain::iterator::operator*() const {
+    int r = 0;
+    int test = (_cw & -_cw);
+    while (test >>= 1)
+        ++r;
+    return _a * (_imin + (_cwi << 5) + r) + _o;
 }
 
 std::ostream& operator<<(std::ostream& os,const BitDomain& x)

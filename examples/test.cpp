@@ -29,39 +29,58 @@ int main(int argc,char* argv[])
     const int n = 2;
     CPSolver::Ptr cp  = Factory::makeSolver();
 
-   //  auto q = Factory::intVarArray(cp,n,1,n);
-   //  cp->post(Factory::allDifferentAC(q));
-   //  cp->post(q[0] != 2);
+   // //  auto q = Factory::intVarArray(cp,n,1,n);
+   // //  cp->post(Factory::allDifferentAC(q));
+   // //  cp->post(q[0] != 2);
    auto w = Factory::makeIntVar(cp,{1,2});
-   auto x = Factory::makeIntVar(cp,{1,2});
-   auto y = Factory::makeIntVar(cp,{1,3});
-   auto z = Factory::makeIntVar(cp,{2,4,5});
+   // auto x = Factory::makeIntVar(cp,{1,2});
+   // auto y = Factory::makeIntVar(cp,{1,3});
+   // auto z = Factory::makeIntVar(cp,{2,4,5});
+   auto x = w * (-10);
+   // std::vector<var<int>::Ptr> q;
+   // q.push_back(w);
+   // q.push_back(x);
+   // q.push_back(y);
+   // q.push_back(z);
 
-   std::vector<var<int>::Ptr> q;
-   q.push_back(w);
-   q.push_back(x);
-   q.push_back(y);
-   q.push_back(z);
+   // auto w = IntVarImpl(cp,1,10);
+   std::cout << "testing intvar iterator" << std::endl;
+   std::cout << "w = {1,2}" << std::endl;
+   for (auto val : *w) {
+      std::cout << val << std::endl;
+   }
+   std::cout << "x = {1,2}" << std::endl;
+   for (auto val : *x) {
+      std::cout << val << std::endl;
+   }
+   // std::cout << "y = {1,3}" << std::endl;
+   // for (auto val : *y) {
+   //    std::cout << val << std::endl;
+   // }
+   // std::cout << "z = {2,4,5}" << std::endl;
+   // for (auto val : *z) {
+   //    std::cout << val << std::endl;
+   // }
 
-    cp->post(Factory::allDifferentAC(q));
-    std::cout << "done posting" << std::endl;
-    DFSearch search(cp,[=]() {
-                          auto x = selectMin(q,
-                                             [](const auto& x) { return x->size() > 1;},
-                                             [](const auto& x) { return x->size();});
-                          if (x) {
-                             int c = x->min();                    
-                             return  [=] { cp->post(x == c);}
-                                | [=] { cp->post(x != c);};
-                          } else return Branches({});
-                       });    
+   //  cp->post(Factory::allDifferentAC(q));
+   //  std::cout << "done posting" << std::endl;
+   //  DFSearch search(cp,[=]() {
+   //                        auto x = selectMin(q,
+   //                                           [](const auto& x) { return x->size() > 1;},
+   //                                           [](const auto& x) { return x->size();});
+   //                        if (x) {
+   //                           int c = x->min();                    
+   //                           return  [=] { cp->post(x == c);}
+   //                              | [=] { cp->post(x != c);};
+   //                        } else return Branches({});
+   //                     });    
 
-    search.onSolution([&q]() {
-                         cout << "sol = " << q << endl;
-                      });
+   //  search.onSolution([&q]() {
+   //                       cout << "sol = " << q << endl;
+   //                    });
 
-    auto stat = search.solve();
-    cout << stat << endl;
+   //  auto stat = search.solve();
+   //  cout << stat << endl;
     
     cp.dealloc();
     return 0;
