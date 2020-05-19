@@ -762,7 +762,7 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
    _pool->clear();
    MDDSplitter splitter(_pool,_mddspec,_width);
    
-   while (l < (int)numVariables) { // } && nbSplits < ub) {
+   while (l < (int)numVariables && nbSplits < ub) {
       auto& layer = layers[l];
       splitter.clear();
       int lowest = l;
