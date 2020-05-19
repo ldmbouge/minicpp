@@ -197,8 +197,13 @@ namespace Factory {
       // 		   (n.at(U) + n.at(Uup) <= ub));
       // 	});
       
-      mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
+      mdd.splitOnLargest([L,U](const auto& in) {
+	  // // no error
+	  // return -(double)in.getNumParents();
+
+	  // wrong number solutions for amongNurse -w8 -m1
 	  return -(double)(in.getState().at(U)-in.getState().at(L));
+
 	  //return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
 	  // return 0;
 	});

@@ -172,7 +172,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     }    
   }
   else if (mode == 1) {
-    cout << "Among MDD encoding" << endl;
+    cout << "amongMDD2 encoding" << endl;
 
     // constraint 1
     cout << "Constraint type 1" << endl; 
@@ -186,7 +186,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       cout << endl;
       
       auto adv = all(cp, amongVars, vars);
-      Factory::amongMDD(mdd->getSpec(), adv, L1, U1, workDay);
+      Factory::amongMDD2(mdd->getSpec(), adv, L1, U1, workDay);
     }
     
     // constraint 2
@@ -201,7 +201,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       cout << endl;
       
       auto adv = all(cp, amongVars, vars);
-      Factory::amongMDD(mdd->getSpec(), adv, L2, U2, workDay);
+      Factory::amongMDD2(mdd->getSpec(), adv, L2, U2, workDay);
     }
   
     // constraint 3
@@ -217,7 +217,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	cout << endl;
 	
 	auto adv = all(cp, amongVars,vars);
-	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+	Factory::amongMDD2(mdd->getSpec(), adv, L3, U3, workDay);
       }
     }
     cp->post(mdd);
@@ -312,6 +312,58 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       }
     }    
   }
+  else if (mode == 5) {
+    cout << "amongMDD encoding" << endl;
+
+    // constraint 1
+    cout << "Constraint type 1" << endl; 
+    for (int i=0; i<H-N1+1; i++) {
+      cout << "among " << i << ": ";
+      set<int> amongVars;
+      for (int j=i; j<i+N1; j++) {
+	amongVars.insert(j);
+	cout << j << " ";
+      }
+      cout << endl;
+      
+      auto adv = all(cp, amongVars, vars);
+      Factory::amongMDD(mdd->getSpec(), adv, L1, U1, workDay);
+    }
+    
+    // constraint 2
+    cout << "Constraint type 2" << endl;
+    for (int i=0; i<H-N2+1; i++) {
+      cout << "among " << i << ": ";
+      set<int> amongVars;
+      for (int j=i; j<i+N2; j++) {
+	amongVars.insert(j);    
+	cout << j << " ";
+      }
+      cout << endl;
+      
+      auto adv = all(cp, amongVars, vars);
+      Factory::amongMDD(mdd->getSpec(), adv, L2, U2, workDay);
+    }
+  
+    // constraint 3
+    cout << "Constraint type 3" << endl;
+    for (int i=0; i<H/N3; i++) {
+      cout << "Among for week " << i << ": ";
+      if (7*i+7<H) {
+	set<int> amongVars;
+	for (int j=7*i; j<7*i+7; j++) {
+	  amongVars.insert(j);    
+	  cout << j << " ";
+	}
+	cout << endl;
+	
+	auto adv = all(cp, amongVars,vars);
+	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+      }
+    }
+    cp->post(mdd);
+  }
+
   
   
   DFSearch search(cp,[=]() {
