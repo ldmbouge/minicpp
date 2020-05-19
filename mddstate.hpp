@@ -352,6 +352,41 @@ public:
    }
 };
 
+template <class ET>
+class MDDSWin {
+   ET* _buf;
+   int _nb;
+public:
+   MDDSWin(ET* buf,int nb) : _buf(buf),_nb(nb) {}
+   MDDSWin(MDDSWin<ET>&& v) : _buf(v._buf),_nb(v._nb) {}
+   int nbWords() const noexcept { return _nb;}
+   MDDSWin<ET>& operator=(const MDDSWin<ET>& v) noexcept {
+      for(int i=0;i < _nb;++i) _buf[i] = v._buf[i];
+      return *this;
+   }
+   ET get(int ofs) const noexcept { return _buf[ofs];}
+   ET last() const noexcept { return _buf[_nb-1];}
+   ET first() const noexcept { return _buf[0];}
+   void set(int ofs,ET v) noexcept { _buf[ofs] = v;}
+   void setFirst(ET v) noexcept { _buf[0] = v;}
+   MDDSWin<ET>& assignSlideBy(const MDDSWin<ET>& v,const int shift=0) {
+      for(int i=0;i < _nb - shift;++i) _buf[i+shift] = v._buf[i];
+      return *this;
+   }
+   friend bool operator==(const MDDSWin<ET>& a,const MDDSWin<ET>& b) noexcept {
+      bool eq = a._nb == b._nb;
+      for(int i=0;eq && i < a._nb;++i)
+         eq = a._buf[i] == b._buf[i];
+      return eq;
+   }
+   friend bool operator!=(const MDDSWin<ET>& a,const MDDSWin<ET>& b) noexcept {
+      bool eq = a._nb == b._nb;
+      for(int i=0;eq && i < a._nb;++i)
+         eq = a._buf[i] == b._buf[i];
+      return !eq;
+   }
+};
+
 enum Direction { None=0,Down=1,Up=2,Bi=3 };
 
 class MDDProperty {
@@ -405,6 +440,8 @@ public:
    int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
    int getByte(char* buf) const noexcept                    { return buf[_ofs];}
    MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
+   template <class ET>
+   MDDSWin<ET> getSW(char* buf) const noexcept              { return MDDSWin<ET>(buf + _ofs,_bsz / sizeof(ET));}
    virtual void set(char* buf,int v) noexcept               {}
    void setInt(char* buf,int v) noexcept                    { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void setByte(char* buf,char v) noexcept         { buf[_ofs] = v;}
@@ -569,6 +606,62 @@ class MDDPBitSequence : public MDDProperty {
    friend class MDDStateSpec;   
 };
 
+template <class ET = unsigned char>
+class MDDPSWindow : public MDDProperty {
+   ET    _eltInit;
+   const int _len; // number of elements in window (0,...._len-1)
+   size_t storageSize() const override {
+      return _len * sizeof(ET) * 8; // number of element * size of element in bytes * number of bits per byte.
+   }
+   size_t setOffset(size_t bitOffset) override {
+      constexpr int bitAlign = std::alignment_of<ET>::value * sizeof(char); // get byte, then bit alignment for ET
+      if (bitOffset & (bitAlign - 1)) // if not properly aligned for ET's requirements. 
+         bitOffset = (bitOffset | (bitAlign - 1)) + 1;  // realign by setting all alignment bits to 1 and adding 1. 
+      _ofs = bitOffset >> 3; // _ofs is the start location with alignment respected
+      return bitOffset + storageSize();
+   }
+public:
+   MDDPSWindow(short id,unsigned short ofs,int len,ET eInit)
+      : MDDProperty(id,ofs,len * sizeof(ET)),_eltInit(eInit),_len(len) {}
+   void init(char* buf) const noexcept override {
+      ET* ptr = reinterpret_cast<ET*>(buf + _ofs);
+      for(int i=0;i < _len;++i)
+         ptr[i] = _eltInit;
+   }
+   void minWith(char* buf,char* other) const noexcept override {
+      ET* a = reinterpret_cast<ET*>(buf + _ofs);
+      ET* b = reinterpret_cast<ET*>(other + _ofs);
+      for(int i=0;i < _len;++i)
+         a[i] = std::min(a[i],b[i]);
+   }
+   void maxWith(char* buf,char* other) const noexcept override {
+      ET* a = reinterpret_cast<ET*>(buf + _ofs);
+      ET* b = reinterpret_cast<ET*>(other + _ofs);
+      for(int i=0;i < _len;++i)
+         a[i] = std::max(a[i],b[i]);
+   }
+   bool diff(char* buf,char* other) const noexcept override {
+      ET* a = reinterpret_cast<ET*>(buf + _ofs);
+      ET* b = reinterpret_cast<ET*>(other + _ofs);
+      for(int i=0;i < _len;++i)
+         if (a[i] != b[i]) return true;
+      return false;      
+   }
+   void stream(char* buf,std::ostream& os) const override {
+      os << '<';
+      ET* ptr = reinterpret_cast<ET*>(buf + _ofs);
+      for(int i=0;i < _len;++i) {
+         os << ptr[i];
+         if (i < _len - 1)
+            os << ',';        
+      }
+      os << '>';
+   }
+   void print(std::ostream& os) const override {
+      os << "PW(" << _id << ',' << _ofs << ',' << _len << ')';
+   }
+   friend class MDDStateSpec;
+};
 
 class MDDStateSpec {
 protected:

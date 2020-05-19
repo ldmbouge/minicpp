@@ -26,39 +26,39 @@ namespace Factory {
       spec.append(vars);
       ValueSet values(rawValues);
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
+      std::vector<int> ps;
+      for(int i=0;i < len;++i)
+         ps.push_back(spec.addState(desc,i - minLIdx,SHRT_MAX,MinFun));
+      for(int i=len;i < 2* len;++i)
+         ps.push_back(spec.addState(desc,i - maxLIdx,SHRT_MAX,MaxFun));
+      
 
-      std::vector<int> ps = spec.addStates(desc,minFIdx,maxLIdx,SHRT_MAX,[maxLIdx,len,minLIdx] (int i) -> int {
-         return (i - (i <= minLIdx ? minLIdx : (i >= len ? maxLIdx : 0)));
-      });
-      int p0 = ps[0];
-      const int pminL = ps[minLIdx];
-      const int pmaxF = ps[maxFIdx];
-      const int pmin = ps[minFIdx];
-      const int pmax = ps[maxLIdx];
-      spec.arcExist(desc,[=] (const auto& p,const auto& c,const auto& x,int v,bool) -> bool {
+      const int minF = ps[minFIdx];
+      const int minL = ps[minLIdx];
+      const int maxF = ps[maxFIdx];
+      const int maxL = ps[maxLIdx];
+      spec.arcExist(desc,[minF,minL,maxF,maxL,lb,ub,values] (const auto& p,const auto& c,const auto& x,int v,bool) -> bool {
                           bool inS = values.member(v);
-                          int minv = p.at(pmax) - p.at(pmin) + inS;
-                          return (p.at(p0) < 0 &&  minv >= lb && p.at(pminL) + inS               <= ub)
-                             ||  (p.at(p0) >= 0 && minv >= lb && p.at(pminL) - p.at(pmaxF) + inS <= ub);
+                          int minv = p.at(maxL) - p.at(minF) + inS;
+                          return (p.at(minF) < 0 &&  minv >= lb && p.at(minL) + inS              <= ub)
+                             ||  (p.at(minF) >= 0 && minv >= lb && p.at(minL) - p.at(maxF) + inS <= ub);
                        });
       
-      spec.transitionDown(toDict(ps[minFIdx],
-                                 ps[minLIdx]-1,
+      spec.transitionDown(toDict(minF,minL-1,
                                  [](int i) {
                                     return tDesc({i+1},[i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                                           out.set(i,p.at(i+1));
                                                        });
                                  }));      
-      spec.transitionDown(toDict(ps[maxFIdx],
-                                 ps[maxLIdx]-1,
+      spec.transitionDown(toDict(maxF,maxL-1,
                                  [](int i) {
                                     return tDesc({i+1},[i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                                           out.set(i,p.at(i+1));
                                                        });                                            
                                  }));
       
-      spec.transitionDown(ps[minLIdx],{pminL},
-                          [values,minL=ps[minLIdx]](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(minL,{minL},
+                          [values,minL](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                              bool allMembers = true;
                              for(int v : val) {
                                 allMembers &= values.member(v);
@@ -66,8 +66,8 @@ namespace Factory {
                              }
                              out.set(minL,p.at(minL)+allMembers);
                           });
-      spec.transitionDown(ps[maxLIdx],{ps[maxLIdx]},
-                          [values,maxL=ps[maxLIdx]](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(maxL,{maxL},
+                          [values,maxL](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                              bool oneMember = false;
                              for(int v : val) {
                                 oneMember = values.member(v);
@@ -76,17 +76,16 @@ namespace Factory {
                              out.set(maxL,p.at(maxL)+oneMember);
                           });
       
-      for(int i = minFIdx; i <= minLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
-                                     out.set(p,std::min(l.at(p),r.at(p)));
-                                  });
-      for(int i = maxFIdx; i <= maxLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
-                                     out.set(p,std::max(l.at(p),r.at(p)));
-                                  });
-      
-      for(auto i : ps)
-         spec.addSimilarity(i,[i](auto l,auto r)->double{return abs(l.at(i)- r.at(i));});
+      // for(int i = minFIdx; i <= minLIdx; i++)
+      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
+      //                                out.set(p,std::min(l.at(p),r.at(p)));
+      //                             });
+      // for(int i = maxFIdx; i <= maxLIdx; i++)
+      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
+      //                                out.set(p,std::max(l.at(p),r.at(p)));
+      //                             });      
+      // for(auto i : ps)
+      //    spec.addSimilarity(i,[i](auto l,auto r)->double{return abs(l.at(i)- r.at(i));});
    }
 
    void seqMDD2(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
