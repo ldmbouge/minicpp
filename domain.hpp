@@ -54,7 +54,7 @@ public:
     void removeAbove(int newMax,IntNotifier& x);
     friend std::ostream& operator<<(std::ostream& os,const BitDomain& x);
 
-    class iterator : public std::iterator<std::input_iterator_tag,short,short> {
+    class iterator : public std::iterator<std::input_iterator_tag,int,int> {
         trail<int>* _dom;
         int _cw;             // current word
         int _cwi;            // current word index

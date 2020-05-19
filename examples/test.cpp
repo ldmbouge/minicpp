@@ -36,7 +36,7 @@ int main(int argc,char* argv[])
    // auto x = Factory::makeIntVar(cp,{1,2});
    // auto y = Factory::makeIntVar(cp,{1,3});
    // auto z = Factory::makeIntVar(cp,{2,4,5});
-   auto x = w * (-10);
+   auto x = -10 * w;
    // std::vector<var<int>::Ptr> q;
    // q.push_back(w);
    // q.push_back(x);
