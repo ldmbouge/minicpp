@@ -135,7 +135,7 @@ public:
       _fq = _bq = nullptr;
    }
    void print(std::ostream& os) {
-      os << "[" << layer << "," << pos <<  "] " << _nid; //state;
+      os << "[" << layer << "," << pos <<  "] " << state;
    }
    bool parentsChanged() const noexcept { return parents.changed();}
    bool childrenChanged() const noexcept { return children.changed();}

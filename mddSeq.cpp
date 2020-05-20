@@ -21,149 +21,81 @@ namespace Factory {
   
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
-      int minFIdx = 0,minLIdx = len-1;
-      int maxFIdx = len,maxLIdx = len*2-1;
       spec.append(vars);
       ValueSet values(rawValues);
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
-      std::vector<int> ps;
-      for(int i=0;i < len;++i)
-         ps.push_back(spec.addState(desc,i - minLIdx,SHRT_MAX,MinFun));
-      for(int i=len;i < 2* len;++i)
-         ps.push_back(spec.addState(desc,i - maxLIdx,SHRT_MAX,MaxFun));
-      
 
-      const int minF = ps[minFIdx];
-      const int minL = ps[minLIdx];
-      const int maxF = ps[maxFIdx];
-      const int maxL = ps[maxLIdx];
-      spec.arcExist(desc,[minF,minL,maxF,maxL,lb,ub,values] (const auto& p,const auto& c,const auto& x,int v,bool) -> bool {
+      int minWin = spec.addSWState(desc,len,-1,0,MinFun);
+      int maxWin = spec.addSWState(desc,len,-1,0,MaxFun);
+
+      spec.arcExist(desc,[minWin,maxWin,lb,ub,values] (const auto& p,const auto& c,const auto& x,int v,bool) -> bool {
                           bool inS = values.member(v);
-                          int minv = p.at(maxL) - p.at(minF) + inS;
-                          return (p.at(minF) < 0 &&  minv >= lb && p.at(minL) + inS              <= ub)
-                             ||  (p.at(minF) >= 0 && minv >= lb && p.at(minL) - p.at(maxF) + inS <= ub);
+                          auto min = p.getSW(minWin);
+                          auto max = p.getSW(maxWin);
+                          int minv = max.first() - min.last() + inS;
+                          return (min.last() < 0 &&  minv >= lb && min.first() + inS              <= ub)
+                             ||  (min.last() >= 0 && minv >= lb && min.first() - max.last() + inS <= ub);
                        });
-      
-      spec.transitionDown(toDict(minF,minL-1,
-                                 [](int i) {
-                                    return tDesc({i+1},[i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                                          out.set(i,p.at(i+1));
-                                                       });
-                                 }));      
-      spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) {
-                                    return tDesc({i+1},[i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                                          out.set(i,p.at(i+1));
-                                                       });                                            
-                                 }));
-      
-      spec.transitionDown(minL,{minL},
-                          [values,minL](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                             bool allMembers = true;
-                             for(int v : val) {
-                                allMembers &= values.member(v);
-                                if (!allMembers) break;
-                             }
-                             out.set(minL,p.at(minL)+allMembers);
+            
+      spec.transitionDown(minWin,{minWin},
+                          [values,minWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
+                             bool allMembers = val.allInside(values);//true;
+                             MDDSWin<char> outWin = out.getSW(minWin);
+                             outWin.assignSlideBy(p.getSW(minWin),1);
+                             outWin.setFirst(p.getSW(minWin).first() + allMembers);
                           });
-      spec.transitionDown(maxL,{maxL},
-                          [values,maxL](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                             bool oneMember = false;
-                             for(int v : val) {
-                                oneMember = values.member(v);
-                                if (oneMember) break;
-                             }
-                             out.set(maxL,p.at(maxL)+oneMember);
-                          });
+      spec.transitionDown(maxWin,{maxWin},
+                          [values,maxWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
+                             bool oneMember = val.memberInside(values);
+                             MDDSWin<char> outWin = out.getSW(maxWin);
+                             outWin.assignSlideBy(p.getSW(maxWin),1);
+                             outWin.setFirst(p.getSW(maxWin).first() + oneMember);
+                          });      
       
-      // for(int i = minFIdx; i <= minLIdx; i++)
-      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
-      //                                out.set(p,std::min(l.at(p),r.at(p)));
-      //                             });
-      // for(int i = maxFIdx; i <= maxLIdx; i++)
-      //    spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
-      //                                out.set(p,std::max(l.at(p),r.at(p)));
-      //                             });      
-      // for(auto i : ps)
-      //    spec.addSimilarity(i,[i](auto l,auto r)->double{return abs(l.at(i)- r.at(i));});
    }
 
    void seqMDD2(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
-      int minFIdx = 0,minLIdx = len-1;
-      int maxFIdx = len,maxLIdx = len*2-1;
-      int nb = len*2;
+      const int nb = len*2;
       spec.append(vars);
       ValueSet values(rawValues);
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
-      std::vector<int> ps(nb+1);
-      for(int i = minFIdx;i < nb;i++)
-         ps[i] = spec.addState(desc,0,len);       // init @ 0, largest value is length of window. 
-      ps[nb] = spec.addState(desc,0,INT_MAX); // init @ 0, largest value is number of variables. 
 
-      const int minL = ps[minLIdx];
-      const int maxF = ps[maxFIdx];
-      const int minF = ps[minFIdx];
-      const int maxL = ps[maxLIdx];
-      const int pnb  = ps[nb];
+      int minWin = spec.addSWState(desc,len,-1,0,MinFun);
+      int maxWin = spec.addSWState(desc,len,-1,0,MaxFun);
+      int pnb    = spec.addState(desc,0,INT_MAX,MinFun); // init @ 0, largest value is number of variables. 
 
-      spec.transitionDown(toDict(minF,minL-1,
-                                 [](int i) { return tDesc({i+1},
-                                                          [i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                                             out.set(i,p.at(i+1));
-                                                          });
-                                 }));
-      spec.transitionDown(toDict(maxF,maxL-1,
-                                 [](int i) { return tDesc({i+1},
-                                                          [i](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                                             out.set(i,p.at(i+1));
-                                                          });
-                                 }));
-
-      spec.transitionDown(minL,{minL},[values,minL](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                 bool allMembers = true;
-                                 for(int v : val) {
-                                    allMembers &= values.member(v);
-                                    if (!allMembers) break;
-                                 }
-                                 out.set(minL,p.at(minL)+allMembers);
-                              });
-      spec.transitionDown(maxL,{maxL},[values,maxL](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                 bool oneMember = false;
-                                 for(int v : val) {
-                                    oneMember = values.member(v);
-                                    if (oneMember) break;
-                                 }
-                                 out.set(maxL,p.at(maxL)+oneMember);
-                              });
+      spec.transitionDown(minWin,{minWin},[values,minWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
+                                             bool allMembers = val.allInside(values);
+                                             MDDSWin<char> outWin = out.getSW(minWin);
+                                             outWin.assignSlideBy(p.getSW(minWin),1);
+                                             outWin.setFirst(p.getSW(minWin).first() + allMembers);
+                                          });
+      spec.transitionDown(maxWin,{maxWin},[values,maxWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
+                                             bool oneMember = val.memberInside(values);
+                                             MDDSWin<char> outWin = out.getSW(maxWin);
+                                             outWin.assignSlideBy(p.getSW(maxWin),1);
+                                             outWin.setFirst(p.getSW(maxWin).first() + oneMember);
+                                          });
       spec.transitionDown(pnb,{pnb},[pnb](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                out.setInt(pnb,p[pnb]+1);
-                             });
+                                       out.setInt(pnb,p[pnb]+1);
+                                    });
 
       spec.arcExist(desc,[=] (const auto& p,const auto& c,const auto& x,int v,bool) -> bool {
                           bool inS = values.member(v);
-                          if (p.at(pnb) >= len - 1) {
-                             bool c0 = p.at(maxL) + inS - p.at(minF) >= lb;
-                             bool c1 = p.at(minL) + inS - p.at(maxF) <= ub;
+                          MDDSWin<char> min = p.getSW(minWin);
+                          MDDSWin<char> max = p.getSW(maxWin);
+                          if (p[pnb] >= len - 1) {                             
+                             bool c0 = max.first() + inS - min.last() >= lb;
+                             bool c1 = min.first() + inS - max.last() <= ub;
                              return c0 && c1;
                           } else {
-                             bool c0 = len - (p.at(pnb)+1) + p.at(maxL) + inS >= lb;
-                             bool c1 = p.at(minL) + inS <= ub;
+                             bool c0 = len - (p[pnb]+1) + max.first() + inS >= lb;
+                             bool c1 =                    min.first() + inS <= ub;
                              return c0 && c1;
                           }
                        });      
       
-      for(int i = minFIdx; i <= minLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
-                                     out.set(p,std::min(l.at(p),r.at(p)));
-                                  });
-      for(int i = maxFIdx; i <= maxLIdx; i++)
-         spec.addRelaxation(ps[i],[p=ps[i]](auto& out,const auto& l,const auto& r) {
-                                     out.set(p,std::max(l.at(p),r.at(p)));
-                                  });
-      spec.addRelaxation(pnb,[pnb](auto& out,const auto& l,const auto& r) {
-                                out.set(pnb,std::min(l.at(pnb),r.at(pnb)));
-                             });
    }
 
    void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)

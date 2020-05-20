@@ -98,6 +98,14 @@ public:
          return false;
       }
    }
+   const bool allInside(const ValueSet& S) const noexcept {
+      if (_isSingle) return S.member(_single);
+      else {
+         for(short k=0;k <_sz;k++)
+            if (!S.member(_buf[k])) return false;
+         return true;
+      }
+   }
    const bool memberInside(const ValueSet& S) const noexcept {
       if (_isSingle) return S.member(_single);
       else {
@@ -609,6 +617,7 @@ class MDDPBitSequence : public MDDProperty {
 template <class ET = unsigned char>
 class MDDPSWindow : public MDDProperty {
    ET    _eltInit;
+   ET    _fstInit;
    const int _len; // number of elements in window (0,...._len-1)
    size_t storageSize() const override {
       return _len * sizeof(ET) * 8; // number of element * size of element in bytes * number of bits per byte.
@@ -621,12 +630,13 @@ class MDDPSWindow : public MDDProperty {
       return bitOffset + storageSize();
    }
 public:
-   MDDPSWindow(short id,unsigned short ofs,int len,ET eInit)
-      : MDDProperty(id,ofs,len * sizeof(ET)),_eltInit(eInit),_len(len) {}
+   MDDPSWindow(short id,unsigned short ofs,int len,ET eInit,ET fInit,enum RelaxWith rw)
+      : MDDProperty(id,ofs,len * sizeof(ET),rw),_eltInit(eInit),_fstInit(fInit),_len(len) {}
    void init(char* buf) const noexcept override {
       ET* ptr = reinterpret_cast<ET*>(buf + _ofs);
       for(int i=0;i < _len;++i)
          ptr[i] = _eltInit;
+      ptr[0] = _fstInit;
    }
    void minWith(char* buf,char* other) const noexcept override {
       ET* a = reinterpret_cast<ET*>(buf + _ofs);
@@ -651,7 +661,7 @@ public:
       os << '<';
       ET* ptr = reinterpret_cast<ET*>(buf + _ofs);
       for(int i=0;i < _len;++i) {
-         os << ptr[i];
+         os << (int)(ptr[i]);
          if (i < _len - 1)
             os << ',';        
       }
@@ -684,6 +694,7 @@ public:
    unsigned short endOfs(int p) const noexcept { return _attrs[p]->endOfs();}
    virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External);
    virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
+   virtual int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
    void outputSet(MDDPropSet& out,const MDDPropSet& in) const noexcept {
@@ -796,6 +807,7 @@ public:
    int at(int i) const noexcept           { return _spec->_attrs[i]->get(_mem);}
    int byte(int i) const noexcept         { return _spec->_attrs[i]->getByte(_mem);}
    MDDBSValue getBS(int i) const noexcept { return _spec->_attrs[i]->getBS(_mem);}
+   MDDSWin<char> getSW(int i) const noexcept { return _spec->_attrs[i]->getSW<char>(_mem);}
    void set(int i,int val) noexcept       { _spec->_attrs[i]->set(_mem,val);}  // to set a state property (slow)
    void setInt(int i,int val) noexcept    { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property (fast)
    void setByte(int i,int val) noexcept   { _spec->_attrs[i]->setByte(_mem,val);}  // to set a state property (fast)  
@@ -928,6 +940,7 @@ public:
       return addState(d,init,(int)max,rw);
    }
    int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
+   int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External) override;
    void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
    void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
    void updateNode(UpdateFun update);
