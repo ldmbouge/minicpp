@@ -196,11 +196,13 @@ namespace Factory {
       // 	  return ( (n.at(L) + n.at(Lup) >= lb) &&
       // 		   (n.at(U) + n.at(Uup) <= ub));
       // 	});
-      
+
+      //mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
+
       mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
-	  return -(double)(in.getState().at(U)-in.getState().at(L));
-	  //return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
-	  // return 0;
-	});
+                            return -(double)(in.getState().at(U)-in.getState().at(L));
+      //     //return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
+                            return 0.0;                            
+                         });
    }
 }

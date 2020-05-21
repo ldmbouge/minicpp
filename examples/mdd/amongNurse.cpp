@@ -186,7 +186,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       cout << endl;
       
       auto adv = all(cp, amongVars, vars);
-      Factory::amongMDD(mdd->getSpec(), adv, L1, U1, workDay);
+      Factory::amongMDD2(mdd->getSpec(), adv, L1, U1, workDay);
     }
     
     // constraint 2
@@ -201,7 +201,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       cout << endl;
       
       auto adv = all(cp, amongVars, vars);
-      Factory::amongMDD(mdd->getSpec(), adv, L2, U2, workDay);
+      Factory::amongMDD2(mdd->getSpec(), adv, L2, U2, workDay);
     }
   
     // constraint 3
@@ -217,7 +217,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 	cout << endl;
 	
 	auto adv = all(cp, amongVars,vars);
-	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+	Factory::amongMDD2(mdd->getSpec(), adv, L3, U3, workDay);
       }
     }
     cp->post(mdd);

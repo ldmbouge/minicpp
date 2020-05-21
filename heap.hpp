@@ -48,7 +48,7 @@ public:
       _mxs = sz;
       _at =  1;
       _tab = new (_pool) T[_mxs];
-      for(int i=0u;i<_mxs;++i) _tab[i] = nullptr;
+      for(int i=0u;i<_mxs;++i) _tab[i] = T();
    }
    void clear() noexcept { _at = 1;}
    unsigned size() const noexcept { return (unsigned)(_at - 1);}

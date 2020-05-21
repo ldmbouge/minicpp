@@ -551,41 +551,38 @@ template <typename Container,typename T,typename Fun> T sum(Container& c,T acc,c
 }
 
 class MDDNodeSim {
+   struct PQValue {
+      double   _key;
+      MDDNode* _val;
+   };
+   struct PQOrder {
+      bool operator()(const PQValue& a,const PQValue& b) { return a._key < b._key;}
+   };
+   Pool::Ptr _mem;
    const TVec<MDDNode*>& _layer;
    const MDDSpec& _mddspec;
-   std::vector<std::pair<double,MDDNode*>> _pq;
-   std::vector<std::pair<double,MDDNode*>>::iterator _first,_last;
+   Heap<PQValue,PQOrder>  _pq;
 public:
-   MDDNodeSim(const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec)
-      : _layer(layer),
-        _mddspec(mddspec) 
+   MDDNodeSim(Pool::Ptr mem,const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec)
+      : _mem(mem),
+        _layer(layer),
+        _mddspec(mddspec),
+        _pq(mem,layer.size())
    {
-      _pq.reserve(_layer.size());      
       for(auto& n : _layer)
          if (n->getState().isRelaxed() && n->getNumParents() > 1) {
-            double key = _mddspec.hasSplitRule() ? _mddspec.splitPriority(*n) 
-               : (double)n->getPosition();
-            //std::cout << "A(" << key << ',' << n << "),";
-            _pq.emplace_back(std::move(key),std::move(n));
+            double key = (_mddspec.hasSplitRule()) ? _mddspec.splitPriority(*n) : (double)n->getPosition();
+            //std::cout << "A(" << key << "),";
+            _pq.insert(PQValue { key, n});
          }
-      std::make_heap(_pq.begin(),_pq.end(),[](const auto& a,const auto& b) {
-                                              return std::get<0>(a) < std::get<0>(b);
-                                           });
-      _first = _pq.begin();
-      _last  = _pq.end();
+      _pq.buildHeap();
+      //std::cout << "buildHeap\n";
    }
    MDDNode* extractNode() {
-      while (_first != _last) {
-         double key = 0.0;
-         MDDNode* value = nullptr;
-         std::tie(key,value) = *_first;
-         std::pop_heap(_first,_last,[](const auto& a,const auto& b) {
-                                       return std::get<0>(a) < std::get<0>(b);
-                                    });
-         _pq.pop_back();
-         _last = _pq.end();
-         //std::cout << "X(" << key << ")";
-         return value;
+      while (!_pq.empty()) {
+         PQValue x = _pq.extractMax();
+         //std::cout << "X(" << x._key << ")\n";
+         return x._val;
       }
       return nullptr;
    }
@@ -769,19 +766,18 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
       trimVariable(l-1);
       ++nbScans;
       if (!x[l-1]->isBound() && layers[l].size() < _width) {
-         MDDNodeSim nSim(layers[l],_refs[l],_mddspec);
+         MDDNodeSim nSim(_pool,layers[l],_refs[l],_mddspec);
          MDDNode* n = nullptr;
          while (layer.size() < _width && lowest==l) {
             while(splitter.size() == 0)  {
                n = nSim.extractNode();
-               assert(n->isActive());
-               if (n)
+               if (n) 
                   lowest = splitNode(n,l,splitter);
-               if (n==nullptr) break;
+               else break;
             }
             if (lowest < l) break;
             splitter.process(layer,_width,trail,mem,
-                             [this,&nSim,l,&layer](MDDNode* n,MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
+                             [this,l,&layer](MDDNode* n,MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
                                 potEXEC++;
                                 MDDNode* nc = _nf->makeNode(ms,x[l-1]->size(),l,(int)layer.size());
                                 layer.push_back(nc,mem);
