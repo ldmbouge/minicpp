@@ -1,0 +1,35 @@
+
+** carg (timeout set to 60 seconds)
+
+#+BEGIN_SRC emacs-lisp :exports results :results table
+  (org-table-import (expand-file-name "/tmp/savedcarg.csv") nil)
+#+END_SRC
+| instance            | nodes | fails | vars |  time |
+| benchdata/datao     |    82 |     5 |  100 | 0.075 |
+| benchdata/data4     |    82 |     5 |  100 | 0.079 |
+| benchdata/data8     |    TO |     0 |    0 |   0.0 |
+| benchdata/data21    |    TO |     0 |    0 |   0.0 |
+| benchdata/data21a   |    81 |    11 |  100 | 0.116 |
+| benchdata/data26    |  1192 |  1126 |  100 | 0.427 |
+| benchdata/data36    |    TO |     0 |    0 |   0.0 |
+| benchdata/data36a   |    TO |     0 |    0 |   0.0 |
+| benchdata/data41    |    74 |     5 |  100 | 0.088 |
+
+
+
+** caro(timeout set to 60 seconds)
+
+#+BEGIN_SRC emacs-lisp :exports results :results table
+  (org-table-import (expand-file-name "/tmp/savedcaro.csv") nil)
+#+END_SRC
+| instance            | nodes | fails | vars |  time |
+| benchdata/datao     |   924 |   424 |  100 | 0.205 |
+| benchdata/data4     |   924 |   424 |  100 | 0.212 |
+| benchdata/data8     |   810 |   310 |  100 | 0.158 |
+| benchdata/data21    |    TO |     0 |    0 |   0.0 |
+| benchdata/data21a   |    TO |     0 |    0 |   0.0 |
+| benchdata/data26    | 28780 | 28280 |  100 | 7.376 |
+| benchdata/data36    |    TO |     0 |    0 |   0.0 |
+| benchdata/data36a   |    TO |     0 |    0 |   0.0 |
+| benchdata/data41    |   825 |   325 |  100 | 0.123 |
+
