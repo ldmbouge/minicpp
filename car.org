@@ -4,6 +4,86 @@
 #+BEGIN_SRC emacs-lisp :exports results :results table
   (org-table-import (expand-file-name "/tmp/savedcarg.csv") nil)
 #+END_SRC
+| instance              | nodes | fails | vars |  time |
+| full_Set/carseq1.dat  |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq10.dat |   465 |   300 |  200 |  0.45 |
+| full_Set/carseq11.dat |   159 |     0 |  200 |  0.25 |
+| full_Set/carseq12.dat |   172 |     1 |  200 | 0.325 |
+| full_Set/carseq13.dat |   171 |     0 |  200 |  0.29 |
+| full_Set/carseq14.dat |   164 |     1 |  200 | 0.309 |
+| full_Set/carseq15.dat |   178 |     4 |  200 | 0.365 |
+| full_Set/carseq16.dat |  6746 |  6579 |  200 | 1.538 |
+| full_Set/carseq17.dat |   168 |     4 |  200 | 0.335 |
+| full_Set/carseq18.dat |   180 |     3 |  200 |  0.28 |
+| full_Set/carseq19.dat | 24761 | 24608 |  200 | 8.812 |
+| full_Set/carseq2.dat  |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq20.dat |   199 |    31 |  200 |  0.42 |
+| full_Set/carseq21.dat |   158 |     0 |  200 | 0.292 |
+| full_Set/carseq22.dat |   175 |     5 |  200 | 0.411 |
+| full_Set/carseq23.dat |   158 |     6 |  200 | 0.325 |
+| full_Set/carseq24.dat |   159 |     1 |  200 | 0.363 |
+| full_Set/carseq25.dat |   514 |   341 |  200 | 0.469 |
+| full_Set/carseq26.dat |   160 |     2 |  200 | 0.396 |
+| full_Set/carseq27.dat |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq28.dat |   168 |     6 |  200 | 0.317 |
+| full_Set/carseq29.dat |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq3.dat  |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq30.dat | 13222 | 13050 |  200 | 3.502 |
+| full_Set/carseq31.dat |   154 |     1 |  200 | 0.319 |
+| full_Set/carseq32.dat |   168 |     6 |  200 | 0.455 |
+| full_Set/carseq33.dat |   159 |    11 |  200 | 0.347 |
+| full_Set/carseq34.dat |   156 |     2 |  200 | 0.386 |
+| full_Set/carseq35.dat |   164 |    13 |  200 | 0.368 |
+| full_Set/carseq36.dat |   161 |     2 |  200 | 0.363 |
+| full_Set/carseq37.dat |  1435 |  1274 |  200 |  0.52 |
+| full_Set/carseq38.dat |   162 |     5 |  200 | 0.323 |
+| full_Set/carseq39.dat |  5022 |  4871 |  200 | 1.742 |
+| full_Set/carseq4.dat  |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq40.dat |   676 |   509 |  200 | 0.569 |
+| full_Set/carseq41.dat |   161 |     1 |  200 | 0.389 |
+| full_Set/carseq42.dat |   161 |     7 |  200 | 0.441 |
+| full_Set/carseq43.dat |   143 |     4 |  200 | 0.416 |
+| full_Set/carseq44.dat |   151 |     2 |  200 | 0.427 |
+| full_Set/carseq45.dat |   381 |   234 |  200 | 0.478 |
+| full_Set/carseq46.dat |   181 |    13 |  200 | 0.413 |
+| full_Set/carseq47.dat |   222 |    64 |  200 | 0.394 |
+| full_Set/carseq48.dat |   152 |     2 |  200 | 0.399 |
+| full_Set/carseq49.dat |   155 |     6 |  200 | 0.435 |
+| full_Set/carseq5.dat  |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq50.dat |   994 |   824 |  200 | 0.652 |
+| full_Set/carseq51.dat |   178 |     2 |  200 | 0.449 |
+| full_Set/carseq52.dat |   160 |     5 |  200 | 0.455 |
+| full_Set/carseq53.dat |   160 |     5 |  200 |  0.42 |
+| full_Set/carseq54.dat |   155 |     3 |  200 | 0.428 |
+| full_Set/carseq55.dat |   160 |     7 |  200 |  0.46 |
+| full_Set/carseq56.dat |   229 |    59 |  200 | 0.442 |
+| full_Set/carseq57.dat |   688 |   532 |  200 | 0.494 |
+| full_Set/carseq58.dat |   156 |     6 |  200 | 0.459 |
+| full_Set/carseq59.dat |   154 |     5 |  200 | 0.405 |
+| full_Set/carseq6.dat  |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq60.dat |   192 |    16 |  200 | 0.503 |
+| full_Set/carseq61.dat |   186 |     0 |  200 | 0.471 |
+| full_Set/carseq62.dat |   200 |     0 |  200 | 0.468 |
+| full_Set/carseq63.dat |   176 |    10 |  200 | 0.452 |
+| full_Set/carseq64.dat |   159 |     4 |  200 | 0.485 |
+| full_Set/carseq65.dat |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq66.dat |   170 |     4 |  200 | 0.459 |
+| full_Set/carseq67.dat |   157 |     4 |  200 | 0.458 |
+| full_Set/carseq68.dat |   158 |     3 |  200 | 0.467 |
+| full_Set/carseq69.dat |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq7.dat  |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq70.dat |   186 |     5 |  200 | 0.527 |
+| full_Set/carseq71.dat |   170 |     4 |  200 | 0.446 |
+| full_Set/carseq72.dat |   160 |     3 |  200 | 0.392 |
+| full_Set/carseq73.dat |   193 |     0 |  200 | 0.509 |
+| full_Set/carseq74.dat |   155 |     4 |  200 | 0.463 |
+| full_Set/carseq75.dat |   200 |     0 |  200 | 0.444 |
+| full_Set/carseq76.dat |    TO |     0 |    0 |   0.0 |
+| full_Set/carseq77.dat |   182 |     0 |  200 | 0.533 |
+| full_Set/carseq78.dat |   200 |     0 |  200 | 0.475 |
+| full_Set/carseq8.dat  |    74 |     5 |  100 | 0.081 |
+| full_Set/carseq9.dat  |  1192 |  1126 |  100 | 0.429 |
+
 | instance            | nodes | fails | vars |  time |
 | benchdata/datao     |    82 |     5 |  100 | 0.075 |
 | benchdata/data4     |    82 |     5 |  100 | 0.079 |
@@ -20,8 +100,9 @@
 ** caro(timeout set to 60 seconds)
 
 #+BEGIN_SRC emacs-lisp :exports results :results table
-  (org-table-import (expand-file-name "/tmp/savedcaro.csv") nil)
+(org-table-import (expand-file-name /tmp/savedcaro.csv) nil)
 #+END_SRC
+
 | instance            | nodes | fails | vars |  time |
 | benchdata/datao     |   924 |   424 |  100 | 0.205 |
 | benchdata/data4     |   924 |   424 |  100 | 0.212 |
