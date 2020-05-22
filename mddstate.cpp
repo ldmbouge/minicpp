@@ -557,14 +557,22 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
 #else
 bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
 {
-   MDDSKey key { &parent, val };
+   auto mark = _mem->mark();
+   const int nbb = _mddspec->layoutSize();
+   char* membuf = new (_mem) char[nbb];
+   bzero(membuf,nbb);
+   MDDState* upState = new (_mem) MDDState(_mddspec,membuf); 
+   _mddspec->copyStateUp(*upState,n->getState());
+   
+   MDDSKey key { &parent, upState, val };
    auto loc = _hash.get(key,result);
    if (loc) {
       ++hitCS;
+      _mem->clear(mark);
       return true;
    } else {
       nbCS++;
-      result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSize()]);
+      result = new (_mem) MDDState(_mddspec,new (_mem) char[nbb]);
       _mddspec->copyStateUp(*result,n->getState());
       _mddspec->createState(*result,parent,layer,x,MDDIntSet(val),true);
       _mddspec->updateNode(*result);
@@ -572,7 +580,7 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
       if (isOk) {
          result->computeHash();
          MDDState* pc = new (_mem) MDDState(parent.clone(_mem));
-         MDDSKey ikey { pc,val };
+         MDDSKey ikey { pc, upState, val };
          _hash.insert(ikey,result);
       }
       return isOk;

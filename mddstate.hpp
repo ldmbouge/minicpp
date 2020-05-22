@@ -222,7 +222,7 @@ public:
    typedef handle_ptr<MDDConstraintDescriptor> Ptr;
    template <class Vec>
    MDDConstraintDescriptor(const Vec& vars, const char* name) 
-      : _vars(vars.size(),Factory::alloci(vars[0]->getStore())),
+     : _vars(vars.size(),Factory::alloci(vars[0]->getStore())),
         _vset(vars),
         _name(name)
    {
@@ -1027,26 +1027,30 @@ private:
    std::vector<int>   _dRelax;
 };
 
+inline int rotl(int n,const int d) {
+   return (n << d) | (n >> (32 -d));
+}
 
 class MDDSpec;
 class MDDStateFactory {
    struct MDDSKey {
-      const MDDState*   _s;
+      const MDDState*   _s0;
+      const MDDState*   _s1;
       const int         _v;
    };
    struct EQtoMDDSKey {
       bool operator()(const MDDSKey& a,const MDDSKey& b) const noexcept {
-         return a._v == b._v && a._s->operator==(*b._s);
+         return a._v == b._v && a._s0->operator==(*b._s0) && a._s1->operator==(*b._s1);
       }
    };
    struct HashMDDSKey {
       std::size_t operator()(const MDDSKey& key) const noexcept {
-         return key._s->hash() ^ key._v;
+         //return (rotl(key._s0->hash(),8) + key._s1->hash()) ^ key._v;
+         return key._s0->hash() ^ key._v;
       }
    };
    MDDSpec*      _mddspec;
    Pool::Ptr         _mem;
-   //std::unordered_map<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
    Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
    PoolMark         _mark;
    bool          _enabled;
