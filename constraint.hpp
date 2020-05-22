@@ -345,6 +345,25 @@ namespace Factory {
       return nullptr;
       //return new (x->getSolver()) NEQc(x,c);
    }
+   inline Constraint::Ptr inside(var<int>::Ptr x,std::set<int> S) {
+      auto cp = x->getSolver();
+      for(int v = x->min();v <= x->max();++v) {
+         if (!x->contains(v)) continue;
+         if (S.find(v) == S.end())
+            x->remove(v);
+      }
+      cp->fixpoint();
+      return nullptr;
+   }
+   inline Constraint::Ptr outside(var<int>::Ptr x,std::set<int> S) {
+      auto cp = x->getSolver();
+      for(int v : S) {
+         if (x->contains(v))
+            x->remove(v);        
+      }
+      cp->fixpoint();
+      return nullptr;
+   }
    
    inline Constraint::Ptr operator==(var<bool>::Ptr x,bool c) {
       return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
