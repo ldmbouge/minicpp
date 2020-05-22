@@ -34,6 +34,7 @@
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
 #include <math.h>
+#include <limits.h>
 
 using namespace std;
 using namespace Factory;
@@ -174,9 +175,6 @@ template <typename Fun> vector<int> toVec(int min,int max,Fun f)
 void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
 {
   
-  // Following [Puget&Regin, 1997] calculate slack for each option:
-  //
-
   int nbVars = line.size();
   int nbO = (int) in.options().size();
   
@@ -237,11 +235,29 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
       cout << " " << *it;
     cout << endl;
   }
-  
+
+  // some computations for ssu value ordering heuristic
+  // taken from Comet model carg:
+  //   int sutil[o in Options] = 100*(sod[o] * ub[o]) / (nbCars * lb[o]);
+  //   int ssu[c in Configs] = sum(o in Options: requires[o,c] == 1) sutil[o];
+  vector<int> sutil(nbO);
+  for(int o=0; o<nbO; o++){
+    sutil[o] = 100*nbCarsByOption[o]*in.ub(o) / (nbVars*in.lb(o));
+  }
+  vector<int> ssu(in.nbConf());
+  for(int c=0; c<in.nbConf(); c++) {
+    ssu[c] = 0;
+    for(int o=0; o<nbO; o++) {
+      ssu[c] += (in.requires(c,o))*sutil[o];
+    }
+  }
+
+ 
   auto start = RuntimeMonitor::now();
   
    DFSearch search(cp,[=]() {
 
+       /***
        int varIdx = -1; // selected variable index
        int optIdx = -1; // selected option index
        int valIdx = -1; // selected option index
@@ -287,38 +303,73 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
        }
        
        auto x = varIdx>=0 ? oline[varIdx] : nullptr;
-
-       bool lex = false;
-       if (lex) {
-	 // Lexicographic ordering
-	 unsigned i = 0u;
-	 for(i=0u;i < oline.size();i++)
-	   if (oline[i]->size()> 1) break;
-	 x = i< oline.size() ? oline[i] : nullptr;
-       }
+       ***/
        
+       // Lexicographic ordering on oline, puts variable selection before option selection
+       unsigned i = 0u;
+       for(i=0u;i < oline.size();i++)
+	 if (oline[i]->size()> 1) break;
+       auto x = i< oline.size() ? oline[i] : nullptr;
+ 
        if (x) {	 
-	 // instead of branching within a set, can also just pick the first element in the set
-	 int c = valIdx;
+	 // cout << "select variable oline[" << varIdx << "] = " << x << endl;
+	 // cout << "select variable oline[" << i << "] = " << x << endl;
+	 int c = -1;
 
+	 // select value by ssu heuristic
+	 int minSSU = INT_MAX;
+	 for (int d=x->min(); d<=x->max(); d++) {
+	   if (x->contains(d) && ssu[d] < minSSU) {
+	     minSSU = ssu[d];
+	     c = d;
+	   }
+	 }
+
+	 // // select value by option (per slack ordering)
+	 // for (int o=0; o<nbO; o++) {
+	 //   // cout << "consider option " << slack[o].second << endl;
+	 //   int opt = slack[o].second; 
+	 //   for (int d=x->min(); d<=x->max(); d++) {
+	 //     if (x->contains(d)) {
+	 //       if (confsForOption[opt].find(d) != confsForOption[opt].end()) {
+	 // 	 cout << "select value " << d << endl;
+	 // 	 c = d;
+	 // 	 break;
+	 //       }
+	 //     }
+	 //     if (c>=0) break;
+	 //   }
+	 //   if (c>=0) break;
+	 // }
+	 
          return  [=] {
-	   // std::cout << "oline[" << varIdx << "] in confsForOption[" << optIdx << "]" << std::endl;
-	   // if (!lex)
+	   // if (!lex) {
+	   //   // std::cout << "oline[" << varIdx << "] in confsForOption[" << optIdx << "]" << std::endl;
 	   //   cp->post(inside(x,confsForOption[optIdx]));
-	   // else 
-	   cout << "oline[" << varIdx << "] == " << c << std::endl;
+	   //   // cout << oline << endl;
+	   // }
+	   // else  {
+	     // cout << "oline[" << i << "] == " << c << std::endl;
 	     cp->post(x==c);
+	     // cout << oline << endl;
+	   // }
 	 }
 	 | [=] {
-	   // std::cout << "oline[" << varIdx << "] notin confsForOption[" << optIdx << "]" << std::endl;
-	   // if (!lex)
+	   // if (!lex) {
+	   //   // std::cout << "oline[" << varIdx << "] notin confsForOption[" << optIdx << "]" << std::endl;
 	   //   cp->post(outside(x,confsForOption[optIdx]));
-	   // else
-	   cout << "oline[" << varIdx << "] != " << c << std::endl;
-	     cp->post(x!=c);	   
+	   //   // cout << oline << endl;
+	   // }
+	   // else {
+	     // cout << "oline[" << i << "] != " << c << std::endl;
+	     cp->post(x!=c);
+	     // cout << oline << endl;
+	   // }
 	 };
        }
-       else return Branches({});
+       else {
+	 return Branches({});
+       }
    });
 
    search.onSolution([&line,&in]() {
@@ -335,12 +386,22 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
                      });
 
    auto stat = search.solve([timelimit](const SearchStatistics& stats) {
-       return ((stats.numberOfSolutions() > 10000000) || (RuntimeMonitor::elapsedSince(stats.startTime()) > 1000*timelimit));
+       return ((stats.numberOfSolutions() > 10000) || (RuntimeMonitor::elapsedSince(stats.startTime()) > 1000*timelimit));
      });
    
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
    cout << stat << endl;
+}
+
+template <class Vec>
+Vec all(CPSolver::Ptr cp,const set<int>& over,const Vec& t)
+{
+   Vec res(over.size(),t.get_allocator()); //= Factory::intVarArray(cp, (int) over.size());
+   int i = 0;
+   for(auto e : over)
+      res[i++] = t[e];
+   return res;
 }
 
 void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
@@ -363,7 +424,16 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
     cp->post(cumul[i+N] <= cumul[i] + U);
     cp->post(cumul[i+N] >= cumul[i] + L);
   }
-  
+
+  // for additional propagation: add Among constraints (sum over the boolVar)
+  for (int i=0; i<H-N+1; i++) {
+    set<int> amongVars;
+    for (int j=i; j<i+N; j++)
+      amongVars.insert(j);    
+    auto adv = all(cp, amongVars, boolVar);
+    cp->post(sum(adv) >= L);
+    cp->post(sum(adv) <= U);
+  }  
 }
 
 void buildModel(CPSolver::Ptr cp, Instance& in, int timelimit)

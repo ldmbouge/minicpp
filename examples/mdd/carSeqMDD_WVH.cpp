@@ -171,138 +171,84 @@ template <typename Fun> vector<int> toVec(int min,int max,Fun f)
 
 void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, int searchMode, MDDRelax* &mdd)
 {
-  // Following [Puget&Regin, 1997] calculate slack for each option:
-  //
-
   int nbVars = line.size();
   int nbO = (int) in.options().size();
+
+  cout << " entering SolveModel " << endl;
   
-  /***
-   *  Code taken from from Gen-Sequence paper.  It is based on [Puget&Regin, 1997] search strategy,
-   *  relies on the "capacity" slack of each option: slack[j] = n - q[j](k[j]/p[j]) 
-   *  where n is length of line,
-   *        p[j]/q[j] is the capacity of option j ("p out of q")
-   *        k[j] is total demand for option j.
-   ***/
   vector<int> nbCarsByOption(nbO, 0);
   for(int o=0; o<nbO; o++){
     for(int i=0; i<in.nbConf(); i++) {
       if ( in.requires(i,o) ) { nbCarsByOption[o] += in.demand(i); }
     }
   }
-   
-  pair<int,int> slack[nbO];
-  cout << "slack = [";
-  for (int opt=0; opt<nbO; opt++) {
-    const int N = nbVars, P = in.lb(opt), Q = in.ub(opt), K = nbCarsByOption[opt];
-    slack[opt].first = N - Q*(K/P) - (K%P);   // best bound
-    // slack[opt].first = N - Q*(K/P);        // correct but weaker bound from Regin-Puget
-    // slack[opt].first = N - Q*(1.0*K/P);    // incorrect bound
-    slack[opt].second = opt;
-    cout << slack[opt].first << ' ';
-  }
-  cout << ']' << endl;
-  sort(slack, slack+nbO);
-  
-  vector<int> optionOrder(nbO, 0);
-  for (int i=0; i<nbO; i++){
-    optionOrder[i]=slack[i].second;
-  }
-  cout << "optionOrder = " << optionOrder << endl;
 
-  // variable ordering: uses Boolean encoding of the options (bvars),
-  // which is then ordered from the middle of the line outward (tbvars).
-  int nbCars = (int) line.size();
   int mx = in.nbConf()-1;
-  auto bvars = Factory::boolVarArray(cp,nbCars*nbO);
-  for(int o = 0; o < nbO; o++){
-    int opt = optionOrder[o];
-    // // version 1: use Boolean membership
-    // std::set<int> S;
-    // for (int i=0; i<=mx; i++)
-    //   if (in.requires(i,opt)) {	S.insert(i); }
-    for(int c = 0; c < nbCars; c++){
-      // // version 1: use Boolean membership
-      // cp->post(isMember(bvars[o*nbCars + c], line[c], S));
+  auto oline = Factory::intVarArray(cp,(int) line.size(), 0, mx);
+  int mid = nbVars/2;
+  int idx = 0;
+  oline[idx] = line[mid];
+  for (int i=1; i<=nbVars/2; i++){
+    idx++;
+    oline[idx] = line[mid-i];
+    idx++;
+    if (idx < nbVars) {
+      oline[idx] = line[mid+i];
+    }
+  }    
 
-      // version 2: use element constraint
-      auto rl = toVec(0,mx,[in,opt](int i) { return in.requires(i,opt);});
-      cp->post(bvars[o*nbCars + c] == element(rl,line[c]));
+  // some computations for ssu value ordering heuristic
+  // taken from Comet model carg:
+  //   int sutil[o in Options] = 100*(sod[o] * ub[o]) / (nbCars * lb[o]);
+  //   int ssu[c in Configs] = sum(o in Options: requires[o,c] == 1) sutil[o];
+  vector<int> sutil(nbO);
+  for(int o=0; o<nbO; o++){
+    sutil[o] = 100*nbCarsByOption[o]*in.ub(o) / (nbVars*in.lb(o));
+  }
+  vector<int> ssu(in.nbConf());
+  for(int c=0; c<in.nbConf(); c++) {
+    ssu[c] = 0;
+    for(int o=0; o<nbO; o++) {
+      ssu[c] += (in.requires(c,o))*sutil[o];
     }
   }
 
-  auto tbvars = Factory::boolVarArray(cp,nbCars*nbO);
-  int mid = nbCars/2 - 1;
-  for(int j=0; j<nbO*nbCars; j+=nbCars){
-    for(int i=0; i<mid+1; i++){
-      tbvars[2*i+j]=bvars[mid-i+j];
-      tbvars[2*i+1+j]=bvars[mid+i+1+j];
-    }
-  }
-  
   auto start = RuntimeMonitor::now();
   
    DFSearch search(cp,[=]() {
-
-       var<bool>::Ptr x; // for Puget/Regin search strategy
-       var<int>::Ptr y;  // for lexFirst and minDomain
-
-       if (searchMode == 0) {
-	 // Lexicographic ordering
-	 unsigned i = 0u;
-	 for(i=0u;i < line.size();i++)
-	   if (line[i]->size()> 1) break;
-	 y = i< line.size() ? line[i] : nullptr;
-       }
-       else if (searchMode == 1) {
-	 // MinDomain ordering
-	 y = selectMin(line,
-		       [](const auto& x) { return x->size() > 1;},
-		       [](const auto& x) { return x->size();});
-       }
-       else if (searchMode == 2) {
-	 // Puget&Regin ordering: first assign options
-	 unsigned i = 0u;
-	 for(i=0u;i < tbvars.size();i++)
-	   if (tbvars[i]->size()> 1) break;
-	 x = i<tbvars.size() ? tbvars[i] : nullptr;
-	 // Next assign configurations to line variable (not sure if this is actually needed) 
-	 if (!x) {
-	   // cout << "try to select line variable" << endl;
-	   y = selectMin(line,
-			 [](const auto& x) { return x->size() > 1;},
-			 [](const auto& x) { return x->size();});
-	 }
-       }
-       else { cout << "no search strategy specified: exit"; exit(1); }
        
-       if (x) {
-	 bool c = x->max();
-         
+       // Lexicographic ordering on oline, puts variable selection before option selection (as in carg model)
+       unsigned i = 0u;
+       for(i=0u;i < oline.size();i++)
+	 if (oline[i]->size()> 1) break;
+       auto x = i< oline.size() ? oline[i] : nullptr;
+ 
+       if (x) {	 
+	 int c = -1;
+
+	 // select value by ssu heuristic
+	 int minSSU = INT_MAX;
+	 for (int d=x->min(); d<=x->max(); d++) {
+	   if (x->contains(d) && ssu[d] < minSSU) {
+	     minSSU = ssu[d];
+	     c = d;
+	   }
+	 }
+
          return  [=] {
-	         // std::cout << "tbvars[" << i << "] == " << c << std::endl;
-                 cp->post(x == c);
-                 }
-            | [=] {
-	         // std::cout << "tbvars[" << i << "] != " << c << std::endl;
-                 cp->post(x != c);
-	 };
-      }
-       else if (y){
-	 // cout << "select " << y << endl;
-	 int c = y->min();
-         
-         return  [=] {
-	         // std::cout << y << " == " << c << std::endl;
-                 cp->post(y == c);
-                 }
-            | [=] {
-	         // std::cout << y << " != " << c << std::endl;
-                 cp->post(y != c);
+	   // cout << "oline[" << i << "] == " << c << std::endl;
+	   cp->post(x==c);
+	 }
+	 | [=] {
+	   // cout << "oline[" << i << "] != " << c << std::endl;
+	   cp->post(x!=c);
 	 };
        }
-       else return Branches({});
+       else {
+	 return Branches({});
+       }
    });
+
 
    search.onSolution([&line,&in]() {
                         cout << line << endl;
@@ -333,6 +279,16 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
   
 }
 
+template <class Vec>
+Vec all(CPSolver::Ptr cp,const set<int>& over,const Vec& t)
+{
+   Vec res(over.size(),t.get_allocator()); //= Factory::intVarArray(cp, (int) over.size());
+   int i = 0;
+   for(auto e : over)
+      res[i++] = t[e];
+   return res;
+}
+
 void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
 
   int H = (int)vars.size();
@@ -353,7 +309,16 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
     cp->post(cumul[i+N] <= cumul[i] + U);
     cp->post(cumul[i+N] >= cumul[i] + L);
   }
-  
+
+  // for additional propagation: add Among constraints (sum over the boolVar)
+  for (int i=0; i<H-N+1; i++) {
+    set<int> amongVars;
+    for (int j=i; j<i+N; j++)
+      amongVars.insert(j);    
+    auto adv = all(cp, amongVars, boolVar);
+    cp->post(sum(adv) >= L);
+    cp->post(sum(adv) <= U);
+  }  
 }
 
 
@@ -376,10 +341,8 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
      for(int i=0; i<in.nbConf(); i++) {
        if ( in.requires(i,o) ) { Confs.insert(i); }
      }
-     std::cout << "use seqMDD3 constraint for option " << o << std::endl;
+     std::cout << "use seqMDD3 constraint for option " << o << std::endl;     
      seqMDD3(mdd->getSpec(), line, in.ub(o), 0, in.lb(o), Confs);
-     // std::cout << "use cumulative domain encoding for option " << o << std::endl;
-     // addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
    }
 
    // // meet demand: use gccMDD2
@@ -408,10 +371,21 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
    //   cp->post(sum(boolVar) == in.demand(i));
    // }
 
-
-
+   cout << "about to post MDD" << endl;   
    cp->post(mdd);
 
+   cout << "about to post cumulSeq" << endl;
+
+   // sequence constraints: use cumulative encoding (including among) for domain propagation
+   for(int o = 0; o < nbO; o++){
+     set<int> Confs;
+     for(int i=0; i<in.nbConf(); i++) {
+       if ( in.requires(i,o) ) { Confs.insert(i); }
+     }
+     addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
+   }
+
+   
    solveModel(cp,line,in,timelimit,searchMode,mdd);
 }
 
