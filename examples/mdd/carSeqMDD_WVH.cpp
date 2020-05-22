@@ -371,8 +371,13 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
    //   cp->post(sum(boolVar) == in.demand(i));
    // }
 
-   cout << "about to post MDD" << endl;   
-   cp->post(mdd);
+   cout << "about to post MDD" << endl;
+   try {
+      cp->post(mdd);
+   } catch(Status s) {
+      std::cout << "Failure raised during the post";
+      exit(1);
+   }
 
    cout << "about to post cumulSeq" << endl;
 

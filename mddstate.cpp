@@ -35,7 +35,7 @@ namespace Factory {
    }
    MDDProperty::Ptr makeWinProperty(short id,unsigned short ofs,int len,int init,int finit,enum RelaxWith rw)
    {
-      MDDProperty::Ptr rv = new MDDPSWindow<char>(id,ofs,len,init,finit,rw);
+      MDDProperty::Ptr rv = new MDDPSWindow<short>(id,ofs,len,init,finit,rw);
       return rv;
    }
 }

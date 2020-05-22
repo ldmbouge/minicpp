@@ -449,7 +449,7 @@ public:
    int getByte(char* buf) const noexcept                    { return buf[_ofs];}
    MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
    template <class ET>
-   MDDSWin<ET> getSW(char* buf) const noexcept              { return MDDSWin<ET>(buf + _ofs,_bsz / sizeof(ET));}
+   MDDSWin<ET> getSW(char* buf) const noexcept              { return MDDSWin<ET>(reinterpret_cast<short*>(buf + _ofs),_bsz / sizeof(ET));}
    virtual void set(char* buf,int v) noexcept               {}
    void setInt(char* buf,int v) noexcept                    { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void setByte(char* buf,char v) noexcept         { buf[_ofs] = v;}
@@ -807,7 +807,7 @@ public:
    int at(int i) const noexcept           { return _spec->_attrs[i]->get(_mem);}
    int byte(int i) const noexcept         { return _spec->_attrs[i]->getByte(_mem);}
    MDDBSValue getBS(int i) const noexcept { return _spec->_attrs[i]->getBS(_mem);}
-   MDDSWin<char> getSW(int i) const noexcept { return _spec->_attrs[i]->getSW<char>(_mem);}
+   MDDSWin<short> getSW(int i) const noexcept { return _spec->_attrs[i]->getSW<short>(_mem);}
    void set(int i,int val) noexcept       { _spec->_attrs[i]->set(_mem,val);}  // to set a state property (slow)
    void setInt(int i,int val) noexcept    { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property (fast)
    void setByte(int i,int val) noexcept   { _spec->_attrs[i]->setByte(_mem,val);}  // to set a state property (fast)  

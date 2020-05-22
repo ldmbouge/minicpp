@@ -40,14 +40,14 @@ namespace Factory {
       spec.transitionDown(minWin,{minWin},
                           [values,minWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                              bool allMembers = val.allInside(values);//true;
-                             MDDSWin<char> outWin = out.getSW(minWin);
+                             MDDSWin<short> outWin = out.getSW(minWin);
                              outWin.assignSlideBy(p.getSW(minWin),1);
                              outWin.setFirst(p.getSW(minWin).first() + allMembers);
                           });
       spec.transitionDown(maxWin,{maxWin},
                           [values,maxWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                              bool oneMember = val.memberInside(values);
-                             MDDSWin<char> outWin = out.getSW(maxWin);
+                             MDDSWin<short> outWin = out.getSW(maxWin);
                              outWin.assignSlideBy(p.getSW(maxWin),1);
                              outWin.setFirst(p.getSW(maxWin).first() + oneMember);
                           });      
@@ -67,13 +67,13 @@ namespace Factory {
 
       spec.transitionDown(minWin,{minWin},[values,minWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                              bool allMembers = val.allInside(values);
-                                             MDDSWin<char> outWin = out.getSW(minWin);
+                                             MDDSWin<short> outWin = out.getSW(minWin);
                                              outWin.assignSlideBy(p.getSW(minWin),1);
                                              outWin.setFirst(p.getSW(minWin).first() + allMembers);
                                           });
       spec.transitionDown(maxWin,{maxWin},[values,maxWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                              bool oneMember = val.memberInside(values);
-                                             MDDSWin<char> outWin = out.getSW(maxWin);
+                                             MDDSWin<short> outWin = out.getSW(maxWin);
                                              outWin.assignSlideBy(p.getSW(maxWin),1);
                                              outWin.setFirst(p.getSW(maxWin).first() + oneMember);
                                           });
@@ -83,8 +83,8 @@ namespace Factory {
 
       spec.arcExist(desc,[=] (const auto& p,const auto& c,const auto& x,int v,bool) -> bool {
                           bool inS = values.member(v);
-                          MDDSWin<char> min = p.getSW(minWin);
-                          MDDSWin<char> max = p.getSW(maxWin);
+                          MDDSWin<short> min = p.getSW(minWin);
+                          MDDSWin<short> max = p.getSW(maxWin);
                           if (p[pnb] >= len - 1) {                             
                              bool c0 = max.first() + inS - min.last() >= lb;
                              bool c1 = min.first() + inS - max.last() <= ub;
@@ -116,12 +116,12 @@ namespace Factory {
 
       // down transitions
       spec.transitionDown(AminWin,{AminWin,Ymin},[AminWin,Ymin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                                    MDDSWin<char> outWin = out.getSW(AminWin);
+                                                    MDDSWin<short> outWin = out.getSW(AminWin);
                                                     outWin.assignSlideBy(p.getSW(AminWin),1);
                                                     outWin.setFirst(p[Ymin]);
                                                  });
       spec.transitionDown(AmaxWin,{AmaxWin,Ymax},[AmaxWin,Ymax](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                                                    MDDSWin<char> outWin = out.getSW(AmaxWin);
+                                                    MDDSWin<short> outWin = out.getSW(AmaxWin);
                                                     outWin.assignSlideBy(p.getSW(AmaxWin),1);
                                                     outWin.setFirst(p[Ymax]);
                                                  });
@@ -149,12 +149,12 @@ namespace Factory {
 
       // up transitions
       spec.transitionUp(DminWin,{DminWin,Ymin},[DminWin,Ymin](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
-                                                  MDDSWin<char> outWin = out.getSW(DminWin);
+                                                  MDDSWin<short> outWin = out.getSW(DminWin);
                                                   outWin.assignSlideBy(c.getSW(DminWin),1);
                                                   outWin.setFirst(c[Ymin]);
                                                });
       spec.transitionUp(DmaxWin,{DmaxWin,Ymax},[DmaxWin,Ymax](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
-                                                  MDDSWin<char> outWin = out.getSW(DmaxWin);
+                                                  MDDSWin<short> outWin = out.getSW(DmaxWin);
                                                   outWin.assignSlideBy(c.getSW(DmaxWin),1);
                                                   outWin.setFirst(c[Ymax]);
                                                });
