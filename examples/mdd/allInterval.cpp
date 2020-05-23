@@ -329,10 +329,12 @@ int main(int argc,char* argv[])
    int N     = (argc >= 2 && strncmp(argv[1],"-n",2)==0) ? atoi(argv[1]+2) : 8;
    int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 1;
    int mode  = (argc >= 4 && strncmp(argv[3],"-m",2)==0) ? atoi(argv[3]+2) : 0;
+   int maxRebootDistance  = (argc >= 5 && strncmp(argv[4],"-r",2)==0) ? atoi(argv[4]+2) : 0;
 
    cout << "N = " << N << endl;   
    cout << "width = " << width << endl;   
    cout << "mode = " << mode << endl;
+   cout << "max reboot distance = " << maxRebootDistance << endl;
 
    auto start = RuntimeMonitor::cputime();
 
@@ -370,7 +372,7 @@ int main(int argc,char* argv[])
    std::cout << "y = " << yVars << endl;
    
    
-   auto mdd = new MDDRelax(cp,width);
+   auto mdd = new MDDRelax(cp,width,maxRebootDistance);
 
    if (mode == 0) {
      cout << "domain encoding with equalAbsDiff constraint" << endl;
@@ -469,7 +471,13 @@ int main(int argc,char* argv[])
    int cnt = 0;
    search.onSolution([&cnt,xVars,yVars]() {
        cnt++;
-       std::cout << "\rNumber of solutions:" << cnt << std::flush;
+       //std::cout << "\rNumber of solutions:" << cnt << std::flush;
+       std::cout << "Assignment: [";
+       for (unsigned i=0u;i < xVars.size();i++)
+         std::cout << xVars[i]->min() << ",";
+       for (unsigned i=0u;i < yVars.size()-1;i++)
+         std::cout << yVars[i]->min() << ",";
+       std::cout << yVars[yVars.size()-1]->min() <<  "]" << std::endl;
        // cout << endl;
        // std::cout << "x = " << xVars << endl;
        // std::cout << "y = " << yVars << endl;
@@ -503,6 +511,7 @@ int main(int argc,char* argv[])
    std::cout << "\t\t\"size\" : " << N << ",\n";
    std::cout << "\t\t\"m\" : " << mode << ",\n";
    std::cout << "\t\t\"w\" : " << width << ",\n";
+   std::cout << "\t\t\"r\" : " << maxRebootDistance << ",\n";
    std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
    std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
    std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";

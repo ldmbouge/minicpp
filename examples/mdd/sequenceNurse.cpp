@@ -199,7 +199,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   
   int cnt = 0;
   search.onSolution([&vars,&cnt]() {
-                       std::cout << "Assignment(" << cnt++ << "):" << " " << vars << std::endl;
+                       //std::cout << "Assignment(" << cnt++ << "):" << " " << vars << std::endl;
+                       std::cout << "Assignment " << vars << "" << std::endl;
     });
 
   auto start = RuntimeMonitor::cputime();

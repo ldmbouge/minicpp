@@ -80,7 +80,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Vec& vars, int N, int L, int U, const s
 }
 
 
-void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
+void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance, int maxSplitIter)
 {
 
   /***
@@ -119,7 +119,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   int N3 = 7;
   auto start = RuntimeMonitor::cputime();
 
-  auto mdd = new MDDRelax(cp,relaxSize);
+  auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance,maxSplitIter);
 
   if (mode == 0) {
     cout << "domain encoding of cumulative sums" << endl;
@@ -387,10 +387,13 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     });
 
   int cnt = 0;
-  search.onSolution([&cnt]() {
+  search.onSolution([&cnt,&vars]() {
                        ++cnt;
                        //std::cout << "\rNumber of solutions:" << cnt << std::flush;
-                       //std::cout << "Assignment:" << vars << std::endl;
+                       std::cout << "Assignment: [";
+                       for (unsigned i=0u;i < vars.size()-1;i++)
+                         std::cout << vars[i]->min() << ",";
+                       std::cout << vars[vars.size()-1]->min() <<  "]" << std::endl;
     });
 
 
@@ -422,6 +425,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   std::cout << "\n\t\"amongNurse\" :" << "{\n";
   std::cout << "\t\t\"m\" : " << mode << ",\n";
   std::cout << "\t\t\"w\" : " << relaxSize << ",\n";
+  std::cout << "\t\t\"r\" : " << maxRebootDistance << ",\n";
+  std::cout << "\t\t\"i\" : " << maxSplitIter << ",\n";
   std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
   std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
   std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
@@ -439,15 +444,19 @@ int main(int argc,char* argv[])
 {
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
+   int maxRebootDistance = (argc >= 4 && strncmp(argv[3],"-r",2)==0) ? atoi(argv[3]+2) : INT_MAX;
+   int maxSplitIter = (argc >= 5 && strncmp(argv[4],"-i",2)==0) ? atoi(argv[4]+2) : INT_MAX;
 
    // mode: 0 (Cumulative sums),  1 (Among MDD), 2 (Sequence MDD)
    // mode: 3 (Cumulative Sums with isMember constraint)
    
    std::cout << "width = " << width << std::endl;
    std::cout << "mode = " << mode << std::endl;
+   std::cout << "maxRebootDistance = " << maxRebootDistance << std::endl;
+   std::cout << "maxSplitIter = " << maxSplitIter << std::endl;
    try {
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp, width, mode);
+      buildModel(cp, width, mode, maxRebootDistance, maxSplitIter);
    } catch(Status s) {
       std::cout << "model infeasible during post" << std::endl;
    } catch (std::exception& e) {

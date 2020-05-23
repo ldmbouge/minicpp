@@ -7,10 +7,11 @@
 #include "RuntimeMonitor.hpp"
 #include "heap.hpp"
 
-MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance)
+MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter)
    : MDD(cp),
      _width(width),
      _maxDistance(maxDistance),
+     _maxSplitIter(maxSplitIter),
      _rnG(42),
      _sampler(0.0,1.0)
   
@@ -910,7 +911,7 @@ int __nbn = 0,__nbf = 0;
 
 void MDDRelax::computeDown(int iter)
 {
-   if (iter <= 5)
+   if (iter <= _maxSplitIter)
       splitLayers();
    _sf->disable();
    while(!_fwd->empty()) {

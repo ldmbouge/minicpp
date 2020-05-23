@@ -323,6 +323,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
        cout << "z->min() : " << z->min() << ", z->max() : " << z->max() << endl;
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;
+       cout << "Assignment: " << emp << endl;
                         //exit(1);
                         //checkSolution(obj,emp,cliques,compat);
                      });   
