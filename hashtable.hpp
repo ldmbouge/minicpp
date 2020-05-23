@@ -59,6 +59,7 @@ public:
    }
    void insert(const K& key,const T& val) noexcept {
       int at = _hash(key) % _mxs;
+      //std::cout << "I:" << at  << ' ' << std::flush;
       HTNode* head = _mgc[at]==_magic ? _tab[at] : nullptr;
       HTNode* cur = head;
       while (cur != nullptr) {

@@ -284,7 +284,7 @@ void IsMember::post()
 }
 
 void IsMember::propagate() 
-{
+{  
     if (_b->isTrue()) {
       int xMin = _x->min(), xMax = _x->max();
       for (int v=xMin; v<=xMax; v++) {
@@ -333,6 +333,13 @@ void IsMember::propagate()
 	setActive(false);
       }
     }
+
+  // std::cout << "leaving IsMember::propagate() with _b = ";
+  // if (_b->isTrue()) std::cout << "{1}";
+  // else if (_b->isFalse()) std::cout << "{0}";
+  // else std::cout << "{0,1}";
+  // std::cout <<  " and _x = " << _x << std::endl;
+
 }
 
 

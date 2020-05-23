@@ -98,6 +98,14 @@ public:
          return false;
       }
    }
+   const bool allInside(const ValueSet& S) const noexcept {
+      if (_isSingle) return S.member(_single);
+      else {
+         for(short k=0;k <_sz;k++)
+            if (!S.member(_buf[k])) return false;
+         return true;
+      }
+   }
    const bool memberInside(const ValueSet& S) const noexcept {
       if (_isSingle) return S.member(_single);
       else {
@@ -214,7 +222,7 @@ public:
    typedef handle_ptr<MDDConstraintDescriptor> Ptr;
    template <class Vec>
    MDDConstraintDescriptor(const Vec& vars, const char* name) 
-      : _vars(vars.size(),Factory::alloci(vars[0]->getStore())),
+     : _vars(vars.size(),Factory::alloci(vars[0]->getStore())),
         _vset(vars),
         _name(name)
    {
@@ -352,6 +360,41 @@ public:
    }
 };
 
+template <class ET>
+class MDDSWin {
+   ET* _buf;
+   int _nb;
+public:
+   MDDSWin(ET* buf,int nb) : _buf(buf),_nb(nb) {}
+   MDDSWin(MDDSWin<ET>&& v) : _buf(v._buf),_nb(v._nb) {}
+   int nbWords() const noexcept { return _nb;}
+   MDDSWin<ET>& operator=(const MDDSWin<ET>& v) noexcept {
+      for(int i=0;i < _nb;++i) _buf[i] = v._buf[i];
+      return *this;
+   }
+   ET get(int ofs) const noexcept { return _buf[ofs];}
+   ET last() const noexcept { return _buf[_nb-1];}
+   ET first() const noexcept { return _buf[0];}
+   void set(int ofs,ET v) noexcept { _buf[ofs] = v;}
+   void setFirst(ET v) noexcept { _buf[0] = v;}
+   MDDSWin<ET>& assignSlideBy(const MDDSWin<ET>& v,const int shift=0) {
+      for(int i=0;i < _nb - shift;++i) _buf[i+shift] = v._buf[i];
+      return *this;
+   }
+   friend bool operator==(const MDDSWin<ET>& a,const MDDSWin<ET>& b) noexcept {
+      bool eq = a._nb == b._nb;
+      for(int i=0;eq && i < a._nb;++i)
+         eq = a._buf[i] == b._buf[i];
+      return eq;
+   }
+   friend bool operator!=(const MDDSWin<ET>& a,const MDDSWin<ET>& b) noexcept {
+      bool eq = a._nb == b._nb;
+      for(int i=0;eq && i < a._nb;++i)
+         eq = a._buf[i] == b._buf[i];
+      return !eq;
+   }
+};
+
 enum Direction { None=0,Down=1,Up=2,Bi=3 };
 
 class MDDProperty {
@@ -405,6 +448,8 @@ public:
    int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
    int getByte(char* buf) const noexcept                    { return buf[_ofs];}
    MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
+   template <class ET>
+   MDDSWin<ET> getSW(char* buf) const noexcept              { return MDDSWin<ET>(reinterpret_cast<short*>(buf + _ofs),_bsz / sizeof(ET));}
    virtual void set(char* buf,int v) noexcept               {}
    void setInt(char* buf,int v) noexcept                    { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void setByte(char* buf,char v) noexcept         { buf[_ofs] = v;}
@@ -569,6 +614,64 @@ class MDDPBitSequence : public MDDProperty {
    friend class MDDStateSpec;   
 };
 
+template <class ET = unsigned char>
+class MDDPSWindow : public MDDProperty {
+   ET    _eltInit;
+   ET    _fstInit;
+   const int _len; // number of elements in window (0,...._len-1)
+   size_t storageSize() const override {
+      return _len * sizeof(ET) * 8; // number of element * size of element in bytes * number of bits per byte.
+   }
+   size_t setOffset(size_t bitOffset) override {
+      constexpr int bitAlign = std::alignment_of<ET>::value * sizeof(char); // get byte, then bit alignment for ET
+      if (bitOffset & (bitAlign - 1)) // if not properly aligned for ET's requirements. 
+         bitOffset = (bitOffset | (bitAlign - 1)) + 1;  // realign by setting all alignment bits to 1 and adding 1. 
+      _ofs = bitOffset >> 3; // _ofs is the start location with alignment respected
+      return bitOffset + storageSize();
+   }
+public:
+   MDDPSWindow(short id,unsigned short ofs,int len,ET eInit,ET fInit,enum RelaxWith rw)
+      : MDDProperty(id,ofs,len * sizeof(ET),rw),_eltInit(eInit),_fstInit(fInit),_len(len) {}
+   void init(char* buf) const noexcept override {
+      ET* ptr = reinterpret_cast<ET*>(buf + _ofs);
+      for(int i=0;i < _len;++i)
+         ptr[i] = _eltInit;
+      ptr[0] = _fstInit;
+   }
+   void minWith(char* buf,char* other) const noexcept override {
+      ET* a = reinterpret_cast<ET*>(buf + _ofs);
+      ET* b = reinterpret_cast<ET*>(other + _ofs);
+      for(int i=0;i < _len;++i)
+         a[i] = std::min(a[i],b[i]);
+   }
+   void maxWith(char* buf,char* other) const noexcept override {
+      ET* a = reinterpret_cast<ET*>(buf + _ofs);
+      ET* b = reinterpret_cast<ET*>(other + _ofs);
+      for(int i=0;i < _len;++i)
+         a[i] = std::max(a[i],b[i]);
+   }
+   bool diff(char* buf,char* other) const noexcept override {
+      ET* a = reinterpret_cast<ET*>(buf + _ofs);
+      ET* b = reinterpret_cast<ET*>(other + _ofs);
+      for(int i=0;i < _len;++i)
+         if (a[i] != b[i]) return true;
+      return false;      
+   }
+   void stream(char* buf,std::ostream& os) const override {
+      os << '<';
+      ET* ptr = reinterpret_cast<ET*>(buf + _ofs);
+      for(int i=0;i < _len;++i) {
+         os << (int)(ptr[i]);
+         if (i < _len - 1)
+            os << ',';        
+      }
+      os << '>';
+   }
+   void print(std::ostream& os) const override {
+      os << "PW(" << _id << ',' << _ofs << ',' << _len << ')';
+   }
+   friend class MDDStateSpec;
+};
 
 class MDDStateSpec {
 protected:
@@ -591,6 +694,7 @@ public:
    unsigned short endOfs(int p) const noexcept { return _attrs[p]->endOfs();}
    virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External);
    virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
+   virtual int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
    void outputSet(MDDPropSet& out,const MDDPropSet& in) const noexcept {
@@ -703,6 +807,7 @@ public:
    int at(int i) const noexcept           { return _spec->_attrs[i]->get(_mem);}
    int byte(int i) const noexcept         { return _spec->_attrs[i]->getByte(_mem);}
    MDDBSValue getBS(int i) const noexcept { return _spec->_attrs[i]->getBS(_mem);}
+   MDDSWin<short> getSW(int i) const noexcept { return _spec->_attrs[i]->getSW<short>(_mem);}
    void set(int i,int val) noexcept       { _spec->_attrs[i]->set(_mem,val);}  // to set a state property (slow)
    void setInt(int i,int val) noexcept    { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property (fast)
    void setByte(int i,int val) noexcept   { _spec->_attrs[i]->setByte(_mem,val);}  // to set a state property (fast)  
@@ -835,6 +940,7 @@ public:
       return addState(d,init,(int)max,rw);
    }
    int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
+   int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External) override;
    void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
    void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
    void updateNode(UpdateFun update);
@@ -921,26 +1027,30 @@ private:
    std::vector<int>   _dRelax;
 };
 
+inline int rotl(int n,const int d) {
+   return (n << d) | (n >> (32 -d));
+}
 
 class MDDSpec;
 class MDDStateFactory {
    struct MDDSKey {
-      const MDDState*   _s;
+      const MDDState*   _s0;
+      const MDDState*   _s1;
       const int         _v;
    };
    struct EQtoMDDSKey {
       bool operator()(const MDDSKey& a,const MDDSKey& b) const noexcept {
-         return a._v == b._v && a._s->operator==(*b._s);
+         return a._v == b._v && a._s0->operator==(*b._s0) && a._s1->operator==(*b._s1);
       }
    };
    struct HashMDDSKey {
       std::size_t operator()(const MDDSKey& key) const noexcept {
-         return key._s->hash() ^ key._v;
+         //return (rotl(key._s0->hash(),8) + key._s1->hash()) ^ key._v;
+         return key._s0->hash() ^ key._v;
       }
    };
    MDDSpec*      _mddspec;
    Pool::Ptr         _mem;
-   //std::unordered_map<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
    Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
    PoolMark         _mark;
    bool          _enabled;

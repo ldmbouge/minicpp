@@ -22,17 +22,19 @@
 #include <fstream>      // std::ifstream
 #include <iomanip>
 #include <iostream>
+#include <map>
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mddrelax.hpp"
-#include "mddConstraints.hpp"
+// #include "mddrelax.hpp"
+// #include "mddConstraints.hpp"
 
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
-
+#include <math.h>
+#include <limits.h>
 
 using namespace std;
 using namespace Factory;
@@ -153,6 +155,7 @@ Instance Instance::readData(const char* filename)
    }else
       throw;
 }
+
 std::map<int,int> tomap(int min, int max,std::function<int(int)> clo)
 {
    std::map<int,int> r;
@@ -169,12 +172,11 @@ template <typename Fun> vector<int> toVec(int min,int max,Fun f)
    return v;
 }
 
-void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, int searchMode, MDDRelax* &mdd)
+void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
 {
+  
   int nbVars = line.size();
   int nbO = (int) in.options().size();
-
-  cout << " entering SolveModel " << endl;
   
   vector<int> nbCarsByOption(nbO, 0);
   for(int o=0; o<nbO; o++){
@@ -182,20 +184,57 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
       if ( in.requires(i,o) ) { nbCarsByOption[o] += in.demand(i); }
     }
   }
+  
+  vector< pair<int,int> > slack(nbO);
+  cout << "slack = [";
+  for (int opt=0; opt<nbO; opt++) {
+    const int N = nbVars, P = in.lb(opt), Q = in.ub(opt), K = nbCarsByOption[opt];
+    slack[opt].first = N - (K*Q)/P;  // from Pascal's caro.co model (he has N=100)
+    // slack[opt].first = N - Q*(K/P) - (K%P);   // best bound (from Gen-sequence paper)
+    // slack[opt].first = N - Q*(K/P);        // correct but weaker bound from Regin-Puget
+    slack[opt].second = opt;
+    cout << slack[opt].first << ' ';
+  }
+  cout << ']' << endl;
+  std::sort(slack.begin(), slack.end());
+  
+  vector<int> optionOrder(nbO, 0);
+  for (int i=0; i<nbO; i++){
+    optionOrder[i]=slack[i].second;
+  }
+  cout << "optionOrder = " << optionOrder << endl;
 
   int mx = in.nbConf()-1;
   auto oline = Factory::intVarArray(cp,(int) line.size(), 0, mx);
+
   int mid = nbVars/2;
   int idx = 0;
   oline[idx] = line[mid];
+  // cout << "oline[" << idx << "] = line[" << mid << "]" << endl;
   for (int i=1; i<=nbVars/2; i++){
     idx++;
     oline[idx] = line[mid-i];
+    // cout << "oline[" << idx << "] = line[" << mid-i << "]" << endl;
     idx++;
     if (idx < nbVars) {
       oline[idx] = line[mid+i];
+      // cout << "oline[" << idx << "] = line[" << mid+i << "]" << endl;
     }
   }    
+
+  // set of car configurations per order
+  vector< set<int> > confsForOption(nbO);
+  for(int o=0; o<nbO; o++){
+    for(int i=0; i<in.nbConf(); i++) {
+      if (in.requires(i,o)) { confsForOption[o].insert(i); }
+    }
+  }
+  for(int o=0; o<nbO; o++){
+    cout << "configurations for option " << o << ":";
+    for (std::set<int>::iterator it=confsForOption[o].begin(); it!=confsForOption[o].end(); ++it)
+      cout << " " << *it;
+    cout << endl;
+  }
 
   // some computations for ssu value ordering heuristic
   // taken from Comet model carg:
@@ -213,17 +252,68 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
     }
   }
 
+ 
   auto start = RuntimeMonitor::now();
   
    DFSearch search(cp,[=]() {
+
+       /***
+       int varIdx = -1; // selected variable index
+       int optIdx = -1; // selected option index
+       int valIdx = -1; // selected option index
+       for (int o=0; o<nbO; o++) {
+	 // cout << "consider option " << slack[o].second << endl;
+	 for(auto i=0u;i < oline.size();i++) {
+	   // cout << "consider online[" << i << "] = " << oline[i] <<  endl;
+	   if (oline[i]->size()>1) {
+	     int opt = slack[o].second;
+	     bool in = false;  // variable has conf in this option set
+	     bool out = false; // variable has conf out this option set
+	     for (int d=oline[i]->min(); d<=oline[i]->max(); d++) {
+	       if (oline[i]->contains(d)) {
+		 if (confsForOption[opt].find(d) != confsForOption[opt].end()) {
+		   in = true;
+		   valIdx = d;
+		   //cout << d << " is in the set" << endl;
+		 }
+		 else {
+		   out = true;
+		   //cout << d << " is not in the set" << endl;
+		 }
+	       }
+	       if (in && out) {
+		 varIdx = i;
+		 optIdx = opt;
+
+		 // I can probably add the "return" branching function here?
+		 // cout << "selected oline[" << varIdx << "]=" << oline[varIdx]
+		 //      << " and contains confs with and without option " << optIdx << endl;
+		 
+		 break;
+	       }
+	     }
+	   }
+	   if (varIdx>=0) {  // this is ugly, but it's just a quick test
+	     break;
+	   }
+	 }
+	 if (varIdx>=0) {
+	   break;
+	 }
+       }
        
-       // Lexicographic ordering on oline, puts variable selection before option selection (as in carg model)
+       auto x = varIdx>=0 ? oline[varIdx] : nullptr;
+       ***/
+       
+       // Lexicographic ordering on oline, puts variable selection before option selection
        unsigned i = 0u;
        for(i=0u;i < oline.size();i++)
 	 if (oline[i]->size()> 1) break;
        auto x = i< oline.size() ? oline[i] : nullptr;
  
        if (x) {	 
+	 // cout << "select variable oline[" << varIdx << "] = " << x << endl;
+	 // cout << "select variable oline[" << i << "] = " << x << endl;
 	 int c = -1;
 
 	 // select value by ssu heuristic
@@ -235,20 +325,52 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
 	   }
 	 }
 
+	 // // select value by option (per slack ordering)
+	 // for (int o=0; o<nbO; o++) {
+	 //   // cout << "consider option " << slack[o].second << endl;
+	 //   int opt = slack[o].second; 
+	 //   for (int d=x->min(); d<=x->max(); d++) {
+	 //     if (x->contains(d)) {
+	 //       if (confsForOption[opt].find(d) != confsForOption[opt].end()) {
+	 // 	 cout << "select value " << d << endl;
+	 // 	 c = d;
+	 // 	 break;
+	 //       }
+	 //     }
+	 //     if (c>=0) break;
+	 //   }
+	 //   if (c>=0) break;
+	 // }
+	 
          return  [=] {
-	   // cout << "oline[" << i << "] == " << c << std::endl;
-	   cp->post(x==c);
+	   // if (!lex) {
+	   //   // std::cout << "oline[" << varIdx << "] in confsForOption[" << optIdx << "]" << std::endl;
+	   //   cp->post(inside(x,confsForOption[optIdx]));
+	   //   // cout << oline << endl;
+	   // }
+	   // else  {
+	     // cout << "oline[" << i << "] == " << c << std::endl;
+	     cp->post(x==c);
+	     // cout << oline << endl;
+	   // }
 	 }
 	 | [=] {
-	   // cout << "oline[" << i << "] != " << c << std::endl;
-	   cp->post(x!=c);
+	   // if (!lex) {
+	   //   // std::cout << "oline[" << varIdx << "] notin confsForOption[" << optIdx << "]" << std::endl;
+	   //   cp->post(outside(x,confsForOption[optIdx]));
+	   //   // cout << oline << endl;
+	   // }
+	   // else {
+	     // cout << "oline[" << i << "] != " << c << std::endl;
+	     cp->post(x!=c);
+	     // cout << oline << endl;
+	   // }
 	 };
        }
        else {
 	 return Branches({});
        }
    });
-
 
    search.onSolution([&line,&in]() {
                         cout << line << endl;
@@ -263,20 +385,13 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
                         }                      
                      });
 
-   //std::function<bool(const SearchStatistics&)> Limit;
-   
    auto stat = search.solve([timelimit](const SearchStatistics& stats) {
-       return ((stats.numberOfSolutions() > 0) || (RuntimeMonitor::elapsedSince(stats.startTime()) > 1000*timelimit));
+       return ((stats.numberOfSolutions() > 10000) || (RuntimeMonitor::elapsedSince(stats.startTime()) > 1000*timelimit));
      });
+   
+   auto dur = RuntimeMonitor::elapsedSince(start);
+   std::cout << "Time : " << dur << std::endl;
    cout << stat << endl;
-   auto end = RuntimeMonitor::cputime();
-   extern int iterMDD;
-   extern int nbCS;
-   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
-   std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
-   std::cout << "#CS  : " << nbCS << '\n';
-   std::cout << "#L   : " << mdd->nbLayers() << '\n';
-  
 }
 
 template <class Vec>
@@ -321,8 +436,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
   }  
 }
 
-
-void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int searchMode)
+void buildModel(CPSolver::Ptr cp, Instance& in, int timelimit)
 {
    using namespace std;
 
@@ -333,55 +447,19 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
    int nbO = (int) options.size();
 
    auto line = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
-   
-   auto mdd = new MDDRelax(cp,width);
 
-   for(int o = 0; o < nbO; o++){
-     set<int> Confs;
-     for(int i=0; i<in.nbConf(); i++) {
-       if ( in.requires(i,o) ) { Confs.insert(i); }
-     }
-     std::cout << "use seqMDD3 constraint for option " << o << std::endl;     
-     seqMDD3(mdd->getSpec(), line, in.ub(o), 0, in.lb(o), Confs);
-   }
-
-   // // meet demand: use gccMDD2
-   // std::map<int,int> boundsLB = tomap(0, mx,[&in] (int i) { return in.demand(i);} );
-   // std::map<int,int> boundsUB = tomap(0, mx,[&in] (int i) { return in.demand(i);} );
-   // Factory::gccMDD2(mdd->getSpec(), line, boundsLB, boundsUB);
-   // std::cout << "use gccMDD2 constraints to model the demand" << std::endl;
-
-   // meet demand: use amongMDD (for testing)
-   std::cout << "use amongMDD2 constraints to model the demand" << std::endl;
+   // meet demand: count occurrence of configuration via a Boolean variable
    for(int i=0; i<in.nbConf(); i++) {
-     set<int> S;
+     auto boolVar = Factory::boolVarArray(cp,(int) cars.size());
+     std::set<int> S;
      S.insert(i);
-     Factory::amongMDD2(mdd->getSpec(), line, in.demand(i), in.demand(i), S);	  
+     for (int j=0; j<(int) cars.size(); j++) {
+       cp->post(isMember(boolVar[j], line[j], S));
+     }
+     cp->post(sum(boolVar) == in.demand(i));
    }
    
-   // // meet demand: count occurrence of configuration via a Boolean variable
-   // std::cout << "use standard Boolean counters to model the demand" << std::endl;
-   // for(int i=0; i<in.nbConf(); i++) {
-   //   auto boolVar = Factory::boolVarArray(cp,(int) cars.size());
-   //   std::set<int> S;
-   //   S.insert(i);
-   //   for (int i=0; i<(int) cars.size(); i++) {
-   //     cp->post(isMember(boolVar[i], line[i], S));
-   //   }
-   //   cp->post(sum(boolVar) == in.demand(i));
-   // }
-
-   cout << "about to post MDD" << endl;
-   try {
-      cp->post(mdd);
-   } catch(Status s) {
-      std::cout << "Failure raised during the post";
-      exit(1);
-   }
-
-   cout << "about to post cumulSeq" << endl;
-
-   // sequence constraints: use cumulative encoding (including among) for domain propagation
+   // sequence constraints: use cumulative encoding
    for(int o = 0; o < nbO; o++){
      set<int> Confs;
      for(int i=0; i<in.nbConf(); i++) {
@@ -390,28 +468,23 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
      addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
    }
 
-   
-   solveModel(cp,line,in,timelimit,searchMode,mdd);
+   solveModel(cp,line,in, timelimit);
 }
 
 
 int main(int argc,char* argv[])
 {
-   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
-   const char* filename = (argc >= 3) ? argv[2] : "data/dataMini";
-   int searchMode = (argc >= 4 && strncmp(argv[3],"-s",2)==0) ? atoi(argv[3]+2) : 0;
-   int timelimit = (argc >= 5 && strncmp(argv[4],"-t",2)==0) ? atoi(argv[4]+2) : 60;
-
-   std::cout << "width = " << width << std::endl;
+   const char* filename = (argc >= 2) ? argv[1] : "data/dataMini";
+   int timelimit = (argc >= 3 && strncmp(argv[2],"-t",2)==0) ? atoi(argv[2]+2) : 60;
+   
    std::cout << "filename = " << filename << std::endl;   
-   std::cout << "search mode = " << searchMode << "  (0=lexFirst, 1=minDomain, 2=Puget/Regin)" << std::endl;   
    std::cout << "time limit = " << timelimit << std::endl;   
 
    try {
       Instance in = Instance::readData(filename);
       std::cout << in << std::endl;
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp,in,width,timelimit,searchMode);
+      buildModel(cp,in,timelimit);
    } catch (std::exception e) {
       std::cerr << "Unable to find the file" << std::endl;
    }

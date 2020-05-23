@@ -196,16 +196,13 @@ namespace Factory {
       // 	  return ( (n.at(L) + n.at(Lup) >= lb) &&
       // 		   (n.at(U) + n.at(Uup) <= ub));
       // 	});
-      
-      mdd.splitOnLargest([L,U](const auto& in) {
-	  // // no error
-	  // return -(double)in.getNumParents();
 
-	  // wrong number solutions for amongNurse -w8 -m1
-	  return -(double)(in.getState().at(U)-in.getState().at(L));
+      //mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
 
-	  //return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
-	  // return 0;
-	});
+      mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
+                            return -(double)(in.getState().at(U)-in.getState().at(L));
+      //     //return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
+                            return 0.0;                            
+                         });
    }
 }

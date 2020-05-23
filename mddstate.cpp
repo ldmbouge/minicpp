@@ -33,6 +33,11 @@ namespace Factory {
       MDDProperty::Ptr rv = new MDDPBitSequence(id,ofs,nbb,init);
       return rv;
    }
+   MDDProperty::Ptr makeWinProperty(short id,unsigned short ofs,int len,int init,int finit,enum RelaxWith rw)
+   {
+      MDDProperty::Ptr rv = new MDDPSWindow<short>(id,ofs,len,init,finit,rw);
+      return rv;
+   }
 }
 
 MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& d)
@@ -105,6 +110,14 @@ int MDDStateSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned cha
    d->addProperty(aid);
    return aid;
 }
+int MDDStateSpec::addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw)
+{
+   int aid = (int)_nbp;
+   addProperty(Factory::makeWinProperty(aid,0,len,init,finit,rw));
+   d->addProperty(aid);
+   return aid;
+}
+
 
 std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor::Ptr d,int from, int to,int max, std::function<int(int)> clo)
 {
@@ -129,6 +142,11 @@ int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum Relax
 int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
 {
    auto rv = MDDStateSpec::addBSState(d,nbb,init);
+   return rv;   
+}
+int MDDSpec::addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw)
+{
+   auto rv = MDDStateSpec::addSWState(d,len,init,finit,rw);
    return rv;   
 }
 
@@ -539,14 +557,22 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
 #else
 bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
 {
-   MDDSKey key { &parent, val };
+   auto mark = _mem->mark();
+   const int nbb = _mddspec->layoutSize();
+   char* membuf = new (_mem) char[nbb];
+   bzero(membuf,nbb);
+   MDDState* upState = new (_mem) MDDState(_mddspec,membuf); 
+   _mddspec->copyStateUp(*upState,n->getState());
+   
+   MDDSKey key { &parent, upState, val };
    auto loc = _hash.get(key,result);
    if (loc) {
       ++hitCS;
+      _mem->clear(mark);
       return true;
    } else {
       nbCS++;
-      result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSize()]);
+      result = new (_mem) MDDState(_mddspec,new (_mem) char[nbb]);
       _mddspec->copyStateUp(*result,n->getState());
       _mddspec->createState(*result,parent,layer,x,MDDIntSet(val),true);
       _mddspec->updateNode(*result);
@@ -554,7 +580,7 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
       if (isOk) {
          result->computeHash();
          MDDState* pc = new (_mem) MDDState(parent.clone(_mem));
-         MDDSKey ikey { pc,val };
+         MDDSKey ikey { pc, upState, val };
          _hash.insert(ikey,result);
       }
       return isOk;
