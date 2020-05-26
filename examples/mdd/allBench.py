@@ -7,7 +7,9 @@ import sys
 import csv
 from collections import namedtuple
 
-Test = namedtuple('Test', ('name', 'constraints', 'parameters', 'nonMDDModels'))
+checkSolns = False
+
+Test = namedtuple('Test', ('outputName', 'name', 'constraintGenerator', 'parameters', 'nonMDDModels'))
 Constraint = namedtuple("Constraint", "checkFunction parameters")
 PartialConstraint = namedtuple("PartialConstraint", "checkFunction parameters subsetIndices")
 AllDiffParameters = namedtuple("AllDiffParameters", "")
@@ -15,9 +17,6 @@ SumParameters = namedtuple("SumParameters", "weights lower upper")
 SequenceParameters = namedtuple("SequenceParameters", "length lower upper values")
 AmongParameters = namedtuple("AmongParameters", "lower upper values")
 EqualsAbsDiffParameters = namedtuple("EqualsDiffParameters", "")
-
-numRuns = 1
-
 
 def checkAllDiff(solution,parameters):
   for i in range(len(solution)-1):
@@ -64,40 +63,43 @@ def checkEqualsAbsDiff(solution, parameters):
   rightB = solution[2]
   return left == abs(rightA - rightB)
 
-amongNurseConstraints = [Constraint(checkSequence, SequenceParameters(length=8, lower=0, upper=6, values=[1])),
-                         Constraint(checkSequence, SequenceParameters(length=30, lower=22, upper=30, values=[1])),
-                         PartialConstraint(checkAmong, AmongParameters(lower = 4, upper = 5, values=[1]), [0,1,2,3,4,5,6]),
-                         PartialConstraint(checkAmong, AmongParameters(lower = 4, upper = 5, values=[1]), [7,8,9,10,11,12,13]),
-                         PartialConstraint(checkAmong, AmongParameters(lower = 4, upper = 5, values=[1]), [14,15,16,17,18,19,20]),
-                         PartialConstraint(checkAmong, AmongParameters(lower = 4, upper = 5, values=[1]), [21,22,23,24,25,26,27]),
-                         PartialConstraint(checkAmong, AmongParameters(lower = 4, upper = 5, values=[1]), [28,29,30,31,32,33,34])]
-allInterval4Constraints = [PartialConstraint(checkAllDiff, AllDiffParameters(), [0,1,2,3]),
-                          PartialConstraint(checkAllDiff, AllDiffParameters(), [4,5,6]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [4,0,1]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [5,1,2]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [6,2,3])]
-allInterval8Constraints = [PartialConstraint(checkAllDiff, AllDiffParameters(), [0,1,2,3,4,5,6,7]),
-                          PartialConstraint(checkAllDiff, AllDiffParameters(), [8,9,10,11,12,13,14]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [8,0,1]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [9,1,2]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [10,2,3]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [11,3,4]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [12,4,5]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [13,5,6]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [14,6,7])]
-allInterval12Constraints = [PartialConstraint(checkAllDiff, AllDiffParameters(), [0,1,2,3,4,5,6,7,8,9,10,11]),
-                          PartialConstraint(checkAllDiff, AllDiffParameters(), [12,13,14,15,16,17,18,19,20,21,22]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [12,0,1]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [13,1,2]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [14,2,3]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [15,3,4]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [16,4,5]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [17,5,6]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [18,6,7]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [19,7,8]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [20,8,9]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [21,9,10]),
-                          PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [22,10,11])]
+amongNurseConstraint1Upper = [6,6,7]
+amongNurseConstraint1Length = [8,9,9]
+amongNurseConstraint2Lower = [22, 20, 22]
+def generateAmongNurseConstraints(flags):
+  constraintSet = 1
+  horizonSize = 40
+  for flag in flags:
+    if flag[0:2] == '-c':
+      constraintSet = int(flag[2:])
+    elif flag[0:2] == '-h':
+      horizonSize = int(flag[2:])
+  constraintSet -= 1
+  amongNurseConstraints = []
+  amongNurseConstraints.append(Constraint(checkSequence, SequenceParameters(length=amongNurseConstraint1Length[constraintSet], lower=0, upper=amongNurseConstraint1Upper[constraintSet], values=[1])))
+  amongNurseConstraints.append(Constraint(checkSequence, SequenceParameters(length=30, lower=amongNurseConstraint2Lower[constraintSet], upper=30, values=[1])))
+  weekStart = 0
+  nextWeekStart = weekStart + 7
+  while nextWeekStart <= horizonSize:
+    amongNurseConstraints.append(PartialConstraint(checkAmong, AmongParameters(lower = 4, upper = 5, values=[1]), range(weekStart, nextWeekStart)))
+    weekStart = nextWeekStart
+    nextWeekStart += 7
+  return amongNurseConstraints
+def generateAllIntervalConstraints(flags):
+  numVars = 8
+  for flag in flags:
+    if flag[0:2] == 'n':
+      numVars = int(flag[2:])
+  allIntervalConstraints = [PartialConstraint(checkAllDiff, AllDiffParameters(), range(numVars)),
+                            PartialConstraint(checkAllDiff, AllDiffParameters(), range(numVars,numVars*2-1))]
+  xVal1 = 0
+  xVal2 = 1
+  for yVal in range(numVars,numVars*2-1):
+    allIntervalConstraints.append(PartialConstraint(checkEqualsAbsDiff, EqualsAbsDiffParameters(), [yVal, xVal1, xVal2]))
+    xVal1 += 1
+    xVal2 += 1
+  return allIntervalConstraints
+
 sequenceNurseConstraints = [Constraint(checkSequence, SequenceParameters(length=14, lower=4, upper=14, values=[0])),
                             Constraint(checkSequence, SequenceParameters(length=28, lower=20, upper=28, values=[1,2,3])),
                             Constraint(checkSequence, SequenceParameters(length=14, lower=1, upper=4, values=[3])),
@@ -131,11 +133,12 @@ for p in pt:
   added = p[1]
 
 tests = [
-         Test("amongNurse", amongNurseConstraints, [('w', [1,2,4,8]), ('m', range(6)), ('r', [0,1,2,4,8]), ('i', [1,5,10,20])], [0,4]),
-         #Test("allInterval", allInterval4Constraints, [('n', [4]), ('w', [1,2,4,8]), ('m', range(4)), ('r', [0,1,2,4])], [0,1]),
-         #Test("allInterval", allInterval8Constraints, [('n', [8]), ('w', [1,2,4,8]), ('m', range(4)), ('r', [0,1,2,4,8])], [0,1]),
-         #Test("allInterval", allInterval12Constraints, [('n', [12]), ('w', [1,2,4,8]), ('m', range(4)), ('r', [0,1,2,4,8,12])], [0,1])],
-         #Test("workForce", workForceConstraints, [('w', [1,2,4,8]), ('o', [60])], []),
+         Test("amongNurse", "amongNurse", generateAmongNurseConstraints, [('w', [1,2,4,8,16,32,64]), ('m', [1]), ('r', [0,2,4,8,1000000]), ('i', [1,5,10,1000000]), ('c', [1,2,3]), ('h', [80])], [0,4]),
+         #Test("amongNurseAllSolC2", "amongNurse", generateAmongNurseConstraints, [('w', [1,2,4,8,16,32,64]), ('m', [0,1]), ('r', [0]), ('i', [1]), ('c', [2]), ('h', [80])], [0,4]),
+         #Test("amongNurseAllSolC2", "amongNurse", generateAmongNurseConstraints, [('w', [1,2,4,8,16,32,64]), ('m', [0,1]), ('r', [1000000]), ('i', [1000000]), ('c', [2]), ('h', [80])], [0,4]),
+         #Test("allInterval", "allInterval", generateAllIntervalConstraints, [('n', [11]), ('w', [1,2,4,8,16,32,64]), ('m', range(4)), ('r', [0,2,4,8,1000000]), ('i', [1,5,10,1000000])], [0,1]),
+         #Test("allIntervalOnlyWidth", "allInterval", generateAllIntervalConstraints, [('n', [11]), ('w', [1,2,4,8,16,32,64]), ('m', range(4)), ('r', [0]), ('i', [1])], [0,1]),
+         #Test("workForce", "workForce", workForceConstraints, [('w', [1,2,4,8]), ('o', [60])], []),
         ]
 
 
@@ -186,118 +189,127 @@ class Runner:
         self.bin = bin
         self.pwd = os.getcwd()
 
-    def runEachParameter(self,name,width,model,reboot,iter,parameters,constraints,flags):
+    def runEachParameter(self,name,width,model,reboot,iter,parameters,constraintGenerator,flags):
         solns = []
         if len(parameters) > 0:
           parameter = parameters.pop(0)
           if parameter[0] == 'm':
-            solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraints, flags+('-m{0}'.format(model),))
+            solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraintGenerator, flags+('-m{0}'.format(model),))
           elif parameter[0] == 'w':
-            solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraints, flags+('-w{0}'.format(width),))
+            solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraintGenerator, flags+('-w{0}'.format(width),))
           elif parameter[0] == 'r':
-            solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraints, flags+('-r{0}'.format(reboot),))
+            solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraintGenerator, flags+('-r{0}'.format(reboot),))
           elif parameter[0] == 'i':
-            solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraints, flags+('-i{0}'.format(iter),))
+            solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraintGenerator, flags+('-i{0}'.format(iter),))
           else:
             options = parameter[1]
             for option in options:
-              solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraints, flags+('-' + parameter[0] + str(option),))
+              solns += self.runEachParameter(name, width, model, reboot, iter, parameters, constraintGenerator, flags+('-' + parameter[0] + str(option),))
           parameters.insert(0,parameter)
           return solns
         else:
+          print(flags)
+          constraints = constraintGenerator(flags)
           h = Popen(flags,stdout=PIPE,stderr=PIPE)
           output = h.communicate()[0].strip().decode('ascii')
-          numFeasible, numInfeasible = checkAllSolutions(constraints,output)
-          if numInfeasible > 0:
-            print("Found " + str(numFeasible) + " infeasible solution" + ('' if numInfeasible == 1 else 's') + " when running " + str(flags))
           allLines = output.splitlines()
           rec = readRecordFromLineArray(allLines)
-          rec['JSON'][name]['solns'] = str(numFeasible+numInfeasible)
+          if checkSolns:
+            numFeasible, numInfeasible = checkAllSolutions(constraints,output)
+            if numInfeasible > 0:
+              print("Found " + str(numInfeasible) + " infeasible solution" + ('' if numInfeasible == 1 else 's') + " when running " + str(flags))
           solns += [rec]
           return solns
           
 
-    def run(self,name,width,model,reboot,iter,parameters,constraints):
+    def run(self,name,width,model,reboot,iter,parameters,constraintGenerator):
         os.chdir(self.path)
         full = './' + self.bin
         flags = (full,)
-        return self.runEachParameter(name,width,model,reboot,iter,parameters,constraints,flags)
+        return self.runEachParameter(name,width,model,reboot,iter,parameters,constraintGenerator,flags)
 
-allResults = []
-
-for test in tests:
-  runner = Runner('build/' + test.name)
-  results = []
-  parameters = test.parameters
-  models = [0]
-  for parameter in parameters:
-    if parameter[0] == 'm':
-      models = parameter[1]
-      break
-  for model in models:
-    if model in test.nonMDDModels:
-      miniResults = runner.run(test.name,0,model,0,0,parameters,test.constraints)
-      for result in miniResults:
-        result = result['JSON'][test.name]
-        result['time'] = result['time'] / 1000.0
-        results.append(result)
-        print(result)
+if __name__=='__main__':
+  allResults = []
+  
+  for test in tests:
+    runner = Runner('build/' + test.name)
+    results = []
+    parameters = test.parameters
+    models = [0]
+    for parameter in parameters:
+      if parameter[0] == 'm':
+        models = parameter[1]
+        break
+    for model in models:
+      if model in test.nonMDDModels:
+        miniResults = runner.run(test.name,0,model,0,0,parameters,test.constraintGenerator)
+        for result in miniResults:
+          result = result['JSON'][test.name]
+          result['time'] = result['time'] / 1000.0
+          if 'timeToFirstSol' in result:
+            result['timeToFirstSol'] = result['timeToFirstSol'] / 1000.0
+          results.append(result)
+          print(result)
+      else:
+        widths = []
+        for parameter in parameters:
+          if parameter[0] == 'w':
+            widths = parameter[1]
+            break
+        reboots = []
+        for parameter in parameters:
+          if parameter[0] == 'r':
+            reboots = parameter[1]
+            break
+        iters = []
+        for parameter in parameters:
+          if parameter[0] == 'i':
+            iters = parameter[1]
+            break
+        for width in widths:
+          if width == 1:   #If width is 1, reboot distance doesn't matter
+            miniResults = runner.run(test.name,width,model,0,0,parameters,test.constraintGenerator)
+            for result in miniResults:
+              result = result['JSON'][test.name]
+              result['time'] = result['time'] / 1000.0
+              if 'timeToFirstSol' in result:
+                result['timeToFirstSol'] = result['timeToFirstSol'] / 1000.0
+              results.append(result)
+              print(result)
+          else:
+            for reboot in reboots:
+              for iter in iters:
+                miniResults = runner.run(test.name,width,model,reboot,iter,parameters,test.constraintGenerator)
+                for result in miniResults:
+                  result = result['JSON'][test.name]
+                  result['time'] = result['time'] / 1000.0
+                  if 'timeToFirstSol' in result:
+                    result['timeToFirstSol'] = result['timeToFirstSol'] / 1000.0
+                  results.append(result)
+                  print(result)
+    allResults.append(results)
+  
+  usedNames = []
+  for resultsIndex in range(len(allResults)):
+    results = allResults[resultsIndex]
+    name = tests[resultsIndex].outputName
+    if name in usedNames:
+      jsonObject = json.dumps(results,indent=4)
+      with open("/tmp/" + name + ".json","a") as outfile:
+          outfile.write(jsonObject)
+      
+      with open("/tmp/" + name + ".csv","a") as f:
+          w = csv.writer(f,delimiter=",")
+          for row in results:
+              w.writerow([row[k] for k in row])
     else:
-      widths = []
-      for parameter in parameters:
-        if parameter[0] == 'w':
-          widths = parameter[1]
-          break
-      reboots = []
-      for parameter in parameters:
-        if parameter[0] == 'r':
-          reboots = parameter[1]
-          break
-      iters = []
-      for parameter in parameters:
-        if parameter[0] == 'i':
-          iters = parameter[1]
-          break
-      for width in widths:
-        if width == 1:   #If width is 1, reboot distance doesn't matter
-          miniResults = runner.run(test.name,width,model,0,0,parameters,test.constraints)
-          for result in miniResults:
-            result = result['JSON'][test.name]
-            result['time'] = result['time'] / 1000.0
-            results.append(result)
-            print(result)
-        else:
-          for reboot in reboots:
-            for iter in iters:
-              miniResults = runner.run(test.name,width,model,reboot,iter,parameters,test.constraints)
-              for result in miniResults:
-                result = result['JSON'][test.name]
-                result['time'] = result['time'] / 1000.0
-                results.append(result)
-                print(result)
-  allResults.append(results)
-
-usedNames = []
-for resultsIndex in range(len(allResults)):
-  results = allResults[resultsIndex]
-  name = tests[resultsIndex].name
-  if name in usedNames:
-    jsonObject = json.dumps(results,indent=4)
-    with open("/tmp/" + name + ".json","a") as outfile:
-        outfile.write(jsonObject)
-    
-    with open("/tmp/" + name + ".csv","a") as f:
-        w = csv.writer(f,delimiter=",")
-        for row in results:
-            w.writerow([row[k] for k in row])
-  else:
-    usedNames.append(name)
-    jsonObject = json.dumps(results,indent=4)
-    with open("/tmp/" + name + ".json","w") as outfile:
-        outfile.write(jsonObject)
-    
-    with open("/tmp/" + name + ".csv","w") as f:
-        w = csv.writer(f,delimiter=",")
-        w.writerow(results[0])
-        for row in results:
-            w.writerow([row[k] for k in row])
+      usedNames.append(name)
+      jsonObject = json.dumps(results,indent=4)
+      with open("/tmp/" + name + ".json","w") as outfile:
+          outfile.write(jsonObject)
+      
+      with open("/tmp/" + name + ".csv","w") as f:
+          w = csv.writer(f,delimiter=",")
+          w.writerow(results[0])
+          for row in results:
+              w.writerow([row[k] for k in row])

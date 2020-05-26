@@ -80,7 +80,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Vec& vars, int N, int L, int U, const s
 }
 
 
-void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance, int maxSplitIter)
+void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance, int maxSplitIter, int constraintSet, int horizonSize)
 {
 
   /***
@@ -99,18 +99,22 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
    * The planning horizon H ranges from 40 to 80 days.
    ***/
   
-  int H = 40; // time horizon (number of workdays)
+  int H = horizonSize; // time horizon (number of workdays)
   
   //auto vars = Factory::intVarArray(cp, H, 0, 1); // vars[i]=1 means that the nurse works on day i
   auto vars = Factory::boolVarArray(cp, H); // vars[i]=1 means that the nurse works on day i
 
   std::set<int> workDay = {1};
 
-  int L1 = 0;
-  int U1 = 6;
-  int N1 = 8;
+  int U1s[3] = {6,6,7};
+  int N1s[3] = {8,9,9};
+  int L2s[3] = {22,20,22};
 
-  int L2 = 22;
+  int L1 = 0;
+  int U1 = U1s[constraintSet-1];
+  int N1 = N1s[constraintSet-1];
+
+  int L2 = L2s[constraintSet-1];
   int U2 = 30;
   int N2 = 30;
 
@@ -156,7 +160,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     // constraint type 3
     for (int i=0; i<H/N3; i++) {
       cout << "Sum for week " << i << ": ";
-      if (7*i+7<H) {
+      if (7*i+6<H) {
 	set<int> weekVars;
 	for (int j=7*i; j<7*i+7; j++) {
 	  weekVars.insert(j);    
@@ -208,7 +212,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     cout << "Constraint type 3" << endl;
     for (int i=0; i<H/N3; i++) {
       cout << "Among for week " << i << ": ";
-      if (7*i+7<H) {
+      if (7*i+6<H) {
 	set<int> amongVars;
 	for (int j=7*i; j<7*i+7; j++) {
 	  amongVars.insert(j);    
@@ -237,7 +241,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     cout << "Constraint type 3" << endl;
     for (int i=0; i<H/N3; i++) {
       cout << "Among for week " << i << ": ";
-      if (7*i+7<H) {
+      if (7*i+6<H) {
 	set<int> amongVars;
 	for (int j=7*i; j<7*i+7; j++) {
 	  amongVars.insert(j);    
@@ -266,7 +270,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     cout << "Constraint type 3" << endl;
     for (int i=0; i<H/N3; i++) {
       cout << "amongMDD2 for week " << i << ": ";
-      if (7*i+7<H) {
+      if (7*i+6<H) {
 	set<int> amongVars;
 	for (int j=7*i; j<7*i+7; j++) {
 	  amongVars.insert(j);    
@@ -297,7 +301,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     // constraint type 3
     for (int i=0; i<H/N3; i++) {
       cout << "Sum for week " << i << ": ";
-      if (7*i+7<H) {
+      if (7*i+6<H) {
 	set<int> weekVars;
 	for (int j=7*i; j<7*i+7; j++) {
 	  weekVars.insert(j);    
@@ -349,7 +353,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     cout << "Constraint type 3" << endl;
     for (int i=0; i<H/N3; i++) {
       cout << "Among for week " << i << ": ";
-      if (7*i+7<H) {
+      if (7*i+6<H) {
 	set<int> amongVars;
 	for (int j=7*i; j<7*i+7; j++) {
 	  amongVars.insert(j);    
@@ -387,20 +391,30 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     });
 
   int cnt = 0;
-  search.onSolution([&cnt,&vars]() {
+  RuntimeMonitor::HRClock firstSolTime;
+
+  SearchStatistics stat;
+  int firstSolNumFail = 0;
+
+  search.onSolution([&cnt,&vars,&firstSolTime,&firstSolNumFail,&stat]() {
                        ++cnt;
                        //std::cout << "\rNumber of solutions:" << cnt << std::flush;
-                       std::cout << "Assignment: [";
-                       for (unsigned i=0u;i < vars.size()-1;i++)
-                         std::cout << vars[i]->min() << ",";
-                       std::cout << vars[vars.size()-1]->min() <<  "]" << std::endl;
+                       //std::cout << "Assignment: [";
+                       //for (unsigned i=0u;i < vars.size()-1;i++)
+                       //  std::cout << vars[i]->min() << ",";
+                       //std::cout << vars[vars.size()-1]->min() <<  "]" << std::endl;
+                       if (cnt == 1) {
+                         firstSolTime = RuntimeMonitor::cputime();
+                         firstSolNumFail = stat.numberOfFailures();
+                       }
     });
 
 
-  auto stat = search.solve([](const SearchStatistics& stats) {
+  stat = search.solve([&stat](const SearchStatistics& stats) {
+                              stat = stats;
                               //return stats.numberOfNodes() > 1;
-                              return stats.numberOfSolutions() > INT_MAX;
-                              //return stats.numberOfSolutions() > 0;
+                              //return stats.numberOfSolutions() > INT_MAX;
+                              return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   
@@ -427,6 +441,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   std::cout << "\t\t\"w\" : " << relaxSize << ",\n";
   std::cout << "\t\t\"r\" : " << maxRebootDistance << ",\n";
   std::cout << "\t\t\"i\" : " << maxSplitIter << ",\n";
+  std::cout << "\t\t\"c\" : " << constraintSet << ",\n";
+  std::cout << "\t\t\"h\" : " << horizonSize << ",\n";
   std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
   std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
   std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
@@ -435,7 +451,10 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   std::cout << "\t\t\"splitCS\" : " << splitCS << ",\n";
   std::cout << "\t\t\"pruneCS\" : " << pruneCS << ",\n";
   std::cout << "\t\t\"pot\" : " << potEXEC << ",\n";  
-  std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
+  std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << ",\n";
+  std::cout << "\t\t\"timeToFirstSol\" : " << RuntimeMonitor::milli(start,firstSolTime) << ",\n";
+  std::cout << "\t\t\"failsForFirstSol\" : " << firstSolNumFail << ",\n";
+  std::cout << "\t\t\"solns\" : " << stat.numberOfSolutions() << "\n";
   std::cout << "\t}\n";  
   std::cout << "}\n}";
 }
@@ -446,6 +465,8 @@ int main(int argc,char* argv[])
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
    int maxRebootDistance = (argc >= 4 && strncmp(argv[3],"-r",2)==0) ? atoi(argv[3]+2) : INT_MAX;
    int maxSplitIter = (argc >= 5 && strncmp(argv[4],"-i",2)==0) ? atoi(argv[4]+2) : INT_MAX;
+   int constraintSet = (argc >= 6 && strncmp(argv[5],"-c",2)==0) ? atoi(argv[5]+2) : 1;
+   int horizonSize = (argc >= 7 && strncmp(argv[6],"-h",2)==0) ? atoi(argv[6]+2) : 40;
 
    // mode: 0 (Cumulative sums),  1 (Among MDD), 2 (Sequence MDD)
    // mode: 3 (Cumulative Sums with isMember constraint)
@@ -454,9 +475,11 @@ int main(int argc,char* argv[])
    std::cout << "mode = " << mode << std::endl;
    std::cout << "maxRebootDistance = " << maxRebootDistance << std::endl;
    std::cout << "maxSplitIter = " << maxSplitIter << std::endl;
+   std::cout << "constraintSet = " << constraintSet << std::endl;
+   std::cout << "horizonSize = " << horizonSize << std::endl;
    try {
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp, width, mode, maxRebootDistance, maxSplitIter);
+      buildModel(cp, width, mode, maxRebootDistance, maxSplitIter, constraintSet, horizonSize);
    } catch(Status s) {
       std::cout << "model infeasible during post" << std::endl;
    } catch (std::exception& e) {

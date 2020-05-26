@@ -330,11 +330,13 @@ int main(int argc,char* argv[])
    int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 1;
    int mode  = (argc >= 4 && strncmp(argv[3],"-m",2)==0) ? atoi(argv[3]+2) : 0;
    int maxRebootDistance  = (argc >= 5 && strncmp(argv[4],"-r",2)==0) ? atoi(argv[4]+2) : 0;
+   int maxSplitIter = (argc >= 6 && strncmp(argv[5],"-i",2)==0) ? atoi(argv[5]+2) : INT_MAX;
 
    cout << "N = " << N << endl;   
    cout << "width = " << width << endl;   
    cout << "mode = " << mode << endl;
    cout << "max reboot distance = " << maxRebootDistance << endl;
+   cout << "max split iterations = " << maxSplitIter << endl;
 
    auto start = RuntimeMonitor::cputime();
 
@@ -372,7 +374,7 @@ int main(int argc,char* argv[])
    std::cout << "y = " << yVars << endl;
    
    
-   auto mdd = new MDDRelax(cp,width,maxRebootDistance);
+   auto mdd = new MDDRelax(cp,width,maxRebootDistance,maxSplitIter);
 
    if (mode == 0) {
      cout << "domain encoding with equalAbsDiff constraint" << endl;
@@ -469,25 +471,36 @@ int main(int argc,char* argv[])
       
 
    int cnt = 0;
-   search.onSolution([&cnt,xVars,yVars]() {
+   RuntimeMonitor::HRClock firstSolTime = RuntimeMonitor::cputime();
+   int firstSolNumFail = 0;
+   SearchStatistics stat;
+
+   search.onSolution([&cnt,&firstSolTime,&firstSolNumFail,&stat]() {
        cnt++;
+       firstSolTime = RuntimeMonitor::cputime();
        //std::cout << "\rNumber of solutions:" << cnt << std::flush;
-       std::cout << "Assignment: [";
-       for (unsigned i=0u;i < xVars.size();i++)
-         std::cout << xVars[i]->min() << ",";
-       for (unsigned i=0u;i < yVars.size()-1;i++)
-         std::cout << yVars[i]->min() << ",";
-       std::cout << yVars[yVars.size()-1]->min() <<  "]" << std::endl;
+       //std::cout << "Assignment: [";
+       //for (unsigned i=0u;i < xVars.size();i++)
+       //  std::cout << xVars[i]->min() << ",";
+       //for (unsigned i=0u;i < yVars.size()-1;i++)
+       //  std::cout << yVars[i]->min() << ",";
+       //std::cout << yVars[yVars.size()-1]->min() <<  "]" << std::endl;
        // cout << endl;
        // std::cout << "x = " << xVars << endl;
        // std::cout << "y = " << yVars << endl;
+       if (cnt == 1) {
+         firstSolTime = RuntimeMonitor::cputime();
+         firstSolNumFail = stat.numberOfFailures();
+       }
      });
 
       
-   // auto stat = search.solve([](const SearchStatistics& stats) {
-   //    return stats.numberOfSolutions() > 0;
-   // });
-   auto stat = search.solve();
+  stat = search.solve([&stat](const SearchStatistics& stats) {
+                              stat = stats;
+                              //return stats.numberOfNodes() > 1;
+                              return stats.numberOfSolutions() > INT_MAX;
+                              //return stats.numberOfSolutions() > 0;
+    });
 
    auto end = RuntimeMonitor::cputime();
    cout << stat << endl;
@@ -512,6 +525,7 @@ int main(int argc,char* argv[])
    std::cout << "\t\t\"m\" : " << mode << ",\n";
    std::cout << "\t\t\"w\" : " << width << ",\n";
    std::cout << "\t\t\"r\" : " << maxRebootDistance << ",\n";
+   std::cout << "\t\t\"i\" : " << maxSplitIter << ",\n";
    std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
    std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
    std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
