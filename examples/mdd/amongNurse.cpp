@@ -80,7 +80,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Vec& vars, int N, int L, int U, const s
 }
 
 
-void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance, int maxSplitIter, int constraintSet, int horizonSize)
+void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance, int maxSplitIterFactor, int constraintSet, int horizonSize)
 {
 
   /***
@@ -123,7 +123,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   int N3 = 7;
   auto start = RuntimeMonitor::cputime();
 
-  auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance,maxSplitIter);
+  auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance, relaxSize * maxSplitIterFactor);
 
   if (mode == 0) {
     cout << "domain encoding of cumulative sums" << endl;
@@ -250,7 +250,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
 	cout << endl;
 	
 	auto adv = all(cp,amongVars,vars);
-	Factory::amongMDD(mdd->getSpec(), adv, L3, U3, workDay);
+	Factory::amongMDD2(mdd->getSpec(), adv, L3, U3, workDay);
       }
     }
     cp->post(mdd);
@@ -413,8 +413,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   stat = search.solve([&stat](const SearchStatistics& stats) {
                               stat = stats;
                               //return stats.numberOfNodes() > 1;
-                              //return stats.numberOfSolutions() > INT_MAX;
-                              return stats.numberOfSolutions() > 0;
+                              return stats.numberOfSolutions() > INT_MAX;
+                              //return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   
@@ -440,7 +440,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   std::cout << "\t\t\"m\" : " << mode << ",\n";
   std::cout << "\t\t\"w\" : " << relaxSize << ",\n";
   std::cout << "\t\t\"r\" : " << maxRebootDistance << ",\n";
-  std::cout << "\t\t\"i\" : " << maxSplitIter << ",\n";
+  std::cout << "\t\t\"i\" : " << maxSplitIterFactor << ",\n";
   std::cout << "\t\t\"c\" : " << constraintSet << ",\n";
   std::cout << "\t\t\"h\" : " << horizonSize << ",\n";
   std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
@@ -464,7 +464,7 @@ int main(int argc,char* argv[])
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
    int maxRebootDistance = (argc >= 4 && strncmp(argv[3],"-r",2)==0) ? atoi(argv[3]+2) : INT_MAX;
-   int maxSplitIter = (argc >= 5 && strncmp(argv[4],"-i",2)==0) ? atoi(argv[4]+2) : INT_MAX;
+   int maxSplitIterFactor = (argc >= 5 && strncmp(argv[4],"-i",2)==0) ? atoi(argv[4]+2) : INT_MAX;
    int constraintSet = (argc >= 6 && strncmp(argv[5],"-c",2)==0) ? atoi(argv[5]+2) : 1;
    int horizonSize = (argc >= 7 && strncmp(argv[6],"-h",2)==0) ? atoi(argv[6]+2) : 40;
 
@@ -474,12 +474,12 @@ int main(int argc,char* argv[])
    std::cout << "width = " << width << std::endl;
    std::cout << "mode = " << mode << std::endl;
    std::cout << "maxRebootDistance = " << maxRebootDistance << std::endl;
-   std::cout << "maxSplitIter = " << maxSplitIter << std::endl;
+   std::cout << "maxSplitIterFactor = " << maxSplitIterFactor << std::endl;
    std::cout << "constraintSet = " << constraintSet << std::endl;
    std::cout << "horizonSize = " << horizonSize << std::endl;
    try {
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp, width, mode, maxRebootDistance, maxSplitIter, constraintSet, horizonSize);
+      buildModel(cp, width, mode, maxRebootDistance, maxSplitIterFactor, constraintSet, horizonSize);
    } catch(Status s) {
       std::cout << "model infeasible during post" << std::endl;
    } catch (std::exception& e) {

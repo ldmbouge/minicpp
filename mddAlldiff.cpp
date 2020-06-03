@@ -105,5 +105,11 @@ namespace Factory {
       mdd.addSimilarity(len,[](const auto& l,const auto& r) -> double {
                                return 0;
                             });
+      mdd.equivalenceClassValue([minDom,some,someu,all,allu,len,n](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+          return (c.getBS(some).cardinality() - c.getBS(all).cardinality() < p[len]/2);
+          //return p.getBS(some).getBit(val - minDom) + 2 * c.getBS(someu).getBit(val-minDom);
+          //return (p.getBS(some).cardinality() - p.getBS(all).cardinality() > 3) +
+          //     2*(c.getBS(someu).cardinality() - c.getBS(allu).cardinality() > 3);
+      });
    }
 }

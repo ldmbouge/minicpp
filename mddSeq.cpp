@@ -225,6 +225,9 @@ namespace Factory {
 	  // 		  std::max(in.getState()[DmaxL]-lb-in.getState()[Ymin],0));
 	  **/	  
       //});      
+      spec.equivalenceClassValue([Ymin,Ymax](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+         return c[Ymax] - c[Ymin] < 4;
+      });
    }
 
 }

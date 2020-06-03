@@ -195,6 +195,22 @@ double MDDSpec::splitPriority(const MDDNode& n) const
    return ttl;
 }
 
+int MDDSpec::equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int equivalenceClassIndex)
+{
+   int eValue = 0;
+   //for (int constraintIndex = 0; constraintIndex < constraints.size(); constraintIndex++) {
+   //   if (constraints[constraintIndex]->inScope(var)) {
+   //      eValue *= 4;
+   //      eValue += _equivalenceValue[constraintIndex](parent,child,var,value);
+   //   }
+   //}
+   for (auto ev : _equivalenceValue) {
+      eValue *= 4;
+      eValue += ev(parent,child,var,value);
+   }
+   return eValue;
+}
+
 void MDDEdge::remove(MDD* mdd)
 {
    parent->removeChild(mdd,value,childPosition);

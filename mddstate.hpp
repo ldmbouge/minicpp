@@ -192,6 +192,7 @@ typedef std::function<void(MDDState&,const MDDState&,const var<int>::Ptr&,const 
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
+typedef std::function<int(const MDDState&,const MDDState&,const var<int>::Ptr&,int)> EquivalenceValueFun;
 typedef std::pair<std::set<int>,lambdaTrans> TransDesc;
 typedef std::map<int,TransDesc> lambdaMap;
 class MDDStateSpec;
@@ -963,6 +964,8 @@ public:
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
    void splitOnLargest(SplitFun onSplit);
+   void equivalenceClassValue(EquivalenceValueFun equivalenceValue);
+   int numEquivalenceClasses();
    // Internal methods.
    void varOrder() override;
    bool consistent(const MDDState& a,const var<int>::Ptr& x) const noexcept;
@@ -990,6 +993,7 @@ public:
    }
    void reachedFixpoint(const MDDState& sink);
    double splitPriority(const MDDNode& n) const;
+   int equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int equivalenceClassIndex);
    bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
@@ -1017,6 +1021,7 @@ private:
    std::vector<lambdaTrans> _uptrans;
    std::vector<FixFun>        _onFix;
    std::vector<SplitFun>      _onSplit;
+   std::vector<EquivalenceValueFun> _equivalenceValue;
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;
    std::vector<LayerDesc> _frameLayer;

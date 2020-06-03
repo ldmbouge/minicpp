@@ -158,6 +158,14 @@ void MDDSpec::splitOnLargest(SplitFun onSplit)
 {
    _onSplit.emplace_back(onSplit);
 }
+void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue)
+{
+   _equivalenceValue.emplace_back(equivalenceValue);
+}
+int MDDSpec::numEquivalenceClasses()
+{
+   return _equivalenceValue.size();
+}
 
 void MDDSpec::updateNode(MDDState& a) const noexcept
 {

@@ -186,6 +186,7 @@ class MDDRelax : public MDD {
    bool trimVariable(int i);
    bool filterKids(MDDNode* n,int l);
    int splitNode(MDDNode* n,int l,MDDSplitter& splitter);
+   int splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter,int equivalenceClassIndex);
    void splitLayers(); // delta is essentially an out argument. 
    int delState(MDDNode* state,int l); // return lowest layer where a deletion occurred.
    bool processNodeUp(MDDNode* n,int i); // i is the layer number

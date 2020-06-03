@@ -199,10 +199,21 @@ namespace Factory {
 
       //mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
 
-      mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
-                            return -(double)(in.getState().at(U)-in.getState().at(L));
+      mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+      //   return -(double)in.getNumParents();
+         return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
+                  (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
+      //   return -(double)(in.getState().at(U) + in.getState().at(Uup) -
+      //                    in.getState().at(L) - in.getState().at(Lup));
+
+      //                      return -(double)(in.getState().at(U)-in.getState().at(L));
       //     //return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
                             return 0.0;                            
                          });
+      mdd.equivalenceClassValue([d,tv,lb,ub,L,Lup,U,Uup](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+          //bool vinS = (d->inScope(var)) && tv == val;
+          return (lb - (c.at(L) + c.at(Lup)) > 3) +
+               2*(ub - (c.at(U) + c.at(Uup)) > 3);
+      });
    }
 }

@@ -305,6 +305,54 @@ namespace Factory {
       // 	  } else
       // 	    return (double)0;
       // 	});
+
+      //mdd.equivalenceClassValue([xSome,ySome,ySomeUp,zSomeUp,N,d,minDom,udom](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+      //   if (!d->inScope(var)) return 0;
+      //   if (p[N] == 0) {
+      //      int counter = 0;
+      //      MDDBSValue yVals = c.getBS(ySomeUp),zVals = c.getBS(zSomeUp);
+      //      for(auto yofs : yVals) {
+      //         auto i = yofs + minDom;
+      //         if (val != i) {
+      //            int zval1 = val-i,zval2 = i-val;
+      //            if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
+      //                (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2))) {
+      //               counter++;
+      //               if (counter > 3) return 1;
+      //            }
+      //        }
+      //      }
+      //      return 0;
+      //   } else if (p[N] == 1) {
+      //      int counter = 0;
+      //      MDDBSValue xVals = p.getBS(xSome),zVals = c.getBS(zSomeUp);
+      //      for(auto xofs : xVals) {
+      //         auto i = xofs + minDom;
+      //         if (i != val) {
+      //            int zval1 = val-i,zval2 = i-val;
+      //            if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
+      //                (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2))) {
+      //               counter++;
+      //               if (counter > 3) return 1;
+      //            }
+      //         }
+      //      }
+      //      return 0;
+      //   }
+      //   int counter = 0;
+      //   MDDBSValue xVals = p.getBS(xSome),yVals = p.getBS(ySome);
+      //   for(const auto xofs : xVals) {
+      //      const auto i = xofs + minDom;
+      //      if (val==0) continue;
+      //      int yval1 = i-val,yval2 = i+val;
+      //      if ((yval1 >= udom.first && yval1 <= udom.second && yVals.getBit(yval1)) ||
+      //          (yval2 >= udom.first && yval2 <= udom.second && yVals.getBit(yval2))) {
+      //         counter++;
+      //         if (counter < 3) return 1;
+      //      }
+      //   }    
+      //   return 0;
+      //});
   }
 }
 
