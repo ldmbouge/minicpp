@@ -31,6 +31,7 @@
 
 typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
+class Explainer;
 
 class CPSolver {
     Trailer::Ptr                  _sm;
@@ -45,6 +46,8 @@ class CPSolver {
     int                          _nbs; // # solutions
 public:
     template<typename T> friend class var;
+    friend class ExpSolver;
+    friend class Explainer;
     typedef handle_ptr<CPSolver> Ptr;
     CPSolver();
     ~CPSolver();
@@ -76,6 +79,7 @@ public:
     }
 };
 
+
 namespace Factory {
    inline CPSolver::Ptr makeSolver() { return new CPSolver;}
 };
@@ -89,6 +93,8 @@ inline void* operator new[](std::size_t sz,CPSolver::Ptr e)
 {
    return e->_store->allocate(sz);
 }
+
+
 
 //void* operator new  ( std::size_t count );
 

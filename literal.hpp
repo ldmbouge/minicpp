@@ -2,6 +2,7 @@
 #define __LITERAL_H
 
 #include <memory>
+#include <unordered_map>
 #include "handle.hpp"
 #include "intvar.hpp"
 #include "trailable.hpp"
@@ -9,6 +10,7 @@
 #include "avar.hpp"
 #include "acstr.hpp"
 #include "trailList.hpp"
+#include "domain.hpp"
 
 enum LitRel {EQ, NEQ, LEQ, GEQ};
 
@@ -19,19 +21,24 @@ class Literal {
     Constraint::Ptr _cPtr;
     int _depth;
 public:
+    Literal(var<int>::Ptr x, LitRel rel, int c, Constraint::Ptr cPtr, int depth)
+      : _x(x), _rel(rel), _c(c), _cPtr(cPtr), _depth(depth) {}
     void makeVar() {};
     void explain() {};  // TODO: delegate to cPtr->explain(this) when this is implemented and adjust return type
     friend class LitVar;
-    friend class LitHash;
+    // friend class LitHash;
 };
 
-class LitHash {
-public:
-    size_t operator()(const Literal& l) const
-    { 
-        return (size_t) l._x; 
-    } 
-};
+// class LitHash {
+// public:
+//     size_t operator()(const Literal& l) const
+//     { 
+//         size_t k = ((0x0000ff & l._x->getId()) << 16) | ((0x0000ff & l._c) << 8)  | (0x0000ff & l._rel); 
+//         return std::hash<size_t>()(k);
+//     } 
+// };
+
+// typedef std::unordered_map<size_t, Literal, LitHash> LitHashSet;
 
 class LitVar : public AVar {
     int _id;
@@ -78,6 +85,8 @@ public:
     void setFalse();
     void updateVal();
     void assign(bool b);
+    virtual IntNotifier* getListener() const { return nullptr;}
+    virtual void setListener(IntNotifier*) {}
     TLCNode* propagateOnBind(Constraint::Ptr c) { _onBindList.emplace_back(std::move(c));return nullptr;}
 };
 

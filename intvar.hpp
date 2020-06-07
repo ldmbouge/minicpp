@@ -29,6 +29,10 @@
 template<typename T> class var {};
 
 template<> class var<int> : public AVar {
+private:
+   int _id;
+protected:
+   void setId(int id) override { _id = id;}
 public:
    typedef handle_ptr<var<int>> Ptr;
    virtual Storage::Ptr getStore() = 0;
@@ -44,13 +48,8 @@ public:
    virtual void removeBelow(int newMin) = 0;
    virtual void removeAbove(int newMax) = 0;
    virtual void updateBounds(int newMin,int newMax) = 0;
-   virtual BitDomain::Ptr getDomain() const { return nullptr;}
-   virtual BitDomain::iterator begin() const = 0;
-   virtual BitDomain::iterator end() const = 0;
+   int getId() const { return _id;}
 
-   virtual int getId2() const { return -1;}
-
-   
    virtual TLCNode* whenBind(std::function<void(void)>&& f) = 0;
    virtual TLCNode* whenBoundsChange(std::function<void(void)>&& f) = 0;
    virtual TLCNode* whenDomainChange(std::function<void(void)>&& f) = 0;
@@ -73,17 +72,17 @@ class IntVarImpl :public var<int> {
       IntVarImpl* theVar;
       DomainListener(IntVarImpl* x) : theVar(x) {}
       void empty() override;
-      void bind() override;
+      void bind(int) override;
       void change()  override;
-      void changeMin() override;
-      void changeMax() override;      
+      void changeMin(int) override;
+      void changeMax(int) override;  
+      void remove(int) override {};    
    };
-   DomainListener*       _domListener;
+   IntNotifier*       _domListener;
 protected:
     void setId(int id) override { _id = id;}
     int getId() const { return _id;}
 public:
-    int getId2() const override { return _id;}
     IntVarImpl(CPSolver::Ptr& cps,int min,int max);
     IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
    ~IntVarImpl();
@@ -94,15 +93,14 @@ public:
    int size() const override { return _dom->size();}
    bool isBound() const override { return _dom->isBound();}
    bool contains(int v) const override { return _dom->member(v);}
+   IntNotifier* getListener() const override { return _domListener;}
+   void setListener(IntNotifier* n) override { _domListener = n;}
 
    void assign(int v) override;
    void remove(int v) override;
    void removeBelow(int newMin) override;
    void removeAbove(int newMax) override;
    void updateBounds(int newMin,int newMax) override;
-   BitDomain::Ptr getDomain() const override { return _dom;}
-   BitDomain::iterator begin() const override { return _dom->begin(1,0);}
-   BitDomain::iterator end() const override { return _dom->end();}
    
    TLCNode* whenBind(std::function<void(void)>&& f) override;
    TLCNode* whenBoundsChange(std::function<void(void)>&& f) override;
@@ -110,6 +108,8 @@ public:
    TLCNode* propagateOnBind(Constraint::Ptr c)  override         { return _onBindList.emplace_back(std::move(c));}
    TLCNode* propagateOnBoundChange(Constraint::Ptr c)  override  { return _onBoundsList.emplace_back(std::move(c));}
    TLCNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _onDomList.emplace_back(std::move(c));}
+
+   
 
     std::ostream& print(std::ostream& os) const override {
         if (size() == 1)
@@ -143,8 +143,8 @@ public:
    void removeBelow(int newMin) override { _x->removeAbove(-newMin);}
    void removeAbove(int newMax) override { _x->removeBelow(-newMax);}
    void updateBounds(int newMin,int newMax) override { _x->updateBounds(-newMax,-newMin);}
-   BitDomain::iterator begin() const override { return _x->getDomain()->begin(-1,0);}
-   BitDomain::iterator end() const override { return _x->getDomain()->end();}
+   IntNotifier* getListener() const override { return nullptr;}
+   void setListener(IntNotifier*) override {}
    
    TLCNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
    TLCNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
@@ -198,9 +198,9 @@ public:
    }
    void removeBelow(int v) override { _x->removeBelow(ceilDiv(v,_a));}
    void removeAbove(int v) override { _x->removeAbove(floorDiv(v,_a));}
-   void updateBounds(int min,int max) override { _x->updateBounds(ceilDiv(min,_a),floorDiv(max,_a));} 
-   BitDomain::iterator begin() const override { return _x->getDomain()->begin(_a,0);}
-   BitDomain::iterator end() const override { return _x->getDomain()->end();}
+   void updateBounds(int min,int max) override { _x->updateBounds(ceilDiv(min,_a),floorDiv(max,_a));}
+   IntNotifier* getListener() const override { return nullptr;}
+   void setListener(IntNotifier*) override {}
 
    TLCNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
    TLCNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
@@ -239,8 +239,8 @@ public:
    void removeBelow(int v) override { _x->removeBelow(v - _o);}
    void removeAbove(int v) override { _x->removeAbove(v - _o);}
    void updateBounds(int min,int max) override { _x->updateBounds(min - _o,max - _o);}   
-   BitDomain::iterator begin() const override { return _x->getDomain()->begin(1,_o);}
-   BitDomain::iterator end() const override { return _x->getDomain()->end();}
+   IntNotifier* getListener() const override { return nullptr;}
+   void setListener(IntNotifier*) override {}
 
    TLCNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
    TLCNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}

@@ -114,10 +114,10 @@ void BitDomain::assign(int v,IntNotifier& x)  // removeAllBut(v,x)
     _min = v;
     _max = v;
     _sz  = 1;
-    x.bind();
+    x.bind(v);
     x.change();
-    if (minChanged) x.changeMin();
-    if (maxChanged) x.changeMax();
+    if (minChanged) x.changeMin(v);
+    if (maxChanged) x.changeMax(v);
 }
 
 void BitDomain::remove(int v,IntNotifier& x)
@@ -131,21 +131,24 @@ void BitDomain::remove(int v,IntNotifier& x)
     if (minChanged) {
         _sz = _sz - 1;
        _min = findMin(_min + 1);
-        x.changeMin();
-        if (_sz == 1) x.bind();
+        x.changeMin(_min);
+        if (_sz == 1) x.bind(_min);
         if (_sz == 0) x.empty();
         x.change();
+        x.remove(v);
     } else if (maxChanged) {
         _sz = _sz - 1;
         _max = findMax(_max - 1);
-        x.changeMax();
-        if (_sz == 1) x.bind();
+        x.changeMax(_max);
+        if (_sz == 1) x.bind(_max);
         if (_sz == 0) x.empty();
         x.change();
+        x.remove(v);
     } else if (member(v)) {
         setZero(v);
+        x.remove(v);
         _sz = _sz - 1;
-        if (_sz == 1) x.bind();
+        if (_sz == 1) x.bind(min());
         if (_sz == 0) x.empty();
         x.change();
     }
@@ -163,10 +166,10 @@ void BitDomain::removeBelow(int newMin,IntNotifier& x)
     if (!isCompact)
         newMin = findMin(newMin);
     _min = newMin;
-    x.changeMin();
+    x.changeMin(_min);
     x.change();
     if (_sz==0) x.empty();
-    if (_sz==1) x.bind();
+    if (_sz==1) x.bind(min());
 }
 
 void BitDomain::removeAbove(int newMax,IntNotifier& x)
@@ -181,34 +184,10 @@ void BitDomain::removeAbove(int newMax,IntNotifier& x)
     if (!isCompact)
         newMax = findMax(newMax);
     _max = newMax;
-    x.changeMax();
+    x.changeMax(_max);
     x.change();
     if (_sz==0) x.empty();
-    if (_sz==1) x.bind();
-}
-
-BitDomain::iterator& BitDomain::iterator::operator++() {
-    int test = _cw & -_cw;              // only leaves LSB at 1
-    _cw ^= test;                        // clear LSB
-    while(_cw == 0 && ++_cwi < _nbw)    // all bits at zero -> done with this word
-        _cw = (_dom + _cwi)->value();   // get value from next trail<int> word
-    return *this;
-}
-
-bool BitDomain::iterator::operator==(BitDomain::iterator other) const {
-    return (_cwi == other._cwi) && (_cw == other._cw);
-}
-
-bool BitDomain::iterator::operator!=(BitDomain::iterator other) const {
-    return !(*this == other);
-}
-
-int BitDomain::iterator::operator*() const {
-    int r = 0;
-    int test = (_cw & -_cw);
-    while (test >>= 1)
-        ++r;
-    return _a * (_imin + (_cwi << 5) + r) + _o;
+    if (_sz==1) x.bind(min());
 }
 
 std::ostream& operator<<(std::ostream& os,const BitDomain& x)
@@ -360,10 +339,10 @@ void SparseSetDomain::assign(int v,IntNotifier& x)
             _dom.removeAllBut(v);
             if (_dom.size() == 0)
                 x.empty();
-            x.bind();
+            x.bind(v);
             x.change();
-            if (maxChanged) x.changeMax();
-            if (minChanged) x.changeMin();
+            if (maxChanged) x.changeMax(v);
+            if (minChanged) x.changeMin(v);
         }
     } else {
         _dom.removeAll();
@@ -380,9 +359,9 @@ void SparseSetDomain::remove(int v,IntNotifier& x)
         if (_dom.size()==0)
             x.empty();
         x.change();
-        if (maxChanged) x.changeMax();
-        if (minChanged) x.changeMin();
-        if (_dom.size()==1) x.bind();
+        if (maxChanged) x.changeMax(max());
+        if (minChanged) x.changeMin(min());
+        if (_dom.size()==1) x.bind(min());
     }
 }
 
@@ -392,9 +371,9 @@ void SparseSetDomain::removeBelow(int newMin,IntNotifier& x)
         _dom.removeBelow(newMin);
         switch(_dom.size()) {
             case 0: x.empty();break;
-            case 1: x.bind();
+            case 1: x.bind(min());
             default:
-                x.changeMin();
+                x.changeMin(min());
                 x.change();
                 break;
         }
@@ -407,9 +386,9 @@ void SparseSetDomain::removeAbove(int newMax,IntNotifier& x)
         _dom.removeAbove(newMax);
         switch(_dom.size()) {
             case 0: x.empty();break;
-            case 1: x.bind();
+            case 1: x.bind(min());
             default:
-                x.changeMax();
+                x.changeMax(max());
                 x.change();
                 break;
         }

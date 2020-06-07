@@ -19,6 +19,8 @@
 #include <memory>
 #include "handle.hpp"
 
+class IntNotifier;
+
 class AVar {
 protected:
     virtual void setId(int id) = 0;
@@ -27,6 +29,9 @@ public:
     typedef handle_ptr<AVar> Ptr;
     AVar() {}
     virtual ~AVar() {}
+    virtual int getId() const = 0;
+    virtual IntNotifier* getListener() const = 0;
+    virtual void setListener(IntNotifier*) = 0;
 };
 
 #endif

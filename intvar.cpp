@@ -93,7 +93,7 @@ void IntVarImpl::DomainListener::empty()
     failNow();
 }
 
-void IntVarImpl::DomainListener::bind() 
+void IntVarImpl::DomainListener::bind(int a) 
 {
     for(auto& f : theVar->_onBindList)
         theVar->_solver->schedule(f);
@@ -105,13 +105,13 @@ void IntVarImpl::DomainListener::change()
         theVar->_solver->schedule(f);
 }
 
-void IntVarImpl::DomainListener::changeMin() 
+void IntVarImpl::DomainListener::changeMin(int newMin) 
 {
     for(auto& f :  theVar->_onBoundsList)
         theVar->_solver->schedule(f);
 }
 
-void IntVarImpl::DomainListener::changeMax() 
+void IntVarImpl::DomainListener::changeMax(int newMax) 
 {
     for(auto& f :  theVar->_onBoundsList)
         theVar->_solver->schedule(f);
@@ -184,5 +184,27 @@ namespace Factory {
     Vecb boolVarArray(CPSolver::Ptr cps,int sz) {
         return Vecb(sz,(allocb(cps->getStore())));
     }
+
+    // Veci intVarArray(ExpSolver::Ptr exp,int sz,int min,int max) {
+    //     Veci a(sz,(alloci(exp->getStore())));
+    //     for(int i=0;i<sz;i++)
+    //         a[i] = Factory::makeIntVar(exp->getSolver(),min,max);
+    //     return a;
+    // }
+
+    // Veci intVarArray(ExpSolver::Ptr exp,int sz,int n)
+    // {
+    //     Veci a(sz,(alloci(exp->getStore())));
+    //     for(int i=0;i<sz;i++)
+    //         a[i] = Factory::makeIntVar(exp->getSolver(),n);
+    //     return a;
+    // }
+
+    // Veci intVarArray(ExpSolver::Ptr exp,int sz) {
+    //     return Veci(sz,(alloci(exp->getStore())));
+    // }
+    // Vecb boolVarArray(ExpSolver::Ptr exp,int sz) {
+    //     return Vecb(sz,(allocb(exp->getStore())));
+    // }
 
 };

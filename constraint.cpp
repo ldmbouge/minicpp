@@ -672,7 +672,7 @@ void TableCT::propagate()  // enforceGAC
     _Sval.clear();
     _Ssup.clear();
     for (const auto& vp : _vars) {
-        varIndex = _entries.at(vp->getId2()).getIndex();
+        varIndex = _entries.at(vp->getId()).getIndex();
         if (vp->size() != _lastSizes[varIndex]) {
             _Sval.push_back(vp);
             _lastSizes[varIndex] = vp->size();  // update lastSizes for vars in Sval
@@ -695,8 +695,8 @@ void TableCT::filterDomains()
     int varIndex, valIndex, wIndex, iMin;
     for (const auto& vp : _Ssup) {
         // std::cout << "currVar: " << vp << std::endl;
-        varIndex = _entries.at(vp->getId2()).getIndex();
-        iMin = _entries.at(vp->getId2()).getMin();
+        varIndex = _entries.at(vp->getId()).getIndex();
+        iMin = _entries.at(vp->getId()).getMin();
         for (int val = vp->min(); val < vp->max() + 1; val++) {
             valIndex = val - iMin;
             wIndex = _residues[varIndex][valIndex];
@@ -726,8 +726,8 @@ void TableCT::updateTable()
 {
     int varIndex, valIndex, iMin;
     for (const auto& vp : _Sval) {
-        varIndex = _entries.at(vp->getId2()).getIndex();
-        iMin = _entries.at(vp->getId2()).getMin();
+        varIndex = _entries.at(vp->getId()).getIndex();
+        iMin = _entries.at(vp->getId()).getMin();
         _currTable.clearMask();
         for (int val = vp->min(); val < vp->max() + 1; val++) {
             valIndex = val - iMin;

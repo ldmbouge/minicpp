@@ -349,7 +349,7 @@ public:
         int currIndex = 0;
         for (const auto& vp : x) {
             _vars.push_back(vp);
-            _entries.emplace(vp->getId2(), Entry(currIndex, vp->min(), vp->max()));  // build entries for each var
+            _entries.emplace(vp->getId(), Entry(currIndex, vp->min(), vp->max()));  // build entries for each var
             // trail<int> t(x[0]->getSolver()->getStateManager(), vp->size());  // record initial var domain size
             _lastSizes.push_back(trail<int>(x[0]->getSolver()->getStateManager(), vp->size()));  // record initial var domain size
             _supports.emplace_back(std::vector<StaticBitSet>(0));  // init vector of bitsets for var's supports

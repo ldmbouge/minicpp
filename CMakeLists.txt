@@ -17,7 +17,7 @@ set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")
 
 include_directories(.)
 add_library(copl bitset.cpp 
-	acstr.cpp domain.cpp constraint.cpp     
+	acstr.cpp domain.cpp constraint.cpp explainer.cpp     
 	intvar.cpp literal.cpp trail.cpp mallocWatch.cpp    
 	search.cpp trailable.cpp matching.cpp solver.cpp
 	store.cpp)

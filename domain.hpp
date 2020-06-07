@@ -25,10 +25,11 @@
 
 struct IntNotifier   {
     virtual void empty() = 0;
-    virtual void bind() = 0;
+    virtual void bind(int) = 0;
     virtual void change() = 0;
-    virtual void changeMin() = 0;
-    virtual void changeMax() = 0;
+    virtual void changeMin(int) = 0;
+    virtual void changeMax(int) = 0;
+    virtual void remove(int) = 0;
 };
  
 class BitDomain {
@@ -53,25 +54,6 @@ public:
     void removeBelow(int newMin,IntNotifier& x);
     void removeAbove(int newMax,IntNotifier& x);
     friend std::ostream& operator<<(std::ostream& os,const BitDomain& x);
-
-    class iterator : public std::iterator<std::input_iterator_tag,int,int> {
-        trail<int>* _dom;
-        int _cw;             // current word
-        int _cwi;            // current word index
-        const int _imin, _nbw, _a, _o;  
-        iterator(trail<int>* dom, const int nbw, const int imin, const int a, const int o) 
-          : _dom(dom), _cw(dom->value()), _cwi(0), _nbw(nbw), _imin(imin), _a(a), _o(o) {}    // begin constructor
-        iterator(trail<int>* dom, const int nbw) 
-          : _dom(dom), _cw(0), _cwi(nbw), _nbw(nbw), _imin(0), _a(1), _o(0) {}    // end constructor
-    public:
-        iterator& operator++();
-        bool operator==(iterator) const;
-        bool operator!=(iterator) const;
-        int operator*() const;
-        friend class BitDomain;
-    };
-    iterator begin(const int a, const int o) const { return iterator(_dom, _nbw, _imin, a, o);}
-    iterator end() const {return iterator(_dom, _nbw);}
 };
 
 class SparseSet {
