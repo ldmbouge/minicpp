@@ -73,7 +73,7 @@ void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],std::stack<int>
           low[u] = std::min(low[u], disc[v]); 
    } 
    if (low[u] == disc[u])  {
-      int scc[V],k=0;
+      int* scc = (int*)alloca(sizeof(int)*V),k=0;
       while (st.top() != u)  { 
          scc[k++] = st.top(); 
          inStack[scc[k-1]] = false; 
@@ -87,9 +87,9 @@ void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],std::stack<int>
 } 
 
 template <typename B> void Graph::SCC(B body) { 
-   int disc[V];
-   int low[V];
-   bool inStack[V]; 
+   int* disc = (int*)alloca(sizeof(int)*V);
+   int* low  = (int*)alloca(sizeof(int)*V);
+   bool* inStack = (bool*)alloca(sizeof(bool)*V); 
    std::stack<int> st; 
    int time = 0;
    for (int i = 0; i < V; i++)  { 

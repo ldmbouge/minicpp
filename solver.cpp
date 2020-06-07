@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <iostream>
 #include <iomanip>
+#include <typeindex>
 
 CPSolver::CPSolver()
     : _sm(new Trailer),
@@ -51,6 +52,16 @@ void CPSolver::registerVar(AVar::Ptr avar)
    _iVars.push_back(avar);
 }
 
+std::vector<handle_ptr<var<int>>> CPSolver::intVars()
+{
+   std::vector<handle_ptr<var<int>>> res;
+   for(auto v : _iVars){
+      if (typeid(var<int>).before(typeid(v.get())))
+         res.push_back(handle_ptr<var<int>>(dynamic_cast<var<int>*>(v.get())));
+   }
+   return res;
+}
+
 void CPSolver::notifyFixpoint()
 {
    for(auto& body : _onFix)
@@ -62,8 +73,7 @@ void CPSolver::fixpoint()
    try {
       notifyFixpoint();
       while (!_queue.empty()) {
-         auto c = _queue.front();
-         _queue.pop_front();
+         auto c = _queue.deQueue();
          c->setScheduled(false);
          if (c->isActive())
             c->propagate();
@@ -71,8 +81,7 @@ void CPSolver::fixpoint()
       assert(_queue.size() == 0);
    } catch(Status x) {
       while (!_queue.empty()) {
-         _queue.front()->setScheduled(false);
-         _queue.pop_front();
+         _queue.deQueue()->setScheduled(false);
       }
       //_queue.clear();
       assert(_queue.size() == 0);

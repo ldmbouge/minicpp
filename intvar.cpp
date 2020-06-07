@@ -36,10 +36,11 @@ IntVarImpl::IntVarImpl(CPSolver::Ptr& cps,int min,int max)
       _domListener(new (cps) DomainListener(this))
 {}
 
-IntVarImpl::~IntVarImpl()
+/*IntVarImpl::~IntVarImpl()
 {
     std::cout << "IntVarImpl::~IntVarImpl called ?" << std::endl;
 }
+*/
 
 class ClosureConstraint : public Constraint {
     std::function<void(void)> _f;
@@ -181,8 +182,12 @@ namespace Factory {
     Veci intVarArray(CPSolver::Ptr cps,int sz) {
         return Veci(sz,(alloci(cps->getStore())));
     }
-    Vecb boolVarArray(CPSolver::Ptr cps,int sz) {
-        return Vecb(sz,(allocb(cps->getStore())));
+   Vecb boolVarArray(CPSolver::Ptr cps,int sz,bool createVar) {
+      Vecb a(sz,(allocb(cps->getStore())));
+      if (createVar)
+         for(int i =0;i < sz;i++)
+            a[i] = Factory::makeBoolVar(cps);
+      return a;
     }
 
     // Veci intVarArray(ExpSolver::Ptr exp,int sz,int min,int max) {

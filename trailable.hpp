@@ -30,15 +30,21 @@ template<class T> class trail {
 public:
    trail() : _ctx(nullptr),_magic(-1),_value(T())  {}
    trail(Trailer::Ptr ctx,const T& v = T()) : _ctx(ctx),_magic(ctx->magic()),_value(v) {}
+   bool fresh() const { return _magic != _ctx->magic();}
+   Trailer::Ptr ctx() const { return _ctx;}
    operator T() const { return _value;}
    T value() const { return _value;}
    trail<T>& operator=(const T& v);
+   trail<T>& operator+=(const T& v);
+   trail<T>& operator-=(const T& v);
+   trail<T>& operator++(); // pre-increment
+   T operator++(int); // post-increment
    class TrailEntry: public Entry {
       T*  _at;
       T  _old;
    public:
       TrailEntry(T* at) : _at(at),_old(*at) {}
-      void restore() { *_at = _old;}
+      void restore() noexcept { *_at = _old;}
    };
 };
 
@@ -49,6 +55,44 @@ trail<T>& trail<T>::operator=(const T& v)
    if (_magic != cm)
       save(cm);    
    _value = v;
+   return *this;        
+}
+
+template <class T>
+trail<T>& trail<T>::operator++() { // pre-increment
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);    
+   _value += 1;
+   return *this;           
+}
+
+template <class T>
+T trail<T>::operator++(int) { // post-increment
+   T rv = _value;
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);    
+   ++_value;
+   return rv;
+}
+
+
+template<class T>
+trail<T>& trail<T>::operator+=(const T& v) {
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);    
+   _value += v;
+   return *this;           
+}
+
+template<class T>
+trail<T>& trail<T>::operator-=(const T& v) {
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);    
+   _value -= v;
    return *this;        
 }
 

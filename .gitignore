@@ -1,6 +1,9 @@
+.tags*
 .DS_Store
 *.o
-*.d
-*.so
+*.d*
+**/*.dSYM
 build
-
+minicpp.xcodeproj
+minicpp.sublime-workspace
+copl/copl.xcodeproj

@@ -30,7 +30,7 @@ int main(int argc,char* argv[])
     ifstream data("data/tsp.txt");
     int n;
     data >> n;
-    matrix<int,2> distanceMatrix({n,n});
+    Matrix<int,2> distanceMatrix({n,n});
     for(int i =0;i < n;i++)
        for(int j=0;j < n;j++)
           data >> distanceMatrix[i][j];
@@ -54,7 +54,7 @@ int main(int argc,char* argv[])
     std::vector<int> best(n);
 
     search.onSolution([&succ,&best,&obj]() {
-                          for(int i=0;i < best.size();i++)
+                          for(auto i=0u;i < best.size();i++)
                               best[i] = succ[i]->min();
                           cout << "objective = " << obj->value() << endl;
                       });

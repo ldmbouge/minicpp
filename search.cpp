@@ -55,6 +55,18 @@ SearchStatistics DFSearch::solveSubjectTo(Limit limit,std::function<void(void)> 
     return stats;
 }
 
+SearchStatistics DFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats,Limit limit)
+{
+   onSolution([obj] { obj->tighten();});
+   return solve(stats,limit);
+}
+
+SearchStatistics DFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats)
+{
+   onSolution([obj] { obj->tighten();});
+   return solve(stats,[](const SearchStatistics& ss) { return false;});
+}
+
 SearchStatistics DFSearch::optimize(Objective::Ptr obj,Limit limit)
 {
    SearchStatistics stats;

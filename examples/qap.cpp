@@ -30,11 +30,11 @@ int main(int argc,char* argv[])
     ifstream data("data/qap.txt");
     int n;
     data >> n;
-    matrix<int,2> w({n,n});
+    Matrix<int,2> w({n,n});
     for(int i =0;i < n;i++)
        for(int j=0;j < n;j++)
           data >> w[i][j];
-    matrix<int,2> d({n,n});
+    Matrix<int,2> d({n,n});
     for(int i =0;i < n;i++)
        for(int j=0;j < n;j++)
           data >> d[i][j];
@@ -65,7 +65,7 @@ int main(int argc,char* argv[])
        
     DFSearch search(cp,firstFail(cp,x));
 
-    search.onSolution([&x,&obj]() {
+    search.onSolution([&obj]() {
                          cout << "objective = " << obj->value() << endl;
                       });
 

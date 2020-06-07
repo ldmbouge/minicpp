@@ -22,6 +22,12 @@
 #include <vector>
 #include <initializer_list>
 #include <functional>
+#include <iostream>
+#include <iomanip>
+
+#include "solver.hpp"
+#include "constraint.hpp"
+#include "RuntimeMonitor.hpp"
 
 class Branches {
    std::vector<std::function<void(void)>> _alts;
@@ -50,18 +56,22 @@ class SearchStatistics {
     int _nNodes;
     int _nSolutions;
     bool _completed;
+    RuntimeMonitor::HRClock _startTime; 
 public:
-   SearchStatistics() : _depth(0),_nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {}
+   SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {
+      _startTime = RuntimeMonitor::cputime();
+   }
    void incrDepth() { ++_depth; }
    void decrDepth() { --_depth; }
-   void incrFailures() { _nFailures++; }
-   void incrNodes() { _nNodes++; }
-   void incrSolutions() { _nSolutions++; }
-   void setCompleted() { _completed = true; }
-   int numberOfFailures() const { return _nFailures; }
-   int numberOfNodes() const { return _nNodes; }
-   int numberOfSolutions() const { return _nSolutions; }
-   bool isCompleted() const { return _completed; }
+   void incrFailures()  noexcept { ++_nFailures;extern int __nbf;__nbf = _nFailures; }
+   void incrNodes()     noexcept { ++_nNodes;extern int __nbn;__nbn = _nNodes;}
+   void incrSolutions() noexcept { ++_nSolutions; }
+   void setCompleted()  noexcept { _completed = true; }
+   int numberOfFailures() const noexcept     { return _nFailures; }
+   int numberOfNodes() const noexcept        { return _nNodes; }
+   int numberOfSolutions() const noexcept    { return _nSolutions; }
+   RuntimeMonitor::HRClock startTime() const { return _startTime;}
+   bool isCompleted() const noexcept         { return _completed; }
    friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
       return os << "\n\t#choice   : " << ss._nNodes
                 << "\n\t#fail     : " << ss._nFailures
@@ -79,8 +89,14 @@ class DFSearch {
     std::vector<std::function<void(void)>>    _failureListeners;
     void dfs(SearchStatistics& stats,const Limit& limit);
 public:
-   DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b) : _sm(cp->getStateManager()),_branching(std::move(b)) {}
-   DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b) : _sm(sm),_branching(std::move(b)) {}
+   DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b)
+      : _sm(cp->getStateManager()),_branching(std::move(b)) {
+      _sm->enable();
+   }
+   DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b)
+      : _sm(sm),_branching(std::move(b)) {
+      _sm->enable();
+   }
    template <class B> void onSolution(B c) { _solutionListeners.emplace_back(std::move(c));}
    template <class B> void onFailure(B c)  { _failureListeners.emplace_back(std::move(c));}
    void notifySolution() { for_each(_solutionListeners.begin(),_solutionListeners.end(),[](std::function<void(void)>& c) { c();});}
@@ -89,6 +105,8 @@ public:
    SearchStatistics solve(Limit limit);
    SearchStatistics solve();
    SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo);
+   SearchStatistics optimize(Objective::Ptr obj,SearchStatistics& stat,Limit limit);
+   SearchStatistics optimize(Objective::Ptr obj,SearchStatistics& stat);
    SearchStatistics optimize(Objective::Ptr obj,Limit limit);
    SearchStatistics optimize(Objective::Ptr obj);
    SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo);
@@ -124,9 +142,16 @@ template<class B> std::function<Branches(void)> land(std::initializer_list<B> al
           };
 }
 
+/*
 template <class B0,class B1> inline Branches operator|(B0 b0,B1 b1) {
    return Branches({b0,b1});
 }
+*/
+
+inline Branches operator|(std::function<void(void)> b0, std::function<void(void)> b1) {
+    return Branches({ b0,b1 });
+}
+
 
 template<class Container,typename Predicate,typename Fun>
 inline typename Container::value_type selectMin(Container& c,Predicate test,Fun f) {
@@ -154,7 +179,7 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
                if (sx) {
                    int v = sx->min();
                    return [cp,sx,v] { return cp->post(sx == v);}
-  		       |  [cp,sx,v] { return cp->post(sx != v);};
+                       |  [cp,sx,v] { return cp->post(sx != v);};
                } else return Branches({});                   
            };
 }

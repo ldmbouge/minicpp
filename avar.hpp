@@ -19,7 +19,7 @@
 #include <memory>
 #include "handle.hpp"
 
-class IntNotifier;
+struct IntNotifier;
 
 class AVar {
 protected:
@@ -33,5 +33,8 @@ public:
     virtual IntNotifier* getListener() const = 0;
     virtual void setListener(IntNotifier*) = 0;
 };
+
+
+template<typename T> class var {};
 
 #endif

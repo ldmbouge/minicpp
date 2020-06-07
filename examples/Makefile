@@ -9,14 +9,26 @@ LFLAGS = -L$(shell pwd)/.. $(LFLAGSX)
 BENCHSRCS = main.cpp main2.cpp main3.cpp nqperf.cpp \
 	magicserie.cpp qap.cpp tsp.cpp  magicsquare.cpp msperf.cpp \
 	stablemarriage.cpp steel.cpp qaplns.cpp nqueensAC.cpp adac.cpp \
+<<<<<<< HEAD
 	table.cpp
+=======
+	mddamong.cpp mdd/among2.cpp mdd/among4.cpp mdd/amongsum.cpp mdd/tinymdd.cpp \
+	mdd/tinyAllDiff.cpp mdd/tinySeq.cpp  mdd/tinyGCC.cpp mdd/multipletTinyAmong.cpp \
+	mdd/amongSeqGcc.cpp
+>>>>>>> origin/mdd9
 
 BENCHS =
 
 # test0 
 
 AT = main main2 main3 adac nqperf magicserie qap tsp magicsquare \
+<<<<<<< HEAD
 	msperf stablemarriage  steel qaplns nqueensAC table
+=======
+	msperf stablemarriage  steel qaplns nqueensAC mddamong \
+	mdd/among2 mdd/among4 mdd/amongsum mdd/tinymdd mdd/tinyAllDiff \
+	mdd/tinySeq mdd/tinyGCC mdd/multipletTinyAmong mdd/amongSeqGcc
+>>>>>>> origin/mdd9
 
 all: cpptests 
 
@@ -29,9 +41,9 @@ test0: mainCont.o
 	@echo "Linking... " $@
 	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS)  -o $@
 
-% : %.cpp
+% : %.cpp 
 	@echo "Compile(C++) & Link... " $@
-	$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
+	@$(CC) $(CXXFLAGS) $< -l$(LIBBASE) $(LFLAGS) -o $@
 
 %.o : %.cpp
 	@echo "Compiling (C++)... " $<

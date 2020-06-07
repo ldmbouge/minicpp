@@ -27,7 +27,7 @@ void MaximumMatching::setup() {
    for(int k=0;k < _valSize;k++) _valMatch[k] = -1;
    _magic = 0;
    _match = new (_store) int[_x.size()];
-   for(int k=0;k < _x.size();k++) _match[k] = INT32_MIN;
+   for(auto k=0u;k < _x.size();k++) _match[k] = INT32_MIN;
    _varSeen = new (_store) int[_x.size()];
    _valSeen = new (_store) int[_valSize];
    findInitialMatching();
@@ -35,7 +35,7 @@ void MaximumMatching::setup() {
 
 void MaximumMatching::findInitialMatching() {
    _szMatching = 0;
-   for(int k=0;k < _x.size();k++) {
+   for(auto k=0u;k < _x.size();k++) {
       const int minv = _x[k]->min(),maxv = _x[k]->max();
       for(int i=minv;i <= maxv;i++) {
          if (_valMatch[i - _min] < 0)
@@ -50,8 +50,8 @@ void MaximumMatching::findInitialMatching() {
 }
 
 int MaximumMatching::findMaximalMatching() {
-   if (_szMatching < _x.size()) {
-      for(int k=0;k < _x.size();k++) {
+   if (_szMatching < (int)_x.size()) {
+      for(auto k=0u;k < _x.size();k++) {
          if (_match[k] == INT32_MIN) { // not matched
             _magic++;
             if (findAlternatingPathFromVar(k))
@@ -101,7 +101,7 @@ MaximumMatching::~MaximumMatching()
 }
 
 int MaximumMatching::compute(int result[]) {
-   for(int k=0;k < _x.size();k++) {
+   for(auto k=0u;k < _x.size();k++) {
       if (_match[k] != INT32_MIN) {
          if (!_x[k]->contains(_match[k])) {
             _valMatch[_match[k] - _min] = -1;
@@ -111,7 +111,7 @@ int MaximumMatching::compute(int result[]) {
       }
    }
    int rv = findMaximalMatching();
-   for(int k=0; k < _x.size();k++)
+   for(auto k=0u; k < _x.size();k++)
       result[k] = _match[k];
    return rv;
 }

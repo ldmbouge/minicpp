@@ -23,9 +23,13 @@ class CPSolver;
 class Literal;
 
 class Constraint {
-   bool _scheduled;
+private:
+   bool     _scheduled;
+   unsigned char _prio;
    trail<bool> _active;
 public:
+   static const unsigned char CLOW  = 0;
+   static const unsigned char CHIGH = 1;
    typedef handle_ptr<Constraint> Ptr;
    Constraint(handle_ptr<CPSolver> cp);
    virtual ~Constraint() {}
@@ -33,6 +37,8 @@ public:
    virtual void propagate() {}
    virtual void explain(Literal& l) {}
    virtual void print(std::ostream& os) const {}
+   void setPriority(unsigned char p) { _prio = p;}
+   unsigned char getPriority() const { return _prio;}
    void setScheduled(bool s) { _scheduled = s;}
    bool isScheduled() const  { return _scheduled;}
    void setActive(bool a)    { _active = a;}

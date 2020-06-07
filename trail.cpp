@@ -14,19 +14,45 @@
  */
 
 #include "trail.hpp"
+#include <assert.h>
+
+#define TSIZE (1 << 20)
 
 Trailer::Trailer()
     : _magic(-1)
 {
-   _block = (char*)malloc(1<<24);
-   _bsz = (1 << 24);
+   _block = (char*)malloc(TSIZE);
+   _bsz = TSIZE;
    _btop = 0;
    _lastNode = 0;
+   _enabled  = false;
 }
 
 Trailer::~Trailer()
 {
    free(_block);
+}
+
+void Trailer::resize()
+{
+   char* nb = (char*)realloc(_block,_bsz << 1);
+   if (nb != _block) {
+      std::stack<Entry*> ns;
+      while(!_trail.empty()) {
+         Entry* e = _trail.top();
+         Entry* ne = (Entry*)((char*)e - _block + nb);
+         ne->relocate(nb - _block);
+         ns.push(ne);
+         _trail.pop();
+      }
+      while(!ns.empty()) {
+         Entry* e = ns.top();
+         _trail.push(e);
+         ns.pop();
+      }
+   }
+   _bsz <<= 1;
+   _block = nb;
 }
 
 long Trailer::push()
@@ -51,7 +77,7 @@ void Trailer::popToNode(long node)
 
 void Trailer::pop()
 {
-   int to;
+   unsigned to;
    std::size_t mem;
    long node;
    std::tie(to,mem,node) = _tops.top();

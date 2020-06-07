@@ -33,11 +33,33 @@ typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
 class Explainer;
 
+class DEPQueue {
+   std::deque<Constraint::Ptr>  _q[2];
+public:
+   DEPQueue() {}
+   void enQueue(Constraint::Ptr& c) {
+      _q[c->getPriority()].emplace_back(c);
+   }
+   bool empty() const { return _q[0].empty() && _q[1].empty();}
+   auto size() const  { return _q[0].size() + _q[1].size();}
+   Constraint::Ptr deQueue() {
+      if (!_q[Constraint::CHIGH].empty()) {
+         auto c = _q[Constraint::CHIGH].front();
+         _q[Constraint::CHIGH].pop_front();
+         return c;
+      } else {
+         auto c = _q[Constraint::CLOW].front();
+         _q[Constraint::CLOW].pop_front();
+         return c;         
+      }
+   }   
+};
+
 class CPSolver {
     Trailer::Ptr                  _sm;
     Storage::Ptr               _store;
     std::list<AVar::Ptr>       _iVars;
-    std::deque<Constraint::Ptr>   _queue;
+    DEPQueue                   _queue;
     std::list<std::function<void(void)>>  _onFix;
     long                  _afterClose;
     int                        _varId;
@@ -54,10 +76,11 @@ public:
     Trailer::Ptr getStateManager()       { return _sm;}
     Storage::Ptr getStore()              { return _store;}
     void registerVar(AVar::Ptr avar);
+    std::vector<handle_ptr<var<int>>> intVars();
     void schedule(Constraint::Ptr& c) {
         if (c->isActive() && !c->isScheduled()) {
             c->setScheduled(true);
-            _queue.emplace_back(c);
+            _queue.enQueue(c);
         }
     }
     void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}

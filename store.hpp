@@ -57,6 +57,14 @@ inline void* operator new[](std::size_t sz,Storage::Ptr store)
    return store->allocate(sz);
 }
 
+class Pool;
+class PoolMark {
+   friend class Pool;
+   size_t   _top;
+   unsigned _seg;
+   PoolMark(size_t top,unsigned seg) : _top(top),_seg(seg) {}
+};
+
 class Pool {
    struct Segment {
       char*      _base;
@@ -65,19 +73,23 @@ class Pool {
       ~Segment()               { delete[] _base;}
       typedef std::shared_ptr<Segment> Ptr;
    };
-   std::vector<Pool::Segment::Ptr> _store;
+   Segment** _store;
    const std::size_t   _segSize;
    size_t                  _top;   
    unsigned                _seg;
+   unsigned              _nbSeg;
+   unsigned                _mxs;
 public:
    Pool(std::size_t defSize = SEGSIZE); 
-   ~Pool() { _store.clear();}
+   ~Pool();
    typedef handle_ptr<Pool> Ptr;
    void* allocate(std::size_t sz);
    void free(void* ptr) {}
    void clear() { _top = 0;_seg = 0;}
+   void clear(const PoolMark& m) { _top = m._top;_seg = m._seg;}
+   PoolMark mark() const noexcept { return {_top,_seg};}
    std::size_t capacity() const noexcept { return _segSize;}
-   std::size_t usage() const noexcept { return (_store.size() - 1) * _segSize  + _top;}
+   std::size_t usage() const noexcept { return (_nbSeg - 1) * _segSize  + _top;}
 };
 
 inline void* operator new(std::size_t sz,Pool::Ptr store)
