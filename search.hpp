@@ -121,13 +121,13 @@ public:
    template <class B> void onFailure(B c)  { _dfs.onFailure(c);}
    void notifySolution() { _dfs.notifySolution();}
    void notifyFailure()  { _dfs.notifyFailure();}
-   SearchStatistics solve(SearchStatistics& stat,Limit limit) { _dfs.solve(stat, limit);}
-   SearchStatistics solve(Limit limit) { _dfs.solve(limit);}
+   SearchStatistics solve(SearchStatistics& stat,Limit limit) { return _dfs.solve(stat, limit);}
+   SearchStatistics solve(Limit limit) { return _dfs.solve(limit);}
    SearchStatistics solve() { return _dfs.solve();}
-   SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo) { _dfs.solveSubjectTo(limit, subjectTo);}
-   SearchStatistics optimize(Objective::Ptr obj,Limit limit) { _dfs.optimize(obj, limit);}
-   SearchStatistics optimize(Objective::Ptr obj) { _dfs.optimize(obj);}
-   SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo) { _dfs.optimizeSubjectTo(obj, limit, subjectTo);}
+   SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo) { return _dfs.solveSubjectTo(limit, subjectTo);}
+   SearchStatistics optimize(Objective::Ptr obj,Limit limit) { return _dfs.optimize(obj, limit);}
+   SearchStatistics optimize(Objective::Ptr obj) { return _dfs.optimize(obj);}
+   SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo) { return _dfs.optimizeSubjectTo(obj, limit, subjectTo);}
 };
 
 template<class B> std::function<Branches(void)> land(std::initializer_list<B> allB) {

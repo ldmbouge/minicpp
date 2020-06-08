@@ -42,24 +42,23 @@ public:
 
 class LitVar : public AVar {
     int _id;
+    int _depth;
+    int _c;
     CPSolver::Ptr _solver;
     var<int>::Ptr _x;
     LitRel _rel;
-    int _c;
     trail<char> _val;
-    int _depth;
     void initVal();
     trailList<Constraint::Ptr> _onBindList;
 protected:
     void setId(int id) override { _id = id;}
-    int getId() const { return _id;}
 public:
     typedef handle_ptr<LitVar> Ptr;
     LitVar(const Literal& l)
-      : _solver(l._x->getSolver()),
-        _x(l._x),
+      : _depth(l._depth),
         _c(l._c),
-        _depth(l._depth),
+        _solver(l._x->getSolver()),
+        _x(l._x),
         _rel(l._rel),
         _val(_x->getSolver()->getStateManager(), 0x02),
         _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
@@ -67,16 +66,17 @@ public:
       _x->whenDomainChange([&] {updateVal();});
     }
     LitVar(const var<int>::Ptr& x, const int c, LitRel r) 
-      : _solver(x->getSolver()),
-        _x(x), 
+      : _depth(0), // depth is 0 because this constructor is used for literal variables initiated in model declaration, not during lcg
         _c(c), 
-        _depth(0), // depth is 0 because this constructor is used for literal variables initiated in model declaration, not during lcg
+        _solver(x->getSolver()),
+        _x(x),
         _rel(r),
         _val(x->getSolver()->getStateManager(), 0x02),
         _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
         { initVal();
           _x->whenDomainChange([&] {updateVal();});
         }
+    int getId() const override { return _id;}
     inline CPSolver::Ptr getSolver() const { return _solver;}
     inline bool isBound() const { return _val != 0x02;}
     inline bool isTrue() const { return _val == 0x01;}
@@ -85,8 +85,8 @@ public:
     void setFalse();
     void updateVal();
     void assign(bool b);
-    virtual IntNotifier* getListener() const { return nullptr;}
-    virtual void setListener(IntNotifier*) {}
+    virtual IntNotifier* getListener() const override { return nullptr;}
+    virtual void setListener(IntNotifier*) override {}
     TLCNode* propagateOnBind(Constraint::Ptr c) { _onBindList.emplace_back(std::move(c));return nullptr;}
 };
 
