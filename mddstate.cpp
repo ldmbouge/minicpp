@@ -28,9 +28,9 @@ namespace Factory {
          rv = new MDDPInt(id,ofs,init,max,rw);
       return rv;
    }
-   MDDProperty::Ptr makeBSProperty(short id,unsigned short ofs,int nbb,unsigned char init)
+   MDDProperty::Ptr makeBSProperty(short id,unsigned short ofs,int nbb,unsigned char init,enum RelaxWith rw)
    {
-      MDDProperty::Ptr rv = new MDDPBitSequence(id,ofs,nbb,init);
+      MDDProperty::Ptr rv = new MDDPBitSequence(id,ofs,nbb,init,rw);
       return rv;
    }
    MDDProperty::Ptr makeWinProperty(short id,unsigned short ofs,int len,int init,int finit,enum RelaxWith rw)
@@ -103,10 +103,10 @@ int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum
    d->addProperty(aid);
    return aid;
 }
-int MDDStateSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
+int MDDStateSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw)
 {
    int aid = (int)_nbp;
-   addProperty(Factory::makeBSProperty(aid,0,nbb,init));
+   addProperty(Factory::makeBSProperty(aid,0,nbb,init,rw));
    d->addProperty(aid);
    return aid;
 }
@@ -139,9 +139,9 @@ int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum Relax
    auto rv = MDDStateSpec::addState(d,init,max,rw);
    return rv;
 }
-int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init)
+int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw)
 {
-   auto rv = MDDStateSpec::addBSState(d,nbb,init);
+   auto rv = MDDStateSpec::addBSState(d,nbb,init,rw);
    return rv;   
 }
 int MDDSpec::addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw)

@@ -372,11 +372,15 @@ bool MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l)
       assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
       _mddspec.copyStateUp(cs,n->getState());     // grab the up information from the old state
       _sf->createState(cs,p->getState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      assert(cs.getBS(6) == cs.getBS(7));
       if (first)
          ms.copyState(cs); // install the result into an accumulator
       else {
          if (ms != cs) {
-            _mddspec.relaxation(ms,cs);   // compute a full scale relaxation of cs with the accumulator (ms). 
+            assert(ms.getBS(6) == ms.getBS(7));
+            assert(cs.getBS(6) == cs.getBS(7));
+            _mddspec.relaxation(ms,cs);   // compute a full scale relaxation of cs with the accumulator (ms).
+            assert(ms.getBS(6) == ms.getBS(7));
             ms.relaxDown();               // indidcate this is a down relaxation.
          }
       }

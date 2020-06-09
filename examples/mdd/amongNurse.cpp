@@ -413,8 +413,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   stat = search.solve([&stat](const SearchStatistics& stats) {
                               stat = stats;
                               //return stats.numberOfNodes() > 1;
-                              //return stats.numberOfSolutions() > INT_MAX;
-                              return stats.numberOfSolutions() > 0;
+                              return stats.numberOfSolutions() > INT_MAX;
+                              //return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   

@@ -182,10 +182,10 @@ namespace Factory {
     auto udom  = domRange(vars);
     int minDom = udom.first;
     
-    const int xSome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int ySome   = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int ySomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
-    const int zSomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0);
+    const int xSome   = mdd.addBSState(d,udom.second - udom.first + 1,0,MinFun);
+    const int ySome   = mdd.addBSState(d,udom.second - udom.first + 1,0,MinFun);
+    const int ySomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0,MinFun);
+    const int zSomeUp = mdd.addBSState(d,udom.second - udom.first + 1,0,MinFun);
     const int N       = mdd.addState(d,0,INT_MAX,MinFun);        // layer index 
     
     mdd.transitionDown(xSome,{xSome},[xSome,N,minDom] (auto& out,const auto& p,auto x, const auto& val,bool up)  noexcept {
@@ -281,18 +281,18 @@ namespace Factory {
 	return true;
       });
       
-      mdd.addRelaxation(xSome,[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
-                                out.getBS(xSome).setBinOR(l.getBS(xSome),r.getBS(xSome));
-                            });
-      mdd.addRelaxation(ySome,[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
-                                out.getBS(ySome).setBinOR(l.getBS(ySome),r.getBS(ySome));
-                            });
-      mdd.addRelaxation(ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)  noexcept     {
-                                out.getBS(ySomeUp).setBinOR(l.getBS(ySomeUp),r.getBS(ySomeUp));
-                            });
-      mdd.addRelaxation(zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)  noexcept      {
-                                out.getBS(zSomeUp).setBinOR(l.getBS(zSomeUp),r.getBS(zSomeUp));
-                            });
+     // mdd.addRelaxation(xSome,[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
+     //                            out.getBS(xSome).setBinOR(l.getBS(xSome),r.getBS(xSome));
+     //                         });
+//      mdd.addRelaxation(ySome,[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
+//                                out.getBS(ySome).setBinOR(l.getBS(ySome),r.getBS(ySome));
+//                            });
+//      mdd.addRelaxation(ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)  noexcept     {
+//                                out.getBS(ySomeUp).setBinOR(l.getBS(ySomeUp),r.getBS(ySomeUp));
+//                            });
+//      mdd.addRelaxation(zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)  noexcept      {
+//                                out.getBS(zSomeUp).setBinOR(l.getBS(zSomeUp),r.getBS(zSomeUp));
+//                            });
 
       // // This strategy has no impact on performance
       // mdd.splitOnLargest([=](const auto& in) {

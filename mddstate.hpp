@@ -566,8 +566,8 @@ class MDDPBitSequence : public MDDProperty {
       return (_ofs << 3) + storageSize();
    }
  public:
-   MDDPBitSequence(short id,unsigned short ofs,int nbbits,unsigned char init) // init = 0 | 1
-      : MDDProperty(id,ofs,8 * ((nbbits % 64) ? nbbits/64 + 1 : nbbits/64)),_nbBits(nbbits),_init(init)
+   MDDPBitSequence(short id,unsigned short ofs,int nbbits,unsigned char init,enum RelaxWith rw) // init = 0 | 1
+      : MDDProperty(id,ofs,8 * ((nbbits % 64) ? nbbits/64 + 1 : nbbits/64),rw),_nbBits(nbbits),_init(init)
    {}   
    void init(char* buf) const noexcept override {
       unsigned long long* ptr = reinterpret_cast<unsigned long long*>(buf + _ofs);
@@ -585,6 +585,11 @@ class MDDPBitSequence : public MDDProperty {
    }
    bool diff(char* buf,char* other) const noexcept  override {
       return getBS(buf) != getBS(other);
+   }
+   void minWith(char* buf,char* other) const noexcept override {
+      auto a = getBS(buf);
+      auto b = getBS(other);
+      a.setBinOR(a,b);
    }
    void stream(char* buf,std::ostream& os) const override {
       unsigned long long* words = reinterpret_cast<unsigned long long*>(buf + _ofs);
@@ -693,7 +698,7 @@ public:
    unsigned short startOfs(int p) const noexcept { return _attrs[p]->startOfs();}
    unsigned short endOfs(int p) const noexcept { return _attrs[p]->endOfs();}
    virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External);
-   virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init);
+   virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External);
    virtual int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
@@ -939,7 +944,7 @@ public:
    int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max,enum RelaxWith rw=External) {
       return addState(d,init,(int)max,rw);
    }
-   int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init) override;
+   int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External) override;
    int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External) override;
    void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
    void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
