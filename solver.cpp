@@ -35,7 +35,6 @@ CPSolver::~CPSolver()
    _store.dealloc();
    _sm.dealloc();
    std::cout << "CPSolver::~CPSolver(" << this << ")" << std::endl;
-   //Cont::shutdown();
 }
 
 void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
@@ -83,20 +82,8 @@ void CPSolver::fixpoint()
       while (!_queue.empty()) {
          _queue.deQueue()->setScheduled(false);
       }
-      //_queue.clear();
       assert(_queue.size() == 0);
       _nbf += 1;
       throw x;
    }
 }
-
-// [LDM] This is for debugging purposes. Don't include when using valgrind
-
-/*
-#if defined(__APPLE__)
-void* operator new  ( std::size_t count )
-{
-   return malloc(count);
-}
-#endif
-*/

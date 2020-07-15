@@ -113,6 +113,5 @@ inline void* operator new[](std::size_t sz,CPSolver::Ptr e)
    return e->_store->allocate(sz);
 }
 
-//void* operator new  ( std::size_t count );
 
 #endif

@@ -27,10 +27,6 @@ void TableCT::post()
 
 void TableCT::propagate()  // enforceGAC
 {
-   // std::cout << "all vars:" << std::endl;
-   // for (const auto& vp : _vars) {
-   //     std::cout << "\t" << vp << std::endl;
-   // }
    // calculate Sval
    int varIndex;
    _Sval.clear();
@@ -58,7 +54,6 @@ void TableCT::filterDomains()
 {
    int varIndex, valIndex, wIndex, iMin;
    for (const auto& vp : _Ssup) {
-      // std::cout << "currVar: " << vp << std::endl;
       varIndex = _entries.at(vp->getId()).getIndex();
       iMin = _entries.at(vp->getId()).getMin();
       for (int val = vp->min(); val < vp->max() + 1; val++) {
@@ -66,7 +61,6 @@ void TableCT::filterDomains()
          wIndex = _residues[varIndex][valIndex];
          if (wIndex == -1) {
             vp->remove(val);
-            // std::cout << "\tremoved " << val << " from " << vp << std::endl;
          }
          else {
             if ((_currTable[wIndex] & _supports[varIndex][valIndex][wIndex]) == 0) {
@@ -76,14 +70,12 @@ void TableCT::filterDomains()
                }
                else {
                   vp->remove(val);
-                  // std::cout << "\tremoved " << val << " from " << vp << std::endl;
                }
             }
          }
       }
       _lastSizes[varIndex] = vp->size();
    }
-   // std::cout << "-------------------------------------" << std::endl;
 }
 
 void TableCT::updateTable()

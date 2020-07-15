@@ -26,7 +26,6 @@ Storage::Segment::Segment(std::size_t tsz)
 Storage::Segment::~Segment()
 {
    delete []_base;
-   //std::cout << "Segment(" << _sz << ") deallocated" <<  std::endl;
 }
 
 Storage::Storage(Trailer::Ptr ctx,std::size_t defSize)
@@ -84,7 +83,6 @@ Pool::Pool(std::size_t defSize)
      _nbSeg(1),
      _mxs(32)
 {
-   //_store.push_back(std::make_shared<Pool::Segment>(_segSize));
    _store = new Segment*[_mxs];
    _store[0] = new Segment(_segSize);
 }

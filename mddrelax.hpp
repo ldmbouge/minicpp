@@ -186,7 +186,7 @@ class MDDRelax : public MDD {
    bool trimVariable(int i);
    bool filterKids(MDDNode* n,int l);
    int splitNode(MDDNode* n,int l,MDDSplitter& splitter);
-   int splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter,int equivalenceClassIndex);
+   int splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter);
    void splitLayers(); // delta is essentially an out argument. 
    int delState(MDDNode* state,int l); // return lowest layer where a deletion occurred.
    bool processNodeUp(MDDNode* n,int i); // i is the layer number
@@ -200,7 +200,6 @@ public:
    MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),int maxSplitIter = 5);
    void buildDiagram() override;
    void buildNextLayer(unsigned int i) override;
-   void relaxLayer(int i,unsigned int width);
    void propagate() override;
    void trimLayer(unsigned int layer) override;
    void debugGraph() override;

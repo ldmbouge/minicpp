@@ -28,7 +28,6 @@
 #include "bitset.hpp"
 
 class TableCT : public Constraint {
-   // typedef std::vector<bool> boolVec;  // acts as dynamically sized bitset
    class Entry {
       const int _index;
       const int _min;
@@ -43,7 +42,6 @@ class TableCT : public Constraint {
       int getMin() { return _min;}
       int getMax() {return _max;}
    };
-   //int                                                 _sz;
    std::map<int, Entry>                                _entries;
    std::vector<std::vector<StaticBitSet>>              _supports;
    std::vector<std::vector<int>>                       _table;
@@ -58,7 +56,6 @@ class TableCT : public Constraint {
 public:
    template <class Vec> TableCT(const Vec& x, const std::vector<std::vector<int>>& table)
       : Constraint(x[0]->getSolver()),
-        //_sz(table.size()),
         _table(table),
         _currTable(x[0]->getSolver()->getStateManager(), x[0]->getStore(), table.size())  // build SparseBitSet for vectors in table
    {

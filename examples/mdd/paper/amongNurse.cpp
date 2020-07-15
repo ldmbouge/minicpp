@@ -124,6 +124,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   auto start = RuntimeMonitor::cputime();
 
   auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance, relaxSize * maxSplitIterFactor);
+  mdd->getSpec().useApproximateEquivalence();
 
   if (mode == 0) {
     cout << "domain encoding of cumulative sums" << endl;
@@ -396,13 +397,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   SearchStatistics stat;
   int firstSolNumFail = 0;
 
-  search.onSolution([&cnt,&vars,&firstSolTime,&firstSolNumFail,&stat]() {
+  search.onSolution([&cnt,&firstSolTime,&firstSolNumFail,&stat]() {
                        ++cnt;
-                       //std::cout << "\rNumber of solutions:" << cnt << std::flush;
-                       //std::cout << "Assignment: [";
-                       //for (unsigned i=0u;i < vars.size()-1;i++)
-                       //  std::cout << vars[i]->min() << ",";
-                       //std::cout << vars[vars.size()-1]->min() <<  "]" << std::endl;
                        if (cnt == 1) {
                          firstSolTime = RuntimeMonitor::cputime();
                          firstSolNumFail = stat.numberOfFailures();

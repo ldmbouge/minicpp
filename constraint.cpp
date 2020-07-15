@@ -89,7 +89,6 @@ void EQTernBCbool::post()
      else if (_x->min() - _y->min() == 0) {
        _b->assign(false);
      } else {
-       // WVH: I assume this is how to enforce a failure and backtrack?
        throw Failure;
      }
    }
@@ -333,13 +332,6 @@ void IsMember::propagate()
 	setActive(false);
       }
     }
-
-  // std::cout << "leaving IsMember::propagate() with _b = ";
-  // if (_b->isTrue()) std::cout << "{1}";
-  // else if (_b->isFalse()) std::cout << "{0}";
-  // else std::cout << "{0,1}";
-  // std::cout <<  " and _x = " << _x << std::endl;
-
 }
 
 
@@ -623,7 +615,6 @@ Element2D::Element2D(const Matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,va
       _low(x->getSolver()->getStateManager(),0),
       _up(x->getSolver()->getStateManager(),_n * _m - 1)
 {
-    //_xyz.resize(_up + 1);
     for(int i=0;i < _matrix.size(0);i++)
         for(int j=0;j < _matrix.size(1);j++)
             _xyz.push_back(Triplet(i,j,_matrix[i][j]));

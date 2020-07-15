@@ -64,7 +64,6 @@ void MDDRelax::buildDiagram()
 
    for(auto i=0u;i < _width;i++)
       _afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz),sz);
-   //_afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz * _width),sz * _width);
    
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
@@ -79,7 +78,7 @@ void MDDRelax::buildDiagram()
    _refs.emplace_back(rootState);
    for(auto i = 0u; i < numVariables; i++) {
       buildNextLayer(i);
-      relaxLayer(i+1,std::min(1u,_width));//_width);
+      _refs.emplace_back(pickReference(i+1,(int)layers[i+1].size()).clone(mem));   
    }
    postUp();
    trimDomains();
@@ -89,138 +88,6 @@ void MDDRelax::buildDiagram()
    hookupPropagators();
 }
 
-
-// pairwise (k-means) based relaxation.
-/*
-void MDDRelax::relaxLayer(int i)
-{
-   _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
-   if (layers[i].size() <= _width)
-      return;   
-
-   std::mt19937 rNG;
-   rNG.seed(42);
-   std::vector<int>  cid(_width);
-   std::vector<MDDState> means(_width);
-   char* buf = new char[_mddspec.layoutSize() * _width];
-   std::vector<int> perm(layers[i].size());
-   std::iota(perm.begin(),perm.end(),0);
-   std::shuffle(perm.begin(),perm.end(),rNG);
-   int k = 0;
-   for(auto& mk : means) {
-      mk = MDDState(&_mddspec,buf + k * _mddspec.layoutSize());
-      cid[k] = perm[k];
-      mk.initState(layers[i][cid[k++]]->getState());
-   }
-   std::vector<int> asgn(layers[i].size());
-   const int nbIter = 1;
-   for(int ni=0;ni < nbIter;ni++) {
-      for(int j=0; j < layers[i].size();j++) {
-         double bestSim = std::numeric_limits<double>::max();
-         int    idx = -1;
-         const auto& ln = layers[i][j]->getState();
-         for(int c = 0;c < means.size();c++) {
-            double sim = _mddspec.similarity(ln,means[c]);
-            idx     = (bestSim < sim) ? idx : c;
-            bestSim = (bestSim < sim) ? bestSim : sim;
-         }
-         assert(j >= 0 && j < layers[i].size());
-         asgn[j] = idx;
-      }      
-   }
-   for(int j=0;j < asgn.size();j++) {
-      MDDNode* target = layers[i][cid[asgn[j]]];
-      MDDNode* strip = layers[i][j];
-      if (target != strip) {
-         _mddspec.relaxation(means[asgn[j]],layers[i][j]->getState());
-         means[asgn[j]].relax();
-         for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
-            auto arc = *i;
-            arc->moveTo(target,trail,mem);
-         }
-      }
-   }
-   std::vector<MDDNode*> nl(_width,nullptr);
-   for(int j=0;j < means.size();j++) {
-      nl[j] = layers[i][cid[j]];
-      nl[j]->setState(means[j],mem);
-   }
-   
-   layers[i].clear();
-   k = 0;
-   for(MDDNode* n : nl) {
-      layers[i].push_back(n,mem);
-      n->setPosition(k++,mem);
-   }
-   delete []buf;
-}
-*/
-
-// "inner product"  based relaxation.
-/*
-void MDDRelax::relaxLayer(int i,unsigned int width)
-{
-   _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
-   if (layers[i].size() <= width)
-      return;   
-   const int iSize = (int)layers[i].size();  
-   const MDDState& refDir = _refs[i];
-
-   std::vector<std::tuple<float,MDDNode*>> cl(iSize);
-   unsigned int k = 0;
-   for(auto& n : layers[i])
-      cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
-
-   // std::stable_sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
-   //                                         return std::get<0>(p1) < std::get<0>(p2);
-   //                                      });
-
-   const int bucketSize = iSize / width;
-   int   rem = iSize % width;
-   int   lim = bucketSize + ((rem > 0) ? 1 : 0);
-   rem = rem > 0 ? rem - 1 : 0;
-   int   from = 0;
-   char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
-   
-   std::multimap<float,MDDNode*,std::less<float> > cli;
-   std::vector<MDDNode*> nl;
-   for(k=0;k < width;k++) { // k is the bucket id
-      memset(buf,0,_mddspec.layoutSize());
-      MDDState acc(&_mddspec,buf);
-      MDDNode* target = std::get<1>(cl[from]);
-      acc.initState(target->getState());
-      for(from++; from < lim;from++) {
-         MDDNode* strip = std::get<1>(cl[from]);         
-         _mddspec.relaxation(acc,strip->getState());
-         acc.relaxDown();
-         for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) {
-            auto arc = *i;
-            arc->moveTo(target,trail,mem);
-         }
-      }
-      //acc.hash();
-      target->setState(acc,mem);
-
-      MDDNode* found = findMatch(cli,target->getState(),refDir);
-      if (found) {
-         for(auto i=target->getParents().rbegin();i != target->getParents().rend();i++)
-            (*i)->moveTo(found,trail,mem);
-      } else {
-         nl.push_back(target);
-         cli.insert({target->getState().inner(refDir),target});
-      }
-      lim += bucketSize + ((rem > 0) ? 1 : 0);
-      rem = rem > 0 ? rem - 1 : 0;
-   }
-   layers[i].clear();
-   k = 0;
-   for(MDDNode* n : nl) {
-      layers[i].push_back(n,mem);
-      n->setPosition(k++,mem);
-   }
-   //std::cout << "UMAP-RELAX[" << i << "] :" << layers[i].size() << '/' << iSize << '\n';
-}
-*/
 
 void MDDRelax::buildNextLayer(unsigned int i)
 {
@@ -254,50 +121,6 @@ void MDDRelax::buildNextLayer(unsigned int i)
    for(auto v : xv) 
       if (getSupport(i,v)==0)
          x[i]->remove(v);
-}
-
-
-void MDDRelax::relaxLayer(int i,unsigned int width)
-{
-   assert(width == 1);
-   _refs.emplace_back(pickReference(i,(int)layers[i].size()).clone(mem));   
-   // if (layers[i].size() <= width)
-   //    return;   
-   // const int iSize = (int)layers[i].size();  
-   // const MDDState& refDir = _refs[i];
-
-   // The 'cl' data-structure is, strictly speaking, not necessary. It gives a permutation of the
-   // node from most similar to least simiar to the chosen reference.
-   // This is _not_ helpful, since we are merging all of the nodes into a single one anyway. So the
-   // resulting state _must_ be the same. Yet, the parent list will have, as a result, a permutation of
-   // the arcs. And since splitting proceeds by pulling out arcs in order, the splitting will be different
-   // in the end. So I'm leaving this in place for now, but ultimately it should go.
-   
-   // std::vector<std::tuple<float,MDDNode*>> cl(iSize);
-   // int k=0;
-   // for(auto& n : layers[i])
-   //    cl[k++] = std::make_tuple(n->getState().inner(refDir),n);
-   // std::stable_sort(cl.begin(),cl.end(),[](const auto& p1,const auto& p2) {
-   //                                         return std::get<0>(p1) < std::get<0>(p2);
-   //                                      });
-
-
-   // char* buf = (char*)alloca(sizeof(char)*_mddspec.layoutSize());
-   // memset(buf,0,_mddspec.layoutSize());
-   // MDDState acc(&_mddspec,buf);
-   // MDDNode* target = std::get<1>(cl[0]);
-   // acc.initState(target->getState());
-   // for(auto k=1u;k < cl.size();k++) {
-   //    const auto& strip = std::get<1>(cl[k]);
-   //    _mddspec.relaxation(acc,strip->getState());
-   //    acc.relaxDown();
-   //    for(auto i = strip->getParents().rbegin();i != strip->getParents().rend();i++) 
-   //       (*i)->moveTo(target,trail,mem);      
-   //    target->setState(acc,mem);
-   // }
-   // layers[i].clear();
-   // layers[i].push_back(target,mem);
-   // target->setPosition(0,mem);
 }
 
 void MDDRelax::postUp()
@@ -473,14 +296,6 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
    MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSize()));
 
-   // static int nbTC = 0;
-   // static int nbDQ = 0;
-   // nbDQ++;
-   // nbTC += parentsChanged;
-   // if (nbDQ % 1000 == 0)
-   //    std::cout << ' ' << (double)nbTC / nbDQ << "\t " << _nf->peakNodes() << "\t " << nbDQ << '\n';
-
-   //std::cout << "STATE:" << changes <<  "\t PAR:" << (parentsChanged ? "T" : "F") << '\n';
    // Causes of "parentsChanged":
    // (1) arc removal, (2) arc addition to an existing parent, (3) arc addition to a new parent node.
    // Causes of changes != empty:
@@ -492,7 +307,6 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    if (parentsChanged) 
       isOk = fullStateDown(ms,cs,n,l);
    else  {
-      //std::cout << "PROPS:" << out << '\n';
       isOk = incrStateDown(out,ms,cs,n,l);
    }
 
@@ -573,16 +387,13 @@ public:
       for(auto& n : _layer)
          if (n->getState().isRelaxed() && n->getNumParents() > 1) {
             double key = (_mddspec.hasSplitRule()) ? _mddspec.splitPriority(*n) : (double)n->getPosition();
-            //std::cout << "A(" << key << "),";
             _pq.insert(PQValue { key, n});
          }
       _pq.buildHeap();
-      //std::cout << "buildHeap\n";
    }
    MDDNode* extractNode() {
       while (!_pq.empty()) {
          PQValue x = _pq.extractMax();
-         //std::cout << "X(" << x._key << ")\n";
          return x._val;
       }
       return nullptr;
@@ -753,7 +564,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
    _bwd->enQueue(n);
    return lowest;
 }
-int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter,int equivalenceClassIndex)
+int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
 {
    std::map<int,MDDState*> equivalenceClasses;
    std::multimap<int,MDDEdge::Ptr> arcsPerClass;
@@ -782,7 +593,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter,int equival
          a->moveTo(bj,trail,mem);            
       } else { // There is an approximate match
          // So, if there is room create a new node
-         int equivalenceValue = _mddspec.equivalenceValue(p->getState(),*ms,x[l-1],v,equivalenceClassIndex);
+         int equivalenceValue = _mddspec.equivalenceValue(p->getState(),*ms,x[l-1],v);
          if (equivalenceClasses.count(equivalenceValue)) {
             auto existing = equivalenceClasses.at(equivalenceValue);
             if (ms != existing) {
@@ -861,9 +672,12 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
          while (layer.size() < _width && lowest==l) {
             while(splitter.size() == 0)  {
                n = nSim.extractNode();
-               if (n) 
-                  lowest = splitNodeApprox(n,l,splitter,0);
-               else break;
+               if (n) {
+                  if (_mddspec.approxEquivalence())
+                     lowest = splitNodeApprox(n,l,splitter);
+                  else
+                     lowest = splitNode(n,l,splitter);
+               } else break;
             }
             if (lowest < l) break;
             splitter.process(layer,_width,trail,mem,
@@ -914,7 +728,6 @@ int MDDRelax::delState(MDDNode* node,int l)
          delSupport(l-1,arc->getValue());
          if (arc->getParent()->isActive())
             _bwd->enQueue(arc->getParent());
-         //removeArc(l-1,l,arc.get());
       }
       node->clearParents();
    }
@@ -925,7 +738,6 @@ int MDDRelax::delState(MDDNode* node,int l)
          delSupport(l,arc->getValue());
          if (arc->getChild()->isActive())
             _fwd->enQueue(arc->getChild());
-         //removeArc(l,l+1,arc.get());
       }
       node->clearChildren();
    }   
@@ -986,7 +798,6 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    _mddspec.updateNode(ms);
    bool dirty = (n->getState() != ms);
    if (dirty) {
-      //_delta->setDelta(n,ms);
       n->setState(ms,mem);
    }
    return dirty;
@@ -1026,8 +837,6 @@ void MDDRelax::computeDown(int iter)
                _fwd->enQueue(arc->getChild());
       } 
    }
-   // std::cout << "n/f:" << __nbn << '/' << __nbf << "\t ITER:" << iter << " \tHTS:" << _sf->size() 
-   //           << " scan:" << nbScans << " \tsplit:" << nbSplits << " \tM:" << (double)nbSplits/numVariables << std::endl;
 }
 
 void MDDRelax::computeUp()
@@ -1074,13 +883,10 @@ void MDDRelax::propagate()
          change = !_fwd->empty() || !_bwd->empty();
          for(int l=0;l < (int) numVariables;l++)
             trimVariable(l);
-         //if (iter % 100 == 0) std::cout << "looping in main fix\n";
-      } while (change);//  && iter <= 10);
-      //iterMDD += iter;
+      } while (change);
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
       setScheduled(false);
-      //std::cout << "FIX=" << iter << '\n';
   } catch(Status s) {
       queue.clear();
       setScheduled(false);

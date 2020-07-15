@@ -39,7 +39,7 @@ namespace Factory {
             
       spec.transitionDown(minWin,{minWin},
                           [values,minWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
-                             bool allMembers = val.allInside(values);//true;
+                             bool allMembers = val.allInside(values);
                              MDDSWin<short> outWin = out.getSW(minWin);
                              outWin.assignSlideBy(p.getSW(minWin),1);
                              outWin.setFirst(p.getSW(minWin).first() + allMembers);
@@ -56,7 +56,6 @@ namespace Factory {
 
    void seqMDD2(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
-      //const int nb = len*2;
       spec.append(vars);
       ValueSet values(rawValues);
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
@@ -166,7 +165,6 @@ namespace Factory {
                                     });
 
       spec.transitionUp(Ymax,{Ymax},[Ymax,values](auto& out,const auto& c,const auto& x,const auto& val,bool up) {
-                                       // std::cout << "entering Ymax Up at layer " << c[N] << " with values " << val;
                                        bool hasMemberOutS = val.memberOutside(values);
                                        int maxVal = std::min(out[Ymax], c[Ymax] - !hasMemberOutS);
                                        out.setInt(Ymax,maxVal);
@@ -178,7 +176,7 @@ namespace Factory {
                          if (n[N] >= len) {
                             auto Amin = n.getSW(AminWin);
                             auto Amax = n.getSW(AmaxWin);
-                            minVal = std::max(lb + Amin.last(),minVal);  // n.getWin(Amin).getLast()
+                            minVal = std::max(lb + Amin.last(),minVal);
                             maxVal = std::min(ub + Amax.last(),maxVal);
                          }
                          if (n[N] <= nbVars - len) {
@@ -213,18 +211,6 @@ namespace Factory {
                              return (double)(in.getState()[Exact]);
                           });
 
-      //      spec.splitOnLargest([Exact,Ymin,Ymax,AminWin,DmaxWin,lb,ub,nbVars](const auto& in) {
-
-                             // return (double)std::max(lb+in.getState()[AminL]-in.getState()[Ymin],0);
-      //                     return (double)(in.getState()[Exact]);
-	  // return -(double)(in.getState()[Ymax]-in.getState()[Ymin]);
-	  // return -(double)(in.getState()[Ymin]);
-	  // return -(double)(in.getNumParents());
-	  /** bad performance **
-	  // return (double)(std::max(lb+in.getState()[AminL]-in.getState()[Ymin],0)+
-	  // 		  std::max(in.getState()[DmaxL]-lb-in.getState()[Ymin],0));
-	  **/	  
-      //});      
       spec.equivalenceClassValue([Ymin,Ymax](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
          return c[Ymax] - c[Ymin] < 4;
       });

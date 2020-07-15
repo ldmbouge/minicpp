@@ -36,14 +36,12 @@ namespace Factory {
                                out.setProp(all,in);
                                if (val.size()==1)
                                   out.getBS(all).set(val.singleton() - minDom);
-                               //out.setBS(all,in.getBS(all)).set(val - minDom);
                             });
       mdd.transitionDown(some,{some},[minDom,some](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
                                 out.setProp(some,in);
                                 MDDBSValue sv(out.getBS(some));
                                 for(auto v : val)
                                    sv.set(v - minDom);
-                                //out.setBS(some,in.getBS(some)).set(val - minDom);
                             });
       mdd.transitionDown(len,{len},[len](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
                                       out.set(len,in[len] + 1);
@@ -90,26 +88,8 @@ namespace Factory {
                       }
                       return !mixNotOk;
                    });
-      mdd.addSimilarity(all,[all](const auto& l,const auto& r) -> double {
-                               MDDBSValue lv = l.getBS(all);
-                               MDDBSValue tmp((char*)alloca(sizeof(char)*l.byteSize(all)),lv.nbWords());
-                               tmp.setBinXOR(lv,r.getBS(all));
-                               return tmp.cardinality();
-                            });
-      mdd.addSimilarity(some,[some](const auto& l,const auto& r) -> double {
-                               MDDBSValue lv = l.getBS(some);
-                               MDDBSValue tmp((char*)alloca(sizeof(char)*l.byteSize(some)),lv.nbWords());
-                               tmp.setBinXOR(lv,r.getBS(some));
-                               return tmp.cardinality();
-                            });
-      mdd.addSimilarity(len,[](const auto& l,const auto& r) -> double {
-                               return 0;
-                            });
-      mdd.equivalenceClassValue([minDom,some,someu,all,allu,len,n](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+      mdd.equivalenceClassValue([some,all,len](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
           return (c.getBS(some).cardinality() - c.getBS(all).cardinality() < p[len]/2);
-          //return p.getBS(some).getBit(val - minDom) + 2 * c.getBS(someu).getBit(val-minDom);
-          //return (p.getBS(some).cardinality() - p.getBS(all).cardinality() > 3) +
-          //     2*(c.getBS(someu).cardinality() - c.getBS(allu).cardinality() > 3);
       });
    }
 }
