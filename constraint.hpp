@@ -143,7 +143,6 @@ public:
 
 class Sum : public Constraint { // s = Sum({x0,...,xk})
    Factory::Veci _x;
-   //std::vector<var<int>::Ptr> _x;
    trail<int>    _nUnBounds;
    trail<int>    _sumBounds;
    unsigned int _n;
@@ -151,7 +150,6 @@ class Sum : public Constraint { // s = Sum({x0,...,xk})
 public:
    template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
       : Constraint(s->getSolver()),
-        //_x(x.size() + 1),
         _x(x.size() + 1,Factory::alloci(s->getStore())), 
         _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
         _sumBounds(s->getSolver()->getStateManager(),0),
@@ -336,14 +334,12 @@ namespace Factory {
       x->assign(c);
       cp->fixpoint();
       return nullptr;
-      //return new (x->getSolver()) EQc(x,c);
    }
    inline Constraint::Ptr operator!=(var<int>::Ptr x,int c) {
       auto cp = x->getSolver();
       x->remove(c);
       cp->fixpoint();
       return nullptr;
-      //return new (x->getSolver()) NEQc(x,c);
    }
    inline Constraint::Ptr inside(var<int>::Ptr x,std::set<int> S) {
       auto cp = x->getSolver();

@@ -25,8 +25,6 @@ protected:
     friend class CPSolver;
 public:
     typedef handle_ptr<AVar> Ptr;
-    //AVar() {}
-    //virtual ~AVar() {}
 };
 
 

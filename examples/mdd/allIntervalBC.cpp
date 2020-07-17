@@ -308,26 +308,6 @@ namespace Factory {
 	}
 	return true;
       });
-      
-      // mdd.addRelaxation(xMin,[xMin](auto& out,const auto& l,const auto& r) { out.set(xMin,std::min(l.at(xMin), r.at(xMin)));});
-      // mdd.addRelaxation(xMax,[xMax](auto& out,const auto& l,const auto& r) { out.set(xMax,std::max(l.at(xMax), r.at(xMax)));});
-      // mdd.addRelaxation(yMin,[yMin](auto& out,const auto& l,const auto& r) { out.set(yMin,std::min(l.at(yMin), r.at(yMin)));});
-      // mdd.addRelaxation(yMax,[yMax](auto& out,const auto& l,const auto& r) { out.set(yMax,std::max(l.at(yMax), r.at(yMax)));});
-      // mdd.addRelaxation(yMinUp,[yMinUp](auto& out,const auto& l,const auto& r) { out.set(yMinUp,std::min(l.at(yMinUp), r.at(yMinUp)));});
-      // mdd.addRelaxation(yMaxUp,[yMaxUp](auto& out,const auto& l,const auto& r) { out.set(yMaxUp,std::max(l.at(yMaxUp), r.at(yMaxUp)));});
-      // mdd.addRelaxation(zMinUp,[zMinUp](auto& out,const auto& l,const auto& r) { out.set(zMinUp,std::min(l.at(zMinUp), r.at(zMinUp)));});
-      // mdd.addRelaxation(zMaxUp,[zMaxUp](auto& out,const auto& l,const auto& r) { out.set(zMaxUp,std::max(l.at(zMaxUp), r.at(zMaxUp)));});
-      // mdd.addRelaxation(N,[N](auto& out,const auto& l,const auto& r) { out.set(N,std::min(l.at(N),r.at(N)));});
-
-      mdd.addSimilarity(xMin,[xMin](auto l,auto r) -> double { return abs(l.at(xMin) - r.at(xMin)); });
-      mdd.addSimilarity(xMax,[xMax](auto l,auto r) -> double { return abs(l.at(xMax) - r.at(xMax)); });
-      mdd.addSimilarity(yMin,[yMin](auto l,auto r) -> double { return abs(l.at(yMin) - r.at(yMin)); });
-      mdd.addSimilarity(yMax,[yMax](auto l,auto r) -> double { return abs(l.at(yMax) - r.at(yMax)); });
-      mdd.addSimilarity(yMinUp,[yMinUp](auto l,auto r) -> double { return abs(l.at(yMinUp) - r.at(yMinUp)); });
-      mdd.addSimilarity(yMaxUp,[yMaxUp](auto l,auto r) -> double { return abs(l.at(yMaxUp) - r.at(yMaxUp)); });
-      mdd.addSimilarity(zMinUp,[zMinUp](auto l,auto r) -> double { return abs(l.at(zMinUp) - r.at(zMinUp)); });
-      mdd.addSimilarity(zMaxUp,[zMaxUp](auto l,auto r) -> double { return abs(l.at(zMaxUp) - r.at(zMaxUp)); });
-      mdd.addSimilarity(N,[N](auto l,auto r) -> double { return abs(l.at(N) - r.at(N)); });
   }
 
 }

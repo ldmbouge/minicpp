@@ -118,12 +118,6 @@ template<class B> std::function<Branches(void)> land(std::initializer_list<B> al
           };
 }
 
-/*
-template <class B0,class B1> inline Branches operator|(B0 b0,B1 b1) {
-   return Branches({b0,b1});
-}
-*/
-
 inline Branches operator|(std::function<void(void)> b0, std::function<void(void)> b1) {
     return Branches({ b0,b1 });
 }

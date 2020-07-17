@@ -133,7 +133,8 @@ for p in pt:
   added = p[1]
 
 tests = [
-         Test("amongNurse", "amongNurse", generateAmongNurseConstraints, [('w', [1,2,4,8,16,32,64]), ('m', [1]), ('r', [0,2,4,8,1000000]), ('i', [1,5,10,1000000]), ('c', [1,2,3]), ('h', [80])], [0,4]),
+         Test("amongNurse", "amongNurse", generateAmongNurseConstraints, [('w', [2,4,8,16,32,64]), ('m', [1]), ('r', ['0']), ('i', [5]), ('c', [1,2,3]), ('h', [40])], [0,4]),
+         #Test("amongNurse", "amongNurse", generateAmongNurseConstraints, [('w', [1,2,4,8,16,32,64]), ('m', [1,2,3]), ('r', [1000000]), ('i', [-1]), ('c', [1,2,3]), ('h', [80])], [0,4]),
          #Test("amongNurseAllSolC2", "amongNurse", generateAmongNurseConstraints, [('w', [1,2,4,8,16,32,64]), ('m', [0,1]), ('r', [0]), ('i', [1]), ('c', [2]), ('h', [80])], [0,4]),
          #Test("amongNurseAllSolC2", "amongNurse", generateAmongNurseConstraints, [('w', [1,2,4,8,16,32,64]), ('m', [0,1]), ('r', [1000000]), ('i', [1000000]), ('c', [2]), ('h', [80])], [0,4]),
          #Test("allInterval", "allInterval", generateAllIntervalConstraints, [('n', [11]), ('w', [1,2,4,8,16,32,64]), ('m', range(4)), ('r', [0,2,4,8,1000000]), ('i', [1,5,10,1000000])], [0,1]),

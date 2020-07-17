@@ -55,13 +55,11 @@ namespace Factory {
       for(ORInt i = minFDom; i <= minLDom; i++){
          int p = ps[i];
          spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
-         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::min(l.at(p),r.at(p));});
       }
 
       for(ORInt i = maxFDom; i <= maxLDom; i++){
          int p = ps[i];
          spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
-         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::max(l.at(p),r.at(p));});
       }
    }
 
@@ -155,25 +153,21 @@ namespace Factory {
       for(ORInt i = minFDom; i <= minLDom; i++){
          int p = ps[i];
          spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
-         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::min(l.at(p),r.at(p));});
       }
 
       for(ORInt i = maxFDom; i <= maxLDom; i++){
          int p = ps[i];
          spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
-         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::max(l.at(p),r.at(p));});
       }
 
       for(ORInt i = minFDomUp; i <= minLDomUp; i++){
 	 int p = ps[i];
          spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
-         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::min(l.at(p),r.at(p));});
       }
 
       for(ORInt i = maxFDomUp; i <= maxLDomUp; i++){
          int p = ps[i];
          spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
-         spec.addSimilarity(p,[p](auto l,auto r)->double{return std::max(l.at(p),r.at(p));});
       }
    }
    

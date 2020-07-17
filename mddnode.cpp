@@ -39,7 +39,6 @@ MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int domSize,int layer,int l
    } else {
       MDDNode* retVal = new (_mem) MDDNode(_lastID++,_mem,_trailer,ms.clone(_mem),domSize,layer,layerSize);
       _peakID = std::max(_peakID,_lastID.value());
-      //std::cout  << "#Nodes: " << _peakID << '\n';
       return retVal;
    }
 }
@@ -193,6 +192,16 @@ double MDDSpec::splitPriority(const MDDNode& n) const
    for(const auto& sf : _onSplit)
       ttl += sf(n);
    return ttl;
+}
+
+int MDDSpec::equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value)
+{
+   int eValue = 0;
+   for (auto ev : _equivalenceValue) {
+      eValue *= 4;
+      eValue += ev(parent,child,var,value);
+   }
+   return eValue;
 }
 
 void MDDEdge::remove(MDD* mdd)

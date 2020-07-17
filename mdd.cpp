@@ -1,4 +1,4 @@
- //
+//
 //  mdd.cpp
 //  minicpp
 //
@@ -126,7 +126,6 @@ void MDD::buildNextLayer(unsigned int i)
       if (getSupport(i,v) == 0)
          x[i]->remove(v);
    }
-   //std::cout << "UMAP[" << i << "] :" << umap.size() << std::endl;
 }
 
 void MDD::addNodeToLayer(int layer,MDDNode* n,int forValue)
@@ -173,8 +172,8 @@ void MDD::hookupPropagators()
 void MDD::buildDiagram()
 {
    // Generate Root and Sink Nodes for MDD
-   _mddspec.varOrder();
    _mddspec.layout();
+   _mddspec.compile();
    std::cout << _mddspec << std::endl;
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);

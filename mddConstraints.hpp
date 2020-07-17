@@ -50,7 +50,6 @@ namespace Factory {
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub);
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, var<int>::Ptr z);
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z);
-   // void absDiffMDD(MDDSpec& mdd, const Factory::Veci& vars);
    inline void seqMDD2(MDDSpec& spec,const Factory::Vecb& vars, int len, int lb, int ub, std::set<int> rawValues) {
       Factory::Veci v2(vars.size(),Factory::alloci(vars[0]->getStore()));
       for(auto i=0u;i < vars.size();i++) v2[i] = vars[i];

@@ -117,18 +117,6 @@ void EQAbsDiffBC::post()
      	  _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
      	});
 
-      // _z->whenBoundsChange([this] {
-      // 	 interval v1(-INT_MAX,INT_MAX);
-      // 	 interval v3(-INT_MAX,INT_MAX);
-      // 	 interval X(_x->min(), _x->max());
-      // 	 interval Y(_y->min(), _y->max());
-      // 	 interval Z(_z->min(), _z->max());
-      // 	 bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-      // 	 if (!check) { throw Failure; }
-      // 	  _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
-      // 	  _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
-      // 	});
-
       // Applying domain consistency to x and y when Dom(z) changes seems to mimick the Puget&Regin approach.
       _z->whenDomainChange([this] {
 	  for (int x=_x->min(); x<=_x->max(); x++) {
@@ -281,30 +269,18 @@ namespace Factory {
 	return true;
       });
       
-     // mdd.addRelaxation(xSome,[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
-     //                            out.getBS(xSome).setBinOR(l.getBS(xSome),r.getBS(xSome));
-     //                         });
-//      mdd.addRelaxation(ySome,[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
-//                                out.getBS(ySome).setBinOR(l.getBS(ySome),r.getBS(ySome));
-//                            });
-//      mdd.addRelaxation(ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)  noexcept     {
-//                                out.getBS(ySomeUp).setBinOR(l.getBS(ySomeUp),r.getBS(ySomeUp));
-//                            });
-//      mdd.addRelaxation(zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)  noexcept      {
-//                                out.getBS(zSomeUp).setBinOR(l.getBS(zSomeUp),r.getBS(zSomeUp));
-//                            });
-
-      // // This strategy has no impact on performance
-      // mdd.splitOnLargest([=](const auto& in) {
-      // 	  if (in.getState()[N] == 1) {
-      // 	    MDDBSValue xVals = in.getState().getBS(xSome);
-      // 	    return -(double) xVals.cardinality();
-      // 	  } else if (in.getState()[N] == 2) {
-      // 	    MDDBSValue yVals = in.getState().getBS(ySome);
-      // 	    return -(double) yVals.cardinality();
-      // 	  } else
-      // 	    return (double)0;
-      // 	});
+      mdd.addRelaxation(xSome,[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
+                                out.getBS(xSome).setBinOR(l.getBS(xSome),r.getBS(xSome));
+                            });
+      mdd.addRelaxation(ySome,[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
+                                out.getBS(ySome).setBinOR(l.getBS(ySome),r.getBS(ySome));
+                            });
+      mdd.addRelaxation(ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)  noexcept     {
+                                out.getBS(ySomeUp).setBinOR(l.getBS(ySomeUp),r.getBS(ySomeUp));
+                            });
+      mdd.addRelaxation(zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)  noexcept      {
+                                out.getBS(zSomeUp).setBinOR(l.getBS(zSomeUp),r.getBS(zSomeUp));
+                            });
   }
 }
 
@@ -375,6 +351,7 @@ int main(int argc,char* argv[])
    
    
    auto mdd = new MDDRelax(cp,width,maxRebootDistance,maxSplitIter);
+   //mdd->getSpec().useApproximateEquivalence();
 
    if (mode == 0) {
      cout << "domain encoding with equalAbsDiff constraint" << endl;
@@ -431,7 +408,6 @@ int main(int argc,char* argv[])
      Factory::allDiffMDD(mdd->getSpec(),xVars);
      Factory::allDiffMDD(mdd->getSpec(),yVars);
      cp->post(mdd);
-     // mdd->saveGraph();
    }
    if ((mode < 0) || (mode > 3)) {
      cout << "Exit: specify a mode in {0,1,2,3}:" << endl;
@@ -449,11 +425,6 @@ int main(int argc,char* argv[])
        for(i=0u;i < xVars.size();i++)
        	if (xVars[i]->size()> 1) break;
        auto x = i< xVars.size() ? xVars[i] : nullptr;
-       
-       // // Fail first
-       // auto x = selectMin(xVars,
-       // 			  [](const auto& x) { return x->size() > 1;},
-       //                    [](const auto& x) { return x->size();});
 
       if (x) {
 	
@@ -478,16 +449,6 @@ int main(int argc,char* argv[])
    search.onSolution([&cnt,&firstSolTime,&firstSolNumFail,&stat]() {
        cnt++;
        firstSolTime = RuntimeMonitor::cputime();
-       //std::cout << "\rNumber of solutions:" << cnt << std::flush;
-       //std::cout << "Assignment: [";
-       //for (unsigned i=0u;i < xVars.size();i++)
-       //  std::cout << xVars[i]->min() << ",";
-       //for (unsigned i=0u;i < yVars.size()-1;i++)
-       //  std::cout << yVars[i]->min() << ",";
-       //std::cout << yVars[yVars.size()-1]->min() <<  "]" << std::endl;
-       // cout << endl;
-       // std::cout << "x = " << xVars << endl;
-       // std::cout << "y = " << yVars << endl;
        if (cnt == 1) {
          firstSolTime = RuntimeMonitor::cputime();
          firstSolNumFail = stat.numberOfFailures();
@@ -497,9 +458,7 @@ int main(int argc,char* argv[])
       
   stat = search.solve([&stat](const SearchStatistics& stats) {
                               stat = stats;
-                              //return stats.numberOfNodes() > 1;
                               return stats.numberOfSolutions() > INT_MAX;
-                              //return stats.numberOfSolutions() > 0;
     });
 
    auto end = RuntimeMonitor::cputime();
@@ -538,42 +497,4 @@ int main(int argc,char* argv[])
    std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
    std::cout << "\t}\n";  
    std::cout << "}\n}";
-
-   //cp.dealloc();
 }
- 
-
-
-
-
-// /*** Domain (bounds) propagation for AbsDiff constraint ***/
-// bool propagateExpression(interval &_x, interval &_y, interval &_z, interval &v1, interval &v3) {
-
-//   /*** 
-//    * Apply interval propagation to expression [z] = [Abs[ [[x] - [y]] ]] :
-//    * First propagate x, y, z bounds 'up' through to intersect [z] == [v3]
-//    * Then propagate the intervals 'down' back to x, y, z: this done in 
-//    * constraint, based on v1 and v3.
-//    ***/
-  
-//   // Up-propagate:
-//   v1->min = _x->min - _y->max;
-//   v1->max = _x->max - _y->min;
-//   interval v2(0, 0);
-//   int v2min = 0;
-//   if (!((v1max >= 0) && (v1min<=0)))
-//     v2min = std::min(std::abs(v1min), std::abs(v1max));
-//   int v2max = std::max(std::abs(v1min), std::abs(v1max));
-//   v3min = std::max(_z->min(), v2min);
-//   v3max = std::min(_z->max(), v2max);
-  
-//   // Down-propagate for v1, v2, v3 (their bounds will be used for x, y, z):
-//   v2min = std::max(v2min, v3min);
-//   v2max = std::min(v2max, v3max);
-//   v1min = std::max(v1min, -v2max);
-//   v1max = std::min(v1max, v2max);
-  
-//   if ((v1max < v1min) || (v2max < v2min) || (v3max < v3min))
-//     return false;
-//   return true;
-// }

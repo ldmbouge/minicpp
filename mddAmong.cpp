@@ -28,7 +28,7 @@ namespace Factory {
       const int maxC = mdd.addState(d,0,INT_MAX,MaxFun);
       const int rem  = mdd.addState(d,(int)x.size(),INT_MAX,MaxFun);
       mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,auto var,const auto& val,bool) -> bool {
-                        bool vinS = tv == val;// values.member(val);
+                        bool vinS = tv == val;
                         return (p[minC] + vinS <= ub) &&
                            ((p[maxC] + vinS +  p[rem] - 1) >= lb);
                      });         
@@ -45,9 +45,6 @@ namespace Factory {
                                        out.setInt(rem,p[rem] - 1);
                                     });
        
-      mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l[minC] - r[minC]); });
-      mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l[maxC] - r[maxC]); });
-      mdd.addSimilarity(rem ,[] (auto l,auto r) -> double { return 0; });
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
@@ -61,7 +58,7 @@ namespace Factory {
       if (rawValues.size() == 1) {
          int tv = *rawValues.cbegin();
          mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& p,const auto& c,auto var, const auto& val,bool) -> bool {
-                           bool vinS = tv == val;// values.member(val);
+                           bool vinS = tv == val;
                            return (p[minC] + vinS <= ub) &&
                               ((p[maxC] + vinS +  p[rem] - 1) >= lb);
                         });         
@@ -91,9 +88,6 @@ namespace Factory {
                              });
       mdd.transitionDown(rem,{rem},[rem] (auto& out,const auto& p,const auto& x,const auto& val,bool up) { out.setInt(rem,p[rem] - 1);});
 
-      mdd.addSimilarity(minC,[minC](auto l,auto r) -> double { return abs(l[minC] - r[minC]); });
-      mdd.addSimilarity(maxC,[maxC](auto l,auto r) -> double { return abs(l[maxC] - r[maxC]); });
-      mdd.addSimilarity(rem ,[] (auto l,auto r) -> double { return 0; });
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
@@ -148,9 +142,14 @@ namespace Factory {
 	    return (p.at(L) + values.member(val) <= ub);
       });
 
-      mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
-	  return -(double)(in.getState().at(U)-in.getState().at(L));
-	});
+      mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+         return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
+                  (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
+                         });
+      mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+          return (lb - (c.at(L) + c.at(Lup)) > 3) +
+               2*(ub - (c.at(U) + c.at(Uup)) > 3);
+      });
    }
   
    void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues) {
@@ -183,7 +182,7 @@ namespace Factory {
                                  });
 
       mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
-                        bool vinS = tv == val;//values.member(val);
+                        bool vinS = tv == val;
                         if (up) {
                            return ((p[U] + vinS + c[Uup] >= lb) &&
                                    (p[L] + vinS + c[Lup] <= ub));
@@ -191,18 +190,13 @@ namespace Factory {
                            return (p[L] + vinS <= ub);
       });
 
-      // This function needs an 'up' flag?
-      // mdd.nodeExist(d,[=](const auto& n) {
-      // 	  return ( (n.at(L) + n.at(Lup) >= lb) &&
-      // 		   (n.at(U) + n.at(Uup) <= ub));
-      // 	});
-
-      //mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
-
-      mdd.splitOnLargest([lb,L,Lup,U](const auto& in) {
-                            return -(double)(in.getState().at(U)-in.getState().at(L));
-      //     //return (double)(std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0));
-                            return 0.0;                            
+      mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+         return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
+                  (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
                          });
+      mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+          return (lb - (c.at(L) + c.at(Lup)) > 3) +
+               2*(ub - (c.at(U) + c.at(Uup)) > 3);
+      });
    }
 }

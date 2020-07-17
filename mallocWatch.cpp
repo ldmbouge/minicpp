@@ -50,7 +50,6 @@ void * my_malloc(malloc_zone_t *zone, size_t size)
    size_t als = malloc_size(ptr);
    nbBytes += als;
    peakBytes = nbBytes > peakBytes ? nbBytes : peakBytes;
-   //printf("%p = malloc(zone=%p, size=%lu sizea=%lu now=%ld peak=%ld)\n", ptr, zone,size, als,nbBytes,peakBytes);
    return ptr;
 }
 
@@ -60,7 +59,6 @@ void * my_valloc(malloc_zone_t *zone, size_t size)
    size_t als = malloc_size(ptr);
    nbBytes += als;
    peakBytes = nbBytes > peakBytes ? nbBytes : peakBytes;
-   //printf("%p = malloc(zone=%p, size=%lu sizea=%lu now=%ld peak=%ld)\n", ptr, zone,size, als,nbBytes,peakBytes);
    return ptr;
 }
 
@@ -86,14 +84,12 @@ void my_free(malloc_zone_t *zone, void *ptr)
 {
    size_t toFree = malloc_size(ptr);
    nbBytes -= toFree;
-   //printf("free(zone=%p, ptr=%p  toFree=%lu  now=%ld peak=%ld)\n", zone, ptr,toFree,nbBytes,peakBytes);
    system_free(zone, ptr);
 }
 
 void my_free_definite_size(malloc_zone_t * zone, void *ptr , size_t sz)
 {
    nbBytes -= sz;
-   //printf("free_definite_size(zone=%p, ptr=%p  toFree=%lu  now=%ld peak=%ld)\n", zone, ptr,sz,nbBytes,peakBytes);
    system_free_definite_size(zone, ptr,sz);
 }
 

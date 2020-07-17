@@ -62,7 +62,6 @@ public:
 class IntVarImpl :public var<int> { 
    CPSolver::Ptr           _solver;
    BitDomain::Ptr             _dom;
-   //SparseSetDomain::Ptr       _dom;  // used to be BitDomain::Ptr
    trailList<Constraint::Ptr> _onBindList;
    trailList<Constraint::Ptr> _onBoundsList;
    trailList<Constraint::Ptr> _onDomList;
@@ -79,7 +78,6 @@ class IntVarImpl :public var<int> {
 public:
    IntVarImpl(CPSolver::Ptr& cps,int min,int max);
    IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
-   //~IntVarImpl();
    Storage::Ptr getStore() override   { return _solver->getStore();}
    CPSolver::Ptr getSolver() override { return _solver;}
    int min() const override { return _dom->min();}
@@ -106,8 +104,6 @@ public:
             os << min();
         else
             os << "x_" << getId() << '(' << *_dom << ')';
-        //os << "\n\tonBIND  :" << x._onBindList << std::endl;
-        //os << "\tonBOUNDS:" << x._onBoundsList << std::endl;
         return os;
     }
 };
@@ -278,7 +274,6 @@ public:
 namespace Factory {
    using alloci = stl::StackAdapter<var<int>::Ptr,Storage::Ptr>;
    using allocb = stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>;
-   //using Veci   = std::vector<var<int>::Ptr,alloci>;
    using Veci   = EVec<var<int>::Ptr,alloci>;
    using Vecb   = EVec<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);

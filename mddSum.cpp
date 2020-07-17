@@ -66,7 +66,6 @@ namespace Factory {
                                 for(int v : val)
                                    delta = std::min(delta,coef*v);
                                 out.setInt(minW, p[minW] + delta);
-                                //out.setInt(minW, p[minW] + array[p[len]]*val);
                              });
       mdd.transitionDown(maxW,{len,maxW},[maxW,array,len] (auto& out,const auto& p,const auto& var, const auto& val,bool up) {
                                 int delta = std::numeric_limits<int>::min();
@@ -74,7 +73,6 @@ namespace Factory {
                                 for(int v : val)
                                    delta = std::max(delta,coef*v);
                                 out.setInt(maxW, p[maxW] + delta);
-                                //out.setInt(maxW, p[maxW] + array[p[len]]*val);
                              });
 
       mdd.transitionUp(minWup,{len,minWup},[minWup,array,len] (auto& out,const auto& in,const auto& var, const auto& val,bool up) {
@@ -105,12 +103,6 @@ namespace Factory {
       mdd.addRelaxation(minWup,[minWup](auto& out,const auto& l,const auto& r) { out.setInt(minWup,std::min(l[minWup], r[minWup]));});
       mdd.addRelaxation(maxWup,[maxWup](auto& out,const auto& l,const auto& r) { out.setInt(maxWup,std::max(l[maxWup], r[maxWup]));});
       mdd.addRelaxation(len, [len](auto& out,const auto& l,const auto& r)  { out.setInt(len,std::max(l[len],r[len]));});
-
-      mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
-      mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
-      mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l.at(minWup) - r.at(minWup)); });
-      mdd.addSimilarity(maxWup,[maxWup](auto l,auto r) -> double { return abs(l.at(maxWup) - r.at(maxWup)); });
-      mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
   }
 
   void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, var<int>::Ptr z) {
@@ -190,12 +182,6 @@ namespace Factory {
       mdd.transitionDown(len,{len},[len](auto& out,const auto& p,const auto& var, const auto& val,bool up) {
                                 out.setInt(len,p[len] + 1);
                              });      
-
-      mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
-      mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
-      mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l[minWup] - r[minWup]); });
-      mdd.addSimilarity(maxWup,[maxWup](auto l,auto r) -> double { return abs(l[maxWup] - r[maxWup]); });
-      mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
   }  
 
   void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z) {
@@ -252,7 +238,6 @@ namespace Factory {
                                 for(int v : val)
                                    delta = std::min(delta,row[v]);
                                 out.setInt(minW,p[minW] + delta);
-                                //out.setInt(minW, p[minW] + matrix[p[len]][val]);
                              });
       mdd.transitionDown(maxW,{len,maxW},[maxW,matrix,len] (auto& out,const auto& p,const auto& var,const auto& val,bool up) {
                                 int delta = std::numeric_limits<int>::min();
@@ -260,7 +245,6 @@ namespace Factory {
                                 for(int v : val)
                                    delta = std::max(delta,row[v]);
                                 out.setInt(maxW,p[maxW] + delta);
-                                //out.setInt(maxW, p[maxW] + matrix[p[len]][val]);
                              });
 
       mdd.transitionUp(minWup,{len,minWup},[minWup,matrix,len] (auto& out,const auto& in,const auto& var,const auto& val,bool up) {
@@ -270,7 +254,6 @@ namespace Factory {
                                      for(int v : val)
                                         delta = std::min(delta,row[v]);
                                      out.setInt(minWup, in[minWup] + delta);
-                                     //out.setInt(minWup, in[minWup] + matrix[in[len]-1][val]);
                                   }
                                });
       mdd.transitionUp(maxWup,{len,maxWup},[maxWup,matrix,len] (auto& out,const auto& in,const auto& var,const auto& val,bool up) {
@@ -280,7 +263,6 @@ namespace Factory {
                                      for(int v : val)
                                         delta = std::max(delta,row[v]);
                                      out.setInt(maxWup, in[maxWup] + delta);
-                                     //out.setInt(maxWup, in[maxWup] + matrix[in[len]-1][val]);
                                   }
                                });
       
@@ -293,11 +275,5 @@ namespace Factory {
                      });
 
       mdd.splitOnLargest([minW](const auto& in) { return in.getState()[minW];});
-
-      mdd.addSimilarity(minW,[minW](auto l,auto r) -> double { return abs(l.at(minW) - r.at(minW)); });
-      mdd.addSimilarity(maxW,[maxW](auto l,auto r) -> double { return abs(l.at(maxW) - r.at(maxW)); });
-      mdd.addSimilarity(minWup,[minWup](auto l,auto r) -> double { return abs(l[minWup] - r[minWup]); });
-      mdd.addSimilarity(maxWup,[maxWup](auto l,auto r) -> double { return abs(l[maxWup] - r[maxWup]); });
-      mdd.addSimilarity(len ,[] (auto l,auto r) -> double { return 0; }); 
   }
 }

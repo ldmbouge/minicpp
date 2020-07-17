@@ -50,7 +50,9 @@ MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& 
 {}
 
 MDDSpec::MDDSpec()
-{}
+{
+    _approximateSplitting = false;
+}
 
 void MDDSpec::varOrder()
 {
@@ -158,6 +160,14 @@ void MDDSpec::splitOnLargest(SplitFun onSplit)
 {
    _onSplit.emplace_back(onSplit);
 }
+void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue)
+{
+   _equivalenceValue.emplace_back(equivalenceValue);
+}
+int MDDSpec::numEquivalenceClasses()
+{
+   return _equivalenceValue.size();
+}
 
 void MDDSpec::updateNode(MDDState& a) const noexcept
 {
@@ -237,16 +247,6 @@ void MDDSpec::transitionUp(int p,std::set<int> sp,lambdaTrans t)
          _uptrans.emplace_back(std::move(t));
          break;
       }     
-}
-
-void MDDSpec::addSimilarity(int p,lambdaSim s)
-{
-   for(auto& cd : constraints)
-      if (cd->ownsProperty(p)) {
-         cd->registerSimilarity((int)_similarity.size());
-         break;
-      }  
-   _similarity.emplace_back(std::move(s));
 }
 
 void MDDSpec::transitionDown(const lambdaMap& map)
@@ -359,7 +359,6 @@ void MDDSpec::compile()
       for(int s=0;s < _nbp;s++) {
          const auto& ants = _attrs[s]->antecedents();
          if (ants.find(p)!= ants.end()) {
-            //std::cout << "add(" << s << ") to " << p << " " <<  out << '\n';
             out.setProp(s);
          }
       }
@@ -442,7 +441,6 @@ void MDDSpec::copyStateUp(MDDState& result,const MDDState& source)
    if (usesUp()) {
       for(const auto& z : _upZones)
          result.copyZone(z,source);
-      //result.copyState(source);
    }
 }
 
@@ -506,19 +504,6 @@ void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,con
 }
 
 
-double MDDSpec::similarity(const MDDState& a,const MDDState& b) 
-{
-   double dist = 0;
-   for(auto& cstr : constraints) {
-      for(auto p : cstr->similarities()) {
-         double abSim = _similarity[p](a,b);
-
-         dist += abSim;
-      }
-   }
-   return dist;
-}
-
 int nbCS  = 0;
 int hitCS = 0;
 int vs = 0;
@@ -526,7 +511,7 @@ int vs = 0;
 MDDStateFactory::MDDStateFactory(MDDSpec* spec)
    : _mddspec(spec),
      _mem(new Pool()),
-     _hash(_mem,300149), // 131071), // 10093), // 30103), // 300149),
+     _hash(_mem,300149),
      _mark(_mem->mark()),
      _enabled(false)
 {
@@ -540,21 +525,6 @@ void MDDStateFactory::createState(MDDState& result,const MDDState& parent,int la
    result.computeHash();
 }
 
-#if !defined(CACHING)
-bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
-{
-   nbCS++;
-   result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSize()]);
-   _mddspec->copyStateUp(*result,n->getState());
-   _mddspec->createState(*result,parent,layer,x,MDDIntSet(val),true);
-   _mddspec->updateNode(*result);
-   bool isOk = _mddspec->consistent(*result,x);
-   if (isOk) 
-      result->computeHash();
-   return isOk;
-}
-
-#else
 bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
 {
    auto mark = _mem->mark();
@@ -587,11 +557,8 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
    }
 }
 
-#endif
-
 void MDDStateFactory::clear()
 {
-   //std::cout << "LF=" << _hash.load_factor() << "\t MLF:" << _hash.max_load_factor() << " \tSZ:" << _hash.size() << '\n';
    _hash.clear();
    _mem->clear(_mark);
    _enabled = true;

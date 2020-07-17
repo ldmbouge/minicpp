@@ -45,7 +45,6 @@ void StaticBitSet::remove(int pos) {
 
 SparseBitSet::SparseBitSet(Trailer::Ptr eng, Storage::Ptr store, int sz)
    : _sz(sz)
-     //   _limit(eng, sz)
 {
    _nbWords = (_sz >> 5) + ((_sz & 0x1f) != 0);
    _limit = trail<int>(eng,_nbWords-1);

@@ -105,11 +105,6 @@ public:
    void clearQueue() const noexcept { _inQueue = None;}
    void enterQueue(enum Direction d) const noexcept {
       _inQueue = (enum Direction)(_inQueue | d);
-//      switch(d) {
-//         case Down: assert(_fq == nullptr);break;
-//         case Up:   assert(_bq == nullptr);break;
-//         default: break;
-//      }
    }
    void leaveQueue(enum Direction d) const noexcept {
       _inQueue = (enum Direction)(_inQueue & ~d);
@@ -159,7 +154,6 @@ class MDDNodeFactory {
    int              _width;
    trail<int>      _lastID;
    int             _peakID;
-   //int _lastID;
    TVec<MDDNode*> _pool;
 public:
    MDDNodeFactory(Storage::Ptr mem,Trailer::Ptr trailer,int width);

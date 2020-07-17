@@ -30,8 +30,6 @@
 #include "hashtable.hpp"
 #include "xxhash.hpp"
 
-#define CACHING 1
-
 
 class MDDIntSet {
    short  _mxs,_sz;
@@ -146,7 +144,6 @@ public:
          return _buf[0];
       }
    }
-   //constexpr operator int() const { return singleton();}
    class iterator: public std::iterator<std::input_iterator_tag,int,short> {
       union {
          int*    _data;
@@ -192,6 +189,7 @@ typedef std::function<void(MDDState&,const MDDState&,const var<int>::Ptr&,const 
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
+typedef std::function<int(const MDDState&,const MDDState&,const var<int>::Ptr&,int)> EquivalenceValueFun;
 typedef std::pair<std::set<int>,lambdaTrans> TransDesc;
 typedef std::map<int,TransDesc> lambdaMap;
 class MDDStateSpec;
@@ -286,7 +284,6 @@ public:
       int nbb = 0;
       for(int i = (int)_nbw-1;i >= 0;--i) 
          nbb += __builtin_popcountll(_buf[i]);
-      //nbb += _mm_popcnt_u64(_buf[i]);
       return nbb;
    }
    __attribute__((always_inline)) inline MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {
@@ -755,8 +752,6 @@ public:
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_rip(0),_flags({false,false,false,false}) {}
    MDDState(MDDStateSpec* s,char* b,bool relax=false) 
       : _spec(s),_mem(b),_hash(0),_rip(0),_flags({relax,false,false,false}) {
-      // if (_spec)
-      //    memset(_mem,0,_spec->layoutSize());
    }
    MDDState(MDDStateSpec* s,char* b,int hash,float rip,const Flags& f) 
       : _spec(s),_mem(b),_hash(hash),_rip(rip),_flags(f) {}
@@ -779,7 +774,7 @@ public:
    MDDStateSpec* getSpec() const noexcept { return _spec;}
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
       auto sz = _spec->layoutSize();
-      char* block = (char*)mem->allocate(sizeof(char)* sz);//new (mem) char[sz];
+      char* block = (char*)mem->allocate(sizeof(char)* sz);
       t->trail(new (t) TrailState(this,block,(int)sz));      
       assert(_spec == s._spec || _spec == nullptr);
       assert(_mem != nullptr);
@@ -851,26 +846,10 @@ public:
          return _hash;
       return computeHash();
    }
-   //constexpr int computeHash() const noexcept { return 0;}
    int computeHash() const noexcept {
-#if 0 && !defined(CACHING)
-      return _hash = 0;
-#else      
       xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
       _flags._hashed = true;
       return _hash = (int)hv;
-      // const auto nbw = _spec->layoutSize() / 4;
-      // int nlb = _spec->layoutSize() & 0x3;
-      // char* sfx = _mem + (nbw << 2);
-      // unsigned int* b = reinterpret_cast<unsigned int*>(_mem);
-      // unsigned int ttl = 0;
-      // for(auto s = 0u;s <nbw;s++)
-      //    ttl = (ttl << 8) + (ttl >> (32-8)) + b[s];
-      // while(nlb-- > 0)
-      //    ttl = (ttl << 8) + (ttl >> (32-8)) + *sfx++;
-      // _flags._hashed = true;
-      // return _hash = ttl;
-#endif  
    }
    bool stateEqual(const MDDState& b) const noexcept {
       return memcmp(_mem,b._mem,_spec->layoutSize())==0;
@@ -881,12 +860,10 @@ public:
    bool operator==(const MDDState& s) const {    
       return (!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
          _flags._drelax == s._flags._drelax &&         
-         //_flags._urelax == s._flags._urelax &&
          memcmp(_mem,s._mem,_spec->layoutSize())==0;
    }
    bool operator!=(const MDDState& s) const {
       return ! this->operator==(s);
-      //_flags._drelax != s._flags._drelax || memcmp(_mem,s._mem,_spec->layoutSize())!=0;
    }
    void diffWith(const MDDState& s,MDDPropSet& into) const {
       for(int p=0;p < _spec->_nbp;++p) 
@@ -968,6 +945,8 @@ public:
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
    void splitOnLargest(SplitFun onSplit);
+   void equivalenceClassValue(EquivalenceValueFun equivalenceValue);
+   int numEquivalenceClasses();
    // Internal methods.
    void varOrder() override;
    bool consistent(const MDDState& a,const var<int>::Ptr& x) const noexcept;
@@ -981,6 +960,8 @@ public:
    void relaxationIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
    MDDState rootState(Storage::Ptr& mem);
    bool usesUp() const { return _uptrans.size() > 0;}
+   void useApproximateEquivalence() { _approximateSplitting = true;}
+   bool approxEquivalence() const { return _approximateSplitting;}
    template <class Container> void append(const Container& y) {
       for(auto e : y)
          if(std::find(x.cbegin(),x.cend(),e) == x.cend())
@@ -995,6 +976,7 @@ public:
    }
    void reachedFixpoint(const MDDState& sink);
    double splitPriority(const MDDNode& n) const;
+   int equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value);
    bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
@@ -1022,6 +1004,7 @@ private:
    std::vector<lambdaTrans> _uptrans;
    std::vector<FixFun>        _onFix;
    std::vector<SplitFun>      _onSplit;
+   std::vector<EquivalenceValueFun> _equivalenceValue;
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;
    std::vector<LayerDesc> _frameLayer;
@@ -1030,6 +1013,7 @@ private:
    std::vector<Zone> _upZones;
    std::set<int>      _xRelax;
    std::vector<int>   _dRelax;
+   bool _approximateSplitting;
 };
 
 inline int rotl(int n,const int d) {
@@ -1050,7 +1034,6 @@ class MDDStateFactory {
    };
    struct HashMDDSKey {
       std::size_t operator()(const MDDSKey& key) const noexcept {
-         //return (rotl(key._s0->hash(),8) + key._s1->hash()) ^ key._v;
          return key._s0->hash() ^ key._v;
       }
    };
