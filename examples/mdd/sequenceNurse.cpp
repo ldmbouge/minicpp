@@ -166,24 +166,29 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     cp->post(mdd);
   }
   
-  DFSearch search(cp,[=]() {
+  DFSearch search(cp,[=]() {                        
       unsigned i;
+      // This is a lexicographic ordering search (skup bound variables)
+      // ======================================================================
       for(i=0u;i< vars.size();i++)
          if (vars[i]->size() > 1)
             break;
       auto x = (i < vars.size()) ? vars[i] : nullptr;
 
+      // This block below computes the "depth" based on the number of bound variables.
+      // ======================================================================
       // int depth = 0;
       // for(auto i=0u;i < vars.size();i++) 
       // 	depth += vars[i]->size() == 1;
-
+      
+      // This is a first fail search
+      // ======================================================================
       // auto x = selectMin(vars,
       // 			 [](const auto& x) { return x->size() > 1;},
       // 			 [](const auto& x) { return x->size();});
      
       if (x) {
-	int c = x->min();
-	
+	int c = x->min();	
 	return  [=] {
                    //cout << tab(depth) << "?x(" << i << ") == " << c << " " <<  x << endl;
 		  cp->post(x == c);
@@ -197,11 +202,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       } else return Branches({});
     });
   
-  int cnt = 0;
-  search.onSolution([&vars,&cnt]() {
-                       //std::cout << "Assignment(" << cnt++ << "):" << " " << vars << std::endl;
+  search.onSolution([&vars]() {                       
                        std::cout << "Assignment " << vars << "" << std::endl;
-    });
+                    });
 
   auto start = RuntimeMonitor::cputime();
 
