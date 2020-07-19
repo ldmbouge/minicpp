@@ -73,7 +73,6 @@ public:
     Trailer::Ptr getStateManager()       { return _sm;}
     Storage::Ptr getStore()              { return _store;}
     void registerVar(AVar::Ptr avar);
-    std::vector<handle_ptr<var<int>>> intVars();
     void schedule(Constraint::Ptr& c) {
         if (c->isActive() && !c->isScheduled()) {
             c->setScheduled(true);

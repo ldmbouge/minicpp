@@ -34,6 +34,7 @@ int main(int argc,char* argv[])
 
    auto v = Factory::intVarArray(cp, 2, 1, 3);
    auto v2 = Factory::intVarArray(cp, 2, 1, 3);
+   
    auto start = RuntimeMonitor::cputime();
    auto mdd = new MDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, {2});
@@ -42,7 +43,7 @@ int main(int argc,char* argv[])
    
    auto end = RuntimeMonitor::cputime();
    mdd->saveGraph();
-   auto vars = cp->intVars();
+   auto vars = Factory::collect(v,v2);
    std::cout << "VARS: " << vars << std::endl;
    std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    

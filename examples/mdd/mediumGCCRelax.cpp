@@ -32,9 +32,8 @@
 using namespace std;
 using namespace Factory;
 
-void solveModel(CPSolver::Ptr cp)
+template <class Vec> void solveModel(CPSolver::Ptr cp,Vec& vx)
 {
-   auto vx = cp->intVars();
    DFSearch search(cp,[=]() {
       auto x = selectMin(vx,
                          [](const auto& x) { return x->size() > 1;},
@@ -91,7 +90,7 @@ int main(int argc,char* argv[])
    std::cout << "MDD Usage:" << mdd->usage() << std::endl;
    std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    std::cout << stats << std::endl;
-   solveModel(cp);
+   solveModel(cp,v);
    cp.dealloc();
    return 0;
 }

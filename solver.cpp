@@ -51,16 +51,6 @@ void CPSolver::registerVar(AVar::Ptr avar)
    _iVars.push_back(avar);
 }
 
-std::vector<handle_ptr<var<int>>> CPSolver::intVars()
-{
-   std::vector<handle_ptr<var<int>>> res;
-   for(auto v : _iVars){
-      if (typeid(var<int>).before(typeid(v.get())))
-         res.push_back(handle_ptr<var<int>>(dynamic_cast<var<int>*>(v.get())));
-   }
-   return res;
-}
-
 void CPSolver::notifyFixpoint()
 {
    for(auto& body : _onFix)

@@ -27,6 +27,7 @@
 #include "trailList.hpp"
 #include "matrix.hpp"
 
+
 template<> class var<int> : public AVar {
 private:
    int _id;
@@ -307,6 +308,28 @@ namespace Factory {
          x[i] = body(i);
       return x;
    }
+   template <class Vec>             size_t count(Vec& v) { return v.size();}
+   template <class Vec,class ...Ts> size_t count(Vec& v,Ts... vecs) {
+      return v.size() + count(vecs...);
+   }
+   template <class Vec> int fill(Vec& dest,int from,Vec& src) {
+      for(auto& v : src)
+         dest[from++]=v;
+      return from;
+   }
+   template <class Vec,class ...Ts> int fill(Vec& dest,int from,Vec& src,Ts... vecs) {
+      for(auto& v : src)
+         dest[from++]=v;
+      return fill(dest,from,vecs...);
+   }
+   template <class Vec,class ...Ts> Vec collect(Vec& v,Ts... vecs) {
+      auto nbv = count(v,vecs...);
+      auto cps = (*v.cbegin())->getSolver();
+      Vec rv = Factory::intVarArray(cps,nbv);
+      fill(rv,0,v,vecs...);
+      return rv;
+   }
+
 };
 
 void printVar(var<int>* x);
