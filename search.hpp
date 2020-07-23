@@ -19,15 +19,15 @@
 #include "solver.hpp"
 #include "constraint.hpp"
 #include "trailable.hpp"
+#include "explainer.hpp"
+#include "trail.hpp"
+#include "fail.hpp"
+#include "RuntimeMonitor.hpp"
 #include <vector>
 #include <initializer_list>
 #include <functional>
 #include <iostream>
 #include <iomanip>
-
-#include "solver.hpp"
-#include "constraint.hpp"
-#include "RuntimeMonitor.hpp"
 
 class Branches {
    std::vector<std::function<void(void)>> _alts;
@@ -58,11 +58,12 @@ class SearchStatistics {
     bool _completed;
     RuntimeMonitor::HRClock _startTime; 
 public:
-   SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {
+   SearchStatistics() : _depth(0), _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {
       _startTime = RuntimeMonitor::cputime();
    }
    void incrDepth() { ++_depth; }
    void decrDepth() { --_depth; }
+   int getDepth() { return _depth;}
    void incrFailures()  noexcept { ++_nFailures;extern int __nbf;__nbf = _nFailures; }
    void incrNodes()     noexcept { ++_nNodes;extern int __nbn;__nbn = _nNodes;}
    void incrSolutions() noexcept { ++_nSolutions; }
@@ -113,9 +114,10 @@ public:
 };
 
 class ExpDFSearch {
-    DFSearch _dfs;
+   ExpSolver::Ptr _exp;
+   DFSearch _dfs;
 public:
-   ExpDFSearch(ExpSolver::Ptr exp,std::function<Branches(void)>&& b) : _dfs(exp->getSolver(),std::move(b)) { exp->getExplainer()->injectListeners();}
+   ExpDFSearch(ExpSolver::Ptr exp,std::function<Branches(void)>&& b);
    ExpDFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b) : _dfs(sm, std::move(b)) {}
    template <class B> void onSolution(B c) { _dfs.onSolution(c);}
    template <class B> void onFailure(B c)  { _dfs.onFailure(c);}
@@ -123,7 +125,7 @@ public:
    void notifyFailure()  { _dfs.notifyFailure();}
    SearchStatistics solve(SearchStatistics& stat,Limit limit) { return _dfs.solve(stat, limit);}
    SearchStatistics solve(Limit limit) { return _dfs.solve(limit);}
-   SearchStatistics solve() { return _dfs.solve();}
+   SearchStatistics solve();
    SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo) { return _dfs.solveSubjectTo(limit, subjectTo);}
    SearchStatistics optimize(Objective::Ptr obj,Limit limit) { return _dfs.optimize(obj, limit);}
    SearchStatistics optimize(Objective::Ptr obj) { return _dfs.optimize(obj);}

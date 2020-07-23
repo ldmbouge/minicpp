@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <unordered_map>
+#include <string>
+#include <iostream>
 #include "handle.hpp"
 #include "intvar.hpp"
 #include "trailable.hpp"
@@ -14,6 +16,17 @@
 
 enum LitRel {EQ, NEQ, LEQ, GEQ};
 
+inline std::string LitRelString(const LitRel& rel) {
+    switch(rel) {
+      case  EQ : return " == ";
+      case NEQ : return " != ";
+      case LEQ : return " <= ";
+      case GEQ : return " >= ";
+    }
+}
+
+class LitVar;
+
 class Literal {
     var<int>::Ptr _x;
     LitRel _rel;
@@ -23,22 +36,21 @@ class Literal {
 public:
     Literal(var<int>::Ptr x, LitRel rel, int c, Constraint::Ptr cPtr, int depth)
       : _x(x), _rel(rel), _c(c), _cPtr(cPtr), _depth(depth) {}
-    void makeVar() {};
-    void explain() {};  // TODO: delegate to cPtr->explain(this) when this is implemented and adjust return type
+    Literal(const Literal& l)
+      : _x(l._x), _rel(l._rel), _c(l._c), _cPtr(l._cPtr), _depth(l._depth) {}
+    handle_ptr<LitVar> makeVar();
+    std::vector<Literal*> explain();
     friend class LitVar;
-    // friend class LitHash;
+    friend unsigned long litKey(const Literal&);
+    bool operator==(const Literal& other) const;
+    void print(std::ostream& os) const {
+      os << "x_" << _x->getId() << LitRelString(_rel) << _c << " @ " << _depth;
+    }
+    friend std::ostream& operator<<(std::ostream& os, const Literal& l) {
+      l.print(os);
+      return os;
+    }
 };
-
-// class LitHash {
-// public:
-//     size_t operator()(const Literal& l) const
-//     { 
-//         size_t k = ((0x0000ff & l._x->getId()) << 16) | ((0x0000ff & l._c) << 8)  | (0x0000ff & l._rel); 
-//         return std::hash<size_t>()(k);
-//     } 
-// };
-
-// typedef std::unordered_map<size_t, Literal, LitHash> LitHashSet;
 
 class LitVar : public AVar {
     int _id;

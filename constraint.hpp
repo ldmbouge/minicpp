@@ -35,9 +35,12 @@
 class EQc : public Constraint { // x == c
    var<int>::Ptr _x;
    int           _c;
+   EQcExplainer _ex;
 public:
-   EQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
+   EQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c), _ex(x->getSolver()->getExpSolver(), this) {}
+   friend class EQcExplainer;
    void post() override;
+   std::vector<Literal*> explain(Literal* lp) override { return _ex.explain(lp);} 
 };
 
 class NEQc : public Constraint { // x != c
@@ -248,11 +251,12 @@ public:
     template <class Vec> AllDifferentAC(const Vec& x)
         : Constraint(x[0]->getSolver()),
           _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore())),
-          _mm(_x,x[0]->getStore()), _ex(this) {}
+          _mm(_x,x[0]->getStore()), 
+          _ex(x[0]->getSolver()->getExpSolver(),this) {}
     ~AllDifferentAC() {}
     void post() override;
     void propagate() override;
-    void explain(Literal& l) override { _ex.explain(l);} 
+    std::vector<Literal*> explain(Literal* lp) override { return _ex.explain(lp);} 
 };
 
 class Circuit :public Constraint {

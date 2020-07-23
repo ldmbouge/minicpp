@@ -1,5 +1,29 @@
 #include "literal.hpp"
 
+bool Literal::operator==(const Literal& other) const {
+    return (_x->getId() == other._x->getId()) && (_c == other._c) && (_rel == other._rel);
+}
+
+std::vector<Literal*> Literal::explain()
+{
+    if (_cPtr) return _cPtr->explain(this);  // cPtr is null if literal is generated before fixpoint begins
+    else return std::vector<Literal*>(0);
+}
+
+unsigned long litKey(const Literal& l) {
+    return ((0x0000ff & l._x->getId()) << 16) | ((0x0000ff & l._c) << 8)  | (0x0000ff & l._rel); 
+};
+
+LitVar::Ptr Literal::makeVar()
+{
+    switch(_rel) {
+      case  EQ : return Factory::makeLitVarEQ(_x,_c);
+      case NEQ : return Factory::makeLitVarNEQ(_x,_c);
+      case LEQ : return Factory::makeLitVarLEQ(_x,_c);
+      case GEQ : return Factory::makeLitVarGEQ(_x,_c);
+    }
+}
+
 void LitVar::initVal() {
     switch(_rel) {
         case EQ:  if (_x->contains(_c)) {

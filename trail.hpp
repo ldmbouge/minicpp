@@ -19,6 +19,7 @@
 #include <memory>
 #include <stack>
 #include <tuple>
+#include <vector>
 #include "state.hpp"
 
 class Entry {
@@ -28,6 +29,7 @@ public:
 };
 
 class Trailer :public StateManager {
+protected:
    std::stack<Entry*>      _trail;
    std::stack<std::tuple<int,std::size_t,long>>  _tops;
    mutable int             _magic;
@@ -46,7 +48,7 @@ public:
    int magic() const { return _magic;}
    void incMagic() { _magic++;}
    long push();
-   void pop();
+   virtual void pop();
    void popToNode(long node);
    void clear();
 

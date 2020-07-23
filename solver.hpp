@@ -32,6 +32,7 @@
 typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
 class Explainer;
+class Constraint;
 
 class DEPQueue {
    std::deque<Constraint::Ptr>  _q[2];
@@ -54,10 +55,11 @@ public:
       }
    }   
 };
-
+class ExpSolver;
 class CPSolver {
     Trailer::Ptr                  _sm;
     Storage::Ptr               _store;
+    handle_ptr<Constraint>   _currCon;
     std::list<AVar::Ptr>       _iVars;
     DEPQueue                   _queue;
     std::list<std::function<void(void)>>  _onFix;
@@ -66,6 +68,8 @@ class CPSolver {
     int                          _nbc; // # choices
     int                          _nbf; // # fails
     int                          _nbs; // # solutions
+    Status                    _status;
+    ExpSolver*                    _es;
 public:
     template<typename T> friend class var;
     friend class ExpSolver;
@@ -73,8 +77,10 @@ public:
     typedef handle_ptr<CPSolver> Ptr;
     CPSolver();
     ~CPSolver();
+    Status status() { return _status;}
     Trailer::Ptr getStateManager()       { return _sm;}
     Storage::Ptr getStore()              { return _store;}
+    ExpSolver* getExpSolver() { return _es;}
     void registerVar(AVar::Ptr avar);
     std::vector<handle_ptr<var<int>>> intVars();
     void schedule(Constraint::Ptr& c) {

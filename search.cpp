@@ -116,3 +116,17 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
         }
     }   
 }
+
+ExpDFSearch::ExpDFSearch(ExpSolver::Ptr exp,std::function<Branches(void)>&& b) 
+  : _exp(exp), _dfs(exp->getSolver(),std::move(b)) 
+{ 
+    exp->getExplainer()->injectListeners();
+}
+
+
+SearchStatistics ExpDFSearch::solve() 
+{
+    SearchStatistics stats;
+    _exp->setSearchStats(&stats);
+    return _dfs.solve(stats,[](const SearchStatistics& ss) { return false;});
+}

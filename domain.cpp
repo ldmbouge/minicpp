@@ -125,13 +125,13 @@ void BitDomain::assign(int v,IntNotifier& x)  // removeAllBut(v,x)
     }
     bool minChanged = _min != v;
     bool maxChanged = _max != v;
-    _min = v;
-    _max = v;
-    _sz  = 1;
     x.bind(v);
     x.change();
     if (minChanged) x.changeMin(v);
     if (maxChanged) x.changeMax(v);
+    _min = v;
+    _max = v;
+    _sz  = 1;
 }
 
 void BitDomain::remove(int v,IntNotifier& x)
@@ -143,28 +143,28 @@ void BitDomain::remove(int v,IntNotifier& x)
     bool minChanged = v == _min;
     bool maxChanged = v == _max;
     if (minChanged) {
+        x.change();
+        x.remove(v);
+        x.changeMin(_min);
         _sz = _sz - 1;
        _min = findMin(_min + 1);
-        x.changeMin(_min);
         if (_sz == 1) x.bind(_min);
         if (_sz == 0) x.empty();
+    } else if (maxChanged) {
         x.change();
         x.remove(v);
-    } else if (maxChanged) {
+        x.changeMax(_max);
         _sz = _sz - 1;
         _max = findMax(_max - 1);
-        x.changeMax(_max);
         if (_sz == 1) x.bind(_max);
         if (_sz == 0) x.empty();
-        x.change();
-        x.remove(v);
     } else if (member(v)) {
-        setZero(v);
         x.remove(v);
+        x.change();
+        setZero(v);
         _sz = _sz - 1;
         if (_sz == 1) x.bind(min());
         if (_sz == 0) x.empty();
-        x.change();
     }
 }
 
@@ -174,14 +174,14 @@ void BitDomain::removeBelow(int newMin,IntNotifier& x)
         return;
     if (newMin > _max)
         x.empty();
+    x.changeMin(_min);
+    x.change();
     bool isCompact = (_max - _min + 1) == _sz;
     int nbRemove = isCompact ? newMin - _min : count(_min,newMin - 1);
     _sz = _sz - nbRemove;
     if (!isCompact)
         newMin = findMin(newMin);
     _min = newMin;
-    x.changeMin(_min);
-    x.change();
     if (_sz==0) x.empty();
     if (_sz==1) x.bind(min());
 }
@@ -192,14 +192,14 @@ void BitDomain::removeAbove(int newMax,IntNotifier& x)
         return;
     if (newMax < _min)
         x.empty();
+    x.changeMax(_max);
+    x.change();
     bool isCompact = (_max - _min + 1) == _sz;
     int nbRemove = isCompact ? _max - newMax : count(newMax + 1,_max);
     _sz = _sz - nbRemove;
     if (!isCompact)
         newMax = findMax(newMax);
     _max = newMax;
-    x.changeMax(_max);
-    x.change();
     if (_sz==0) x.empty();
     if (_sz==1) x.bind(min());
 }
@@ -350,13 +350,13 @@ void SparseSetDomain::assign(int v,IntNotifier& x)
         if (_dom.size() != 1) {
             bool maxChanged = max() != v;
             bool minChanged = min() != v;
+            x.bind(v);
+            if (maxChanged) x.changeMax(v);
+            if (minChanged) x.changeMin(v);
+            x.change();
             _dom.removeAllBut(v);
             if (_dom.size() == 0)
                 x.empty();
-            x.bind(v);
-            x.change();
-            if (maxChanged) x.changeMax(v);
-            if (minChanged) x.changeMin(v);
         }
     } else {
         _dom.removeAll();
@@ -369,12 +369,13 @@ void SparseSetDomain::remove(int v,IntNotifier& x)
     if (_dom.contains(v)) {
         bool maxChanged = max() == v;
         bool minChanged = min() == v;
+        x.remove(v);
+        if (maxChanged) x.changeMax(max());
+        if (minChanged) x.changeMin(min());
+        x.change();
         _dom.remove(v);
         if (_dom.size()==0)
             x.empty();
-        x.change();
-        if (maxChanged) x.changeMax(max());
-        if (minChanged) x.changeMin(min());
         if (_dom.size()==1) x.bind(min());
     }
 }
@@ -382,13 +383,15 @@ void SparseSetDomain::remove(int v,IntNotifier& x)
 void SparseSetDomain::removeBelow(int newMin,IntNotifier& x)
 {
     if (_dom.min() < newMin) {
+        x.changeMin(min());
+        x.change();
         _dom.removeBelow(newMin);
         switch(_dom.size()) {
             case 0: x.empty();break;
             case 1: x.bind(min());
             default:
-                x.changeMin(min());
-                x.change();
+                // x.changeMin(min());
+                // x.change();
                 break;
         }
     }
@@ -397,13 +400,15 @@ void SparseSetDomain::removeBelow(int newMin,IntNotifier& x)
 void SparseSetDomain::removeAbove(int newMax,IntNotifier& x)
 {
     if (_dom.max()  > newMax) {
+        x.changeMax(max());
+        x.change();
         _dom.removeAbove(newMax);
         switch(_dom.size()) {
             case 0: x.empty();break;
             case 1: x.bind(min());
             default:
-                x.changeMax(max());
-                x.change();
+                // x.changeMax(max());
+                // x.change();
                 break;
         }
     }

@@ -3,35 +3,50 @@
 
 #include "solver.hpp"
 #include "handle.hpp"
-#include "handle.hpp"
 #include "intvar.hpp"
 #include "domain.hpp"
-// #include "constraint.hpp"
-
+#include "literal.hpp"
+#include "hashtable.hpp"
+#include "trail.hpp"
+#include "expTrail.hpp"
+#include "fail.hpp"
+// #include "impGraph.hpp"
+#include <vector>
 
 class ExpListener;
 class ExpSolver;
+typedef TrailHashtable<unsigned long, Literal> LitHashTable;
+
 class Explainer {
     ExpSolver* _es;
-    std::vector<ExpListener*> _listeners;  // should be a separate stack-like object
+    ExpTrailer::Ptr _expT;
+    std::vector<ExpListener*> _listeners;
+    // Pool::Ptr    _pool;
+    // ImpGraph _ig;
 public:
     typedef handle_ptr<Explainer> Ptr;
-    Explainer(ExpSolver* es) : _es(es), _listeners(0) {}
+    Explainer(ExpSolver* es);
     void injectListeners();
-    void bind(AVar::Ptr, int);
-    void remove(AVar::Ptr, int);
-    void changeMin(AVar::Ptr, int);
-    void changeMax(AVar::Ptr, int);
+    void bind(var<int>::Ptr, int);
+    void remove(var<int>::Ptr, int);
+    void changeMin(var<int>::Ptr, int);
+    void changeMax(var<int>::Ptr, int);
+    void setTrailer(ExpTrailer::Ptr ep) { _expT = ep;}
+    // void addNodeToImpGraph(Literal* l);
 };
 
 template<> class handle_ptr<ExpSolver>;
+class SearchStatistics;
+
 class ExpSolver {
     CPSolver::Ptr _cps;
     handle_ptr<Explainer> _exp;
+    SearchStatistics* _ss;
 public:
     typedef handle_ptr<ExpSolver> Ptr;
     friend class Explainer;
-    ExpSolver() : _cps(new CPSolver), _exp(new Explainer(this)) {}
+    ExpSolver();
+    Status status() { return _cps->status();}
     Trailer::Ptr getStateManager() { return _cps->getStateManager();}
     Storage::Ptr getStore() { return _cps->getStore();}
     CPSolver::Ptr getSolver() { return _cps;}
@@ -39,7 +54,9 @@ public:
     int getFailures() const { return _cps->_nbf;}
     int getSolutions() const { return _cps->_nbs;}
     handle_ptr<Explainer> getExplainer() { return _exp;}
-    // void injectListeners() { _exp->injectListeners();}
+    handle_ptr<Constraint> getCurrConstraint() { return _cps->_currCon;}
+    void setSearchStats(SearchStatistics* stats) { _ss = stats;}
+    int getDepth();
     void registerVar(AVar::Ptr avar) { _cps->registerVar(avar);}
     void schedule(Constraint::Ptr& c) { _cps->schedule(c);}
     void onFixpoint(std::function<void(void)>& cb) { _cps->onFixpoint(cb);}
@@ -103,11 +120,11 @@ inline void* operator new[](std::size_t sz,ExpSolver::Ptr e)
 
 class ExpListener : public IntNotifier {
     Explainer* _exp;
-    AVar::Ptr _x;
+    var<int>::Ptr _x;
     IntNotifier* _notif;
 public:
     typedef handle_ptr<ExpListener> Ptr;
-    ExpListener(Explainer* exp, AVar::Ptr x) : _exp(exp), _x(x), _notif(x->getListener()) { _x->setListener(this);}
+    ExpListener(Explainer* exp, var<int>::Ptr x) : _exp(exp), _x(x), _notif(x->getListener()) { _x->setListener(this);}
     void empty() override { _notif->empty();}
     void change() override { _notif->change();}
     void bind(int a) override { _exp->bind(_x, a); _notif->bind(a);}
@@ -118,14 +135,28 @@ public:
 
 class AllDifferentAC;
 class AllDiffExplainer {
+    ExpSolver::Ptr _es;
+    Explainer::Ptr _exp;
     AllDifferentAC* _c;
 public:
     typedef handle_ptr<AllDiffExplainer> Ptr;
-    AllDiffExplainer(AllDifferentAC* c)
-        : _c(c) {}
+    AllDiffExplainer(ExpSolver* es, AllDifferentAC* c);
     ~AllDiffExplainer() {}
-    void explain(Literal& l) {};
+    std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>(0);}
     void explain(var<int>::Ptr x, int val);
+};
+
+
+class EQc;
+class EQcExplainer {
+    ExpSolver::Ptr _es;
+    Explainer::Ptr _exp;
+    EQc* _c;
+public:
+    EQcExplainer(ExpSolver* es, EQc* c)
+      : _es(es), _c(c) {}
+    ~EQcExplainer() {}
+    std::vector<Literal*> explain(Literal* lp);
 };
 
 namespace Factory {

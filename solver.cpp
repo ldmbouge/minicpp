@@ -23,7 +23,9 @@
 
 CPSolver::CPSolver()
     : _sm(new Trailer),
-      _store(new Storage(_sm))
+      _store(new Storage(_sm)),
+      _currCon(nullptr),
+      _es(nullptr)
 {
     _varId  = 0;
     _nbc = _nbf = _nbs = 0;
@@ -75,11 +77,14 @@ void CPSolver::fixpoint()
       while (!_queue.empty()) {
          auto c = _queue.deQueue();
          c->setScheduled(false);
-         if (c->isActive())
+         if (c->isActive()) {
+            _currCon = c;
             c->propagate();
+         }
       }
       assert(_queue.size() == 0);
    } catch(Status x) {
+      _status = x;
       while (!_queue.empty()) {
          _queue.deQueue()->setScheduled(false);
       }
