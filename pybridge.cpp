@@ -10,6 +10,7 @@
 #include "avar.hpp"
 #include "intvar.hpp"
 #include "acstr.hpp"
+#include "matrix.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
 
@@ -116,7 +117,7 @@ PYBIND11_MODULE(minicpp,m) {
    py::class_<EVec<var<int>::Ptr,stl::StackAdapter<var<int>::Ptr,Storage::Ptr>>>(m,"VecIntVar")
       .def("__getitem__",[](const Factory::Veci& s,size_t i) { return s[i];})
       .def("__setitem__",[](Factory::Veci& s,size_t i,var<int>::Ptr e) { s[i] = e;})
-      .def("__len__",&Factory::Veci::size)
+      .def("__len__",[](const Factory::Veci& s) { return s.size();})
       .def("__iter__",[](const Factory::Veci& s) { return py::make_iterator(s.begin(),s.end());},py::keep_alive<0,1>())
       .def("__repr__",[](const Factory::Veci& s) {
                          std::ostringstream str;
@@ -126,7 +127,7 @@ PYBIND11_MODULE(minicpp,m) {
    py::class_<EVec<var<bool>::Ptr,stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>>>(m,"VecBoolVar")
       .def("__getitem__",[](const Factory::Vecb& s,size_t i) { return s[i];})
       .def("__setitem__",[](Factory::Vecb& s,size_t i,var<bool>::Ptr e) { s[i] = e;})
-      .def("__len__",&Factory::Vecb::size)
+      .def("__len__",[](const Factory::Vecb& s) { return s.size();})
       .def("__iter__",[](const Factory::Vecb& s) { return py::make_iterator(s.begin(),s.end());},py::keep_alive<0,1>())
       .def("__repr__",[](const Factory::Vecb& s) {
                          std::ostringstream str;
@@ -172,7 +173,7 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("intVarArray",(Factory::Veci (*)(CPSolver::Ptr,int))(&Factory::intVarArray),"factory method var<int>[]");
    m.def("boolVarArray",(Factory::Vecb (*)(CPSolver::Ptr,int))(&Factory::boolVarArray),"factory method var<bool>[]");
 
-   m.def("equal",&Factory::equal);
+   m.def("equal",py::overload_cast<var<int>::Ptr,var<int>::Ptr,int>(&Factory::equal));
    m.def("notEqual",&Factory::notEqual);
    m.def("isEqual",&Factory::isEqual);
    m.def("isLarger",&Factory::isLarger);
@@ -185,8 +186,8 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("sum",py::overload_cast<const std::vector<var<bool>::Ptr>&,var<int>::Ptr>(&Factory::sum<std::vector<var<bool>::Ptr>>));
    m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&,int>(&Factory::sum<std::vector<var<int>::Ptr>>));
    m.def("sum",py::overload_cast<const std::vector<var<bool>::Ptr>&,int>(&Factory::sum<std::vector<var<bool>::Ptr>>));
-   m.def("sum",py::overload_cast<const Factory::Veci&>(&Factory::sum<Factory::Veci>));
-   m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&>(&Factory::sum<std::vector<var<int>::Ptr>>));
+  // m.def("sum",py::overload_cast<const Factory::Veci&>(&Factory::sum<Factory::Veci>));
+  // m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&>(&Factory::sum<std::vector<var<int>::Ptr>>));
    
    m.def("allDifferent",&Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
@@ -194,9 +195,9 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
    m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
    m.def("element",[](const std::vector<std::vector<int>>& mat,var<int>::Ptr x,var<int>::Ptr y) {
-                      matrix<int,2> d({(int) mat.size(),(int) mat.front().size()});
-                      for(auto i = 0 ; i < mat.size();i++)
-                         for(auto j = 0; j < mat[i].size();j++)
+                      Matrix<int,2> d({(int) mat.size(),(int) mat.front().size()});
+                      for(auto i = 0u ; i < mat.size();i++)
+                         for(auto j = 0u; j < mat[i].size();j++)
                             d[i][j] = mat[i][j];
                       return Factory::element(d,x,y);
                    });
