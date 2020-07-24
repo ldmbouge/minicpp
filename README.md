@@ -1,4 +1,4 @@
-# minicpp
+# MiniCP+
 
 A *C++* CP Solver that implements the MiniCP API. The codebase also implements HADDOCK to allow MDD-based propagation.
 
@@ -10,6 +10,18 @@ To build minicpp you will need:
 - `cmake`
 
 The code was developed and tested on macOS (10.15) as well as Linux (Ubuntu 18). 
+If you wish to build the `Python3` bindings you also need to install `pybind11`
+If you do not wish to use those bindings, you should comment out the following
+block at the bottom of the `CMakeLists.txt`
+
+```
+find_package(pybind11 REQUIRED)
+pybind11_add_module(minicpp pybridge.cpp)
+target_link_libraries(minicpp PRIVATE copl)
+add_dependencies(minicpp copl)
+```
+
+
 
 
 
@@ -105,3 +117,22 @@ As an example, the command could look like this:
 ```
 ./allInterval -n11 -w32 -m2 -r2 -i5
 ```
+
+# Running Python models
+
+Python demo programs are held in the `pybench` folder. To run with `Python3`
+you should define the `PYTHONPATH` environment variable and point it to the
+build folder. Then you can run python as usual and it will look in that 
+location for the `Python3` MiniCPP bindings. 
+
+For instance, at the command prompt:
+
+```
+  pybench git:(master) > cd pybench
+  pybench git:(master) > python3 nq.py
+```
+
+Will move you to the `pybench` folder and execute the `n-queens` python model
+in that folder.
+
+
