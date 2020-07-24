@@ -19,6 +19,7 @@
 #include <assert.h>
 #include <iostream>
 #include <iomanip>
+#include <typeindex>
 
 CPSolver::CPSolver()
     : _sm(new Trailer),
@@ -34,7 +35,6 @@ CPSolver::~CPSolver()
    _store.dealloc();
    _sm.dealloc();
    std::cout << "CPSolver::~CPSolver(" << this << ")" << std::endl;
-   //Cont::shutdown();
 }
 
 void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
@@ -62,8 +62,7 @@ void CPSolver::fixpoint()
    try {
       notifyFixpoint();
       while (!_queue.empty()) {
-         auto c = _queue.front();
-         _queue.pop_front();
+         auto c = _queue.deQueue();
          c->setScheduled(false);
          if (c->isActive())
             c->propagate();
@@ -71,23 +70,10 @@ void CPSolver::fixpoint()
       assert(_queue.size() == 0);
    } catch(Status x) {
       while (!_queue.empty()) {
-         _queue.front()->setScheduled(false);
-         _queue.pop_front();
+         _queue.deQueue()->setScheduled(false);
       }
-      //_queue.clear();
       assert(_queue.size() == 0);
       _nbf += 1;
       throw x;
    }
 }
-
-// [LDM] This is for debugging purposes. Don't include when using valgrind
-
-/*
-#if defined(__APPLE__)
-void* operator new  ( std::size_t count )
-{
-   return malloc(count);
-}
-#endif
-*/

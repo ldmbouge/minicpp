@@ -1,0 +1,26 @@
+import cpsolver;
+int t0 = System.getCPUTime();
+int n = 20;
+range R0 = 1..n;
+range R1 = 1..9;
+int low[R1] = [0,2,2,3,3,0,0,0,0];
+int up[R1] = [n,5,5,5,5,n,n,n,n];
+
+Solver<CP> m();
+var<CP>{int} vars[R0](m,R1);
+
+//cout << low << up << endl;
+explore<m> {
+   //m.post(atleast(low,vars));
+   m.post(cardinality(low,vars,up),onDomains);
+} using {
+   forall(k in 1..9)
+      m.post(vars[k]==1);
+   cout << "Here!" << vars << endl;
+   labelFF(vars);
+   cout << "vars = " << vars << endl;
+}
+int t2 = System.getCPUTime();
+cout << "time (total) : " << t2 - t0 << endl;
+cout << "#choices = " << m.getNChoice() << endl;
+cout << "#fail    = " << m.getNFail() << endl;

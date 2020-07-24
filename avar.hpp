@@ -25,9 +25,9 @@ protected:
     friend class CPSolver;
 public:
     typedef handle_ptr<AVar> Ptr;
-    AVar() {}
-    virtual ~AVar() {}
 };
 
+
+template<typename T> class var {};
 
 #endif

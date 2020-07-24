@@ -17,5 +17,7 @@
 #include "solver.hpp"
 
 Constraint::Constraint(CPSolver::Ptr cp)
-   : _scheduled(false),_active(cp->getStateManager(),true)
+   : _scheduled(false),
+     _prio(CHIGH),
+     _active(cp->getStateManager(),true)
 {}

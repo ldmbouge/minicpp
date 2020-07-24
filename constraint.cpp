@@ -49,6 +49,77 @@ void EQBinBC::post()
                            });
    }
 }
+
+void EQTernBC::post()
+{
+   // x == y + z
+   if (_x->isBound() && _y->isBound())
+      _z->assign(_x->min() - _y->min());
+   else if (_x->isBound() && _z->isBound())
+      _y->assign(_x->min() - _z->min());
+   else if (_y->isBound() && _z->isBound())
+      _x->assign(_y->min() + _z->min());
+   else {
+      _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
+      _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
+      _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+      
+      _x->whenBoundsChange([this] {
+	  _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
+	  _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+                           });
+      _y->whenBoundsChange([this] {
+	  _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
+	  _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+                           });
+      _z->whenBoundsChange([this] {
+	  _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
+	  _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
+	});
+   }
+}
+
+void EQTernBCbool::post()
+{
+   // x == y + b
+   if (_x->isBound() && _y->isBound()) {
+     if (_x->min() - _y->min() == 1) {
+       _b->assign(true);
+     }
+     else if (_x->min() - _y->min() == 0) {
+       _b->assign(false);
+     } else {
+       throw Failure;
+     }
+   }
+   else if (_x->isBound() && _b->isTrue())
+     _y->assign(_x->min() - 1);
+   else if (_x->isBound() && _b->isFalse())
+     _y->assign(_x->min());
+   else if (_y->isBound() && _b->isTrue())
+      _x->assign(_y->min() + 1);
+   else if (_y->isBound() && _b->isFalse())
+     _x->assign(_y->min());
+   else {
+      _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
+      _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
+      _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+      
+      _x->whenBoundsChange([this] {
+	  _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
+	  _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+                           });
+      _y->whenBoundsChange([this] {
+	  _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
+	  _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+                           });
+      _b->whenBoundsChange([this] {
+	  _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
+	  _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
+	});
+   }
+}
+
 void NEQBinBC::print(std::ostream& os) const
 {
    os << _x << " != " << _y << " + " << _c << std::endl;
@@ -155,6 +226,27 @@ void Minimize::tighten()
    throw Failure;
 }
 
+Maximize::Maximize(var<int>::Ptr& x)
+    : _obj(x),_primal(0x80000001)
+{
+    auto todo = std::function<void(void)>([this]() {
+                                             _obj->removeBelow(_primal);
+                                         });
+    _obj->getSolver()->onFixpoint(todo);
+}
+
+void Maximize::print(std::ostream& os) const
+{
+   os << "maximize(" << *_obj << ", primal = " << _primal << ")";
+}
+
+void Maximize::tighten()
+{
+   assert(_obj->isBound());
+   _primal = _obj->min() + 1;
+   throw Failure;
+}
+
 void IsEqual::post() 
 {
     propagate();
@@ -180,6 +272,68 @@ void IsEqual::propagate()
         setActive(false);
     }
 }
+
+void IsMember::post() 
+{
+    propagate();
+    if (isActive()) {
+        _x->propagateOnDomainChange(this);
+        _b->propagateOnBind(this);
+    }
+}
+
+void IsMember::propagate() 
+{  
+    if (_b->isTrue()) {
+      int xMin = _x->min(), xMax = _x->max();
+      for (int v=xMin; v<=xMax; v++) {
+  	// if v is not in S: remove from domain of x
+	if (_x->contains(v) && (_S.find(v) == _S.end()))
+	  _x->remove(v);
+      }
+      setActive(false);
+    } else if (_b->isFalse()) {
+      // remove all elements in S from domain of x
+      for (std::set<int>::iterator it=_S.begin(); it!=_S.end(); ++it) {
+	_x->remove(*it);
+      }
+      setActive(false);
+    } else if (_x->isBound()) {
+      int v = _x->min();
+      if (_S.find(v)!=_S.end())
+	_b->assign(true);
+      else
+	_b->assign(false);
+      setActive(false);
+    } else {
+      // both b and x are not bound: check if x still has value in S and a value not in S
+      bool hasMemberInS = false;
+      bool hasMemberOutS = false;
+
+      int xMin = _x->min(), xMax = _x->max();
+      for (int v=xMin; v<=xMax; v++) {
+	if (_x->contains(v)) {
+	  if (_S.find(v) == _S.end()) {
+	    hasMemberOutS = true;
+	  }
+	  else {
+	    hasMemberInS = true;
+	  }
+	}
+	if ((hasMemberInS == true) && (hasMemberOutS == true))
+	  break;
+      }
+      if (hasMemberInS==false) {
+	_b->assign(false);
+	setActive(false);
+      }
+      else if (hasMemberOutS==false) {
+	_b->assign(true);
+	setActive(false);
+      }
+    }
+}
+
 
 void IsLessOrEqual::post()
 {
@@ -218,7 +372,7 @@ void Sum::propagate()
    int nU = _nUnBounds;
    int sumMin = _sumBounds,sumMax = _sumBounds;
    for(int i = nU - 1; i >= 0;i--) {
-      int idx = _unBounds[i];
+      auto idx = _unBounds[i];
       sumMin += _x[idx]->min();
       sumMax += _x[idx]->max();
       if (_x[idx]->isBound()) {
@@ -232,7 +386,7 @@ void Sum::propagate()
    if (0 < sumMin ||  sumMax < 0)
       throw Failure;
    for(int i = nU - 1; i >= 0;i--) {
-      int idx = _unBounds[i];
+      auto idx = _unBounds[i];
       _x[idx]->removeAbove(-(sumMin - _x[idx]->min()));
       _x[idx]->removeBelow(-(sumMax - _x[idx]->max()));
    }
@@ -287,7 +441,7 @@ IsClause::IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x)
       _nUnBounds(x[0]->getSolver()->getStateManager(),(int)x.size())
 {
     for(auto xi : x) _x.push_back(xi);
-    for(int i = 0; i < _x.size();i++)
+    for(auto i = 0u; i < _x.size();i++)
         _unBounds[i] = i;
     _clause = new (x[0]->getSolver()) Clause(x);
 }
@@ -397,7 +551,7 @@ void AllDifferentAC::propagate()
    updateRange();
    updateGraph();
    int nc = 0;
-   int scc[_nNodes];
+   int* scc = (int*)alloca(sizeof(int)*_nNodes);
    _rg.SCC([&scc,&nc](int n,int nd[]) {
                for(int i=0;i < n;i++)
                    scc[nd[i]] = nc;
@@ -414,7 +568,7 @@ void Circuit::setup(CPSolver::Ptr cp)
    _dest = new (cp) trail<int>[_x.size()];
    _orig = new (cp) trail<int>[_x.size()];
    _lengthToDest = new (cp) trail<int>[_x.size()];
-   for(int i=0;i<_x.size();i++) {
+   for(auto i=0u;i<_x.size();i++) {
       new (_dest+i) trail<int>(cp->getStateManager(),i);
       new (_orig+i) trail<int>(cp->getStateManager(),i);
       new (_lengthToDest+i) trail<int>(cp->getStateManager(),0);
@@ -429,9 +583,9 @@ void Circuit::post()
       _x[0]->assign(0);
       return ;      
    }
-   for(int i=0;i < _x.size();i++)
+   for(auto i=0u;i < _x.size();i++)
       _x[i]->remove(i);
-   for(int i=0;i < _x.size();i++) {
+   for(auto i=0u;i < _x.size();i++) {
       if (_x[i]->isBound())
          bind(i);
       else 
@@ -448,11 +602,11 @@ void Circuit::bind(int i)
    _orig[destj] = origi;
    int length = _lengthToDest[origi] + _lengthToDest[j] + 1;
    _lengthToDest[origi] = length;
-   if (length < _x.size() - 1)
+   if (length < (int)_x.size() - 1)
       _x[destj]->remove(origi);                     
 }
 
-Element2D::Element2D(const matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z)
+Element2D::Element2D(const Matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z)
     : Constraint(x->getSolver()),
       _matrix(mat),
       _x(x),_y(y),_z(z),
@@ -461,7 +615,6 @@ Element2D::Element2D(const matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,va
       _low(x->getSolver()->getStateManager(),0),
       _up(x->getSolver()->getStateManager(),_n * _m - 1)
 {
-    //_xyz.resize(_up + 1);
     for(int i=0;i < _matrix.size(0);i++)
         for(int j=0;j < _matrix.size(1);j++)
             _xyz.push_back(Triplet(i,j,_matrix[i][j]));
@@ -526,8 +679,8 @@ Element1D::Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr
 
 void Element1D::post()
 {
-   matrix<int,2> t2({1,(int)_t.size()});
-   for(int j=0;j< _t.size();j++)
+   Matrix<int,2> t2({1,(int)_t.size()});
+   for(auto j=0u;j< _t.size();j++)
       t2[0][j] = _t[j];
    auto x = Factory::makeIntVar(_y->getSolver(),0,0);
    auto c = new (_y->getSolver()) Element2D(t2,x,_y,_z);

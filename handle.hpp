@@ -31,7 +31,7 @@ public:
    handle_ptr(std::nullptr_t ptr)  noexcept : _ptr(ptr) {}
    handle_ptr(handle_ptr<T>&& ptr) noexcept : _ptr(std::move(ptr._ptr)) {}
    template <typename DT> handle_ptr(DT* ptr) noexcept : _ptr(ptr) {}
-   template <typename DT> handle_ptr(const handle_ptr<DT>& ptr) noexcept : _ptr(ptr.get()) {}   
+   template <typename DT> handle_ptr(const handle_ptr<DT>& ptr) noexcept : _ptr(ptr.get()) {}
    template <typename DT> handle_ptr(handle_ptr<DT>&& ptr) noexcept : _ptr(std::move(ptr._ptr)) {}
    handle_ptr& operator=(const handle_ptr<T>& ptr) { _ptr = ptr._ptr;return *this;}
    handle_ptr& operator=(handle_ptr<T>&& ptr)      { _ptr = std::move(ptr._ptr);return *this;}
@@ -43,6 +43,10 @@ public:
    operator bool() const noexcept { return _ptr != nullptr;}
    void dealloc() { delete _ptr;_ptr = nullptr;}
    void free()    { delete _ptr;_ptr = nullptr;}
+   template<class X> friend bool operator==(const handle_ptr<T>& p1,const handle_ptr<X>& p2)
+   {
+      return p1._ptr == p2.get();
+   }
 };
 
 template <class T,class... Args>

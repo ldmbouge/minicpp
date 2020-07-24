@@ -34,7 +34,7 @@ struct IntNotifier   {
 class BitDomain {
     trail<int>*               _dom;
     trail<int>       _min,_max,_sz;
-    const int        _imin,_imax;
+    const int        _imin;
     int count(int from,int to) const;
     int findMin(int from) const;
     int findMax(int from) const;
@@ -61,7 +61,7 @@ class SparseSet {
     trail<int>       _size,_min,_max;
     int              _ofs,_n;
     void exchangePositions(int val1,int val2);
-    bool checkVal(int val) const { assert( val <= _values.size()-1);return true;}
+  bool checkVal(int val) const { assert(val <= (int)_values.size()-1);return true;}
     bool internalContains(int val) const {
         if (val < 0 || val >= _n)
             return false;

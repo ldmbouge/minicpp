@@ -17,6 +17,7 @@
 #define __INTVAR_H
 
 #include <iostream>
+#include <iomanip>
 #include <vector>
 #include <functional>
 #include <assert.h>
@@ -31,8 +32,6 @@
 class IntVarImpl :public var<int> { 
    CPSolver::Ptr           _solver;
    BitDomain::Ptr             _dom;
-   //SparseSetDomain::Ptr       _dom;  // used to be BitDomain::Ptr
-   int                         _id;
    trailList<Constraint::Ptr> _onBindList;
    trailList<Constraint::Ptr> _onBoundsList;
    trailList<Constraint::Ptr> _onDomList;
@@ -46,13 +45,9 @@ class IntVarImpl :public var<int> {
       void changeMax() override;      
    };
    DomainListener*       _domListener;
-protected:
-    void setId(int id) override { _id = id;}
-    int getId() const { return _id;}
 public:
-    IntVarImpl(CPSolver::Ptr& cps,int min,int max);
-    IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
-   ~IntVarImpl();
+   IntVarImpl(CPSolver::Ptr& cps,int min,int max);
+   IntVarImpl(CPSolver::Ptr& cps,int n) : IntVarImpl(cps,0,n-1) {}
    Storage::Ptr getStore() override   { return _solver->getStore();}
    CPSolver::Ptr getSolver() override { return _solver;}
    int min() const override { return _dom->min();}
@@ -79,18 +74,12 @@ public:
             os << min();
         else
             os << "x_" << getId() << '(' << *_dom << ')';
-        //os << "\n\tonBIND  :" << x._onBindList << std::endl;
-        //os << "\tonBOUNDS:" << x._onBoundsList << std::endl;
         return os;
     }
 };
 
 class IntVarViewOpposite :public var<int> {
-   int _id;
    var<int>::Ptr _x;
-protected:
-   void setId(int id) override { _id = id;}
-   int getId() const { return _id;}
 public:
    IntVarViewOpposite(const var<int>::Ptr& x) : _x(x) {}
    Storage::Ptr getStore() override   { return _x->getStore();}
@@ -132,14 +121,10 @@ static inline int ceilDiv(int a,int b) {
 }
 
 class IntVarViewMul :public var<int> {
-   int _id;
-   int _a;
-   var<int>::Ptr _x;
-protected:
-   void setId(int id) override { _id = id;}
-   int getId() const { return _id;}
+    var<int>::Ptr _x;
+    int _a;
 public:
-   IntVarViewMul(const var<int>::Ptr& x,int a) : _a(a),_x(x) { assert(a> 0);}
+   IntVarViewMul(const var<int>::Ptr& x,int a) : _x(x),_a(a) { assert(a> 0);}
    Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
    int min() const  override { return _a * _x->min();}
@@ -176,14 +161,10 @@ public:
 };
 
 class IntVarViewOffset :public var<int> {
-   int _id;
-   int _o;
-   var<int>::Ptr _x;
-protected:
-   void setId(int id) override { _id = id;}
-   int getId() const { return _id;}
+    var<int>::Ptr _x;
+    int _o;
 public:
-   IntVarViewOffset(const var<int>::Ptr& x,int o) : _o(o),_x(x) {}
+   IntVarViewOffset(const var<int>::Ptr& x,int o) : _x(x),_o(o) {}
    Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
    int min() const  override { return _o + _x->min();}
@@ -212,6 +193,10 @@ public:
    }
 };
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
 
 template <>
 class var<bool> :public IntVarImpl {
@@ -225,6 +210,9 @@ public:
     void assign(bool b)  { IntVarImpl::assign(b);}
 #pragma clang diagnostic pop
 };
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif
 
 inline std::ostream& operator<<(std::ostream& os,const var<int>::Ptr& xp) {
     return xp->print(os);
@@ -235,9 +223,12 @@ inline std::ostream& operator<<(std::ostream& os,const var<bool>::Ptr& xp) {
 
 template <class T,class A> inline std::ostream& operator<<(std::ostream& os,const std::vector<T,A>& v) {
    os << '[';
-   for(auto& e : v)
-      os << e << ',';
-   return os << '\b' << ']';
+   for(typename std::vector<T,A>::size_type i = 0; i < v.size(); ++i) {
+      os << v[i];
+      if (i != v.size() - 1)
+            os << ", ";
+   }
+   return os << ']';
 }
 
 namespace Factory {
@@ -260,7 +251,6 @@ public:
 namespace Factory {
    using alloci = stl::StackAdapter<var<int>::Ptr,Storage::Ptr>;
    using allocb = stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>;
-   //using Veci   = std::vector<var<int>::Ptr,alloci>;
    using Veci   = EVec<var<int>::Ptr,alloci>;
    using Vecb   = EVec<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
@@ -287,13 +277,35 @@ namespace Factory {
    Veci intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
    Veci intVarArray(CPSolver::Ptr cps,int sz,int n);
    Veci intVarArray(CPSolver::Ptr cps,int sz);
-   Vecb boolVarArray(CPSolver::Ptr cps,int sz);
+   Vecb boolVarArray(CPSolver::Ptr cps,int sz,bool createVar = true);
    template<typename Fun> Veci intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
-      for(int i=0;i < (int)x.size();i++)
+      for(auto i=0u;i < x.size();i++)
          x[i] = body(i);
       return x;
    }
+   template <class Vec>             size_t count(Vec& v) { return v.size();}
+   template <class Vec,class ...Ts> size_t count(Vec& v,Ts... vecs) {
+      return v.size() + count(vecs...);
+   }
+   template <class Vec> int fill(Vec& dest,int from,Vec& src) {
+      for(auto& v : src)
+         dest[from++]=v;
+      return from;
+   }
+   template <class Vec,class ...Ts> int fill(Vec& dest,int from,Vec& src,Ts... vecs) {
+      for(auto& v : src)
+         dest[from++]=v;
+      return fill(dest,from,vecs...);
+   }
+   template <class Vec,class ...Ts> Vec collect(Vec& v,Ts... vecs) {
+      auto nbv = count(v,vecs...);
+      auto cps = (*v.cbegin())->getSolver();
+      Vec rv = Factory::intVarArray(cps,nbv);
+      fill(rv,0,v,vecs...);
+      return rv;
+   }
+
 };
 
 void printVar(var<int>* x);

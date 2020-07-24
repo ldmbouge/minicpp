@@ -29,17 +29,11 @@ void printVar(var<int>::Ptr x) {
 IntVarImpl::IntVarImpl(CPSolver::Ptr& cps,int min,int max)
     : _solver(cps),
       _dom(new (cps) BitDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
-      //_dom(new (cps) SparseSetDomain(cps->getStateManager(),cps->getStore(),min,max)),  // allocate domain on stack allocator
       _onBindList(cps->getStateManager(),cps->getStore()),
       _onBoundsList(cps->getStateManager(),cps->getStore()),
       _onDomList(cps->getStateManager(),cps->getStore()),
       _domListener(new (cps) DomainListener(this))
 {}
-
-IntVarImpl::~IntVarImpl()
-{
-    std::cout << "IntVarImpl::~IntVarImpl called ?" << std::endl;
-}
 
 class ClosureConstraint : public Constraint {
     std::function<void(void)> _f;
@@ -181,8 +175,12 @@ namespace Factory {
     Veci intVarArray(CPSolver::Ptr cps,int sz) {
         return Veci(sz,(alloci(cps->getStore())));
     }
-    Vecb boolVarArray(CPSolver::Ptr cps,int sz) {
-        return Vecb(sz,(allocb(cps->getStore())));
+   Vecb boolVarArray(CPSolver::Ptr cps,int sz,bool createVar) {
+      Vecb a(sz,(allocb(cps->getStore())));
+      if (createVar)
+         for(int i =0;i < sz;i++)
+            a[i] = Factory::makeBoolVar(cps);
+      return a;
     }
 
 };
