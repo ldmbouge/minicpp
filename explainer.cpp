@@ -97,6 +97,12 @@ ExpSolver::ExpSolver()
     _cps->_es = this;
 }
 
+ExpSolver::~ExpSolver()
+{
+    _cps.dealloc();
+    _exp.dealloc();
+}
+
 ExpListener::ExpListener(Explainer* exp, var<int>::Ptr x)
   : _exp(exp),
     _x(x), 

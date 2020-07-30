@@ -51,6 +51,7 @@ public:
     typedef handle_ptr<ExpSolver> Ptr;
     friend class Explainer;
     ExpSolver();
+    ~ExpSolver();
     Status status() { return _cps->status();}
     Trailer::Ptr getStateManager() { return _cps->getStateManager();}
     Storage::Ptr getStore() { return _cps->getStore();}

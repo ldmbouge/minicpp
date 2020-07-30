@@ -31,7 +31,7 @@ class ExpTrailer : public Trailer {
 public:
    typedef handle_ptr<ExpTrailer> Ptr;
    ExpTrailer(ExpSolver*);
-   ~ExpTrailer();
+   virtual ~ExpTrailer();
    virtual void pop() override;
    void storeLit(Literal*);
 };
