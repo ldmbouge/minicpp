@@ -25,6 +25,32 @@ void Explainer::injectListeners()
     }
 }
 
+void Explainer::empty(var<int>::Ptr x, FailExpl e1, int v1, FailExpl e2, int v2)
+{
+    clearNoGood();
+    _failDepth = _es->getDepth();
+    switch (e1) {
+        case EQL : _nogood.emplace_back( new Literal(x, EQ, v1, _es->getCurrConstraint(), _es->getDepth()) );
+                  break;
+        case RM : _nogood.emplace_back( new Literal(x, NEQ, v1, _es->getCurrConstraint(), _es->getDepth()) );
+                  break;
+        case LB : _nogood.emplace_back( new Literal(x, GEQ, v1, _es->getCurrConstraint(), _es->getDepth()) );
+                  break;
+        case UB : _nogood.emplace_back( new Literal(x, LEQ, v1, _es->getCurrConstraint(), _es->getDepth()) );
+                  break;
+    }
+    switch (e2) {
+        case EQL : _nogood.emplace_back( new Literal(x, EQ, v2, _es->getCurrConstraint(), _es->getDepth()) );
+                  break;
+        case RM : _nogood.emplace_back( new Literal(x, NEQ, v2, _es->getCurrConstraint(), _es->getDepth()) );
+                  break;
+        case LB : _nogood.emplace_back( new Literal(x, GEQ, v2, _es->getCurrConstraint(), _es->getDepth()) );
+                  break;
+        case UB : _nogood.emplace_back( new Literal(x, LEQ, v2, _es->getCurrConstraint(), _es->getDepth()) );
+                  break;
+    }
+}
+
 void Explainer::bind(var<int>::Ptr x, int a) 
 {
     Literal* lp = new Literal(x, EQ, a, _es->getCurrConstraint(), _es->getDepth());
@@ -49,6 +75,13 @@ void Explainer::changeMax(var<int>::Ptr x, int newMax)
     _expT->storeLit(lp);
 }
 
+void Explainer::clearNoGood()
+{
+    for (auto lp : _nogood)
+        delete lp;
+    _nogood.clear();
+}
+
 // void Explainer::addNodeToImpGraph(Literal* l) 
 // {
 //     _ig.addNode(l);
@@ -57,11 +90,58 @@ void Explainer::changeMax(var<int>::Ptr x, int newMax)
 ExpSolver::ExpSolver() 
   : _cps(new CPSolver), _exp(new Explainer(this)) 
 {
+    _cps->_sm.dealloc();
     ExpTrailer::Ptr expT = new ExpTrailer(this);
     _exp->setTrailer(expT);
-    _cps->_sm.dealloc();
     _cps->_sm = expT;
     _cps->_es = this;
+}
+
+ExpListener::ExpListener(Explainer* exp, var<int>::Ptr x)
+  : _exp(exp),
+    _x(x), 
+    _notif(x->getListener())
+{
+    _x->setListener(this);
+}
+
+void ExpListener::empty()
+{
+    _notif->empty();
+}
+
+void ExpListener::empty(FailExpl e1, int v1, FailExpl e2, int v2)
+{
+    _exp->empty(_x, e1, v2, e2, v2);
+    _notif->empty();
+}
+
+void ExpListener::change()
+{
+    _notif->change();
+}
+
+void ExpListener::bind(int v)
+{
+    _exp->bind(_x, v);
+    _notif->bind(v);
+}
+
+void ExpListener::changeMin(int newMin)
+{
+    _exp->changeMin(_x, newMin);
+    _notif->changeMin(newMin);
+}
+
+void ExpListener::changeMax(int newMax)
+{
+    _exp->changeMax(_x, newMax);
+    _notif->changeMax(newMax);
+}
+
+void ExpListener::remove(int v)
+{
+    _exp->remove(_x, v);
 }
 
 AllDiffExplainer::AllDiffExplainer(ExpSolver* es, AllDifferentAC* c)

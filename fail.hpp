@@ -18,6 +18,8 @@
 
 enum Status { Failure,Success,Suspend };
 
+enum FailExpl { EQL, RM, UB, LB };  // equal; removed; upper bound; lower bound
+
 static inline void failNow()
 {
     throw Failure;

@@ -70,6 +70,7 @@ class IntVarImpl :public var<int> {
       IntVarImpl* theVar;
       DomainListener(IntVarImpl* x) : theVar(x) {}
       void empty() override;
+      void empty(FailExpl, int, FailExpl, int) override;
       void bind(int) override;
       void change()  override;
       void changeMin(int) override;

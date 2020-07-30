@@ -94,6 +94,11 @@ void IntVarImpl::DomainListener::empty()
     failNow();
 }
 
+void IntVarImpl::DomainListener::empty(FailExpl e1, int v1, FailExpl e2, int v2)
+{
+    failNow();
+}
+
 void IntVarImpl::DomainListener::bind(int a) 
 {
     for(auto& f : theVar->_onBindList)

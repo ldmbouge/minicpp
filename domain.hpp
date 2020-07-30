@@ -20,11 +20,13 @@
 #include "handle.hpp"
 #include "trailable.hpp"
 #include "store.hpp"
+#include "fail.hpp"
 
 #define GETBIT(b) ((_dom[((b) - _imin)>>5] & (0x1 << (((b)-_imin) & 0x1f)))!=0)
 
 struct IntNotifier   {
     virtual void empty() = 0;
+    virtual void empty(FailExpl, int, FailExpl, int) = 0;
     virtual void bind(int) = 0;
     virtual void change() = 0;
     virtual void changeMin(int) = 0;

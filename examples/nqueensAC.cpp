@@ -25,8 +25,8 @@ int main(int argc,char* argv[])
 {
     using namespace std;
     using namespace Factory;
-    const int n = 12;
-    CPSolver::Ptr cp  = Factory::makeSolver();
+    const int n = 8;
+    ExpSolver::Ptr cp  = Factory::makeExpSolver();
     auto q = Factory::intVarArray(cp,n,1,n);
     cp->post(Factory::allDifferentAC(q));
     cp->post(Factory::allDifferentAC(Factory::intVarArray(cp,n,[q](int i) {
@@ -36,7 +36,7 @@ int main(int argc,char* argv[])
                                                                   return q[i] - i;
                                                                })));
 
-    DFSearch search(cp,[=]() {
+    ExpDFSearch search(cp,[=]() {
                           auto x = selectMin(q,
                                              [](const auto& x) { return x->size() > 1;},
                                              [](const auto& x) { return x->size();});
@@ -51,9 +51,10 @@ int main(int argc,char* argv[])
     //                      cout << "sol = " << q << endl;
     //                   });
 
-    auto stat = search.solve([](const SearchStatistics& s) {
-                                return RuntimeMonitor::elapsedSince(s.startTime()) > 100;
-                             });
+   //  auto stat = search.solve([](const SearchStatistics& s) {
+   //                              return RuntimeMonitor::elapsedSince(s.startTime()) > 100;
+   //                           });
+    auto stat = search.solve();
     cout << stat << endl;
     
     cp.dealloc();

@@ -16,6 +16,7 @@
 #include "domain.hpp"
 #include "fail.hpp"
 #include <iostream>
+#include <cassert>
 
 #if defined(_WIN64)
 #include <intrin.h>
@@ -119,8 +120,18 @@ void BitDomain::assign(int v,IntNotifier& x)  // removeAllBut(v,x)
     if (_sz == 1 && v == _min)
         return;
     if (v < _min || v > _max || !GETBIT(v)) {
+        if (v < _min) {
+            x.empty(EQL, v, LB, _min);
+        }
+        else {
+            if (v > _max) {
+                x.empty(EQL, v, UB, _max);
+            }
+            else {
+                x.empty(EQL, v, RM, v);
+            }
+        }
         _sz = 0;
-        x.empty();
         return;
     }
     bool minChanged = _min != v;
@@ -139,32 +150,35 @@ void BitDomain::remove(int v,IntNotifier& x)
     if (v < _min || v > _max)
         return;
     if (_min.value() == _max.value())
-        x.empty();
+        x.empty(RM, v, EQL, _min);
     bool minChanged = v == _min;
     bool maxChanged = v == _max;
     if (minChanged) {
         x.change();
         x.remove(v);
-        x.changeMin(_min);
+        x.changeMin(findMin(_min + 1));
+        if (_sz == 2) x.bind(findMin(_min + 1));
         _sz = _sz - 1;
        _min = findMin(_min + 1);
-        if (_sz == 1) x.bind(_min);
-        if (_sz == 0) x.empty();
+        // if (_sz == 1) x.bind(_min);
+        if (_sz == 0) assert( (std::cout<<"Domain edge case reached\n", false) ); /* x.empty(RM, v, EQL, _min); */
     } else if (maxChanged) {
         x.change();
         x.remove(v);
-        x.changeMax(_max);
+        x.changeMax(findMax(_max - 1));
+        if (_sz == 2) x.bind(findMax(_max - 1));
         _sz = _sz - 1;
         _max = findMax(_max - 1);
-        if (_sz == 1) x.bind(_max);
-        if (_sz == 0) x.empty();
+        // if (_sz == 1) x.bind(_max);
+        if (_sz == 0) assert( (std::cout<<"Domain edge case reached\n", false) ); /* x.empty(RM, v, EQL, _max); */
     } else if (member(v)) {
         x.remove(v);
         x.change();
+        // if (_sz == 2) x.bind(min());
         setZero(v);
         _sz = _sz - 1;
-        if (_sz == 1) x.bind(min());
-        if (_sz == 0) x.empty();
+        if (_sz == 1) assert( (std::cout<<"Domain edge case reached\n", false) ); /* x.bind(min()); */
+        if (_sz == 0) assert( (std::cout<<"Domain edge case reached\n", false) ); /* x.empty(RM, v, EQL, v); */
     }
 }
 
@@ -173,8 +187,8 @@ void BitDomain::removeBelow(int newMin,IntNotifier& x)
     if (newMin <= _min)
         return;
     if (newMin > _max)
-        x.empty();
-    x.changeMin(_min);
+        x.empty(LB, newMin, UB, _max);
+    x.changeMin(newMin);
     x.change();
     bool isCompact = (_max - _min + 1) == _sz;
     int nbRemove = isCompact ? newMin - _min : count(_min,newMin - 1);
@@ -182,8 +196,8 @@ void BitDomain::removeBelow(int newMin,IntNotifier& x)
     if (!isCompact)
         newMin = findMin(newMin);
     _min = newMin;
-    if (_sz==0) x.empty();
-    if (_sz==1) x.bind(min());
+    if (_sz==0) assert( (std::cout<<"Domain edge case reached\n", false) ); // x.empty();
+    if (_sz==1) x.bind(min());  // TODO: fix this
 }
 
 void BitDomain::removeAbove(int newMax,IntNotifier& x)
@@ -191,8 +205,8 @@ void BitDomain::removeAbove(int newMax,IntNotifier& x)
     if (newMax >= _max)
         return;
     if (newMax < _min)
-        x.empty();
-    x.changeMax(_max);
+        x.empty(UB, newMax, LB, _min);
+    x.changeMax(newMax);
     x.change();
     bool isCompact = (_max - _min + 1) == _sz;
     int nbRemove = isCompact ? _max - newMax : count(newMax + 1,_max);
@@ -200,8 +214,8 @@ void BitDomain::removeAbove(int newMax,IntNotifier& x)
     if (!isCompact)
         newMax = findMax(newMax);
     _max = newMax;
-    if (_sz==0) x.empty();
-    if (_sz==1) x.bind(min());
+    if (_sz==0) assert( (std::cout<<"Domain edge case reached\n", false) ); //x.empty();
+    if (_sz==1) x.bind(min());  // TODO: fix this
 }
 
 std::ostream& operator<<(std::ostream& os,const BitDomain& x)
@@ -356,7 +370,7 @@ void SparseSetDomain::assign(int v,IntNotifier& x)
             x.change();
             _dom.removeAllBut(v);
             if (_dom.size() == 0)
-                x.empty();
+                x.empty();  // add assert here
         }
     } else {
         _dom.removeAll();
@@ -370,7 +384,7 @@ void SparseSetDomain::remove(int v,IntNotifier& x)
         bool maxChanged = max() == v;
         bool minChanged = min() == v;
         x.remove(v);
-        if (maxChanged) x.changeMax(max());
+        if (maxChanged) x.changeMax(max());  // [TAC]: these are the wrong max/min values -- need to fix.
         if (minChanged) x.changeMin(min());
         x.change();
         _dom.remove(v);
@@ -383,7 +397,7 @@ void SparseSetDomain::remove(int v,IntNotifier& x)
 void SparseSetDomain::removeBelow(int newMin,IntNotifier& x)
 {
     if (_dom.min() < newMin) {
-        x.changeMin(min());
+        x.changeMin(newMin);
         x.change();
         _dom.removeBelow(newMin);
         switch(_dom.size()) {
@@ -400,12 +414,12 @@ void SparseSetDomain::removeBelow(int newMin,IntNotifier& x)
 void SparseSetDomain::removeAbove(int newMax,IntNotifier& x)
 {
     if (_dom.max()  > newMax) {
-        x.changeMax(max());
+        x.changeMax(newMax);
         x.change();
         _dom.removeAbove(newMax);
         switch(_dom.size()) {
             case 0: x.empty();break;
-            case 1: x.bind(min());
+            case 1: x.bind(min());  
             default:
                 // x.changeMax(max());
                 // x.change();

@@ -63,7 +63,7 @@ void ExpTrailer::pop()
 void ExpTrailer::examineNextLit()
 {
    Literal* lp = _lits.back().getLit();
-   std::cout << "examining: " << *lp << "\n";
+   // std::cout << "examining: " << *lp << "\n";
    delete lp;
 }
 

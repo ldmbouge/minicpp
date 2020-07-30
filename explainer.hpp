@@ -21,17 +21,22 @@ class Explainer {
     ExpSolver* _es;
     ExpTrailer::Ptr _expT;
     std::vector<ExpListener*> _listeners;
+    std::vector<Literal*> _nogood;
+    int _failDepth;
     // Pool::Ptr    _pool;
     // ImpGraph _ig;
 public:
     typedef handle_ptr<Explainer> Ptr;
     Explainer(ExpSolver* es);
     void injectListeners();
+    void empty(var<int>::Ptr, FailExpl, int, FailExpl, int);
     void bind(var<int>::Ptr, int);
     void remove(var<int>::Ptr, int);
     void changeMin(var<int>::Ptr, int);
     void changeMax(var<int>::Ptr, int);
     void setTrailer(ExpTrailer::Ptr ep) { _expT = ep;}
+    std::vector<Literal*> getNoGood() { return _nogood;}
+    void clearNoGood();
     // void addNodeToImpGraph(Literal* l);
 };
 
@@ -124,13 +129,14 @@ class ExpListener : public IntNotifier {
     IntNotifier* _notif;
 public:
     typedef handle_ptr<ExpListener> Ptr;
-    ExpListener(Explainer* exp, var<int>::Ptr x) : _exp(exp), _x(x), _notif(x->getListener()) { _x->setListener(this);}
-    void empty() override { _notif->empty();}
-    void change() override { _notif->change();}
-    void bind(int a) override { _exp->bind(_x, a); _notif->bind(a);}
-    void changeMin(int newMin) override { _exp->changeMin(_x, newMin); _notif->changeMin(newMin);}
-    void changeMax(int newMax) override { _exp->changeMax(_x, newMax); _notif->changeMax(newMax);}
-    void remove(int a) override { _exp->remove(_x, a);}
+    ExpListener(Explainer*, var<int>::Ptr);
+    void empty() override;
+    void empty(FailExpl, int, FailExpl, int) override;
+    void change() override;
+    void bind(int) override;
+    void changeMin(int) override;
+    void changeMax(int) override;
+    void remove(int) override;
 };
 
 class AllDifferentAC;
