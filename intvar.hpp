@@ -205,10 +205,14 @@ public:
     var<bool>(CPSolver::Ptr& cps) : IntVarImpl(cps,0,1) {}
     bool isTrue() const { return min()==1;}
     bool isFalse() const { return max()==0;}
+#if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
+#endif
     void assign(bool b)  { IntVarImpl::assign(b);}
+#if defined(__clang__)
 #pragma clang diagnostic pop
+#endif
 };
 #if defined(__clang__)
 #pragma clang diagnostic pop

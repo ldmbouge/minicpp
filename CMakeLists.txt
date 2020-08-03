@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.5)
 
 project(miniCPP VERSION 1.0)
 
@@ -37,8 +37,8 @@ endforeach()
 file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 #[[ add_subdirectory(pybind11)  ]]
-find_package(pybind11 REQUIRED)
-pybind11_add_module(minicpp pybridge.cpp)
-target_link_libraries(minicpp PRIVATE copl)
-add_dependencies(minicpp copl)
+#find_package(pybind11 REQUIRED)
+#pybind11_add_module(minicpp pybridge.cpp)
+#target_link_libraries(minicpp PRIVATE copl)
+#add_dependencies(minicpp copl)
 
