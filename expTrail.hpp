@@ -32,8 +32,9 @@ public:
    typedef handle_ptr<ExpTrailer> Ptr;
    ExpTrailer(ExpSolver*);
    virtual ~ExpTrailer();
-   virtual void pop() override;
+   virtual void restoreState() override;
    void storeLit(Literal*);
+   void clearLitsTo(size_t);
 };
 
 

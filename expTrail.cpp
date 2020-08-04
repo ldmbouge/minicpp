@@ -14,6 +14,15 @@ ExpTrailer::~ExpTrailer()
       delete e.getLit();
 }
 
+void ExpTrailer::clearLitsTo(size_t to) {
+   Literal* lp;
+   while (_lits.back().trailSize() != to) {
+      lp = _lits.back().getLit();
+      delete lp;
+      _lits.pop_back();
+   }
+}
+
 void ExpTrailer::popNoExp()
 {
    unsigned to;
@@ -28,6 +37,7 @@ void ExpTrailer::popNoExp()
       entry->Entry::~Entry();
    }
    _btop = mem;
+   clearLitsTo(to);
 }
 
 void ExpTrailer::popWithExp()
@@ -52,7 +62,7 @@ void ExpTrailer::popWithExp()
    _btop = mem;
 }
 
-void ExpTrailer::pop()
+void ExpTrailer::restoreState()
 {
    if (_es->status() == Failure)
       popWithExp();
