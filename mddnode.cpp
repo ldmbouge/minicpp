@@ -24,6 +24,7 @@ std::ostream& operator<<(std::ostream& os,enum Direction d)
       case Up:   return os << "Up";
       case Bi:   return os << "Bi";
       case None: return os << "None";
+      default: return os;
    }
 }
 
