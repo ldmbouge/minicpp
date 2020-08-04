@@ -28,7 +28,9 @@
 #include <xmmintrin.h>
 #include <limits.h>
 #include "hashtable.hpp"
-#include "xxhash.hpp"
+//#include "xxhash.hpp"
+#define XXH_INLINE_ALL
+#include "xxhash.h"
 
 
 class MDDIntSet {
@@ -847,7 +849,8 @@ public:
       return computeHash();
    }
    int computeHash() const noexcept {
-      xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
+      //xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
+      long long hv = XXH3_64bits(_mem,_spec->layoutSize());
       _flags._hashed = true;
       return _hash = (int)hv;
    }
