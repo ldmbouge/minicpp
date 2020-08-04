@@ -31,6 +31,16 @@ CPSolver::CPSolver()
     _nbc = _nbf = _nbs = 0;
 }
 
+CPSolver::CPSolver(Trailer::Ptr t)
+    : _sm(t),
+      _store(new Storage(_sm)),
+      _currCon(nullptr),
+      _es(nullptr)
+{
+    _varId  = 0;
+    _nbc = _nbf = _nbs = 0;
+}
+
 CPSolver::~CPSolver()
 {
    _iVars.clear();

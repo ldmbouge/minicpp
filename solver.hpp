@@ -76,6 +76,7 @@ public:
     friend class Explainer;
     typedef handle_ptr<CPSolver> Ptr;
     CPSolver();
+    CPSolver(Trailer::Ptr t);
     ~CPSolver();
     Status status() { return _status;}
     Trailer::Ptr getStateManager()       { return _sm;}

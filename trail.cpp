@@ -15,6 +15,8 @@
 
 #include "trail.hpp"
 #include <assert.h>
+#include <iostream>
+#include <iomanip>
 
 #define TSIZE (1 << 20)
 
@@ -35,6 +37,7 @@ Trailer::~Trailer()
 
 void Trailer::resize()
 {
+   //std::cout <<  "trail: " << this << ":" << _bsz << std::endl;
    char* nb = (char*)realloc(_block,_bsz << 1);
    if (nb != _block) {
       std::stack<Entry*> ns;

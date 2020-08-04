@@ -88,13 +88,14 @@ void Explainer::clearNoGood()
 // }
 
 ExpSolver::ExpSolver() 
-  : _cps(new CPSolver), _exp(new Explainer(this)) 
+//: _cps(new CPSolver(new ExpTrailer(this))), _exp(new Explainer(this)) 
 {
-    _cps->_sm.dealloc();
-    ExpTrailer::Ptr expT = new ExpTrailer(this);
-    _exp->setTrailer(expT);
-    _cps->_sm = expT;
-    _cps->_es = this;
+   ExpTrailer::Ptr trailer = new ExpTrailer(this);
+   _exp = new Explainer(this);
+   _exp->setTrailer(trailer);
+   _cps = new CPSolver(trailer);
+   //_exp->setTrailer(_cps->getStateManager());
+   _cps->_es = this;
 }
 
 ExpSolver::~ExpSolver()
