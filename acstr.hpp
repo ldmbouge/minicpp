@@ -36,7 +36,7 @@ public:
    virtual ~Constraint() {}
    virtual void post() = 0;
    virtual void propagate() {}
-   virtual std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>(0);}
+   virtual std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>({lp});}
    virtual void print(std::ostream& os) const {}
    void setPriority(unsigned char p) { _prio = p;}
    unsigned char getPriority() const { return _prio;}

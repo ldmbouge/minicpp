@@ -30,7 +30,7 @@ class ExpTrailer : public Trailer {
    void examineNextLit();
 public:
    typedef handle_ptr<ExpTrailer> Ptr;
-   ExpTrailer(ExpSolver*);
+   ExpTrailer(ExpSolver*, handle_ptr<Explainer>);
    virtual ~ExpTrailer();
    virtual void restoreState() override;
    void storeLit(Literal*);

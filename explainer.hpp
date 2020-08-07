@@ -10,8 +10,8 @@
 #include "trail.hpp"
 #include "expTrail.hpp"
 #include "fail.hpp"
-// #include "impGraph.hpp"
 #include <vector>
+#include <unordered_map>
 
 class ExpListener;
 class ExpSolver;
@@ -21,23 +21,22 @@ class Explainer {
     ExpSolver* _es;
     ExpTrailer::Ptr _expT;
     std::vector<ExpListener*> _listeners;
-    std::vector<Literal*> _nogood;
+    std::unordered_map<unsigned long, Literal*> _nogood;
     int _failDepth;
     // Pool::Ptr    _pool;
-    // ImpGraph _ig;
 public:
     typedef handle_ptr<Explainer> Ptr;
     Explainer(ExpSolver* es);
     void injectListeners();
+    void setFailDepth(int);
     void empty(var<int>::Ptr, FailExpl, int, FailExpl, int);
     void bind(var<int>::Ptr, int);
     void remove(var<int>::Ptr, int);
     void changeMin(var<int>::Ptr, int);
     void changeMax(var<int>::Ptr, int);
     void setTrailer(ExpTrailer::Ptr ep) { _expT = ep;}
-    std::vector<Literal*> getNoGood() { return _nogood;}
     void clearNoGood();
-    // void addNodeToImpGraph(Literal* l);
+    void checkLit(Literal* lp);
 };
 
 template<> class handle_ptr<ExpSolver>;
@@ -149,7 +148,7 @@ public:
     typedef handle_ptr<AllDiffExplainer> Ptr;
     AllDiffExplainer(ExpSolver* es, AllDifferentAC* c);
     ~AllDiffExplainer() {}
-    std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>(0);}
+    std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>({lp});}
     void explain(var<int>::Ptr x, int val);
 };
 

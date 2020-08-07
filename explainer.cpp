@@ -14,7 +14,6 @@ Explainer::Explainer(ExpSolver* es)
   : _es(es), 
     _listeners(0)
     // _pool(new Pool)
-    // _ig(this, _pool)
 {}
 
 void Explainer::injectListeners() 
@@ -25,29 +24,43 @@ void Explainer::injectListeners()
     }
 }
 
+void Explainer::setFailDepth(int d)
+{
+    _failDepth = d;
+}
+
 void Explainer::empty(var<int>::Ptr x, FailExpl e1, int v1, FailExpl e2, int v2)
 {
     clearNoGood();
     _failDepth = _es->getDepth();
+    Literal* lp;
     switch (e1) {
-        case EQL : _nogood.emplace_back( new Literal(x, EQ, v1, _es->getCurrConstraint(), _es->getDepth()) );
-                  break;
-        case RM : _nogood.emplace_back( new Literal(x, NEQ, v1, _es->getCurrConstraint(), _es->getDepth()) );
-                  break;
-        case LB : _nogood.emplace_back( new Literal(x, GEQ, v1, _es->getCurrConstraint(), _es->getDepth()) );
-                  break;
-        case UB : _nogood.emplace_back( new Literal(x, LEQ, v1, _es->getCurrConstraint(), _es->getDepth()) );
-                  break;
+        case EQL :  lp = new Literal(x, EQ, v1, _es->getCurrConstraint(), _es->getDepth());
+                    _nogood.insert( {litKey(*lp), lp} );
+                    break;
+        case RM :   lp =  new Literal(x, NEQ, v1, _es->getCurrConstraint(), _es->getDepth());
+                    _nogood.insert( {litKey(*lp), lp} );
+                    break;
+        case LB :   lp = new Literal(x, GEQ, v1, _es->getCurrConstraint(), _es->getDepth());
+                    _nogood.insert( {litKey(*lp), lp} );
+                    break;
+        case UB :   lp = new Literal(x, LEQ, v1, _es->getCurrConstraint(), _es->getDepth());
+                    _nogood.insert( {litKey(*lp), lp} );
+                    break;
     }
     switch (e2) {
-        case EQL : _nogood.emplace_back( new Literal(x, EQ, v2, _es->getCurrConstraint(), _es->getDepth()) );
-                  break;
-        case RM : _nogood.emplace_back( new Literal(x, NEQ, v2, _es->getCurrConstraint(), _es->getDepth()) );
-                  break;
-        case LB : _nogood.emplace_back( new Literal(x, GEQ, v2, _es->getCurrConstraint(), _es->getDepth()) );
-                  break;
-        case UB : _nogood.emplace_back( new Literal(x, LEQ, v2, _es->getCurrConstraint(), _es->getDepth()) );
-                  break;
+        case EQL :  lp = new Literal(x, EQ, v2, _es->getCurrConstraint(), _es->getDepth());
+                    _nogood.insert( {litKey(*lp), lp} );
+                    break;
+        case RM :   lp = new Literal(x, NEQ, v2, _es->getCurrConstraint(), _es->getDepth());
+                    _nogood.insert( {litKey(*lp), lp} );
+                    break;
+        case LB :   lp = new Literal(x, GEQ, v2, _es->getCurrConstraint(), _es->getDepth());
+                    _nogood.insert( {litKey(*lp), lp} );
+                    break;
+        case UB :   lp = new Literal(x, LEQ, v2, _es->getCurrConstraint(), _es->getDepth());
+                    _nogood.insert( {litKey(*lp), lp} );
+                    break;
     }
 }
 
@@ -77,24 +90,50 @@ void Explainer::changeMax(var<int>::Ptr x, int newMax)
 
 void Explainer::clearNoGood()
 {
-    for (auto lp : _nogood)
-        delete lp;
+    for (auto it : _nogood)
+        delete it.second;  // release literal from memory
     _nogood.clear();
 }
 
-// void Explainer::addNodeToImpGraph(Literal* l) 
-// {
-//     _ig.addNode(l);
-// }
+void Explainer::checkLit(Literal* currLit) 
+{
+    // create list, N, of lits in nogood that are no longer valid and also remove them from nogood
+    // std::vector<Literal*> N;
+    bool litReplacement = false;
+    for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
+        if (!it->second->isValid()) {
+            litReplacement = true;
+            // N.push_back(it->second);
+            delete it->second;  // release lit from memory
+            _nogood.erase(it);
+        }
+    }
+    // if N is not empty: release lits in N from memory; add lp->reason() to nogood
+    if (litReplacement) {
+        // for (auto lp : N)
+        //     delete lp;
+        std::vector<Literal*> r = currLit->explain();
+        for (auto litPtr : r)
+            _nogood.insert( {litKey(*litPtr), litPtr} );
+    } else delete currLit;
+    // simplify nogood
+    // check if at 1 UIP
+    int nbLitsAtFailDepth = 0;
+    for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
+        if (it->second->getDepth() == _failDepth)
+            ++nbLitsAtFailDepth;
+    }
+    if (nbLitsAtFailDepth == 1)
+        std::cout << "found nogood\n";
+        // post nogood
+}
 
 ExpSolver::ExpSolver() 
-//: _cps(new CPSolver(new ExpTrailer(this))), _exp(new Explainer(this)) 
 {
-   ExpTrailer::Ptr trailer = new ExpTrailer(this);
    _exp = new Explainer(this);
+   ExpTrailer::Ptr trailer = new ExpTrailer(this, _exp);
    _exp->setTrailer(trailer);
    _cps = new CPSolver(trailer);
-   //_exp->setTrailer(_cps->getStateManager());
    _cps->_es = this;
 }
 

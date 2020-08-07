@@ -4,10 +4,21 @@ bool Literal::operator==(const Literal& other) const {
     return (_x->getId() == other._x->getId()) && (_c == other._c) && (_rel == other._rel);
 }
 
+bool Literal::isValid() const
+{
+    switch (_rel) {
+        case EQ : return ((_x->size() == 1) && (_x->contains(_c)));
+        case NEQ : return !(_x->contains(_c));
+        case LEQ : return (_x->max() <= _c);
+        case GEQ : return (_x->min() >= _c);
+    }
+}
+
+
 std::vector<Literal*> Literal::explain()
 {
     if (_cPtr) return _cPtr->explain(this);  // cPtr is null if literal is generated before fixpoint begins
-    else return std::vector<Literal*>(0);
+    else return std::vector<Literal*>({this});
 }
 
 unsigned long litKey(const Literal& l) {

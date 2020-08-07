@@ -2,10 +2,10 @@
 #include "explainer.hpp"
 #include "literal.hpp"
 
-ExpTrailer::ExpTrailer(ExpSolver* es)
+ExpTrailer::ExpTrailer(ExpSolver* es, handle_ptr<Explainer> exp)
   : Trailer(), 
     _es(es), 
-    _exp(es->getExplainer())
+    _exp(exp)
   {}
 
 ExpTrailer::~ExpTrailer()
@@ -42,6 +42,7 @@ void ExpTrailer::popNoExp()
 
 void ExpTrailer::popWithExp()
 {
+   _exp->setFailDepth(_es->getDepth());
    unsigned to;
    std::size_t mem;
    long node;
@@ -50,7 +51,7 @@ void ExpTrailer::popWithExp()
    size_t tsz = _lits.back().trailSize();
    while (_trail.size() != to) {
       if (_trail.size() == tsz) {
-         examineNextLit();
+         _exp->checkLit(_lits.back().getLit());
          _lits.pop_back();
          tsz = _lits.back().trailSize();
       }
@@ -60,6 +61,7 @@ void ExpTrailer::popWithExp()
       entry->Entry::~Entry();
    }
    _btop = mem;
+   _exp->clearNoGood();
 }
 
 void ExpTrailer::restoreState()
@@ -68,13 +70,6 @@ void ExpTrailer::restoreState()
       popWithExp();
    else
       popNoExp();
-}
-
-void ExpTrailer::examineNextLit()
-{
-   Literal* lp = _lits.back().getLit();
-   // std::cout << "examining: " << *lp << "\n";
-   delete lp;
 }
 
 void ExpTrailer::storeLit(Literal* lp)

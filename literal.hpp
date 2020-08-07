@@ -43,14 +43,18 @@ public:
     friend class LitVar;
     friend unsigned long litKey(const Literal&);
     bool operator==(const Literal& other) const;
+    bool isValid() const;
+    int getDepth() { return _depth;}
     void print(std::ostream& os) const {
-      os << "x_" << _x->getId() << LitRelString(_rel) << _c << " @ " << _depth;
+      os << "<x_" << _x->getId() << LitRelString(_rel) << _c << " @ " << _depth << ">";
     }
     friend std::ostream& operator<<(std::ostream& os, const Literal& l) {
       l.print(os);
       return os;
     }
 };
+
+unsigned long litKey(const Literal&);
 
 class LitVar : public AVar {
     int _id;
