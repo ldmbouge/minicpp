@@ -99,6 +99,7 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
     if (branches.size() == 0) {
         stats.incrSolutions();
         notifySolution();
+        // throw Success;
     } else {
         for(auto& alt : branches) {
             _sm->saveState();
@@ -111,8 +112,8 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
                 stats.incrFailures();
                 notifyFailure();
             }
-            stats.decrDepth();
             _sm->restoreState();
+            stats.decrDepth();
         }
     }   
 }

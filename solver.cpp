@@ -93,6 +93,7 @@ void CPSolver::fixpoint()
          }
       }
       assert(_queue.size() == 0);
+      _status = Suspend;
    } catch(Status x) {
       _status = x;
       while (!_queue.empty()) {

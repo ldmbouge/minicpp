@@ -95,11 +95,21 @@ void Explainer::clearNoGood()
     _nogood.clear();
 }
 
+void Explainer::printNoGood()
+{
+    // std::cout << "found nogood:\n\t";
+    for (auto it = _nogood.begin(); it != _nogood.end(); ++it)
+        std::cout << *(it->second) << " /\\ ";
+    std::cout << "\b\b \b\b \b\b \n";
+}
+
 void Explainer::checkLit(Literal* currLit) 
 {
     // create list, N, of lits in nogood that are no longer valid and also remove them from nogood
     // std::vector<Literal*> N;
     bool litReplacement = false;
+    // std::cout << "initial nogood: \n\t";
+    // printNoGood();
     for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
         if (!it->second->isValid()) {
             litReplacement = true;
@@ -123,9 +133,11 @@ void Explainer::checkLit(Literal* currLit)
         if (it->second->getDepth() == _failDepth)
             ++nbLitsAtFailDepth;
     }
-    if (nbLitsAtFailDepth == 1)
-        std::cout << "found nogood\n";
+    if (nbLitsAtFailDepth == 1) {
+        // std::cout << "found nogood:\n\t";
+        // printNoGood();
         // post nogood
+    }
 }
 
 ExpSolver::ExpSolver() 

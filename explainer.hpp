@@ -36,6 +36,7 @@ public:
     void changeMax(var<int>::Ptr, int);
     void setTrailer(ExpTrailer::Ptr ep) { _expT = ep;}
     void clearNoGood();
+    void printNoGood();
     void checkLit(Literal* lp);
 };
 
