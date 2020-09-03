@@ -18,16 +18,21 @@
 
 #include "handle.hpp"
 #include "trailable.hpp"
+// #include "conListener.hpp"
 #include <vector>
 
 class CPSolver;
 class Literal;
+class Visitor;
+class ConListener;
 
 class Constraint {
 private:
    bool     _scheduled;
    unsigned char _prio;
    trail<bool> _active;
+protected:
+   ConListener* _lis;
 public:
    static const unsigned char CLOW  = 0;
    static const unsigned char CHIGH = 1;
@@ -44,6 +49,9 @@ public:
    bool isScheduled() const  { return _scheduled;}
    void setActive(bool a)    { _active = a;}
    bool isActive() const     { return _active;}
+   virtual void visit(Visitor& v) {}
+   ConListener* getListener() { return _lis;}
+   void setListener(ConListener* l) { _lis = l;}
 };
 
 class Objective {
@@ -51,6 +59,6 @@ public:
    typedef handle_ptr<Objective> Ptr;
    virtual void tighten() = 0;
    virtual int value() const = 0;
-};;
+};
 
 #endif

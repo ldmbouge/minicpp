@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <functional>
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"
@@ -26,76 +27,75 @@ int main(int argc,char* argv[])
 {
    using namespace std;
    using namespace Factory;
-   const int n = 3;
-   // CPSolver::Ptr cp  = Factory::makeSolver();
+
    ExpSolver::Ptr cp  = Factory::makeExpSolver();
 
-   auto q = Factory::intVarArray(cp,n,1,n);
+   auto q = Factory::boolVarArray(cp,14);
 
-   // auto l0 = Literal(q[0], NEQ, 1, nullptr, -1);
-   // auto l1 = Literal(q[1], NEQ, 2, nullptr, -1);
-   // auto lhs = LitHashSet();
-   // lhs.insert(l0);
-   // lhs.insert(l1);
+   cp->post(q[1] != q[9]);   // nX2
+   cp->post(q[2] != q[10]);  // nX3
+   cp->post(q[3] != q[11]);  // nX4
+   cp->post(q[4] != q[12]);  // nX5
+   cp->post(q[5] != q[13]);  // nX6
 
-   //  auto exp = Explainer(cp);
-   //  exp.inject();
-   cp->post(Factory::allDifferentAC(q));
-   //  cp->post(q[0] != 2);
-   //  cp->post(q[1] != 4);
-   //  cp->post(q[2] != 1);
+   auto c1 = std::vector<var<bool>::Ptr>({q[0],q[1]});
+   auto c2 = std::vector<var<bool>::Ptr>({q[0],q[2],q[6]});
+   auto c3 = std::vector<var<bool>::Ptr>({q[9],q[10],q[3]});
+   auto c4 = std::vector<var<bool>::Ptr>({q[11],q[4],q[7]});
+   auto c5 = std::vector<var<bool>::Ptr>({q[11],q[5],q[8]});
+   auto c6 = std::vector<var<bool>::Ptr>({q[12],q[13]});
 
+   cp->post(Factory::clause(c1));
+   cp->post(Factory::clause(c2));
+   cp->post(Factory::clause(c3));
+   cp->post(Factory::clause(c4));
+   cp->post(Factory::clause(c5));
+   cp->post(Factory::clause(c6));
 
+   // x7 == 0 @ 1
+   std::function<void(void)> b1 = [=]() {
+      cp->post(q[6] == false);
+   };
 
-   // auto w = Factory::makeIntVar(cp,{1,2});
-   // auto x = Factory::makeIntVar(cp,{1,2});
-   // auto y = Factory::makeIntVar(cp,{1,3});
-   // auto z = Factory::makeIntVar(cp,{2,4,5});
-   // auto x = -10 * w;
-   // std::vector<var<int>::Ptr> q;
-   // q.push_back(w);
-   // q.push_back(x);
-   // q.push_back(y);
-   // q.push_back(z);
+   // x8 == 0 @ 2
+   std::function<void(void)> b2 = [=]() {
+      cp->post(q[7] == false);
+   };
 
-   // auto w = IntVarImpl(cp,1,10);
-   // std::cout << "testing intvar iterator" << std::endl;
-   // std::cout << "w = {1,2}" << std::endl;
-   // for (auto val : *w) {
-   //    std::cout << val << std::endl;
-   // }
-   // std::cout << "x = {1,2}" << std::endl;
-   // for (auto val : *x) {
-   //    std::cout << val << std::endl;
-   // }
-   // std::cout << "y = {1,3}" << std::endl;
-   // for (auto val : *y) {
-   //    std::cout << val << std::endl;
-   // }
-   // std::cout << "z = {2,4,5}" << std::endl;
-   // for (auto val : *z) {
-   //    std::cout << val << std::endl;
-   // }
+   // x9 == 0 @ 3
+   std::function<void(void)> b3 = [=]() {
+      cp->post(q[8] == false);
+   };
 
-    cp->post(Factory::allDifferentAC(q));
-    std::cout << "done posting" << std::endl;
-    ExpDFSearch search(cp,[=]() {
-                          auto x = selectMin(q,
-                                             [](const auto& x) { return x->size() > 1;},
-                                             [](const auto& x) { return x->size();});
-                          if (x) {
-                             int c = x->min();                    
-                             return  [=] { cp->post(x == c);}
-                                | [=] { cp->post(x != c);};
-                          } else return Branches({});
-                       });    
+   // x1 == 0 @ 4
+   std::function<void(void)> b4 = [=]() {
+      cp->post(q[0] == false);
+   };
 
-    search.onSolution([&q]() {
-                         cout << "sol = " << q << endl;
-                      });
+   std::vector<std::function<void(void)>> choices;
+   choices.push_back(b1);
+   choices.push_back(b2);
+   choices.push_back(b3);
+   choices.push_back(b4);
 
-    auto stat = search.solve();
-    cout << stat << endl;
+   ExpTestSearch search(cp);
+
+   // ExpDFSearch search(cp,[=]() {
+   //                      auto x = selectMin(q,
+   //                                        [](const auto& x) { return x->size() > 1;},
+   //                                        [](const auto& x) { return x->size();});
+   //                      if (x) {
+   //                         return  [=] { cp->post(x == true);}
+   //                            | [=] { cp->post(x == false);};
+   //                      } else return Branches({});
+   //                   });    
+
+   //  search.onSolution([&q]() {
+   //                       cout << "sol = " << q << endl;
+   //                    });
+
+   auto stat = search.solve(choices);
+   cout << stat << endl;
     
    cp.dealloc();
    return 0;

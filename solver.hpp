@@ -20,7 +20,6 @@
 #include <deque>
 #include <functional>
 #include <stdlib.h>
-
 #include "cont.hpp"
 #include "handle.hpp"
 #include "fail.hpp"
@@ -32,7 +31,7 @@
 typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
 class Explainer;
-class Constraint;
+// class Constraint;
 
 class DEPQueue {
    std::deque<Constraint::Ptr>  _q[2];
@@ -61,6 +60,7 @@ class CPSolver {
     Storage::Ptr               _store;
     handle_ptr<Constraint>   _currCon;
     std::list<AVar::Ptr>       _iVars;
+    std::list<Constraint::Ptr> _cons;
     DEPQueue                   _queue;
     std::list<std::function<void(void)>>  _onFix;
     long                  _afterClose;
@@ -84,6 +84,7 @@ public:
     ExpSolver* getExpSolver() { return _es;}
     void registerVar(AVar::Ptr avar);
     std::vector<handle_ptr<var<int>>> intVars();
+    std::list<Constraint::Ptr>& constraints() { return _cons;}
     void schedule(Constraint::Ptr& c) {
         if (c->isActive() && !c->isScheduled()) {
             c->setScheduled(true);

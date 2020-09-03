@@ -10,6 +10,7 @@
 #include "trail.hpp"
 #include "expTrail.hpp"
 #include "fail.hpp"
+#include "visitor.hpp"
 #include <vector>
 #include <unordered_map>
 
@@ -35,6 +36,7 @@ public:
     void changeMin(var<int>::Ptr, int);
     void changeMax(var<int>::Ptr, int);
     void setTrailer(ExpTrailer::Ptr ep) { _expT = ep;}
+    void setNoGood(std::vector<Literal*>);
     void clearNoGood();
     void printNoGood();
     void checkLit(Literal* lp);

@@ -16,7 +16,7 @@ ExpTrailer::~ExpTrailer()
 
 void ExpTrailer::clearLitsTo(size_t to) {
    Literal* lp;
-   while (_lits.back().trailSize() != to) {
+   while (_lits.back().trailSize() != to && _lits.size() > 0) {
       lp = _lits.back().getLit();
       delete lp;
       _lits.pop_back();

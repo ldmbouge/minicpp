@@ -131,3 +131,28 @@ SearchStatistics ExpDFSearch::solve()
     _exp->setSearchStats(&stats);
     return _dfs.solve(stats,[](const SearchStatistics& ss) { return false;});
 }
+
+ExpTestSearch::ExpTestSearch(ExpSolver::Ptr exp)
+  : _exp(exp), _sm(exp->getStateManager())
+{
+    _exp->getExplainer()->injectListeners();
+}
+
+SearchStatistics ExpTestSearch::solve(std::vector<std::function<void(void)>> choices)
+{
+    SearchStatistics stats;
+    _exp->setSearchStats(&stats);
+    for (auto& c : choices) {
+        try {
+            _sm->saveState();
+            stats.incrNodes();
+            stats.incrDepth();
+            c();
+        }
+        catch (Status e) {
+            stats.incrFailures();
+            _sm->restoreState();
+        }
+    }
+    return stats;
+}

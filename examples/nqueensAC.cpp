@@ -26,6 +26,7 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
     const int n = 8;
+   //  CPSolver::Ptr cp  = Factory::makeSolver();
     ExpSolver::Ptr cp  = Factory::makeExpSolver();
     auto q = Factory::intVarArray(cp,n,1,n);
     cp->post(Factory::allDifferentAC(q));
@@ -47,9 +48,9 @@ int main(int argc,char* argv[])
                           } else return Branches({});
                        });    
 
-    // search.onSolution([&q]() {
-    //                      cout << "sol = " << q << endl;
-    //                   });
+   //  search.onSolution([&q]() {
+   //                       cout << "sol = " << q << endl;
+   //                    });
 
    //  auto stat = search.solve([](const SearchStatistics& s) {
    //                              return RuntimeMonitor::elapsedSince(s.startTime()) > 100;

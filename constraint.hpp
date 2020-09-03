@@ -32,6 +32,8 @@
 #include "literal.hpp"
 #include "explainer.hpp"
 
+class Visitor;
+
 class EQc : public Constraint { // x == c
    var<int>::Ptr _x;
    int           _c;
@@ -118,6 +120,15 @@ public:
    void propagate() override;
 };
 
+class NEQBool : public Constraint {
+   var<bool>::Ptr _b1, _b2;
+public:
+   NEQBool(var<bool>::Ptr b1, var<bool>::Ptr b2)
+     : Constraint(b1->getSolver()), _b1(b1), _b2(b2) {}
+   void post() override;
+   void propagate() override;
+};
+
 class IsEqual : public Constraint { // b <=> x == c
    var<bool>::Ptr _b;
    var<int>::Ptr _x;
@@ -184,6 +195,7 @@ public:
    Clause(const std::vector<var<bool>::Ptr>& x);
    void post() override { propagate();}
    void propagate() override;
+   void visit(Visitor& v) override { v.visitClause(this);}
 };
 
 class LitClause : public Constraint { // x0 OR x1 .... OR xn
@@ -256,6 +268,7 @@ public:
     ~AllDifferentAC() {}
     void post() override;
     void propagate() override;
+    void visit(Visitor& v) override { v.visitAllDifferentAC(this);}
     std::vector<Literal*> explain(Literal* lp) override { return _ex.explain(lp);} 
 };
 
@@ -412,6 +425,9 @@ namespace Factory {
    }
    inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y) {
       return Factory::notEqual(x,y,0);
+   }
+   inline Constraint::Ptr operator!=(var<bool>::Ptr b1, var<bool>::Ptr b2) {
+      return new (b1->getSolver()) NEQBool(b1,b2);
    }
    inline Constraint::Ptr operator<=(var<int>::Ptr x,var<int>::Ptr y) {
       return new (x->getSolver()) LessOrEqual(x,y);

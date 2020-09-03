@@ -15,9 +15,11 @@
 
 #include "acstr.hpp"
 #include "solver.hpp"
+#include "conListener.hpp"
 
 Constraint::Constraint(CPSolver::Ptr cp)
    : _scheduled(false),
      _prio(CHIGH),
-     _active(cp->getStateManager(),true)
+     _active(cp->getStateManager(),true),
+     _lis(new ConListener(this))
 {}

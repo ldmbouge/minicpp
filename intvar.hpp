@@ -255,6 +255,47 @@ public:
     bool isFalse() const { return max()==0;}
     void assign(bool b)  { IntVarImpl::assign(b);}
 };
+
+// class BoolVarViewNot :public var<int> {
+//    var<bool>::Ptr _x;
+
+// public:
+//    BoolVarViewNot(const var<bool>::Ptr& x) : _x(x) {}
+//    Storage::Ptr getStore() override   { return _x->getStore();}
+//    CPSolver::Ptr getSolver() override { return _x->getSolver();}
+//    bool isTrue() const { return _x->isFalse();}
+//    bool isFalse() const { return _x->isTrue();}
+//    void assign(bool b) { _x->assign(!b);}
+
+//    int min() const  override { return - _x->max();}
+//    int max() const  override { return - _x->min();}
+//    int size() const override { return _x->size();}
+//    bool isBound() const override { return _x->isBound();}
+//    bool contains(int v) const override { return _x->contains(-v);}
+   
+//    void assign(int v) override { _x->assign(-v);}
+//    void remove(int v) override { _x->remove(-v);}
+//    void removeBelow(int newMin) override { _x->removeAbove(-newMin);}
+//    void removeAbove(int newMax) override { _x->removeBelow(-newMax);}
+//    void updateBounds(int newMin,int newMax) override { _x->updateBounds(-newMax,-newMin);}
+//    IntNotifier* getListener() const override { return nullptr;}
+//    void setListener(IntNotifier*) override {}
+   
+//    TLCNode* whenBind(std::function<void(void)>&& f) override { return _x->whenBind(std::move(f));}
+//    TLCNode* whenBoundsChange(std::function<void(void)>&& f) override { return _x->whenBoundsChange(std::move(f));}
+//    TLCNode* whenDomainChange(std::function<void(void)>&& f) override { return _x->whenDomainChange(std::move(f));}
+//    TLCNode* propagateOnBind(Constraint::Ptr c)          override { return _x->propagateOnBind(c);}
+//    TLCNode* propagateOnBoundChange(Constraint::Ptr c)   override { return _x->propagateOnBoundChange(c);}
+//    TLCNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _x->propagateOnDomainChange(c);}
+//    std::ostream& print(std::ostream& os) const override {
+//       os << '{';
+//       for(int i = min();i <= max() - 1;i++) 
+//          if (contains(i)) os << i << ',';
+//       if (size()>0) os << max();
+//       return os << '}';      
+//    }
+// };
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
@@ -298,6 +339,7 @@ namespace Factory {
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);   
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
+   // inline var<int>::Ptr not(var<bool>::Ptr x) { return new (x->getSolver()) BoolVarViewNot(x);}
    inline var<int>::Ptr minus(var<int>::Ptr x)     { return new (x->getSolver()) IntVarViewOpposite(x);}
    inline var<int>::Ptr operator-(var<int>::Ptr x) { return minus(x);}
    inline var<int>::Ptr operator*(var<int>::Ptr x,int a) {

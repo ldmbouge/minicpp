@@ -14,6 +14,7 @@
  */
 
 #include "constraint.hpp"
+#include "conListener.hpp"
 #include <string.h>
 
 void printCstr(Constraint::Ptr c) {
@@ -204,6 +205,31 @@ void LessOrEqual::propagate()
     _x->removeAbove(_y->max());
     _y->removeBelow(_x->min());
     setActive(_x->max() >= _y->min());
+}
+
+void NEQBool::post()
+{
+    _b1->propagateOnBind(this);
+    _b2->propagateOnBind(this);
+    propagate();
+}
+
+void NEQBool::propagate()
+{
+    if (_b1->isBound()) {
+        if (_b1->isTrue())
+            _b2->assign(false);
+        else
+            _b2->assign(true);
+    }
+    else {
+        if (_b2->isBound()) {
+            if (_b2->isTrue())
+                _b1->assign(false);
+            else
+                _b1->assign(true);
+        }
+    }
 }
 
 Minimize::Minimize(var<int>::Ptr& x)
@@ -429,7 +455,7 @@ void Clause::propagate()
         i -= 1;
     }
     _wR = i;
-    if (_wL > _wR) throw Failure;
+    if (_wL > _wR) _lis->fail();  
     else if (_wL == _wR) {
         _x[_wL]->assign(true);
         setActive(false);
@@ -471,7 +497,7 @@ void LitClause::propagate()
         i -= 1;
     }
     _wR = i;
-    if (_wL > _wR) throw Failure;
+    if (_wL > _wR) _lis->fail();
     else if (_wL == _wR) {
         _x[_wL]->assign(true);
         setActive(false);
@@ -613,7 +639,7 @@ void AllDifferentAC::propagate()
 {
    int size = _mm.compute(_match);
    if (size < _nVar)
-      throw Failure;
+      _lis->fail();
    updateRange();
    updateGraph();
    int nc = 0;

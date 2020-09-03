@@ -18,9 +18,15 @@ Explainer::Explainer(ExpSolver* es)
 
 void Explainer::injectListeners() 
 {
+    // inject var listeners
     for (auto x : _es->_cps->intVars()) {
         auto l = new (_es->getStore()) ExpListener(this,x);
         _listeners.push_back(l);
+    }
+    // inject constraint listeners
+    auto cv = ExpVisitor();
+    for (auto cPtr : _es->_cps->constraints()) {
+        cPtr->visit(cv);
     }
 }
 
@@ -88,6 +94,11 @@ void Explainer::changeMax(var<int>::Ptr x, int newMax)
     _expT->storeLit(lp);
 }
 
+void Explainer::setNoGood(std::vector<Literal*> vl)
+{
+    return;
+}
+
 void Explainer::clearNoGood()
 {
     for (auto it : _nogood)
@@ -134,7 +145,7 @@ void Explainer::checkLit(Literal* currLit)
             ++nbLitsAtFailDepth;
     }
     if (nbLitsAtFailDepth == 1) {
-        // std::cout << "found nogood:\n\t";
+        std::cout << "found nogood:\n\t";
         // printNoGood();
         // post nogood
     }

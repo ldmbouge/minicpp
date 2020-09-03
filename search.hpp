@@ -197,4 +197,12 @@ inline typename Container::value_type selectUnboundLit(Container& c) {
    return typename Container::value_type();
 }
 
+class ExpTestSearch {
+   ExpSolver::Ptr  _exp;
+   StateManager::Ptr _sm;
+public:
+   ExpTestSearch(ExpSolver::Ptr);
+   SearchStatistics solve(std::vector<std::function<void(void)>>);
+};
+
 #endif
