@@ -142,31 +142,31 @@ public:
     void remove(int) override;
 };
 
-class AllDifferentAC;
-class AllDiffExplainer {
-    ExpSolver::Ptr _es;
-    Explainer::Ptr _exp;
-    AllDifferentAC* _c;
-public:
-    typedef handle_ptr<AllDiffExplainer> Ptr;
-    AllDiffExplainer(ExpSolver* es, AllDifferentAC* c);
-    ~AllDiffExplainer() {}
-    std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>({lp});}
-    void explain(var<int>::Ptr x, int val);
-};
+// class AllDifferentAC;
+// class AllDiffExplainer {
+//     ExpSolver::Ptr _es;
+//     Explainer::Ptr _exp;
+//     AllDifferentAC* _c;
+// public:
+//     typedef handle_ptr<AllDiffExplainer> Ptr;
+//     AllDiffExplainer(ExpSolver* es, AllDifferentAC* c);
+//     ~AllDiffExplainer() {}
+//     std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>({lp});}
+//     void explain(var<int>::Ptr x, int val);
+// };
 
 
-class EQc;
-class EQcExplainer {
-    ExpSolver::Ptr _es;
-    Explainer::Ptr _exp;
-    EQc* _c;
-public:
-    EQcExplainer(ExpSolver* es, EQc* c)
-      : _es(es), _c(c) {}
-    ~EQcExplainer() {}
-    std::vector<Literal*> explain(Literal* lp);
-};
+// class EQc;
+// class EQcExplainer {
+//     ExpSolver::Ptr _es;
+//     Explainer::Ptr _exp;
+//     EQc* _c;
+// public:
+//     EQcExplainer(ExpSolver* es, EQc* c)
+//       : _es(es), _c(c) {}
+//     ~EQcExplainer() {}
+//     std::vector<Literal*> explain(Literal* lp);
+// };
 
 namespace Factory {
    inline ExpSolver::Ptr makeExpSolver() { return new ExpSolver;}

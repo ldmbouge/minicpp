@@ -2,19 +2,22 @@
 #define __VISITOR_H
 
 #include <iostream>
+#include "handle.hpp"
 
 class Constraint;
+class Clause;
+class AllDifferentAC;
 
 class Visitor {
 public:
-    virtual void visitClause(Constraint* c) {}
-    virtual void visitAllDifferentAC(Constraint* c) {}
+    virtual void visitClause(handle_ptr<Clause> c) {} 
+    virtual void visitAllDifferentAC(handle_ptr<AllDifferentAC> c) {}
 };
 
 class ExpVisitor : public Visitor {
 public:
-    void visitClause(Constraint* c) override; 
-    void visitAllDifferentAC(Constraint* c) override;
+    void visitClause(handle_ptr<Clause> c) override; 
+    void visitAllDifferentAC(handle_ptr<AllDifferentAC> c) override;
 };
 
 

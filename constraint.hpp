@@ -30,19 +30,16 @@
 #include "matching.hpp"
 #include "bitset.hpp"
 #include "literal.hpp"
-#include "explainer.hpp"
+#include "visitor.hpp"
 
 class Visitor;
 
 class EQc : public Constraint { // x == c
    var<int>::Ptr _x;
    int           _c;
-   EQcExplainer _ex;
 public:
-   EQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c), _ex(x->getSolver()->getExpSolver(), this) {}
-   friend class EQcExplainer;
+   EQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
    void post() override;
-   std::vector<Literal*> explain(Literal* lp) override { return _ex.explain(lp);} 
 };
 
 class NEQc : public Constraint { // x != c
@@ -193,9 +190,11 @@ class Clause : public Constraint { // x0 OR x1 .... OR xn
    trail<int> _wL,_wR;
 public:
    Clause(const std::vector<var<bool>::Ptr>& x);
+   typedef handle_ptr<Clause> Ptr;
    void post() override { propagate();}
    void propagate() override;
    void visit(Visitor& v) override { v.visitClause(this);}
+   friend class ClauseExpListener;
 };
 
 class LitClause : public Constraint { // x0 OR x1 .... OR xn
@@ -250,7 +249,6 @@ class AllDifferentAC : public Constraint {
     Factory::Veci    _x;
     MaximumMatching _mm;
     Graph           _rg;
-    AllDiffExplainer _ex;
     int* _match;
     bool* _matched;
     int _minVal,_maxVal;
@@ -258,18 +256,17 @@ class AllDifferentAC : public Constraint {
     int updateRange();
     void updateGraph();
     int valNode(int vid) const { return vid - _minVal + _nVar;}
-    friend class AllDiffExplainer;
 public:
     template <class Vec> AllDifferentAC(const Vec& x)
         : Constraint(x[0]->getSolver()),
           _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore())),
-          _mm(_x,x[0]->getStore()), 
-          _ex(x[0]->getSolver()->getExpSolver(),this) {}
+          _mm(_x,x[0]->getStore()) {}
     ~AllDifferentAC() {}
+    typedef handle_ptr<AllDifferentAC> Ptr;
     void post() override;
     void propagate() override;
     void visit(Visitor& v) override { v.visitAllDifferentAC(this);}
-    std::vector<Literal*> explain(Literal* lp) override { return _ex.explain(lp);} 
+    friend class AllDiffACExpListener;
 };
 
 class Circuit :public Constraint {
