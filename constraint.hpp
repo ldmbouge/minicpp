@@ -122,8 +122,12 @@ class NEQBool : public Constraint {
 public:
    NEQBool(var<bool>::Ptr b1, var<bool>::Ptr b2)
      : Constraint(b1->getSolver()), _b1(b1), _b2(b2) {}
+   typedef handle_ptr<NEQBool> Ptr;
    void post() override;
    void propagate() override;
+   void visit(Visitor& v) override { v.visitNEQBool(this);}
+   std::vector<Literal*> explain(Literal*) override;
+   friend class NEQBoolExpListener;
 };
 
 class IsEqual : public Constraint { // b <=> x == c
@@ -194,6 +198,7 @@ public:
    void post() override { propagate();}
    void propagate() override;
    void visit(Visitor& v) override { v.visitClause(this);}
+   std::vector<Literal*> explain(Literal*) override;
    friend class ClauseExpListener;
 };
 

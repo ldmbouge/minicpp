@@ -45,6 +45,9 @@ public:
     bool operator==(const Literal& other) const;
     bool isValid() const;
     int getDepth() { return _depth;}
+    var<int>::Ptr getVar() { return _x;}
+    LitRel getRel() { return _rel;}
+    int getVal() { return _c;}
     void print(std::ostream& os) const {
       os << "<x_" << _x->getId() << LitRelString(_rel) << _c << " @ " << _depth << ">";
     }

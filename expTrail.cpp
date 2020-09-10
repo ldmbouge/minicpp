@@ -55,10 +55,12 @@ void ExpTrailer::popWithExp()
          _lits.pop_back();
          tsz = _lits.back().trailSize();
       }
-      Entry* entry = _trail.top();
-      entry->restore();
-      _trail.pop();
-      entry->Entry::~Entry();
+      else {
+         Entry* entry = _trail.top();
+         entry->restore();
+         _trail.pop();
+         entry->Entry::~Entry();
+      }
    }
    _btop = mem;
    _exp->clearNoGood();
@@ -75,4 +77,12 @@ void ExpTrailer::restoreState()
 void ExpTrailer::storeLit(Literal* lp)
 {
    _lits.emplace_back(LitEntry(_trail.size(), lp));
+   _litDatabase.insert( {litKey(*lp), lp} );
+}
+
+Literal* ExpTrailer::findLit(Literal& l)
+{
+   auto it = _litDatabase.find(litKey(l));
+   if (it == _litDatabase.end()) return nullptr;
+   return it->second;
 }

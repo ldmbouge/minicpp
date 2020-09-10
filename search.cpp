@@ -136,6 +136,7 @@ ExpTestSearch::ExpTestSearch(ExpSolver::Ptr exp)
   : _exp(exp), _sm(exp->getStateManager())
 {
     _exp->getExplainer()->injectListeners();
+    _sm->enable();
 }
 
 SearchStatistics ExpTestSearch::solve(std::vector<std::function<void(void)>> choices)

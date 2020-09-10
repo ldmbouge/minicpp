@@ -53,22 +53,22 @@ int main(int argc,char* argv[])
    cp->post(Factory::clause(c6));
 
    // x7 == 0 @ 1
-   std::function<void(void)> b1 = [=]() {
+   std::function<void(void)> b1 = [=, &q]() {
       cp->post(q[6] == false);
    };
 
    // x8 == 0 @ 2
-   std::function<void(void)> b2 = [=]() {
+   std::function<void(void)> b2 = [=, &q]() {
       cp->post(q[7] == false);
    };
 
    // x9 == 0 @ 3
-   std::function<void(void)> b3 = [=]() {
+   std::function<void(void)> b3 = [=, &q]() {
       cp->post(q[8] == false);
    };
 
    // x1 == 0 @ 4
-   std::function<void(void)> b4 = [=]() {
+   std::function<void(void)> b4 = [=, &q]() {
       cp->post(q[0] == false);
    };
 

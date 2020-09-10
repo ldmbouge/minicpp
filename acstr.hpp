@@ -18,7 +18,6 @@
 
 #include "handle.hpp"
 #include "trailable.hpp"
-// #include "conListener.hpp"
 #include <vector>
 
 class CPSolver;
@@ -41,7 +40,6 @@ public:
    virtual ~Constraint() {}
    virtual void post() = 0;
    virtual void propagate() {}
-   virtual std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>({lp});}
    virtual void print(std::ostream& os) const {}
    void setPriority(unsigned char p) { _prio = p;}
    unsigned char getPriority() const { return _prio;}
@@ -52,6 +50,7 @@ public:
    virtual void visit(Visitor& v) {}
    ConListener* getListener() { return _lis;}
    void setListener(ConListener* l) { _lis = l;}
+   virtual std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>({lp});}
 };
 
 class Objective {

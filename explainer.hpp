@@ -37,9 +37,11 @@ public:
     void changeMax(var<int>::Ptr, int);
     void setTrailer(ExpTrailer::Ptr ep) { _expT = ep;}
     void setNoGood(std::vector<Literal*>);
+    int getCurrDepth();
     void clearNoGood();
     void printNoGood();
     void checkLit(Literal* lp);
+    Literal* findLit(Literal&);
 };
 
 template<> class handle_ptr<ExpSolver>;

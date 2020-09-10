@@ -16,6 +16,11 @@ Explainer::Explainer(ExpSolver* es)
     // _pool(new Pool)
 {}
 
+int Explainer::getCurrDepth()
+{
+    return _es->getDepth();
+}
+
 void Explainer::injectListeners() 
 {
     // inject var listeners
@@ -96,13 +101,16 @@ void Explainer::changeMax(var<int>::Ptr x, int newMax)
 
 void Explainer::setNoGood(std::vector<Literal*> vl)
 {
-    return;
+    for (auto lp : vl)
+        _nogood.insert( {litKey(*lp), lp} );
 }
 
 void Explainer::clearNoGood()
 {
-    for (auto it : _nogood)
-        delete it.second;  // release literal from memory
+    for (auto it : _nogood) {
+        if (!_expT->findLit(*(it.second)))
+            delete it.second;  // release literal from memory if no longer in expTrail litDatabase
+    }
     _nogood.clear();
 }
 
@@ -122,22 +130,35 @@ void Explainer::checkLit(Literal* currLit)
     // std::cout << "initial nogood: \n\t";
     // printNoGood();
     for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
-        if (!it->second->isValid()) {
+        if ((it->second) == currLit) {
             litReplacement = true;
-            // N.push_back(it->second);
-            delete it->second;  // release lit from memory
+            if (it->second != currLit) {
+                assert(false);  // there are two copies of this literal in the heap - should not happen since we look up lits in expTrail litDatabase
+            }
             _nogood.erase(it);
         }
+        // if (!it->second->isValid()) {
+        //     litReplacement = true;
+        //     // N.push_back(it->second);
+        //     delete it->second;  // release lit from memory
+        //     _nogood.erase(it);
+        // }
     }
     // if N is not empty: release lits in N from memory; add lp->reason() to nogood
+    bool delCurrLit = true;
     if (litReplacement) {
         // for (auto lp : N)
         //     delete lp;
         std::vector<Literal*> r = currLit->explain();
-        for (auto litPtr : r)
+        for (auto litPtr : r) {
             _nogood.insert( {litKey(*litPtr), litPtr} );
-    } else delete currLit;
-    // simplify nogood
+            if (litPtr == currLit) delCurrLit = false;
+        }
+    }
+    if (delCurrLit) {
+        delete currLit;
+    }
+    // simplify nogood - TODO
     // check if at 1 UIP
     int nbLitsAtFailDepth = 0;
     for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
@@ -146,9 +167,15 @@ void Explainer::checkLit(Literal* currLit)
     }
     if (nbLitsAtFailDepth == 1) {
         std::cout << "found nogood:\n\t";
-        // printNoGood();
+        printNoGood();
+        clearNoGood();
         // post nogood
     }
+}
+
+Literal* Explainer::findLit(Literal& l)
+{
+    return _expT->findLit(l);
 }
 
 ExpSolver::ExpSolver() 
