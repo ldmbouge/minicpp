@@ -25,6 +25,19 @@ unsigned long litKey(const Literal& l) {
     return ((0x0000ff & l._x->getId()) << 16) | ((0x0000ff & l._c) << 8)  | (0x0000ff & l._rel); 
 };
 
+Literal litNegation(const Literal& l)
+{
+    LitRel r;
+    int c = l.getVal();
+    switch(l.getRel()) {
+        case  EQ : r = NEQ; break;
+        case NEQ : r = EQ; break;
+        case LEQ : r = GEQ; ++c; break; 
+        case GEQ : r = LEQ; --c; break;
+    }
+    return Literal(l.getVar(), r, c, l.getCon(), l.getDepth());
+}
+
 LitVar::Ptr Literal::makeVar()
 {
     switch(_rel) {
@@ -33,6 +46,42 @@ LitVar::Ptr Literal::makeVar()
       case LEQ : return Factory::makeLitVarLEQ(_x,_c);
       case GEQ : return Factory::makeLitVarGEQ(_x,_c);
     }
+}
+
+LitVar::LitVar(const Literal& l)
+  : _depth(l._depth),
+    _c(l._c),
+    _solver(l._x->getSolver()),
+    _x(l._x),
+    _rel(l._rel),
+    _val(_x->getSolver()->getStateManager(), 0x02),
+    _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
+{ initVal();
+    _x->whenDomainChange([&] {updateVal();});
+}
+
+LitVar::LitVar(const Literal&& l)
+  : _depth(l._depth),
+    _c(l._c),
+    _solver(l._x->getSolver()),
+    _x(l._x),
+    _rel(l._rel),
+    _val(_x->getSolver()->getStateManager(), 0x02),
+    _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
+{ initVal();
+    _x->whenDomainChange([&] {updateVal();});
+}
+
+LitVar::LitVar(const var<int>::Ptr& x, const int c, LitRel r) 
+  : _depth(0), // depth is 0 because this constructor is used for literal variables initiated in model declaration, not during lcg
+    _c(c), 
+    _solver(x->getSolver()),
+    _x(x),
+    _rel(r),
+    _val(x->getSolver()->getStateManager(), 0x02),
+    _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
+{ initVal();
+    _x->whenDomainChange([&] {updateVal();});
 }
 
 void LitVar::initVal() {
@@ -129,6 +178,12 @@ void LitVar::assign(bool b) {
 }
 
 namespace Factory {
+    LitVar::Ptr makeLitVar(const Literal&& l) {
+        // auto rv = new (l.getVar()->getSolver()->getStore()) LitVar(l);
+        auto rv = new LitVar(l);
+        l.getVar()->getSolver()->registerVar(rv);
+        return rv;
+    }
     LitVar::Ptr makeLitVarEQ(const var<int>::Ptr& x, const int c) {
         auto rv = new (x->getSolver()->getStore()) LitVar(x,c,EQ);
         x->getSolver()->registerVar(rv);

@@ -122,6 +122,39 @@ void Explainer::printNoGood()
     std::cout << "\b\b \b\b \b\b \n";
 }
 
+void Explainer::addCut()
+{
+    std::vector<LitVar::Ptr> vl;
+    int i;
+    int d = 0;
+    for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
+        vl.emplace_back( Factory::makeLitVar(litNegation(*(it->second))) );
+        i = it->second->getDepth();
+        if ( (i > d) && (i < _failDepth) )
+            d = it->second->getDepth();
+    }
+    Constraint::Ptr c = Factory::learnedClause(vl);
+    _cutQueue.addToQueue(c, d);
+}
+
+void Explainer::checkCuts()
+{
+    std::vector<GlobalCut>& cuts = _cutQueue.getCuts();
+    auto it = cuts.rbegin();
+    bool purging = true;
+    while ( purging && (it != cuts.rend()) ) {
+        if ( it->getDepth() > getCurrDepth() ) {
+            cuts.back().getCon().dealloc();
+            cuts.pop_back(); 
+            ++it;
+        }
+        else purging = false;
+    }
+    while (it != cuts.rend()) {
+        _es->post( (it++)->getCon() );
+    }
+}
+
 void Explainer::checkLit(Literal* currLit) 
 {
     // create list, N, of lits in nogood that are no longer valid and also remove them from nogood
@@ -168,6 +201,7 @@ void Explainer::checkLit(Literal* currLit)
     if (nbLitsAtFailDepth == 1) {
         std::cout << "found nogood:\n\t";
         printNoGood();
+        addCut();
         clearNoGood();
         // post nogood
     }

@@ -207,6 +207,7 @@ class LitClause : public Constraint { // x0 OR x1 .... OR xn
     trail<int> _wL,_wR;
 public:
     LitClause(const std::vector<LitVar::Ptr>& x);
+    typedef handle_ptr<LitClause> Ptr;
     void post() override { propagate();}
     void propagate() override;
 };
@@ -520,6 +521,9 @@ namespace Factory {
    }
    template <class Vec> Constraint::Ptr clause(const Vec& xs) {
       return new (xs[0]->getSolver()) Clause(xs);
+   }
+   template <class Vec> Constraint::Ptr learnedClause(const Vec& xs) {
+      return new  LitClause(xs);
    }
    template <class Vec> Constraint::Ptr isClause(var<bool>::Ptr b,const Vec& xs) {
       return new (b->getSolver()) IsClause(b,xs);

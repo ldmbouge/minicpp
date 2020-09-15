@@ -43,7 +43,7 @@ ClauseExpListener::ClauseExpListener(Clause::Ptr c)
 
 void ClauseExpListener::fail()
 {
-    std::cout << "exp clause fail called\n";
+    // std::cout << "exp clause fail called\n";
     std::vector<Literal*> nogood; 
     Literal* lp;
     for (auto v : _con->_x) {
@@ -83,6 +83,6 @@ AllDiffACExpListener::AllDiffACExpListener(AllDifferentAC::Ptr c)
 
 void AllDiffACExpListener::fail()
 {
-    std::cout << "exp allDiff fail called\n";
+    // std::cout << "exp allDiff fail called\n";
     _lis->fail();
 }

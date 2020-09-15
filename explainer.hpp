@@ -11,6 +11,7 @@
 #include "expTrail.hpp"
 #include "fail.hpp"
 #include "visitor.hpp"
+#include "globalCutQueue.hpp"
 #include <vector>
 #include <unordered_map>
 
@@ -21,6 +22,7 @@ typedef TrailHashtable<unsigned long, Literal> LitHashTable;
 class Explainer {
     ExpSolver* _es;
     ExpTrailer::Ptr _expT;
+    GlobalCutQueue _cutQueue;
     std::vector<ExpListener*> _listeners;
     std::unordered_map<unsigned long, Literal*> _nogood;
     int _failDepth;
@@ -40,6 +42,8 @@ public:
     int getCurrDepth();
     void clearNoGood();
     void printNoGood();
+    void addCut();
+    void checkCuts();
     void checkLit(Literal* lp);
     Literal* findLit(Literal&);
 };

@@ -153,6 +153,8 @@ SearchStatistics ExpTestSearch::solve(std::vector<std::function<void(void)>> cho
         catch (Status e) {
             stats.incrFailures();
             _sm->restoreState();
+            stats.decrDepth();
+            _exp->getExplainer()->checkCuts();
         }
     }
     return stats;

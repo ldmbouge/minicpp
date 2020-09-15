@@ -21,7 +21,7 @@ add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp
 	store.cpp bitset.cpp table.cpp literal.cpp explainer.cpp expTrail.cpp
 	acstr.cpp domain.cpp mddnode.cpp constraint.cpp     
 	intvar.cpp mddstate.cpp trail.cpp mallocWatch.cpp    
-	search.cpp trailable.cpp matching.cpp solver.cpp visitor.cpp conListener.cpp)
+	search.cpp trailable.cpp matching.cpp solver.cpp visitor.cpp conListener.cpp globalCutQueue.cpp)
 
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")

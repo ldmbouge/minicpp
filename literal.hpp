@@ -44,10 +44,11 @@ public:
     friend unsigned long litKey(const Literal&);
     bool operator==(const Literal& other) const;
     bool isValid() const;
-    int getDepth() { return _depth;}
-    var<int>::Ptr getVar() { return _x;}
-    LitRel getRel() { return _rel;}
-    int getVal() { return _c;}
+    int getDepth() const { return _depth;}
+    var<int>::Ptr getVar() const { return _x;}
+    LitRel getRel() const { return _rel;}
+    Constraint::Ptr getCon() const { return _cPtr;}
+    int getVal() const { return _c;}
     void print(std::ostream& os) const {
       os << "<x_" << _x->getId() << LitRelString(_rel) << _c << " @ " << _depth << ">";
     }
@@ -58,6 +59,7 @@ public:
 };
 
 unsigned long litKey(const Literal&);
+Literal litNegation(const Literal&);
 
 class LitVar : public AVar {
     int _id;
@@ -73,33 +75,14 @@ protected:
     void setId(int id) override { _id = id;}
 public:
     typedef handle_ptr<LitVar> Ptr;
-    LitVar(const Literal& l)
-      : _depth(l._depth),
-        _c(l._c),
-        _solver(l._x->getSolver()),
-        _x(l._x),
-        _rel(l._rel),
-        _val(_x->getSolver()->getStateManager(), 0x02),
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-    { initVal();
-      _x->whenDomainChange([&] {updateVal();});
-    }
-    LitVar(const var<int>::Ptr& x, const int c, LitRel r) 
-      : _depth(0), // depth is 0 because this constructor is used for literal variables initiated in model declaration, not during lcg
-        _c(c), 
-        _solver(x->getSolver()),
-        _x(x),
-        _rel(r),
-        _val(x->getSolver()->getStateManager(), 0x02),
-        _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-        { initVal();
-          _x->whenDomainChange([&] {updateVal();});
-        }
+    LitVar(const Literal&);
+    LitVar(const Literal&&);
+    LitVar(const var<int>::Ptr&, const int, LitRel);
     int getId() const override { return _id;}
     inline CPSolver::Ptr getSolver() const { return _solver;}
-    inline bool isBound() const { return _val != 0x02;}
-    inline bool isTrue() const { return _val == 0x01;}
-    inline bool isFalse() const { return _val == 0x00;}
+    inline bool isBound() { updateVal(); return _val != 0x02;}
+    inline bool isTrue() { updateVal(); return _val == 0x01;}
+    inline bool isFalse() { updateVal(); return _val == 0x00;}
     void setTrue();
     void setFalse();
     void updateVal();
@@ -110,6 +93,7 @@ public:
 };
 
 namespace Factory {
+    LitVar::Ptr makeLitVar(const Literal&&); 
     LitVar::Ptr makeLitVarEQ(const var<int>::Ptr& x, const int c); 
     LitVar::Ptr makeLitVarNEQ(const var<int>::Ptr& x, const int c); 
     LitVar::Ptr makeLitVarLEQ(const var<int>::Ptr& x, const int c); 
