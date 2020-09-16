@@ -120,7 +120,6 @@ void LitVar::initVal() {
 }
 
 void LitVar::setTrue() {
-    if (isBound()) return;
     _val = 0x01;
     switch(_rel) {
         case EQ:  _x->assign(_c); return;
@@ -131,7 +130,6 @@ void LitVar::setTrue() {
 }
 
 void LitVar::setFalse() {
-    if (isBound()) return;
     _val = 0x00;
     switch(_rel) {
         case EQ:  _x->remove(_c); return;
@@ -142,6 +140,7 @@ void LitVar::setFalse() {
 }
 
 void LitVar::updateVal() {
+    _val = 0x02;
     switch(_rel) {
         case EQ:  if (_x->contains(_c)) {
                   if (_x->size() == 1) assign(true);
@@ -179,7 +178,6 @@ void LitVar::assign(bool b) {
 
 namespace Factory {
     LitVar::Ptr makeLitVar(const Literal&& l) {
-        // auto rv = new (l.getVar()->getSolver()->getStore()) LitVar(l);
         auto rv = new LitVar(l);
         l.getVar()->getSolver()->registerVar(rv);
         return rv;

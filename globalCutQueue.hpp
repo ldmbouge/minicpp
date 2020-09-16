@@ -10,10 +10,11 @@ class GlobalCut {
     int _depth;
 public:
     GlobalCut(Constraint::Ptr cPtr, int d) : _con(cPtr), _depth(d) {}
-    GlobalCut(GlobalCut&& other) : _con(other._con), _depth(other._depth) {}
-    // ~GlobalCut() { _con.dealloc();}
-    Constraint::Ptr getCon() { return _con;}
-    int getDepth() { return _depth;}
+    GlobalCut(const GlobalCut& other) : _con(other._con), _depth(other._depth) {}
+    GlobalCut(const GlobalCut&& other) : _con(other._con), _depth(other._depth) {}
+    Constraint::Ptr getCon() const { return _con;}
+    int getDepth() const { return _depth;}
+    void setCon(Constraint::Ptr c) { _con = c;}
 };
 
 

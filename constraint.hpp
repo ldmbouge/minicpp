@@ -523,7 +523,7 @@ namespace Factory {
       return new (xs[0]->getSolver()) Clause(xs);
    }
    template <class Vec> Constraint::Ptr learnedClause(const Vec& xs) {
-      return new  LitClause(xs);
+      return new LitClause(xs);
    }
    template <class Vec> Constraint::Ptr isClause(var<bool>::Ptr b,const Vec& xs) {
       return new (b->getSolver()) IsClause(b,xs);

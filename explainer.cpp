@@ -126,14 +126,14 @@ void Explainer::addCut()
 {
     std::vector<LitVar::Ptr> vl;
     int i;
-    int d = 0;
+    int d = -1;
     for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
-        vl.emplace_back( Factory::makeLitVar(litNegation(*(it->second))) );
+        vl.emplace_back( Factory::makeLitVar(litNegation(*(it->second))) );  // heap allocated
         i = it->second->getDepth();
         if ( (i > d) && (i < _failDepth) )
             d = it->second->getDepth();
     }
-    Constraint::Ptr c = Factory::learnedClause(vl);
+    Constraint::Ptr c = Factory::learnedClause(vl);  // heap allocated
     _cutQueue.addToQueue(c, d);
 }
 
@@ -144,54 +144,39 @@ void Explainer::checkCuts()
     bool purging = true;
     while ( purging && (it != cuts.rend()) ) {
         if ( it->getDepth() > getCurrDepth() ) {
-            cuts.back().getCon().dealloc();
+            cuts.back().getCon().dealloc();  // have to also free the LitVars in the constraint
+            cuts.back().setCon(nullptr);
             cuts.pop_back(); 
             ++it;
         }
         else purging = false;
     }
     while (it != cuts.rend()) {
+        std::cout << "posting cut";
         _es->post( (it++)->getCon() );
     }
 }
 
 void Explainer::checkLit(Literal* currLit) 
 {
-    // create list, N, of lits in nogood that are no longer valid and also remove them from nogood
-    // std::vector<Literal*> N;
     bool litReplacement = false;
-    // std::cout << "initial nogood: \n\t";
-    // printNoGood();
     for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
         if ((it->second) == currLit) {
             litReplacement = true;
-            if (it->second != currLit) {
-                assert(false);  // there are two copies of this literal in the heap - should not happen since we look up lits in expTrail litDatabase
-            }
             _nogood.erase(it);
         }
-        // if (!it->second->isValid()) {
-        //     litReplacement = true;
-        //     // N.push_back(it->second);
-        //     delete it->second;  // release lit from memory
-        //     _nogood.erase(it);
-        // }
     }
-    // if N is not empty: release lits in N from memory; add lp->reason() to nogood
     bool delCurrLit = true;
     if (litReplacement) {
-        // for (auto lp : N)
-        //     delete lp;
         std::vector<Literal*> r = currLit->explain();
         for (auto litPtr : r) {
             _nogood.insert( {litKey(*litPtr), litPtr} );
-            if (litPtr == currLit) delCurrLit = false;
+            if (litPtr == currLit) 
+                delCurrLit = false;
         }
     }
-    if (delCurrLit) {
+    if (delCurrLit) 
         delete currLit;
-    }
-    // simplify nogood - TODO
     // check if at 1 UIP
     int nbLitsAtFailDepth = 0;
     for (auto it = _nogood.begin(); it != _nogood.end(); ++it) {
@@ -203,7 +188,6 @@ void Explainer::checkLit(Literal* currLit)
         printNoGood();
         addCut();
         clearNoGood();
-        // post nogood
     }
 }
 
