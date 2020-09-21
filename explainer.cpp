@@ -46,30 +46,30 @@ void Explainer::empty(var<int>::Ptr x, FailExpl e1, int v1, FailExpl e2, int v2)
     _failDepth = _es->getDepth();
     Literal* lp;
     switch (e1) {
-        case EQL :  lp = new Literal(x, EQ, v1, _es->getCurrConstraint(), _es->getDepth());
+        case EQL :  lp = new Literal(x, EQ, v1, _es->getCurrConstraint()->getListener(), _es->getDepth());
                     _nogood.insert( {litKey(*lp), lp} );
                     break;
-        case RM :   lp =  new Literal(x, NEQ, v1, _es->getCurrConstraint(), _es->getDepth());
+        case RM :   lp =  new Literal(x, NEQ, v1, _es->getCurrConstraint()->getListener(), _es->getDepth());
                     _nogood.insert( {litKey(*lp), lp} );
                     break;
-        case LB :   lp = new Literal(x, GEQ, v1, _es->getCurrConstraint(), _es->getDepth());
+        case LB :   lp = new Literal(x, GEQ, v1, _es->getCurrConstraint()->getListener(), _es->getDepth());
                     _nogood.insert( {litKey(*lp), lp} );
                     break;
-        case UB :   lp = new Literal(x, LEQ, v1, _es->getCurrConstraint(), _es->getDepth());
+        case UB :   lp = new Literal(x, LEQ, v1, _es->getCurrConstraint()->getListener(), _es->getDepth());
                     _nogood.insert( {litKey(*lp), lp} );
                     break;
     }
     switch (e2) {
-        case EQL :  lp = new Literal(x, EQ, v2, _es->getCurrConstraint(), _es->getDepth());
+        case EQL :  lp = new Literal(x, EQ, v2, _es->getCurrConstraint()->getListener(), _es->getDepth());
                     _nogood.insert( {litKey(*lp), lp} );
                     break;
-        case RM :   lp = new Literal(x, NEQ, v2, _es->getCurrConstraint(), _es->getDepth());
+        case RM :   lp = new Literal(x, NEQ, v2, _es->getCurrConstraint()->getListener(), _es->getDepth());
                     _nogood.insert( {litKey(*lp), lp} );
                     break;
-        case LB :   lp = new Literal(x, GEQ, v2, _es->getCurrConstraint(), _es->getDepth());
+        case LB :   lp = new Literal(x, GEQ, v2, _es->getCurrConstraint()->getListener(), _es->getDepth());
                     _nogood.insert( {litKey(*lp), lp} );
                     break;
-        case UB :   lp = new Literal(x, LEQ, v2, _es->getCurrConstraint(), _es->getDepth());
+        case UB :   lp = new Literal(x, LEQ, v2, _es->getCurrConstraint()->getListener(), _es->getDepth());
                     _nogood.insert( {litKey(*lp), lp} );
                     break;
     }
@@ -77,25 +77,25 @@ void Explainer::empty(var<int>::Ptr x, FailExpl e1, int v1, FailExpl e2, int v2)
 
 void Explainer::bind(var<int>::Ptr x, int a) 
 {
-    Literal* lp = new Literal(x, EQ, a, _es->getCurrConstraint(), _es->getDepth());
+    Literal* lp = new Literal(x, EQ, a, _es->getCurrConstraint()->getListener(), _es->getDepth());
     _expT->storeLit(lp);
 }
 
 void Explainer::remove(var<int>::Ptr x, int a) 
 {
-    Literal* lp = new Literal(x, NEQ, a, _es->getCurrConstraint(), _es->getDepth());
+    Literal* lp = new Literal(x, NEQ, a, _es->getCurrConstraint()->getListener(), _es->getDepth());
     _expT->storeLit(lp);
 }
 
 void Explainer::changeMin(var<int>::Ptr x, int newMin) 
 {
-    Literal* lp = new Literal(x, GEQ, newMin, _es->getCurrConstraint(), _es->getDepth());
+    Literal* lp = new Literal(x, GEQ, newMin, _es->getCurrConstraint()->getListener(), _es->getDepth());
     _expT->storeLit(lp);
 }
 
 void Explainer::changeMax(var<int>::Ptr x, int newMax) 
 {
-    Literal* lp = new Literal(x, LEQ, newMax, _es->getCurrConstraint(), _es->getDepth());
+    Literal* lp = new Literal(x, LEQ, newMax, _es->getCurrConstraint()->getListener(), _es->getDepth());
     _expT->storeLit(lp);
 }
 
@@ -164,6 +164,7 @@ void Explainer::checkLit(Literal* currLit)
         if ((it->second) == currLit) {
             litReplacement = true;
             _nogood.erase(it);
+            break;
         }
     }
     bool delCurrLit = true;

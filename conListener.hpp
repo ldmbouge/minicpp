@@ -11,7 +11,7 @@ class Literal;
 class ConListener {
 public:
     virtual void fail() { failNow();}
-    virtual std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>(0);}
+    virtual std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>({lp});}
 };
 
 class NEQBoolExpListener : public ConListener {

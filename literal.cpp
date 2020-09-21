@@ -1,4 +1,5 @@
 #include "literal.hpp"
+#include "conListener.hpp"
 
 bool Literal::operator==(const Literal& other) const {
     return (_x->getId() == other._x->getId()) && (_c == other._c) && (_rel == other._rel);
@@ -17,7 +18,7 @@ bool Literal::isValid() const
 
 std::vector<Literal*> Literal::explain()
 {
-    if (_cPtr) return _cPtr->explain(this);  // cPtr is null if literal is generated before fixpoint begins
+    if (_cLis) return _cLis->explain(this);  // cPtr is null if literal is generated before fixpoint begins
     else return std::vector<Literal*>({this});
 }
 
@@ -35,7 +36,7 @@ Literal litNegation(const Literal& l)
         case LEQ : r = GEQ; ++c; break; 
         case GEQ : r = LEQ; --c; break;
     }
-    return Literal(l.getVar(), r, c, l.getCon(), l.getDepth());
+    return Literal(l.getVar(), r, c, l.getConLis(), l.getDepth());
 }
 
 LitVar::Ptr Literal::makeVar()

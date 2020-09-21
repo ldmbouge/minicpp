@@ -31,13 +31,13 @@ class Literal {
     var<int>::Ptr _x;
     LitRel _rel;
     int _c;
-    Constraint::Ptr _cPtr;
+    ConListener* _cLis;
     int _depth;
 public:
-    Literal(var<int>::Ptr x, LitRel rel, int c, Constraint::Ptr cPtr, int depth)
-      : _x(x), _rel(rel), _c(c), _cPtr(cPtr), _depth(depth) {}
+    Literal(var<int>::Ptr x, LitRel rel, int c, ConListener* cLis, int depth)
+      : _x(x), _rel(rel), _c(c), _cLis(cLis), _depth(depth) {}
     Literal(const Literal& l)
-      : _x(l._x), _rel(l._rel), _c(l._c), _cPtr(l._cPtr), _depth(l._depth) {}
+      : _x(l._x), _rel(l._rel), _c(l._c), _cLis(l._cLis), _depth(l._depth) {}
     handle_ptr<LitVar> makeVar();
     std::vector<Literal*> explain();
     friend class LitVar;
@@ -47,7 +47,7 @@ public:
     int getDepth() const { return _depth;}
     var<int>::Ptr getVar() const { return _x;}
     LitRel getRel() const { return _rel;}
-    Constraint::Ptr getCon() const { return _cPtr;}
+    ConListener* getConLis() const { return _cLis;}
     int getVal() const { return _c;}
     void print(std::ostream& os) const {
       os << "<x_" << _x->getId() << LitRelString(_rel) << _c << " @ " << _depth << ">";

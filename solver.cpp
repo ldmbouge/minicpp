@@ -54,6 +54,7 @@ void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
 {
     if (!c) return;
     _cons.push_back(c);
+    _currCon = c;
     c->post();
     if (enforceFixPoint) 
         fixpoint();    

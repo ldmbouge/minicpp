@@ -68,7 +68,8 @@ public:
     int getFailures() const { return _cps->_nbf;}
     int getSolutions() const { return _cps->_nbs;}
     handle_ptr<Explainer> getExplainer() { return _exp;}
-    handle_ptr<Constraint> getCurrConstraint() { return _cps->_currCon;}
+    handle_ptr<Constraint> getCurrConstraint() { return _cps->getCurrConstraint();}
+    void setCurrConstraint(Constraint::Ptr c) { _cps->setCurrConstraint(c);}
     void setSearchStats(SearchStatistics* stats) { _ss = stats;}
     int getDepth();
     void registerVar(AVar::Ptr avar) { _cps->registerVar(avar);}

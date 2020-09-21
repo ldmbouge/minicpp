@@ -126,7 +126,6 @@ public:
    void post() override;
    void propagate() override;
    void visit(Visitor& v) override { v.visitNEQBool(this);}
-   std::vector<Literal*> explain(Literal*) override;
    friend class NEQBoolExpListener;
 };
 
@@ -198,7 +197,6 @@ public:
    void post() override { propagate();}
    void propagate() override;
    void visit(Visitor& v) override { v.visitClause(this);}
-   std::vector<Literal*> explain(Literal*) override;
    friend class ClauseExpListener;
 };
 

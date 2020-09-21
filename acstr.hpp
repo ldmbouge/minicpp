@@ -50,7 +50,6 @@ public:
    virtual void visit(Visitor& v) {}
    ConListener* getListener() { return _lis;}
    void setListener(ConListener* l) { _lis = l;}
-   virtual std::vector<Literal*> explain(Literal* lp) { return std::vector<Literal*>({lp});}
 };
 
 class Objective {

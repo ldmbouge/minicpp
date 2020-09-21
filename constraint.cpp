@@ -232,11 +232,6 @@ void NEQBool::propagate()
     }
 }
 
-std::vector<Literal*> NEQBool::explain(Literal* lp)
-{
-    return _lis->explain(lp);
-}
-
 Minimize::Minimize(var<int>::Ptr& x)
     : _obj(x),_primal(0x7FFFFFFF)
 {
@@ -471,11 +466,6 @@ void Clause::propagate()
         _x[_wL]->propagateOnBind(this);
         _x[_wR]->propagateOnBind(this);
     }
-}
-
-std::vector<Literal*> Clause::explain(Literal* lp)
-{
-    return _lis->explain(lp);
 }
 
 LitClause::LitClause(const std::vector<LitVar::Ptr>& x)

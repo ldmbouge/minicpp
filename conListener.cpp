@@ -27,7 +27,7 @@ std::vector<Literal*> NEQBoolExpListener::explain(Literal* lp)
         return std::vector<Literal*>({lp});
     Literal* rp;
     var<int>::Ptr vp = (lp->getVar() == _con->_b1) ? _con->_b2 : _con->_b1;
-    Literal l = Literal(vp, EQ, 1 - lp->getVal(), _con, 0);
+    Literal l = Literal(vp, EQ, 1 - lp->getVal(), _con->getListener(), 0);
     if ((rp = _exp->findLit(l)))
         return std::vector<Literal*>({rp});
     else assert(false);
@@ -47,7 +47,7 @@ void ClauseExpListener::fail()
     std::vector<Literal*> nogood; 
     Literal* lp;
     for (auto v : _con->_x) {
-        Literal l = Literal(v, EQ, 0, _con, 0);
+        Literal l = Literal(v, EQ, 0, _con->getListener(), 0);
         if ((lp = _exp->findLit(l)))
             nogood.push_back(lp);
         else assert(false);
@@ -64,7 +64,7 @@ std::vector<Literal*> ClauseExpListener::explain(Literal* lp)
     Literal* rp;  // reason lit pointer
     for (auto v : _con->_x) {
         if (v->getId() != lp->getVar()->getId()) {
-            Literal l = Literal(v, EQ, 0, _con, 0);
+            Literal l = Literal(v, EQ, 0, _con->getListener(), 0);
             if ((rp = _exp->findLit(l)))
                 reason.push_back(rp);
             else assert(false);

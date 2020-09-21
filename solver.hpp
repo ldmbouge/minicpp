@@ -58,7 +58,7 @@ class ExpSolver;
 class CPSolver {
     Trailer::Ptr                  _sm;
     Storage::Ptr               _store;
-    handle_ptr<Constraint>   _currCon;
+    Constraint::Ptr          _currCon;
     std::list<AVar::Ptr>       _iVars;
     std::list<Constraint::Ptr> _cons;
     DEPQueue                   _queue;
@@ -82,6 +82,8 @@ public:
     Trailer::Ptr getStateManager()       { return _sm;}
     Storage::Ptr getStore()              { return _store;}
     ExpSolver* getExpSolver() { return _es;}
+    Constraint::Ptr getCurrConstraint() { return _currCon;}
+    void setCurrConstraint(Constraint::Ptr c) { _currCon = c;}
     void registerVar(AVar::Ptr avar);
     std::vector<handle_ptr<var<int>>> intVars();
     std::list<Constraint::Ptr>& constraints() { return _cons;}
