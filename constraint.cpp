@@ -431,15 +431,34 @@ Clause::Clause(const std::vector<var<bool>::Ptr>& x)
       _wL(x[0]->getSolver()->getStateManager(),0),
       _wR(x[0]->getSolver()->getStateManager(),(int)x.size() - 1)
 {
-    for(auto xi : x) _x.push_back(xi);
+    for(auto xi : x) {
+        Clause::Entry ce(xi,POS);
+        _x.push_back(ce);
+    }
+}
+
+Clause::Clause(CPSolver::Ptr cps, const std::vector<var<bool>::Ptr>& pos, const std::vector<var<bool>::Ptr>& neg)
+    : Constraint(cps),
+      _wL(cps->getStateManager(),0),
+      _wR(cps->getStateManager(),(int)(pos.size() + neg.size() - 1))
+{
+    for(auto xi : pos) {
+        Clause::Entry ce(xi,POS);
+        _x.push_back(ce);
+    }
+    for(auto xi : neg) {
+        Clause::Entry ce(xi,NEG);
+        _x.push_back(ce);
+    }
 }
 
 void Clause::propagate()
 {
     const long n = _x.size();
     int i = _wL;
-    while (i < n && _x[i]->isBound()) {
-        if (_x[i]->isTrue()) {
+    while (i < n && _x[i].var()->isBound()) {
+        if ((_x[i].sense() == POS && _x[i].var()->isTrue()) || 
+                (_x[i].sense() == NEG && _x[i].var()->isFalse())) {
             setActive(false);
             return;
         }
@@ -447,8 +466,9 @@ void Clause::propagate()
     }
     _wL = i;
     i = _wR;
-    while (i>=0 && _x[i]->isBound()) {
-        if (_x[i]->isTrue()) {
+    while (i>=0 && _x[i].var()->isBound()) {
+        if ((_x[i].sense() == POS && _x[i].var()->isTrue()) || 
+                (_x[i].sense() == NEG && _x[i].var()->isFalse())) {
             setActive(false);
             return;
         }
@@ -457,14 +477,17 @@ void Clause::propagate()
     _wR = i;
     if (_wL > _wR) _lis->fail();  
     else if (_wL == _wR) {
-        _x[_wL]->assign(true);
+        if (_x[_wL].sense() == POS)
+            _x[_wL].var()->assign(true);
+        else
+            _x[_wL].var()->assign(false);
         setActive(false);
     } else {
         assert(_wL != _wR);
-        assert(!_x[_wL]->isBound());
-        assert(!_x[_wR]->isBound());
-        _x[_wL]->propagateOnBind(this);
-        _x[_wR]->propagateOnBind(this);
+        assert(!_x[_wL].var()->isBound());
+        assert(!_x[_wR].var()->isBound());
+        _x[_wL].var()->propagateOnBind(this);
+        _x[_wR].var()->propagateOnBind(this);
     }
 }
 

@@ -37,7 +37,7 @@ ClauseExpListener::ClauseExpListener(Clause::Ptr c)
   : _con(c),
     _lis(c->getListener())
 {
-    _exp = c->_x[0]->getSolver()->getExpSolver()->getExplainer();
+    _exp = c->_x[0].var()->getSolver()->getExpSolver()->getExplainer();
     c->setListener(this);
 }
 
@@ -46,8 +46,8 @@ void ClauseExpListener::fail()
     // std::cout << "exp clause fail called\n";
     std::vector<Literal*> nogood; 
     Literal* lp;
-    for (auto v : _con->_x) {
-        Literal l = Literal(v, EQ, 0, _con->getListener(), 0);
+    for (auto& ce : _con->_x) {
+        Literal l = Literal(ce.var(), EQ, 0, _con->getListener(), 0);
         if ((lp = _exp->findLit(l)))
             nogood.push_back(lp);
         else assert(false);
@@ -62,9 +62,9 @@ std::vector<Literal*> ClauseExpListener::explain(Literal* lp)
         return std::vector<Literal*>({lp}); 
     std::vector<Literal*> reason; 
     Literal* rp;  // reason lit pointer
-    for (auto v : _con->_x) {
-        if (v->getId() != lp->getVar()->getId()) {
-            Literal l = Literal(v, EQ, 0, _con->getListener(), 0);
+    for (auto& ce : _con->_x) {
+        if (ce.var()->getId() != lp->getVar()->getId()) {
+            Literal l = Literal(ce.var(), EQ, 0, _con->getListener(), 0);
             if ((rp = _exp->findLit(l)))
                 reason.push_back(rp);
             else assert(false);

@@ -189,10 +189,20 @@ public:
 };
 
 class Clause : public Constraint { // x0 OR x1 .... OR xn
-   std::vector<var<bool>::Ptr> _x;
+   enum Sense { POS, NEG };
+   struct Entry {
+      var<bool>::Ptr _x;
+      Clause::Sense _s;
+      Entry(var<bool>::Ptr x, Clause::Sense s) : _x(x), _s(s) {}
+      Entry(const Entry& other) : _x(other._x), _s(other._s) {}
+      var<bool>::Ptr var() { return _x;}
+      Clause::Sense sense() { return _s;}
+   };
+   std::vector<Entry> _x;
    trail<int> _wL,_wR;
 public:
    Clause(const std::vector<var<bool>::Ptr>& x);
+   Clause(CPSolver::Ptr cps, const std::vector<var<bool>::Ptr>& pos, const std::vector<var<bool>::Ptr>& neg);
    typedef handle_ptr<Clause> Ptr;
    void post() override { propagate();}
    void propagate() override;
@@ -519,6 +529,9 @@ namespace Factory {
    }
    template <class Vec> Constraint::Ptr clause(const Vec& xs) {
       return new (xs[0]->getSolver()) Clause(xs);
+   }
+   template <class Vec> Constraint::Ptr clause(CPSolver::Ptr cps, const Vec& pos,const Vec& neg) {
+      return new (cps) Clause(cps, pos, neg);
    }
    template <class Vec> Constraint::Ptr learnedClause(const Vec& xs) {
       return new LitClause(xs);
