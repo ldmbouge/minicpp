@@ -24,6 +24,7 @@
 #include <vector>
 #include "XCSP3CoreParser.h"
 #include "XCSP3lcg.h"
+#include "cnfParser.hpp"
 
 
 int main(int argc,char* argv[])
@@ -31,14 +32,12 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
     
-    CPSolver::Ptr cp  = Factory::makeSolver();
+    // CPSolver::Ptr cp  = Factory::makeSolver();
+    ExpSolver::Ptr cp  = Factory::makeExpSolver();
 
-    XCSP3lcg cb(cp); // my interface between the parser and the solver
-    XCSP3CoreParser parser(&cb);
-    std::cout << argv[1] << std::endl;
-    parser.parse(argv[1]); // fileName is a string
-    
-    auto q = cb.getBoolVars();
+    CNFParser parser(cp, argv[1]);
+    parser.parse();
+    auto q = parser.getBoolVars();
    //  auto q = Factory::boolVarArray(cp,14);
     
    //  cp->post(q[1] != q[9]);   // nX2
@@ -89,7 +88,7 @@ int main(int argc,char* argv[])
     
    //  ExpTestSearch search(cp);
     
-    DFSearch search(cp,[=]() {
+    ExpDFSearch search(cp,[=]() {
                          auto x = selectMin(q,
                                            [](const auto& x) { return x->size() > 1;},
                                            [](const auto& x) { return x->size();});
@@ -98,10 +97,13 @@ int main(int argc,char* argv[])
                                | [=] { cp->post(x == false);};
                          } else return Branches({});
                       });    
-    
-   //  search.onSolution([&q]() {
-   //                      cout << "sol = " << q << endl;
-   //                   });
+    int nbSol = 1; 
+    search.onSolution([&nbSol]() {
+                        cout << "solution # " << nbSol++ << " found" << endl;
+                     });
+    //  search.onSolution([&q]() {
+    //                      cout << "sol = " << q << endl;
+    //                   });
    
     auto stat = search.solve();
     cout << stat << endl;

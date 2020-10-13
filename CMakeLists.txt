@@ -24,12 +24,13 @@ add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp
 	store.cpp bitset.cpp table.cpp literal.cpp explainer.cpp expTrail.cpp
 	acstr.cpp domain.cpp mddnode.cpp constraint.cpp     
 	intvar.cpp mddstate.cpp trail.cpp mallocWatch.cpp    
-	search.cpp trailable.cpp matching.cpp solver.cpp visitor.cpp conListener.cpp globalCutQueue.cpp)
+	search.cpp trailable.cpp matching.cpp solver.cpp 
+	visitor.cpp conListener.cpp globalCutQueue.cpp cnfParser.cpp)
 
 find_library(xcsp3lib libparserxcsp3core.a HINTS ./XCSP3-CPP-Parser/lib/)
 
 # check if we found the library
-message(STATUS "xcsp3lib: [${xcsp3lib}"])
+message(STATUS "xcsp3lib: [${xcsp3lib}" ])
 
 if (NOT xcsp3lib)
     message(SEND_ERROR "Did not find xcsp3lib")
