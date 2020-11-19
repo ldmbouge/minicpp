@@ -69,9 +69,10 @@ void CPSolver::registerVar(AVar::Ptr avar)
 std::vector<handle_ptr<var<int>>> CPSolver::intVars()
 {
    std::vector<handle_ptr<var<int>>> res;
+   var<int>* p;
    for(auto v : _iVars){
-      if (typeid(var<int>).before(typeid(v.get())))
-         res.push_back(handle_ptr<var<int>>(dynamic_cast<var<int>*>(v.get())));
+      if ((p = v->getIntVar())) 
+         res.push_back(p);
    }
    return res;
 }

@@ -20,6 +20,8 @@
 #include "handle.hpp"
 
 struct IntNotifier;
+template<typename T> class var;
+template<> class var<int>;
 
 class AVar {
 protected:
@@ -29,6 +31,7 @@ public:
     typedef handle_ptr<AVar> Ptr;
     AVar() {}
     virtual ~AVar() {}
+    virtual var<int>* getIntVar() {return nullptr;}
     virtual int getId() const = 0;
     virtual IntNotifier* getListener() const = 0;
     virtual void setListener(IntNotifier*) = 0;

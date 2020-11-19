@@ -35,6 +35,7 @@ protected:
 public:
    int getId() const noexcept override { return _id;}
    typedef handle_ptr<var<int>> Ptr;
+   var<int>* getIntVar() override { return this;}
    virtual Storage::Ptr getStore() = 0;
    virtual CPSolver::Ptr getSolver() = 0;
    virtual int min() const  = 0;
