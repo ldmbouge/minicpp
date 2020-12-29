@@ -52,7 +52,7 @@ class SearchStatistics {
    int _nNodes;
    int _nSolutions;
    bool _completed;
-   RuntimeMonitor::HRClock _startTime;   
+   RuntimeMonitor::HRClock _startTime;
 public:
    SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {
       _startTime = RuntimeMonitor::cputime();
@@ -129,9 +129,9 @@ inline typename Container::value_type selectMin(Container& c,Predicate test,Fun 
    auto min = to;
    for(;from != to;++from) {
        if (test(*from)) {
-           auto fv = f(*from);       
-           if (min == to || fv < f(*min)) 
-              min = from;           
+           auto fv = f(*from);
+           if (min == to || fv < f(*min))
+              min = from;
        }
    }
    if (min == to)
@@ -150,7 +150,7 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
                    int v = sx->min();
                    return [cp,sx,v] { return cp->post(sx == v);}
                        |  [cp,sx,v] { return cp->post(sx != v);};
-               } else return Branches({});                   
+               } else return Branches({});
            };
 }
 

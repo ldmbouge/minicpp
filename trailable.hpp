@@ -53,18 +53,18 @@ trail<T>& trail<T>::operator=(const T& v)
 {
    int cm = _ctx->magic();
    if (_magic != cm)
-      save(cm);    
+      save(cm);
    _value = v;
-   return *this;        
+   return *this;
 }
 
 template <class T>
 trail<T>& trail<T>::operator++() { // pre-increment
    int cm = _ctx->magic();
    if (_magic != cm)
-      save(cm);    
+      save(cm);
    _value += 1;
-   return *this;           
+   return *this;
 }
 
 template <class T>
@@ -72,7 +72,7 @@ T trail<T>::operator++(int) { // post-increment
    T rv = _value;
    int cm = _ctx->magic();
    if (_magic != cm)
-      save(cm);    
+      save(cm);
    ++_value;
    return rv;
 }
@@ -82,18 +82,18 @@ template<class T>
 trail<T>& trail<T>::operator+=(const T& v) {
    int cm = _ctx->magic();
    if (_magic != cm)
-      save(cm);    
+      save(cm);
    _value += v;
-   return *this;           
+   return *this;
 }
 
 template<class T>
 trail<T>& trail<T>::operator-=(const T& v) {
    int cm = _ctx->magic();
    if (_magic != cm)
-      save(cm);    
+      save(cm);
    _value -= v;
-   return *this;        
+   return *this;
 }
 
 #endif

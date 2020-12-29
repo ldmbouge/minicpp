@@ -162,7 +162,7 @@ public:
        _x[_n-1] = Factory::minus(s);
        for(typename Vec::size_type i=0;i < _n;i++)
           _unBounds[i] = i;
-    }        
+    }
    void post() override;
    void propagate() override;
 };
@@ -271,7 +271,6 @@ class Element2D : public Constraint {
       Triplet(int a,int b,int c) : x(a),y(b),z(c) {}
       Triplet(const Triplet& t) : x(t.x),y(t.y),z(t.z) {}
    };
-        
    Matrix<int,2> _matrix;
    var<int>::Ptr _x,_y,_z;
    int _n,_m;
@@ -358,12 +357,11 @@ namespace Factory {
       auto cp = x->getSolver();
       for(int v : S) {
          if (x->contains(v))
-            x->remove(v);        
+            x->remove(v);
       }
       cp->fixpoint();
       return nullptr;
    }
-   
    inline Constraint::Ptr operator==(var<bool>::Ptr x,bool c) {
       return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
    }
@@ -440,7 +438,7 @@ namespace Factory {
       return isLessOrEqual(x,c - 1);
    }
    inline var<bool>::Ptr isLargerOrEqual(var<int>::Ptr x,const int c) {
-      return isLessOrEqual(- x,- c);        
+      return isLessOrEqual(- x,- c);
    }
    inline var<bool>::Ptr isLarger(var<int>::Ptr x,const int c) {
       return isLargerOrEqual(x , c + 1);
@@ -454,7 +452,7 @@ namespace Factory {
       auto cp = xs[0]->getSolver();
       auto s = Factory::makeIntVar(cp,sumMin,sumMax);
       cp->post(new (cp) Sum(xs,s));
-      return s;        
+      return s;
    }
    template <class Vec> Constraint::Ptr sum(const Vec& xs,var<int>::Ptr s) {
       return new (xs[0]->getSolver()) Sum(xs,s);
@@ -484,7 +482,7 @@ namespace Factory {
    }
    template <class Vec> Constraint::Ptr element(const Vec& array,var<int>::Ptr y,var<int>::Ptr z) {
       std::vector<int> flat(array.size());
-      for(int i=0;i < (int)array.size();i++) 
+      for(int i=0;i < (int)array.size();i++)
          flat[i] = array[i];
       return new (y->getSolver()) Element1D(flat,y,z);
    }
@@ -507,7 +505,7 @@ namespace Factory {
    }
    inline Constraint::Ptr element(const VMSlice<int,2,1>& array,var<int>::Ptr y,var<int>::Ptr z) {
       std::vector<int> flat(array.size());
-      for(int i=0;i < array.size();i++) 
+      for(int i=0;i < array.size();i++)
          flat[i] = array[i];
       return new (y->getSolver()) Element1D(flat,y,z);
    }
@@ -537,6 +535,6 @@ namespace Factory {
    }
 };
 
-void printCstr(Constraint::Ptr c); 
+void printCstr(Constraint::Ptr c);
 
 #endif

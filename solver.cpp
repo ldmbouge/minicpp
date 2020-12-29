@@ -41,8 +41,8 @@ void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
 {
     if (!c) return;
     c->post();
-    if (enforceFixPoint) 
-        fixpoint();    
+    if (enforceFixPoint)
+        fixpoint();
 }
 
 void CPSolver::registerVar(AVar::Ptr avar)
@@ -55,7 +55,7 @@ void CPSolver::notifyFixpoint()
 {
    for(auto& body : _onFix)
       body();
-}   
+}
 
 void CPSolver::fixpoint()
 {

@@ -20,7 +20,7 @@
 
 void TableCT::post()
 {
-   propagate();    
+   propagate();
    for (const auto& vp : _vars)
       vp->propagateOnDomainChange(this); // for each variable, propagate on change to domain
 }

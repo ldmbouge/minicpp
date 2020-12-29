@@ -100,8 +100,8 @@ void MDDNode::unhook(MDDEdge::Ptr arc)
    assert(children.get(at) == arc);
    children.remove(at);
    if (children.size() > 0)
-      children.get(at)->setChildPosition(parents.getTrail(), at); 
-   auto childNode = arc->getChild();   
+      children.get(at)->setChildPosition(parents.getTrail(), at);
+   auto childNode = arc->getChild();
    childNode->unhookChild(arc);
 }
 

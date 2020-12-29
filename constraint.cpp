@@ -42,11 +42,11 @@ void EQBinBC::post()
       _x->updateBounds(_y->min() + _c,_y->max() + _c);
       _y->updateBounds(_x->min() - _c,_x->max() - _c);
       _x->whenBoundsChange([this] {
-                              _y->updateBounds(_x->min() - _c,_x->max() - _c);
-                           });
+         _y->updateBounds(_x->min() - _c,_x->max() - _c);
+      });
       _y->whenBoundsChange([this] {
-                              _x->updateBounds(_y->min() + _c,_y->max() + _c);
-                           });
+         _x->updateBounds(_y->min() + _c,_y->max() + _c);
+      });
    }
 }
 
@@ -63,19 +63,18 @@ void EQTernBC::post()
       _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
       _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
       _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
-      
       _x->whenBoundsChange([this] {
-	  _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
-	  _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
-                           });
+         _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
+         _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+      });
       _y->whenBoundsChange([this] {
-	  _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
-	  _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
-                           });
+         _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
+         _z->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+      });
       _z->whenBoundsChange([this] {
-	  _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
-	  _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
-	});
+         _x->updateBounds(_y->min() + _z->min(),_y->max() + _z->max());
+         _y->updateBounds(_x->min() - _z->max(),_x->max() - _z->min());
+      });
    }
 }
 
@@ -83,40 +82,40 @@ void EQTernBCbool::post()
 {
    // x == y + b
    if (_x->isBound() && _y->isBound()) {
-     if (_x->min() - _y->min() == 1) {
-       _b->assign(true);
-     }
-     else if (_x->min() - _y->min() == 0) {
-       _b->assign(false);
-     } else {
-       throw Failure;
-     }
+      if (_x->min() - _y->min() == 1) {
+         _b->assign(true);
+      }
+      else if (_x->min() - _y->min() == 0) {
+         _b->assign(false);
+      } else {
+         throw Failure;
+      }
    }
    else if (_x->isBound() && _b->isTrue())
-     _y->assign(_x->min() - 1);
+      _y->assign(_x->min() - 1);
    else if (_x->isBound() && _b->isFalse())
-     _y->assign(_x->min());
+      _y->assign(_x->min());
    else if (_y->isBound() && _b->isTrue())
       _x->assign(_y->min() + 1);
    else if (_y->isBound() && _b->isFalse())
-     _x->assign(_y->min());
+      _x->assign(_y->min());
    else {
       _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
       _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
       _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
       
       _x->whenBoundsChange([this] {
-	  _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
-	  _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
-                           });
+         _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
+         _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+      });
       _y->whenBoundsChange([this] {
-	  _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
-	  _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
-                           });
+         _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
+         _b->updateBounds(_x->min() - _y->max(),_x->max() - _y->min());
+      });
       _b->whenBoundsChange([this] {
-	  _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
-	  _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
-	});
+         _x->updateBounds(_y->min() + _b->min(),_y->max() + _b->max());
+         _y->updateBounds(_x->min() - _b->max(),_x->max() - _b->min());
+      });
    }
 }
 
@@ -133,15 +132,15 @@ void NEQBinBC::post()
       _x->remove(_y->min() + _c);
    else {
       hdl[0] = _x->whenBind([this] {
-            _y->remove(_x->min() - _c);
-            hdl[0]->detach();
-            hdl[1]->detach();
-         });
+         _y->remove(_x->min() - _c);
+         hdl[0]->detach();
+         hdl[1]->detach();
+      });
       hdl[1] = _y->whenBind([this] {
-            _x->remove(_y->min() + _c);
-            hdl[0]->detach();
-            hdl[1]->detach();
-         });
+         _x->remove(_y->min() + _c);
+         hdl[0]->detach();
+         hdl[1]->detach();
+      });
    }
 }
 
@@ -151,22 +150,22 @@ void NEQBinBCLight::print(std::ostream& os) const
 }
 void NEQBinBCLight::post()
 {
-    if (_y->isBound())
-        _x->remove(_y->min() + _c);
-    else if (_x->isBound())
-        _y->remove(_x->min() - _c);
-    else {
-        _x->propagateOnBind(this);
-        _y->propagateOnBind(this);
-    }
+   if (_y->isBound())
+      _x->remove(_y->min() + _c);
+   else if (_x->isBound())
+      _y->remove(_x->min() - _c);
+   else {
+      _x->propagateOnBind(this);
+      _y->propagateOnBind(this);
+   }
 }
 void NEQBinBCLight::propagate()
 {
-    if (_y->isBound())
-        _x->remove(_y->min() + _c);
-    else
-        _y->remove(_x->min() - _c);
-    setActive(false);
+   if (_y->isBound())
+      _x->remove(_y->min() + _c);
+   else
+      _y->remove(_x->min() - _c);
+   setActive(false);
 }
 
 void EQBinDC::post()
@@ -193,25 +192,25 @@ void EQBinDC::post()
 
 void LessOrEqual::post()
 {
-    _x->propagateOnBoundChange(this);
-    _y->propagateOnBoundChange(this);
-    propagate();
+   _x->propagateOnBoundChange(this);
+   _y->propagateOnBoundChange(this);
+   propagate();
 }
     
 void LessOrEqual::propagate()
 {
-    _x->removeAbove(_y->max());
-    _y->removeBelow(_x->min());
-    setActive(_x->max() >= _y->min());
+   _x->removeAbove(_y->max());
+   _y->removeBelow(_x->min());
+   setActive(_x->max() >= _y->min());
 }
 
 Minimize::Minimize(var<int>::Ptr& x)
-    : _obj(x),_primal(0x7FFFFFFF)
+   : _obj(x),_primal(0x7FFFFFFF)
 {
-    auto todo = std::function<void(void)>([this]() {
-                                             _obj->removeAbove(_primal);
-                                         });
-    _obj->getSolver()->onFixpoint(todo);
+   auto todo = std::function<void(void)>([this]() {
+      _obj->removeAbove(_primal);
+   });
+   _obj->getSolver()->onFixpoint(todo);
 }
 
 void Minimize::print(std::ostream& os) const
@@ -227,12 +226,12 @@ void Minimize::tighten()
 }
 
 Maximize::Maximize(var<int>::Ptr& x)
-    : _obj(x),_primal(0x80000001)
+   : _obj(x),_primal(0x80000001)
 {
-    auto todo = std::function<void(void)>([this]() {
-                                             _obj->removeBelow(_primal);
-                                         });
-    _obj->getSolver()->onFixpoint(todo);
+   auto todo = std::function<void(void)>([this]() {
+      _obj->removeBelow(_primal);
+   });
+   _obj->getSolver()->onFixpoint(todo);
 }
 
 void Maximize::print(std::ostream& os) const
@@ -249,115 +248,115 @@ void Maximize::tighten()
 
 void IsEqual::post() 
 {
-    propagate();
-    if (isActive()) {
-        _x->propagateOnDomainChange(this);
-        _b->propagateOnBind(this);
-    }
+   propagate();
+   if (isActive()) {
+      _x->propagateOnDomainChange(this);
+      _b->propagateOnBind(this);
+   }
 }
 
 void IsEqual::propagate() 
 {
-    if (_b->isTrue()) {
-        _x->assign(_c);
-        setActive(false);
-    } else if (_b->isFalse()) {
-        _x->remove(_c);
-        setActive(false);
-    } else if (!_x->contains(_c)) {
-        _b->assign(false);
-        setActive(false);
-    } else if (_x->isBound()) {
-        _b->assign(true);
-        setActive(false);
-    }
+   if (_b->isTrue()) {
+      _x->assign(_c);
+      setActive(false);
+   } else if (_b->isFalse()) {
+      _x->remove(_c);
+      setActive(false);
+   } else if (!_x->contains(_c)) {
+      _b->assign(false);
+      setActive(false);
+   } else if (_x->isBound()) {
+      _b->assign(true);
+      setActive(false);
+   }
 }
 
 void IsMember::post() 
 {
-    propagate();
-    if (isActive()) {
-        _x->propagateOnDomainChange(this);
-        _b->propagateOnBind(this);
-    }
+   propagate();
+   if (isActive()) {
+      _x->propagateOnDomainChange(this);
+      _b->propagateOnBind(this);
+   }
 }
 
 void IsMember::propagate() 
 {  
-    if (_b->isTrue()) {
+   if (_b->isTrue()) {
       int xMin = _x->min(), xMax = _x->max();
       for (int v=xMin; v<=xMax; v++) {
-  	// if v is not in S: remove from domain of x
-	if (_x->contains(v) && (_S.find(v) == _S.end()))
-	  _x->remove(v);
+         // if v is not in S: remove from domain of x
+         if (_x->contains(v) && (_S.find(v) == _S.end()))
+            _x->remove(v);
       }
       setActive(false);
-    } else if (_b->isFalse()) {
+   } else if (_b->isFalse()) {
       // remove all elements in S from domain of x
       for (std::set<int>::iterator it=_S.begin(); it!=_S.end(); ++it) {
-	_x->remove(*it);
+         _x->remove(*it);
       }
       setActive(false);
-    } else if (_x->isBound()) {
+   } else if (_x->isBound()) {
       int v = _x->min();
       if (_S.find(v)!=_S.end())
-	_b->assign(true);
+         _b->assign(true);
       else
-	_b->assign(false);
+         _b->assign(false);
       setActive(false);
-    } else {
+   } else {
       // both b and x are not bound: check if x still has value in S and a value not in S
       bool hasMemberInS = false;
       bool hasMemberOutS = false;
 
       int xMin = _x->min(), xMax = _x->max();
       for (int v=xMin; v<=xMax; v++) {
-	if (_x->contains(v)) {
-	  if (_S.find(v) == _S.end()) {
-	    hasMemberOutS = true;
-	  }
-	  else {
-	    hasMemberInS = true;
-	  }
-	}
-	if ((hasMemberInS == true) && (hasMemberOutS == true))
-	  break;
+         if (_x->contains(v)) {
+            if (_S.find(v) == _S.end()) {
+               hasMemberOutS = true;
+            }
+            else {
+               hasMemberInS = true;
+            }
+         }
+         if ((hasMemberInS == true) && (hasMemberOutS == true))
+            break;
       }
       if (hasMemberInS==false) {
-	_b->assign(false);
-	setActive(false);
+         _b->assign(false);
+         setActive(false);
       }
       else if (hasMemberOutS==false) {
-	_b->assign(true);
-	setActive(false);
+         _b->assign(true);
+         setActive(false);
       }
-    }
+   }
 }
 
 
 void IsLessOrEqual::post()
 {
-    if (_b->isTrue())
-        _x->removeAbove(_c);
-    else if (_b->isFalse())
-        _x->removeBelow(_c + 1);
-    else if (_x->max() <= _c)
-        _b->assign(1);
-    else if (_x->min() > _c)
-        _b->assign(0);
-    else {
-        _b->whenBind([b=_b,x=_x,c=_c] {
-                         if (b->isTrue())
-                             x->removeAbove(c);
-                         else x->removeBelow(c + 1);
-                     });
-        _x->whenBoundsChange([b=_b,x=_x,c=_c] {
-                                 if (x->max() <= c)
-                                     b->assign(1);
-                                 else if (x->min() > c)
-                                     b->assign(0);
-                             });        
-    }
+   if (_b->isTrue())
+      _x->removeAbove(_c);
+   else if (_b->isFalse())
+      _x->removeBelow(_c + 1);
+   else if (_x->max() <= _c)
+      _b->assign(1);
+   else if (_x->min() > _c)
+      _b->assign(0);
+   else {
+      _b->whenBind([b=_b,x=_x,c=_c] {
+         if (b->isTrue())
+            x->removeAbove(c);
+         else x->removeBelow(c + 1);
+      });
+      _x->whenBoundsChange([b=_b,x=_x,c=_c] {
+         if (x->max() <= c)
+            b->assign(1);
+         else if (x->min() > c)
+            b->assign(0);
+      });        
+   }
 }
       
 void Sum::post()
@@ -393,123 +392,123 @@ void Sum::propagate()
 }
 
 Clause::Clause(const std::vector<var<bool>::Ptr>& x)
-    : Constraint(x[0]->getSolver()),
-      _wL(x[0]->getSolver()->getStateManager(),0),
-      _wR(x[0]->getSolver()->getStateManager(),(int)x.size() - 1)
+   : Constraint(x[0]->getSolver()),
+     _wL(x[0]->getSolver()->getStateManager(),0),
+     _wR(x[0]->getSolver()->getStateManager(),(int)x.size() - 1)
 {
-    for(auto xi : x) _x.push_back(xi);
+   for(auto xi : x) _x.push_back(xi);
 }
 
 void Clause::propagate()
 {
-    const long n = _x.size();
-    int i = _wL;
-    while (i < n && _x[i]->isBound()) {
-        if (_x[i]->isTrue()) {
-            setActive(false);
-            return;
-        }
-        i += 1;
-    }
-    _wL = i;
-    i = _wR;
-    while (i>=0 && _x[i]->isBound()) {
-        if (_x[i]->isTrue()) {
-            setActive(false);
-            return;
-        }
-        i -= 1;
-    }
-    _wR = i;
-    if (_wL > _wR) throw Failure;
-    else if (_wL == _wR) {
-        _x[_wL]->assign(true);
-        setActive(false);
-    } else {
-        assert(_wL != _wR);
-        assert(!_x[_wL]->isBound());
-        assert(!_x[_wR]->isBound());
-        _x[_wL]->propagateOnBind(this);
-        _x[_wR]->propagateOnBind(this);
-    }
+   const long n = _x.size();
+   int i = _wL;
+   while (i < n && _x[i]->isBound()) {
+      if (_x[i]->isTrue()) {
+         setActive(false);
+         return;
+      }
+      i += 1;
+   }
+   _wL = i;
+   i = _wR;
+   while (i>=0 && _x[i]->isBound()) {
+      if (_x[i]->isTrue()) {
+         setActive(false);
+         return;
+      }
+      i -= 1;
+   }
+   _wR = i;
+   if (_wL > _wR) throw Failure;
+   else if (_wL == _wR) {
+      _x[_wL]->assign(true);
+      setActive(false);
+   } else {
+      assert(_wL != _wR);
+      assert(!_x[_wL]->isBound());
+      assert(!_x[_wR]->isBound());
+      _x[_wL]->propagateOnBind(this);
+      _x[_wR]->propagateOnBind(this);
+   }
 }
 
 IsClause::IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x)
-    : Constraint(x[0]->getSolver()),
-      _b(b),
-      _unBounds(x.size()),
-      _nUnBounds(x[0]->getSolver()->getStateManager(),(int)x.size())
+   : Constraint(x[0]->getSolver()),
+     _b(b),
+     _unBounds(x.size()),
+     _nUnBounds(x[0]->getSolver()->getStateManager(),(int)x.size())
 {
-    for(auto xi : x) _x.push_back(xi);
-    for(auto i = 0u; i < _x.size();i++)
-        _unBounds[i] = i;
-    _clause = new (x[0]->getSolver()) Clause(x);
+   for(auto xi : x) _x.push_back(xi);
+   for(auto i = 0u; i < _x.size();i++)
+      _unBounds[i] = i;
+   _clause = new (x[0]->getSolver()) Clause(x);
 }
 
 void IsClause::post()
 {
-    _b->propagateOnBind(this);
-    for(auto& xi : _x)
-        xi->propagateOnBind(this);
+   _b->propagateOnBind(this);
+   for(auto& xi : _x)
+      xi->propagateOnBind(this);
 }
 
 void IsClause::propagate()
 {
-    auto cp = _x[0]->getSolver();
-    if (_b->isTrue()) {
-        setActive(false);
-        cp->post(_clause,false);
-    } else if (_b->isFalse()) {
-        for(auto& xi : _x)
-            xi->assign(false);
-        setActive(false);
-    } else {
-        int nU = _nUnBounds;
-        for(int i = nU - 1;i >=0;i--) {
-            int idx = _unBounds[i];
-            auto y = _x[idx];
-            if (y->isBound()) {
-                if (y->isTrue()) {
-                    _b->assign(true);
-                    setActive(false);
-                    return;
-                }
-                _unBounds[i] = _unBounds[nU -1];
-                _unBounds[nU - 1] = idx;
-                nU--;
+   auto cp = _x[0]->getSolver();
+   if (_b->isTrue()) {
+      setActive(false);
+      cp->post(_clause,false);
+   } else if (_b->isFalse()) {
+      for(auto& xi : _x)
+         xi->assign(false);
+      setActive(false);
+   } else {
+      int nU = _nUnBounds;
+      for(int i = nU - 1;i >=0;i--) {
+         int idx = _unBounds[i];
+         auto y = _x[idx];
+         if (y->isBound()) {
+            if (y->isTrue()) {
+               _b->assign(true);
+               setActive(false);
+               return;
             }
-        }
-        if (nU == 0) {
-            _b->assign(false);
-            setActive(false);
-        }
-        _nUnBounds = nU;
-    }
+            _unBounds[i] = _unBounds[nU -1];
+            _unBounds[nU - 1] = idx;
+            nU--;
+         }
+      }
+      if (nU == 0) {
+         _b->assign(false);
+         setActive(false);
+      }
+      _nUnBounds = nU;
+   }
 }
 
 void AllDifferentBinary::post()
 {
-    CPSolver::Ptr cp = _x[0]->getSolver();
-    const long n = _x.size();
-    for(int i=0;i < n;i++) 
-        for(int j=i+1;j < n;j++)
-            cp->post(new (cp) NEQBinBCLight(_x[i],_x[j]));    
+   CPSolver::Ptr cp = _x[0]->getSolver();
+   const long n = _x.size();
+   for(int i=0;i < n;i++) 
+      for(int j=i+1;j < n;j++)
+         cp->post(new (cp) NEQBinBCLight(_x[i],_x[j]));    
 }
 
 
 void AllDifferentAC::post() 
 {
-    CPSolver::Ptr cp = _x[0]->getSolver();
-    _nVar    = (int)_x.size();
-    _nVal    = updateRange();
-    _mm.setup();
-    for(int i=0;i < _nVar;i++)
-        _x[i]->propagateOnDomainChange(this);
-    _match   = new (cp) int[_nVar];
-    _matched = new (cp) bool[_nVal];
-    _nNodes  = _nVar + _nVal + 1;
-    _rg = Graph(_nNodes);
-    propagate();
+   CPSolver::Ptr cp = _x[0]->getSolver();
+   _nVar    = (int)_x.size();
+   _nVal    = updateRange();
+   _mm.setup();
+   for(int i=0;i < _nVar;i++)
+      _x[i]->propagateOnDomainChange(this);
+   _match   = new (cp) int[_nVar];
+   _matched = new (cp) bool[_nVal];
+   _nNodes  = _nVar + _nVal + 1;
+   _rg = Graph(_nNodes);
+   propagate();
 }
 
 int AllDifferentAC::updateRange()
@@ -517,10 +516,10 @@ int AllDifferentAC::updateRange()
    _minVal = INT32_MAX;
    _maxVal = INT32_MIN;
    for(int i=0;i < _nVar;i++) {
-       _minVal = std::min(_minVal,_x[i]->min());
-       _maxVal = std::max(_maxVal,_x[i]->max());
+      _minVal = std::min(_minVal,_x[i]->min());
+      _maxVal = std::max(_maxVal,_x[i]->max());
    }
-   return _maxVal - _minVal + 1;      
+   return _maxVal - _minVal + 1;
 }
 
 void AllDifferentAC::updateGraph()
@@ -532,9 +531,9 @@ void AllDifferentAC::updateGraph()
       _rg.addEdge(valNode(_match[i]),i);
       _matched[_match[i] - _minVal] = true;
    }
-   for(int i = 0; i < _nVar;i++) 
-      for(int v = _x[i]->min();v <= _x[i]->max();v++) 
-         if (_x[i]->contains(v) && _match[i] != v) 
+   for(int i = 0; i < _nVar;i++)
+      for(int v = _x[i]->min();v <= _x[i]->max();v++)
+         if (_x[i]->contains(v) && _match[i] != v)
             _rg.addEdge(i,valNode(v));
    for(int v = _minVal;v <= _maxVal;v++) {
       if (!_matched[v - _minVal])
@@ -553,14 +552,14 @@ void AllDifferentAC::propagate()
    int nc = 0;
    int* scc = (int*)alloca(sizeof(int)*_nNodes);
    _rg.SCC([&scc,&nc](int n,int nd[]) {
-               for(int i=0;i < n;i++)
-                   scc[nd[i]] = nc;
-               ++nc;
-           });
-   for(int i=0;i < _nVar;i++) 
-       for(int v = _minVal; v <= _maxVal;v++) 
-           if (_match[i] != v && scc[i] != scc[valNode(v)])
-               _x[i]->remove(v);
+      for(int i=0;i < n;i++)
+         scc[nd[i]] = nc;
+      ++nc;
+   });
+   for(int i=0;i < _nVar;i++)
+      for(int v = _minVal; v <= _maxVal;v++)
+         if (_match[i] != v && scc[i] != scc[valNode(v)])
+            _x[i]->remove(v);
 }
 
 void Circuit::setup(CPSolver::Ptr cp)
@@ -589,7 +588,7 @@ void Circuit::post()
       if (_x[i]->isBound())
          bind(i);
       else 
-         _x[i]->whenBind([i,this]() { bind(i);});      
+         _x[i]->whenBind([i,this]() { bind(i);});
    }
 }
 
@@ -603,45 +602,45 @@ void Circuit::bind(int i)
    int length = _lengthToDest[origi] + _lengthToDest[j] + 1;
    _lengthToDest[origi] = length;
    if (length < (int)_x.size() - 1)
-      _x[destj]->remove(origi);                     
+      _x[destj]->remove(origi);
 }
 
 Element2D::Element2D(const Matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z)
-    : Constraint(x->getSolver()),
-      _matrix(mat),
-      _x(x),_y(y),_z(z),
-      _n(mat.size(0)),
-      _m(mat.size(1)),
-      _low(x->getSolver()->getStateManager(),0),
-      _up(x->getSolver()->getStateManager(),_n * _m - 1)
+   : Constraint(x->getSolver()),
+     _matrix(mat),
+     _x(x),_y(y),_z(z),
+     _n(mat.size(0)),
+     _m(mat.size(1)),
+     _low(x->getSolver()->getStateManager(),0),
+     _up(x->getSolver()->getStateManager(),_n * _m - 1)
 {
-    for(int i=0;i < _matrix.size(0);i++)
-        for(int j=0;j < _matrix.size(1);j++)
-            _xyz.push_back(Triplet(i,j,_matrix[i][j]));
-    std::sort(_xyz.begin(),_xyz.end(),[](const Triplet& a,const Triplet& b) {
-                                          return a.z < b.z;
-                                      });
-    _nColsSup = new (x->getSolver()) trail<int>[_n];
-    _nRowsSup = new (x->getSolver()) trail<int>[_m];
-    auto sm = x->getSolver()->getStateManager();
-    for(int i=0;i<_n;i++)
-        new (_nColsSup + i) trail<int>(sm,_m);
-    for(int j=0;j <_m;j++)
-       new (_nRowsSup + j) trail<int>(sm,_n);
+   for(int i=0;i < _matrix.size(0);i++)
+      for(int j=0;j < _matrix.size(1);j++)
+         _xyz.push_back(Triplet(i,j,_matrix[i][j]));
+   std::sort(_xyz.begin(),_xyz.end(),[](const Triplet& a,const Triplet& b) {
+      return a.z < b.z;
+   });
+   _nColsSup = new (x->getSolver()) trail<int>[_n];
+   _nRowsSup = new (x->getSolver()) trail<int>[_m];
+   auto sm = x->getSolver()->getStateManager();
+   for(int i=0;i<_n;i++)
+      new (_nColsSup + i) trail<int>(sm,_m);
+   for(int j=0;j <_m;j++)
+      new (_nRowsSup + j) trail<int>(sm,_n);
 }
 
 void Element2D::updateSupport(int lostPos)
 {
    int nv1 = _nColsSup[_xyz[lostPos].x] = _nColsSup[_xyz[lostPos].x] - 1;
    if (nv1 == 0)
-      _x->remove(_xyz[lostPos].x);  
+      _x->remove(_xyz[lostPos].x);
    int nv2 = _nRowsSup[_xyz[lostPos].y] = _nRowsSup[_xyz[lostPos].y] - 1;
    if (nv2==0)
       _y->remove(_xyz[lostPos].y);
 }
 
 
-void Element2D::post() 
+void Element2D::post()
 {
    _x->updateBounds(0,_n-1);
    _y->updateBounds(0,_m-1);
@@ -651,13 +650,13 @@ void Element2D::post()
    propagate();
 }
 
-void Element2D::propagate() 
+void Element2D::propagate()
 {
    int l =  _low,u = _up;
    int zMin = _z->min(),zMax = _z->max();
    while (_xyz[l].z < zMin || !_x->contains(_xyz[l].x) || !_y->contains(_xyz[l].y)) {
       updateSupport(l++);
-      if (l > u) throw Failure;      
+      if (l > u) throw Failure;
    }
    while (_xyz[u].z > zMax || !_x->contains(_xyz[u].x) || !_y->contains(_xyz[u].y)) {
       updateSupport(u--);
@@ -690,7 +689,7 @@ void Element1D::post()
 
 void Element1DVar::post()
 {
-    _y->updateBounds(0,(int)_array.size() - 1);
+   _y->updateBounds(0,(int)_array.size() - 1);
    for(auto t : _array)
       t->propagateOnBoundChange(this);
    _y->propagateOnDomainChange(this);
@@ -724,23 +723,23 @@ void Element1DVar::filterY()
    int min = INT32_MAX,max = INT32_MIN;
    int i = 0;
    for (int k=_y->min();k <= _y->max();k++)
-       if (_y->contains(k))
-           _yValues[i++] = k;
+      if (_y->contains(k))
+         _yValues[i++] = k;
    while (i > 0) {
-       int id = _yValues[--i];
-       auto tVar =  _array[id];
-       int tMin = tVar->min(),tMax = tVar->max();
-       if (tMax < _zMin || tMin > _zMax)
-           _y->remove(id);
-       else {
-           if (tMin < min) {
-               min = tMin;
-               _supMin = tVar;
-           }
-           if (tMax > max) {
-               max = tMax;
-               _supMax = tVar;
-           }
-       }
+      int id = _yValues[--i];
+      auto tVar =  _array[id];
+      int tMin = tVar->min(),tMax = tVar->max();
+      if (tMax < _zMin || tMin > _zMax)
+         _y->remove(id);
+      else {
+         if (tMin < min) {
+            min = tMin;
+            _supMin = tVar;
+         }
+         if (tMax > max) {
+            max = tMax;
+            _supMax = tVar;
+         }
+      }
    }
 }

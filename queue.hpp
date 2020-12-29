@@ -24,7 +24,7 @@ template <typename T> class CQueue;
 template <typename T> class Location {
    T   _val;
    int _pos;
-   friend class CQueue<T>;   
+   friend class CQueue<T>;
 public:
    T value() const noexcept { return _val;}
    T operator*() const noexcept { return _val;}

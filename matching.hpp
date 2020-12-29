@@ -22,12 +22,12 @@
 #include <stdint.h>
 #include "intvar.hpp"
 
-class Graph { 
-   int V; 
-   std::vector<std::vector<int>> adj; 
+class Graph {
+   int V;
+   std::vector<std::vector<int>> adj;
    template <typename B>
-   void SCCUtil(B body,int& time,int u, int disc[], int low[],std::stack<int>& st, bool inStack[]); 
-public: 
+   void SCCUtil(B body,int& time,int u, int disc[], int low[],std::stack<int>& st, bool inStack[]);
+public:
    Graph(int nbV) : V(nbV),adj(nbV) {}
    Graph() : V(0) {}
    Graph(Graph&& g) : V(g.V),adj(std::move(g.adj)) {}
@@ -35,7 +35,7 @@ public:
    void clear()                { for(auto& al : adj) al.clear();}
    void addEdge(int v, int w)  { adj[v].push_back(w);}
    template <typename B> void SCC(B body); // apply body to each SCC
-}; 
+};
 
 class MaximumMatching {
    Storage::Ptr _store;
@@ -59,46 +59,46 @@ public:
 };
 
 template <typename B>
-void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],std::stack<int>& st,bool inStack[]) 
-{ 
-   disc[u] = low[u] = ++time; 
-   st.push(u); 
-   inStack[u] = true; 
-   for(const auto v : adj[u]) { // v is current adjacent of 'u' 
-      if (disc[v] == -1)  { 
-         SCCUtil(body,time,v, disc, low, st, inStack); 
-         low[u] = std::min(low[u], low[v]); 
-      } 
-      else if (inStack[v]) 
-          low[u] = std::min(low[u], disc[v]); 
-   } 
+void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],std::stack<int>& st,bool inStack[])
+{
+   disc[u] = low[u] = ++time;
+   st.push(u);
+   inStack[u] = true;
+   for(const auto v : adj[u]) { // v is current adjacent of 'u'
+      if (disc[v] == -1)  {
+         SCCUtil(body,time,v, disc, low, st, inStack);
+         low[u] = std::min(low[u], low[v]);
+      }
+      else if (inStack[v])
+          low[u] = std::min(low[u], disc[v]);
+   }
    if (low[u] == disc[u])  {
       int* scc = (int*)alloca(sizeof(int)*V),k=0;
-      while (st.top() != u)  { 
-         scc[k++] = st.top(); 
-         inStack[scc[k-1]] = false; 
-         st.pop(); 
+      while (st.top() != u)  {
+         scc[k++] = st.top();
+         inStack[scc[k-1]] = false;
+         st.pop();
       }
       scc[k++] = st.top();
-      inStack[scc[k-1]] = false; 
+      inStack[scc[k-1]] = false;
       st.pop();
       body(k,scc);
-   } 
-} 
+   }
+}
 
-template <typename B> void Graph::SCC(B body) { 
+template <typename B> void Graph::SCC(B body) {
    int* disc = (int*)alloca(sizeof(int)*V);
    int* low  = (int*)alloca(sizeof(int)*V);
-   bool* inStack = (bool*)alloca(sizeof(bool)*V); 
-   std::stack<int> st; 
+   bool* inStack = (bool*)alloca(sizeof(bool)*V);
+   std::stack<int> st;
    int time = 0;
-   for (int i = 0; i < V; i++)  { 
-      disc[i] = low[i] = -1; 
-      inStack[i] = false; 
-   } 
-   for (int i = 0; i < V; i++) 
-      if (disc[i] == -1) 
-         SCCUtil(body,time,i, disc, low, st,inStack); 
-} 
+   for (int i = 0; i < V; i++)  {
+      disc[i] = low[i] = -1;
+      inStack[i] = false;
+   }
+   for (int i = 0; i < V; i++)
+      if (disc[i] == -1)
+         SCCUtil(body,time,i, disc, low, st,inStack);
+}
 
 #endif

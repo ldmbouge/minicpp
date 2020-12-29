@@ -75,12 +75,12 @@ class Pool {
    };
    Segment** _store;
    const std::size_t   _segSize;
-   size_t                  _top;   
+   size_t                  _top;
    unsigned                _seg;
    unsigned              _nbSeg;
    unsigned                _mxs;
 public:
-   Pool(std::size_t defSize = SEGSIZE); 
+   Pool(std::size_t defSize = SEGSIZE);
    ~Pool();
    typedef handle_ptr<Pool> Ptr;
    void* allocate(std::size_t sz);

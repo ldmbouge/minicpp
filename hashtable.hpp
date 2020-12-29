@@ -7,7 +7,7 @@
 #include <string>
 #include "store.hpp"
 
-template <class K,class T,class Hash = std::hash<K>,class Equal = std::equal_to<T>> class Hashtable {
+template <class K,class T,class Hash = std::hash<K>,class Equal = std::equal_to<K>> class Hashtable {
    struct HTNode {
       K _key;
       T _data;

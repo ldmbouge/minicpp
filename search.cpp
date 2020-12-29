@@ -105,7 +105,7 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
             try {
                 stats.incrNodes();
                 alt();
-                dfs(stats,limit);         
+                dfs(stats,limit);
             } catch(Status e) {
                 stats.incrFailures();
                 notifyFailure();
@@ -115,5 +115,5 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
             }
             _sm->restoreState();
         }
-    }   
+    }
 }

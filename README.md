@@ -1,6 +1,7 @@
 # MiniCP+
 
-A *C++* CP Solver that implements the MiniCP API. The codebase also implements HADDOCK to allow MDD-based propagation.
+A *C++* CP Solver that implements the MiniCP API. The codebase also implements
+HADDOCK to allow MDD-based propagation.
 
 # Requirements
 

@@ -71,14 +71,14 @@ namespace Cont {
                    "end: nop;\n\t"
                    :"=a"(var)
                    :"a"(ctx)
-                   );   
+                   );
       return var;
    }
 
-    __attribute__((noinline)) Cont* restoreCtx(struct Ctx64* ctx,char* start,char* data,size_t length) 
+    __attribute__((noinline)) Cont* restoreCtx(struct Ctx64* ctx,char* start,char* data,size_t length)
     {
         Cont* rv = 0;
-        // ctx in rdi, start in rsi, data in rdx, length in ecx   
+        // ctx in rdi, start in rsi, data in rdx, length in ecx
         asm volatile(
 		     "movq 56(%%rdi),%%rsp;\n\t"
 		     "copystack: cmp $0x0,%%ecx         ; \n\t" //test length to 0
@@ -86,7 +86,7 @@ namespace Cont {
                      "           movq (%%rdx),%%rax     ; \n\t" //read 8 bytes (quad)
                      "           add $0x8,%%rdx         ; \n\t" //data+=8
                      "           movq %%rax,(%%rsi)     ; \n\t" // *start = data
-                     "           add $0x8,%%rsi         ; \n\t" //start+=8                
+                     "           add $0x8,%%rsi         ; \n\t" //start+=8
                      "           add $0xfffffff8,%%ecx  ; \n\t" //substract 8 to length
                      "           jmp copystack          ; \n\t" //go to top
                      "donecopy:  mov %%rdi,%%rax        ; \n\t" // place address of context in rax
@@ -107,7 +107,7 @@ namespace Cont {
                      "movq 120(%%rax),%%r15;\n\t"
                      "ldmxcsr 140(%%rax);\n\t"
                      "movdqa 144(%%rax),%%xmm0;\n\t"
-                     "movdqa 160(%%rax),%%xmm1;\n\t"               
+                     "movdqa 160(%%rax),%%xmm1;\n\t"
                      "movdqa 176(%%rax),%%xmm2;\n\t"
                      "movdqa 192(%%rax),%%xmm3;\n\t"
                      "movdqa 208(%%rax),%%xmm4;\n\t"
@@ -126,8 +126,8 @@ namespace Cont {
                      "movq 128(%%rax),%%rdi;\n\t"
                      "movq (%%rax),%%rax;\n\t"
                      "jmp *%%rdi;\n\t"
-                     :"=a"(rv) 
-                     :"D"(ctx));  
+                     :"=a"(rv)
+                     :"D"(ctx));
         return rv;
     }
 #endif

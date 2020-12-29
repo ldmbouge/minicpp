@@ -183,7 +183,7 @@ void MDD::buildDiagram()
    layers[numVariables].push_back(sink,mem);
 
    for(auto i = 0u; i < numVariables; i++)
-      buildNextLayer(i);   
+      buildNextLayer(i);
    trimDomains();
    propagate();
    hookupPropagators();
@@ -206,7 +206,7 @@ void MDD::trimLayer(unsigned int layer)
          if(!var->contains(arc->getValue())) {
             arc->remove(this);
          }
-      }   
+      }
    }
 }
 

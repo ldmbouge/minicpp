@@ -30,7 +30,7 @@ struct IntNotifier   {
     virtual void changeMin() = 0;
     virtual void changeMax() = 0;
 };
- 
+
 class BitDomain {
     trail<int>*               _dom;
     trail<int>       _min,_max,_sz;
@@ -47,7 +47,7 @@ public:
     int size() const { return _sz;}
     bool isBound() const { return _sz == 1;}
     bool member(int v) const { return _min <= v && v <= _max && GETBIT(v);}
-    
+
     void assign(int v,IntNotifier& x);
     void remove(int v,IntNotifier& x);
     void removeBelow(int newMin,IntNotifier& x);
@@ -106,5 +106,5 @@ public:
     void removeAbove(int newMax,IntNotifier& x);
     friend std::ostream& operator<<(std::ostream& os,const SparseSetDomain& x);
 };
-    
+
 #endif

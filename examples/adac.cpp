@@ -21,17 +21,19 @@
 #include "constraint.hpp"
 #include "search.hpp"
 
+#define myassert(P) { if (!(P)) { printf("[%s]\n",#P);exit(2);}}
+
 void test1() {
     using namespace std;
     using namespace Factory;
     CPSolver::Ptr cp  = Factory::makeSolver();
     auto x = Factory::intVarArray(cp,5,5);
     cp->post(Factory::allDifferentAC(x));
-    cp->post(x[0] == 0);    
+    cp->post(x[0] == 0);
     for(int i=1;i < 5;i++) {
-       assert(x[i]->size() == 4);
-       assert(x[i]->min()==1);
-    }   
+       myassert(x[i]->size() == 4);
+       myassert(x[i]->min()==1);
+    }
 }
 
 void test2() {
@@ -43,7 +45,7 @@ void test2() {
 
     DFSearch search(cp,firstFail(cp,x));
     auto stats = search.solve();
-    assert(stats.numberOfSolutions()==120);
+    myassert(stats.numberOfSolutions()==120);
 }
 
 void test3() {
@@ -61,8 +63,8 @@ void test3() {
     cout << "x[0] = " << x[0] << endl;
     cout << "x[1] = " << x[1] << endl;
     cout << "x[2] = " << x[2] << endl;
-    assert(x[2]->min() == 3);
-    assert(x[2]->size() == 2);
+    myassert(x[2]->min() == 3);
+    myassert(x[2]->size() == 2);
 }
 
 void test5() {
@@ -80,12 +82,12 @@ void test5() {
     x[7] = Factory::makeIntVar(cp,{6,7,8,9});
     x[8] = Factory::makeIntVar(cp,{6,7,8});
     cp->post(Factory::allDifferentAC(x));
-    assert(x[0]->size()==2);
-    assert(x[2]->size()==2);
-    assert(x[4]->min()==6);
-    assert(x[7]->min()==9);
-    assert(x[8]->min()==7);
-    assert(x[8]->max()==8);
+    myassert(x[0]->size()==2);
+    myassert(x[2]->size()==2);
+    myassert(x[4]->min()==6);
+    myassert(x[7]->min()==9);
+    myassert(x[8]->min()==7);
+    myassert(x[8]->max()==8);
 }
 
 void test6() {
@@ -105,8 +107,8 @@ void test6() {
     cp->post(Factory::allDifferentAC(x));    
     DFSearch search(cp,firstFail(cp,x));
     auto stats = search.solve();
-    assert(stats.numberOfFailures()==0);
-    assert(stats.numberOfSolutions()==80);
+    myassert(stats.numberOfFailures()==0);
+    myassert(stats.numberOfSolutions()==80);
     cout << stats << endl;
 }
 
@@ -126,12 +128,12 @@ void test7() {
     x[8] = Factory::makeIntVar(cp,{5,6,7});
     cp->post(Factory::allDifferentAC(x));
 
-    assert(!x[4]->contains(3));
-    assert(!x[4]->contains(4));
-    assert(!x[5]->contains(5));
-    assert(!x[7]->contains(5));
-    assert(!x[7]->contains(6));
-    assert(!x[8]->contains(5));
+    myassert(!x[4]->contains(3));
+    myassert(!x[4]->contains(4));
+    myassert(!x[5]->contains(5));
+    myassert(!x[7]->contains(5));
+    myassert(!x[7]->contains(6));
+    myassert(!x[8]->contains(5));
 }
 
 void test8() {
@@ -146,7 +148,7 @@ void test8() {
     x[4] = Factory::makeIntVar(cp,{-1});
     cp->post(Factory::allDifferentAC(x));
 
-    assert(!x[2]->contains(-1));
+    myassert(!x[2]->contains(-1));
 }
 
 int main(int argc,char* argv[])

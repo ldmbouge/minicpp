@@ -33,7 +33,7 @@ namespace Cont {
       char* _start;
       char* _data;
       int _used;
-      ORInt _cnt;   
+      ORInt _cnt;
 
       ORInt _field;
       void* _fieldId;

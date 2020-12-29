@@ -70,7 +70,7 @@ void SparseBitSet::reverseMask() {
    for (int i = 0; i <= _limit; i++) {
       offset = _index[i];
       _mask[offset] = ~(_mask[offset]);
-   }  
+   }
 }
 
 void SparseBitSet::addToMask(StaticBitSet& m) {

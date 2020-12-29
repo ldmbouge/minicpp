@@ -57,8 +57,8 @@ MDDSpec::MDDSpec()
 void MDDSpec::varOrder()
 {
    std::sort(x.begin(),x.end(),[](const var<int>::Ptr& a,const var<int>::Ptr& b) {
-                                  return a->getId() < b->getId();
-                               });   
+      return a->getId() < b->getId();
+   });
 }
 
 MDDStateSpec::MDDStateSpec()
@@ -90,7 +90,7 @@ void MDDStateSpec::layout()
       lszBit = a->setOffset(lszBit);
    }
    size_t boB = lszBit & 0x7;
-   if (boB != 0) 
+   if (boB != 0)
       lszBit = (lszBit | 0x7) + 1;
    _lsz = lszBit >> 3;
    _lsz = (_lsz & 0x7) ? (_lsz | 0x7)+1 : _lsz;
@@ -144,12 +144,12 @@ int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum Relax
 int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw)
 {
    auto rv = MDDStateSpec::addBSState(d,nbb,init,rw);
-   return rv;   
+   return rv;
 }
 int MDDSpec::addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw)
 {
    auto rv = MDDStateSpec::addSWState(d,len,init,finit,rw);
-   return rv;   
+   return rv;
 }
 
 void MDDSpec::onFixpoint(FixFun onFix)
@@ -223,7 +223,7 @@ void MDDSpec::updateNode(UpdateFun nf)
    _updates.emplace_back(std::move(nf));
 }
 void MDDSpec::transitionDown(int p,std::set<int> sp,lambdaTrans t)
-{   
+{
    for(auto& cd : constraints)
       if (cd->ownsProperty(p)) {
          int tid = (int)_transition.size();
@@ -246,7 +246,7 @@ void MDDSpec::transitionUp(int p,std::set<int> sp,lambdaTrans t)
          _attrs[p]->setUp(tid);
          _uptrans.emplace_back(std::move(t));
          break;
-      }     
+      }
 }
 
 void MDDSpec::transitionDown(const lambdaMap& map)
@@ -295,7 +295,7 @@ void LayerDesc::zoningUp(const MDDSpec& spec)
    int fstProp = -1,lstProp = -1;
    std::set<int> zp;
    for(auto p : _uframe) {
-      if (fstProp == -1) 
+      if (fstProp == -1)
          zp.insert(fstProp = lstProp = p);
       else {
          if (p == fstProp - 1)
@@ -311,7 +311,7 @@ void LayerDesc::zoningUp(const MDDSpec& spec)
             zp.clear();
             zp.insert(fstProp = lstProp = p);
          }
-      }         
+      }
    }
    if (fstProp != -1) {
       auto sOfs = spec.startOfs(fstProp);
@@ -319,7 +319,7 @@ void LayerDesc::zoningUp(const MDDSpec& spec)
       _uzones.emplace_back(Zone(sOfs,eOfs,zp));
    }
 }
-   
+
 void LayerDesc::zoningDown(const MDDSpec& spec)
 {
    int fstProp = -1,lstProp = -1;
@@ -341,7 +341,7 @@ void LayerDesc::zoningDown(const MDDSpec& spec)
             zp.clear();
             zp.insert(fstProp = lstProp = p);
          }
-      }         
+      }
    }
    if (fstProp != -1) {
       auto sOfs = spec.startOfs(fstProp);
@@ -368,7 +368,7 @@ void MDDSpec::compile()
    _transLayer.reserve(nbL);
    _frameLayer.reserve(nbL);
    _uptransLayer.reserve(nbL);
-   for(auto i = 0u;i < nbL;i++) {      
+   for(auto i = 0u;i < nbL;i++) {
       auto& layer   = _transLayer.emplace_back(std::vector<lambdaTrans>());
       auto& upLayer = _uptransLayer.emplace_back(std::vector<lambdaTrans>());
       auto& frame   = _frameLayer.emplace_back(LayerDesc(_nbp));
@@ -398,14 +398,14 @@ void MDDSpec::compile()
       auto& cd  = std::get<0>(exist);
       auto& fun = std::get<1>(exist);
       auto& vars = cd->vars();
-      for(auto& v : vars) 
-         _scopedExists[v->getId()].emplace_back(fun);      
+      for(auto& v : vars)
+         _scopedExists[v->getId()].emplace_back(fun);
    }
    for(auto& nex : _nodeExists) {
       auto& cd  = std::get<0>(nex);
       auto& fun = std::get<1>(nex);
       auto& vars = cd->vars();
-      for(auto& v : vars) 
+      for(auto& v : vars)
          _scopedConsistent[v->getId()].emplace_back(fun);
    }
    std::set<int> upProps;
@@ -457,12 +457,12 @@ void MDDSpec::createStateIncr(const MDDPropSet& out,MDDState& result,const MDDSt
                               const MDDIntSet& v,bool hasUp)
 {
    result.clear();
-   for(auto p : out) {     
+   for(auto p : out) {
       int tid = _frameLayer[l].hasProp(p) ? -1 : _attrs[p]->getDown();
       if (tid != -1)
          _transition[tid](result,parent,var,v,hasUp); // actual transition
       else 
-         result.setProp(p,parent); // frame axiom           
+         result.setProp(p,parent); // frame axiom
    }
    result.relaxDown(parent.isDownRelaxed() || v.size() > 1);
 }

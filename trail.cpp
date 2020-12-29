@@ -72,7 +72,7 @@ void Trailer::popToNode(long node)
     pop();
     if (nodeId == node)
       break;
-  }  
+  }
 }
 
 void Trailer::pop()
@@ -93,19 +93,19 @@ void Trailer::pop()
 
 void Trailer::clear()
 {
-  while (_tops.size() > 0) 
-    pop();  
+  while (_tops.size() > 0)
+    pop();
 }
 
-void Trailer::saveState() 
+void Trailer::saveState()
 {
    push();
 }
-void Trailer::restoreState() 
+void Trailer::restoreState()
 {
    pop();
 }
-void Trailer::withNewState(const std::function<void(void)>& body) 
+void Trailer::withNewState(const std::function<void(void)>& body)
 {
    long lvl = push();
    body();

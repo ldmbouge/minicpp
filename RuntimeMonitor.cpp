@@ -23,7 +23,7 @@ namespace RuntimeMonitor {
    }
    double elapsedSince(HRClock then)
    {
-      auto now  = std::chrono::high_resolution_clock::now();   
+      auto now  = std::chrono::high_resolution_clock::now();
       auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - then);
       return diff.count();
    }

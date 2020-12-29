@@ -89,7 +89,7 @@ public:
 namespace Factory {
    template <class Vec, class T> Constraint::Ptr table(const Vec& x, const T& table) {
       return new (x[0]->getSolver()) TableCT(x, table);
-   }   
+   }
 };
 
 #endif

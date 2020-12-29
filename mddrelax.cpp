@@ -64,7 +64,7 @@ void MDDRelax::buildDiagram()
 
    for(auto i=0u;i < _width;i++)
       _afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz),sz);
-   
+
    auto rootState = _mddspec.rootState(mem);
    auto sinkState = _mddspec.rootState(mem);
    sinkState.computeHash();
@@ -78,7 +78,7 @@ void MDDRelax::buildDiagram()
    _refs.emplace_back(rootState);
    for(auto i = 0u; i < numVariables; i++) {
       buildNextLayer(i);
-      _refs.emplace_back(pickReference(i+1,(int)layers[i+1].size()).clone(mem));   
+      _refs.emplace_back(pickReference(i+1,(int)layers[i+1].size()).clone(mem));
    }
    postUp();
    trimDomains();

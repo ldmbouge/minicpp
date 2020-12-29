@@ -64,8 +64,8 @@ public:
       _tab[_at++] = v;
    }
    void buildHeap() noexcept {
-      for(int i = _at / 2;i > 0;--i) 
-         heapify(i);      
+      for(int i = _at / 2;i > 0;--i)
+         heapify(i);
    }
    T extractMax() noexcept {
       T rv = _tab[1];

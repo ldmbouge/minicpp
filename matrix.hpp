@@ -34,7 +34,7 @@ using VMSlice = MSlice<std::vector<T>,T,a,d>;
 
 template <class Container,class T,int a,int d> class MSlice {
    matrix<Container,T,a>* _mtx;
-   int         _flat;      
+   int         _flat;
    MSlice(matrix<Container,T,a>* m,int idx) : _mtx(m),_flat(idx) {}
 public:
    friend class matrix<Container,T,a>;
@@ -45,10 +45,10 @@ public:
 };
 template<class Container,class T,int a> class MSlice<Container,T,a,1> {
    matrix<Container,T,a>* _mtx;
-   int        _flat;      
+   int        _flat;
    friend class MSlice<Container,T,a,2>;
    MSlice(matrix<Container,T,a>* m,int idx) : _mtx(m),_flat(idx) {}
-public:        
+public:
    friend class matrix<Container,T,a>;
    T& operator[](int i);
    const T& operator[](int i) const;
@@ -77,8 +77,8 @@ public:
    matrix(std::initializer_list<int> li) {
       std::copy(li.begin(),li.end(),_dim.begin());
       int ttl = 1;
-      for(int i=0;i <a;i++) 
-         ttl *= _dim[i];      
+      for(int i=0;i <a;i++)
+         ttl *= _dim[i];
       _data.resize(ttl);
    }
    matrix(Storage::Ptr store,std::initializer_list<int> li)

@@ -22,13 +22,13 @@ public:
    virtual int size() const = 0;
    virtual bool isBound() const = 0;
    virtual bool contains(int v) const = 0;
-   
+
    virtual void assign(int v) = 0;
    virtual void remove(int v) = 0;
    virtual void removeBelow(int newMin) = 0;
    virtual void removeAbove(int newMax) = 0;
    virtual void updateBounds(int newMin,int newMax) = 0;
-   
+
    virtual TLCNode* whenBind(std::function<void(void)>&& f) = 0;
    virtual TLCNode* whenBoundsChange(std::function<void(void)>&& f) = 0;
    virtual TLCNode* whenDomainChange(std::function<void(void)>&& f) = 0;

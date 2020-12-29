@@ -49,9 +49,9 @@ public:
       } else {
          auto c = _q[Constraint::CLOW].front();
          _q[Constraint::CLOW].pop_front();
-         return c;         
+         return c;
       }
-   }   
+   }
 };
 
 class CPSolver {
@@ -82,7 +82,7 @@ public:
     void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}
     void notifyFixpoint();
    //void tighten();
-    void fixpoint(); 
+    void fixpoint();
    //void fixpointNT();
     void post(Constraint::Ptr c,bool enforceFixPoint=true);
     void incrNbChoices() { _nbc += 1;}

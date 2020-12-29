@@ -18,7 +18,7 @@
 #include <limits.h>
 
 namespace Factory {
-  
+
    void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
    {
       mdd.append(vars);
@@ -31,7 +31,7 @@ namespace Factory {
       const int len  = mdd.addState(d,0,vars.size());
       const int allu = mdd.addBSState(d,udom.second - udom.first + 1,0);
       const int someu = mdd.addBSState(d,udom.second - udom.first + 1,0);
-      
+
       mdd.transitionDown(all,{all},[minDom,all](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
                                out.setProp(all,in);
                                if (val.size()==1)
@@ -55,9 +55,9 @@ namespace Factory {
                                 out.setProp(someu,in);
                                 MDDBSValue sv(out.getBS(someu));
                                 for(auto v : val)
-                                   sv.set(v - minDom);                                 
+                                   sv.set(v - minDom);
                              });
-      
+
       mdd.addRelaxation(all,[all](auto& out,const auto& l,const auto& r) noexcept    {
                                out.getBS(all).setBinAND(l.getBS(all),r.getBS(all));
                             });

@@ -31,7 +31,7 @@ namespace Factory {
                         bool vinS = tv == val;
                         return (p[minC] + vinS <= ub) &&
                            ((p[maxC] + vinS +  p[rem] - 1) >= lb);
-                     });         
+                     });
 
       mdd.transitionDown(minC,{minC}, [minC,tv] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
                                          bool allMembers = val.size()==1 && val.singleton() == tv;
@@ -44,7 +44,7 @@ namespace Factory {
        mdd.transitionDown(rem,{rem},[rem] (auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                                        out.setInt(rem,p[rem] - 1);
                                     });
-       
+
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
@@ -61,7 +61,7 @@ namespace Factory {
                            bool vinS = tv == val;
                            return (p[minC] + vinS <= ub) &&
                               ((p[maxC] + vinS +  p[rem] - 1) >= lb);
-                        });         
+                        });
       } else {
          mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val,bool) -> bool {
                            bool vinS = values.member(val);
@@ -151,7 +151,7 @@ namespace Factory {
                2*(ub - (c.at(U) + c.at(Uup)) > 3);
       });
    }
-  
+
    void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues) {
       mdd.append(x);
       ValueSet values(rawValues);

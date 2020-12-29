@@ -16,7 +16,7 @@ class MDDNodeSet {
    short         _sz;
    bool       _stack;
 public:
-   MDDNodeSet() : _data(nullptr),_msz(0),_sz(0),_stack(false) {}   
+   MDDNodeSet() : _data(nullptr),_msz(0),_sz(0),_stack(false) {}
    MDDNodeSet(int sz) : _msz(sz),_sz(0),_stack(false) {
       _data = new MDDNode*[_msz];
    }

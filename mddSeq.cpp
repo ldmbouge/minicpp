@@ -18,7 +18,6 @@
 #include <limits.h>
 
 namespace Factory {
-  
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
       spec.append(vars);
@@ -36,7 +35,6 @@ namespace Factory {
                           return (min.last() < 0 &&  minv >= lb && min.first() + inS              <= ub)
                              ||  (min.last() >= 0 && minv >= lb && min.first() - max.last() + inS <= ub);
                        });
-            
       spec.transitionDown(minWin,{minWin},
                           [values,minWin](auto& out,const auto& p,const auto& x,const auto& val,bool up) {
                              bool allMembers = val.allInside(values);
@@ -50,8 +48,7 @@ namespace Factory {
                              MDDSWin<short> outWin = out.getSW(maxWin);
                              outWin.assignSlideBy(p.getSW(maxWin),1);
                              outWin.setFirst(p.getSW(maxWin).first() + oneMember);
-                          });      
-      
+                          });
    }
 
    void seqMDD2(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
@@ -84,7 +81,7 @@ namespace Factory {
                           bool inS = values.member(v);
                           MDDSWin<short> min = p.getSW(minWin);
                           MDDSWin<short> max = p.getSW(maxWin);
-                          if (p[pnb] >= len - 1) {                             
+                          if (p[pnb] >= len - 1) {
                              bool c0 = max.first() + inS - min.last() >= lb;
                              bool c1 = min.first() + inS - max.last() <= ub;
                              return c0 && c1;
@@ -93,13 +90,13 @@ namespace Factory {
                              bool c1 =                    min.first() + inS <= ub;
                              return c0 && c1;
                           }
-                       });      
-      
+                       });
+
    }
 
    void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
    {
-      const int nbVars = (int)vars.size();     
+      const int nbVars = (int)vars.size();
       spec.append(vars);
       ValueSet values(rawValues);
       auto desc = spec.makeConstraintDescriptor(vars,"seqMDD");
@@ -129,7 +126,7 @@ namespace Factory {
                                          bool hasMemberOutS = val.memberOutside(values);
                                          int minVal = p[Ymin] + !hasMemberOutS;
                                          if (up) 
-                                            minVal = std::max(minVal, out[Ymin]);	  
+                                            minVal = std::max(minVal, out[Ymin]);
                                          out.setInt(Ymin,minVal);
                                       });
 
@@ -196,7 +193,7 @@ namespace Factory {
 		   (p[Ymin] >= 0) &&
 		   (p[Ymin] <= p[N]) );
 	});
-      
+
       // arc definitions
       spec.arcExist(desc,[values,Ymin,Ymax](const auto& p,const auto& c,const auto& x,int v,bool up) -> bool {
                             bool c0 = true,c1 = true,inS = values.member(v);

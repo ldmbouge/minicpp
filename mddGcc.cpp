@@ -18,7 +18,7 @@
 #include <limits.h>
 
 namespace Factory {
-  
+
    void gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       spec.append(vars);
@@ -82,12 +82,12 @@ namespace Factory {
 
       spec.arcExist(desc,[=](const auto& p,const auto& c,auto x,int v,bool up)->bool{
 	  bool cond = true;
-	  
+
 	  int minIdx = v - min;
 	  int maxIdx = maxFDom + v - min;
 	  int minIdxUp = minFDomUp + v - min;
 	  int maxIdxUp = maxFDomUp + v - min;
-  
+
 	  if (up) {
 	    // check LB and UB thresholds when value v is assigned:
 	    cond = cond && (p.at(ps[minIdx]) + 1 + c.at(ps[minIdxUp]) <= valuesUB[v])
@@ -107,7 +107,6 @@ namespace Factory {
 	  else {
 	    cond = (p.at(ps[minIdx]) + 1 <= valuesUB[v]);
 	  }
-	  
 	  return cond;
 	});
 
@@ -121,7 +120,6 @@ namespace Factory {
 	  }
       	  return (fixedValues+remainingLB<=sz);
       	});
-      
       spec.transitionDown(toDict(minFDom,minLDom,
                                  [min,ps] (int i) {
                                     return tDesc({ps[i]},[=](auto& out,const auto& p,auto x,const auto& val,bool up) {
@@ -161,7 +159,7 @@ namespace Factory {
       }
 
       for(ORInt i = minFDomUp; i <= minLDomUp; i++){
-	 int p = ps[i];
+         int p = ps[i];
          spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
       }
 
@@ -170,5 +168,4 @@ namespace Factory {
          spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
    }
-   
 }

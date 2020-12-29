@@ -33,7 +33,7 @@ BitDomain::BitDomain(Trailer::Ptr eng,Storage::Ptr store,int min,int max)
        new (_dom+i) trail<int>(eng,0xffffffff);  // placement-new for each reversible.
     const bool partial = _sz & 0x1f;
     if (partial)
-        _dom[nb - 1] = _dom[nb - 1] & ~(0xffffffff << (max - min + 1) % 32);    
+        _dom[nb - 1] = _dom[nb - 1] & ~(0xffffffff << (max - min + 1) % 32);
 }
 
 int BitDomain::count(int from,int to) const
@@ -327,18 +327,18 @@ void SparseSet::removeBelow(int value)
 {
     if (max() < value)
         removeAll();
-    else 
+    else
         for(int v= min() ; v < value;v++)
-            remove(v);    
+            remove(v);
 }
 
 void SparseSet::removeAbove(int value)
 {
     if (min() > value)
         removeAll();
-    else 
+    else
         for(int v = value + 1; v <= max();v++)
-            remove(v);    
+            remove(v);
 }
 
 void SparseSetDomain::assign(int v,IntNotifier& x)
@@ -414,6 +414,6 @@ std::ostream& operator<<(std::ostream& os,const SparseSetDomain& x)
             os << i << ',';
     if (x.size() > 0) os << x.max();
     os << '}';
-    return os;            
+    return os;
 }
 

@@ -63,10 +63,10 @@ public:
       : _mxs(mxs),_sz(0),_isSingle(false) {
       _buf = reinterpret_cast<int*>(buf);
       for(int v : vals) 
-         _buf[_sz++] = v;      
+         _buf[_sz++] = v;
    }
    MDDIntSet(char* buf,int mxs) : _mxs(mxs),_sz(0),_isSingle(false) {
-      _buf = reinterpret_cast<int*>(buf);       
+      _buf = reinterpret_cast<int*>(buf);
    }
    void clear() noexcept { _sz = 0;_isSingle=false;}
    constexpr void add(int v) noexcept {
@@ -86,7 +86,7 @@ public:
          return _single == v;
       else {
          for(short i=0;i < _sz;i++)
-            if (_buf[i]==v) return true;     
+            if (_buf[i]==v) return true;
          return false;
       }
    }
@@ -120,7 +120,7 @@ public:
          else {
             if (a._sz == b._sz) {
                for(auto i : a) 
-                  if (!b.contains(i)) return false;               
+                  if (!b.contains(i)) return false;
                return true;
             } else return false;
          }
@@ -201,7 +201,7 @@ class Zone {
    unsigned short _length;
    std::set<int> _props;
 public:
-   Zone(unsigned short so,unsigned short eo,const std::set<int>& ps) : _startOfs(so),_length(eo-so),_props(ps) {}   
+   Zone(unsigned short so,unsigned short eo,const std::set<int>& ps) : _startOfs(so),_length(eo-so),_props(ps) {}
    friend std::ostream& operator<<(std::ostream& os,const Zone& z) {
       os << "zone(" << z._startOfs << "-->" << (int)z._startOfs + z._length << ")";return os;
    }
@@ -221,7 +221,7 @@ class MDDConstraintDescriptor {
 public:
    typedef handle_ptr<MDDConstraintDescriptor> Ptr;
    template <class Vec>
-   MDDConstraintDescriptor(const Vec& vars, const char* name) 
+   MDDConstraintDescriptor(const Vec& vars, const char* name)
      : _vars(vars.size(),Factory::alloci(vars[0]->getStore())),
         _vset(vars),
         _name(name)
@@ -256,7 +256,7 @@ class MDDBSValue {
    const  short        _nbw;
 public:
    MDDBSValue(char* buf,short nbw)
-      : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw) {}   
+      : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw) {}
    MDDBSValue(MDDBSValue&& v) : _buf(v._buf),_nbw(v._nbw) { v._buf = nullptr;}
    short nbWords() const noexcept { return _nbw;}
    MDDBSValue& operator=(const MDDBSValue& v) noexcept {
@@ -324,16 +324,16 @@ public:
       unsigned long long _cw; // current word
       iterator(unsigned long long* t,short nbw,short at)
          : _t(t),_nbw(nbw),_cwi(at),_cw((at < nbw) ? t[at] : 0) {
-         while (_cw == 0 && ++_cwi < _nbw) 
-            _cw = _t[_cwi];         
+         while (_cw == 0 && ++_cwi < _nbw)
+            _cw = _t[_cwi];
       }
       iterator(unsigned long long* t,short nbw) : _t(t),_nbw(nbw),_cwi(nbw),_cw(0) {} // end constructor
    public:
       iterator& operator++()  noexcept {
          unsigned long long test = _cw & -_cw;  // only leaves LSB at 1
          _cw ^= test;                  // clear LSB
-         while (_cw == 0 && ++_cwi < _nbw)  // all bits at zero-> done with this word.            
-            _cw = _t[_cwi];        
+         while (_cw == 0 && ++_cwi < _nbw)  // all bits at zero-> done with this word.
+            _cw = _t[_cwi];
          return *this;
       }
       iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
@@ -609,13 +609,13 @@ class MDDPBitSequence : public MDDProperty {
             bOfs++;
             mask <<=1;
          }
-      }      
+      }
       os << ']';
    }
    void print(std::ostream& os) const override  {
       os << "PBS(" << _id << ',' << _ofs << ',' << _nbBits << ',' << (int)_init << ')';
    }
-   friend class MDDStateSpec;   
+   friend class MDDStateSpec;
 };
 
 template <class ET = unsigned char>
@@ -659,7 +659,7 @@ public:
       ET* b = reinterpret_cast<ET*>(other + _ofs);
       for(int i=0;i < _len;++i)
          if (a[i] != b[i]) return true;
-      return false;      
+      return false;
    }
    void stream(char* buf,std::ostream& os) const override {
       os << '<';
@@ -667,7 +667,7 @@ public:
       for(int i=0;i < _len;++i) {
          os << (int)(ptr[i]);
          if (i < _len - 1)
-            os << ',';        
+            os << ',';
       }
       os << '>';
    }
@@ -777,7 +777,7 @@ public:
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
       auto sz = _spec->layoutSize();
       char* block = (char*)mem->allocate(sizeof(char)* sz);
-      t->trail(new (t) TrailState(this,block,(int)sz));      
+      t->trail(new (t) TrailState(this,block,(int)sz));
       assert(_spec == s._spec || _spec == nullptr);
       assert(_mem != nullptr);
       _spec = s._spec;
@@ -787,10 +787,10 @@ public:
       _hash = s._hash;
       return *this;
    }
-   MDDState& operator=(MDDState&& s) { 
+   MDDState& operator=(MDDState&& s) {
       assert(_spec == s._spec || _spec == nullptr);
       _spec = std::move(s._spec);
-      _mem  = std::move(s._mem);      
+      _mem  = std::move(s._mem);
       _rip  = std::move(s._rip);
       _hash = std::move(s._hash);
       _flags = std::move(s._flags);
@@ -803,7 +803,7 @@ public:
       return MDDState(_spec,block,_hash,_rip,_flags);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
-   auto layoutSize() const noexcept    { return _spec->layoutSize();}   
+   auto layoutSize() const noexcept    { return _spec->layoutSize();}
    void init(int i) const  noexcept    { _spec->_attrs[i]->init(_mem);}
    int operator[](int i) const noexcept   { return _spec->_attrs[i]->getInt(_mem);}  // to _read_ a state property (fast)
    int at(int i) const noexcept           { return _spec->_attrs[i]->get(_mem);}
@@ -812,7 +812,7 @@ public:
    MDDSWin<short> getSW(int i) const noexcept { return _spec->_attrs[i]->getSW<short>(_mem);}
    void set(int i,int val) noexcept       { _spec->_attrs[i]->set(_mem,val);}  // to set a state property (slow)
    void setInt(int i,int val) noexcept    { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property (fast)
-   void setByte(int i,int val) noexcept   { _spec->_attrs[i]->setByte(_mem,val);}  // to set a state property (fast)  
+   void setByte(int i,int val) noexcept   { _spec->_attrs[i]->setByte(_mem,val);}  // to set a state property (fast)
    MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return _spec->_attrs[i]->setBS(_mem,val);} // (fast)
    void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);} // (fast)
    int byteSize(int i) const noexcept   { return (int)_spec->_attrs[i]->size();}
@@ -860,18 +860,18 @@ public:
    bool stateChange(const MDDState& b) const noexcept {
       return memcmp(_mem,b._mem,_spec->layoutSize())!=0;
    }
-   bool operator==(const MDDState& s) const {    
+   bool operator==(const MDDState& s) const {
       return (!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
-         _flags._drelax == s._flags._drelax &&         
+         _flags._drelax == s._flags._drelax &&
          memcmp(_mem,s._mem,_spec->layoutSize())==0;
    }
    bool operator!=(const MDDState& s) const {
       return ! this->operator==(s);
    }
    void diffWith(const MDDState& s,MDDPropSet& into) const {
-      for(int p=0;p < _spec->_nbp;++p) 
+      for(int p=0;p < _spec->_nbp;++p)
          if (s._spec->_attrs[p]->diff(_mem,s._mem))
-            into.setProp(p);      
+            into.setProp(p);
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << (s._flags._drelax ? 'T' : 'F')
@@ -880,7 +880,7 @@ public:
          auto atr = s._spec->_attrs[p];
          atr->stream(s._mem,os);
          os << ' ';
-      }      
+      }
       return os << ']';
    }
 };
@@ -910,7 +910,7 @@ public:
       for(const auto& z : _uzones)
          out.copyZone(z,in);
    }
-};   
+};
 
 class MDDSpec: public MDDStateSpec {
 public:
@@ -1065,7 +1065,7 @@ template <typename Container> std::pair<int,int> domRange(const Container& vars)
       udom.second = (udom.second < x->max()) ? x->max() : udom.second;
    }
    return udom;
-}  
+}
 
 template <typename Container> std::pair<int,int> idRange(const Container& vars) {
    int low = std::numeric_limits<int>::max();
@@ -1073,7 +1073,7 @@ template <typename Container> std::pair<int,int> idRange(const Container& vars) 
    for(auto& x : vars) {
       low = std::min(low,x->getId());
       up  = std::max(up,x->getId());
-   }       
+   }
    return std::make_pair(low,up);
 }
 

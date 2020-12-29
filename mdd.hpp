@@ -28,8 +28,8 @@ public:
    virtual void trimLayer(unsigned int layer);
    void scheduleRemoval(MDDNode*);
    int getSupport(int layer,int value) const { return supports[layer][value - oft[layer]];}
-   void addSupport(int layer, int value)     { supports[layer][value - oft[layer]] += 1;} 
-   void delSupport(int layer, int value)     { supports[layer][value - oft[layer]] -= 1;} 
+   void addSupport(int layer, int value)     { supports[layer][value - oft[layer]] += 1;}
+   void delSupport(int layer, int value)     { supports[layer][value - oft[layer]] -= 1;}
    void removeSupport(int layer, int value);
    void removeNode(MDDNode* node);
    void propagate() override;
