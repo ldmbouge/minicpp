@@ -79,6 +79,7 @@ public:
     CPSolver(Trailer::Ptr t);
     ~CPSolver();
     Status status() { return _status;}
+    void setStatus(Status s) { _status = s;}
     Trailer::Ptr getStateManager()       { return _sm;}
     Storage::Ptr getStore()              { return _store;}
     ExpSolver* getExpSolver() { return _es;}

@@ -191,12 +191,12 @@ public:
 class Clause : public Constraint { // x0 OR x1 .... OR xn
    enum Sense { POS, NEG };
    struct Entry {
-      var<bool>::Ptr _x;
+      var<bool>::Ptr _var;
       Clause::Sense _s;
-      Entry(var<bool>::Ptr x, Clause::Sense s) : _x(x), _s(s) {}
-      Entry(const Entry& other) : _x(other._x), _s(other._s) {}
-      var<bool>::Ptr var() { return _x;}
-      Clause::Sense sense() { return _s;}
+      Entry(var<bool>::Ptr var, Clause::Sense s) : _var(var), _s(s) {}
+      Entry(const Entry& other) : _var(other._var), _s(other._s) {}
+      var<bool>::Ptr var() const { return _var;}
+      Clause::Sense sense() const { return _s;}
    };
    std::vector<Entry> _x;
    trail<int> _wL,_wR;
@@ -215,8 +215,9 @@ class LitClause : public Constraint { // x0 OR x1 .... OR xn
     trail<int> _wL,_wR;
 public:
     LitClause(const std::vector<LitVar::Ptr>& x);
+    ~LitClause();
     typedef handle_ptr<LitClause> Ptr;
-    void post() override { propagate();}
+    void post() override;// { propagate();}
     void propagate() override;
 };
 

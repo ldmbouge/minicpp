@@ -31,11 +31,11 @@ void CNFParser::createClauseConstraint(std::vector<int> vars)
     std::cout << "creating clause constraint:\n";
     std::cout << "\tpositives: ";
     for (auto& x : pos)
-        std::cout << x->getId()+1 << " ";
+        std::cout << x->getId() << " ";
     std::cout << "\n";
     std::cout << "\tnegatives: ";
     for (auto& x : neg)
-        std::cout << x->getId()+1 << " ";
+        std::cout << x->getId() << " ";
     std::cout << "\n";
     _cps->post(Factory::clause(_cps, pos, neg));
 }

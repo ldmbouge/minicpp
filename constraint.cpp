@@ -477,10 +477,14 @@ void Clause::propagate()
     _wR = i;
     if (_wL > _wR) _lis->fail();  
     else if (_wL == _wR) {
-        if (_x[_wL].sense() == POS)
+        if (_x[_wL].sense() == POS) {
+            std::cout << "\tclause: setting x" << _x[_wL].var()->getId(); std::cout << " to 1\n";
             _x[_wL].var()->assign(true);
-        else
+        }
+        else {
+            std::cout << "\tclause: setting x" << _x[_wL].var()->getId(); std::cout << " to 0\n";
             _x[_wL].var()->assign(false);
+        }
         setActive(false);
     } else {
         assert(_wL != _wR);
@@ -499,8 +503,22 @@ LitClause::LitClause(const std::vector<LitVar::Ptr>& x)
     for(auto xi : x) _x.push_back(xi);
 }
 
+LitClause::~LitClause()
+{
+    for (LitVar::Ptr v : _x)
+        v.dealloc();
+}
+
+void LitClause::post()
+{
+    propagate();
+    // _x[_wL]->propagateOnBind(this);
+    // _x[_wR]->propagateOnBind(this);
+}
+
 void LitClause::propagate()
 {
+    std::cout << "lit clause propagating\n";
     const long n = _x.size();
     int i = _wL;
     while (i < n && _x[i]->isBound()) {
@@ -522,6 +540,7 @@ void LitClause::propagate()
     _wR = i;
     if (_wL > _wR) _lis->fail();
     else if (_wL == _wR) {
+        std::cout << "\tlit clause: setting x"; _x[_wL]->print(); std::cout << " to true\n";
         _x[_wL]->assign(true);
         setActive(false);
     } else {

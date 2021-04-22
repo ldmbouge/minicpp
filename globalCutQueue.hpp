@@ -8,13 +8,16 @@
 class GlobalCut {
     Constraint::Ptr _con;
     int _depth;
+    bool _posted;
 public:
-    GlobalCut(Constraint::Ptr cPtr, int d) : _con(cPtr), _depth(d) {}
-    GlobalCut(const GlobalCut& other) : _con(other._con), _depth(other._depth) {}
-    GlobalCut(const GlobalCut&& other) : _con(other._con), _depth(other._depth) {}
+    GlobalCut(Constraint::Ptr cPtr, int d) : _con(cPtr), _depth(d), _posted(false) {}
+    GlobalCut(const GlobalCut& other) : _con(other._con), _depth(other._depth), _posted(other._posted) {}
+    // GlobalCut(const GlobalCut&& other) : _con(other._con), _depth(other._depth), _posted(other._posted) {}
     Constraint::Ptr getCon() const { return _con;}
     int getDepth() const { return _depth;}
+    bool posted() const { return _posted;}
     void setCon(Constraint::Ptr c) { _con = c;}
+    void setPosted(bool b) { _posted = b;}
 };
 
 

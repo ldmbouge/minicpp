@@ -57,7 +57,8 @@ LitVar::LitVar(const Literal& l)
     _rel(l._rel),
     _val(_x->getSolver()->getStateManager(), 0x02),
     _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-{ initVal();
+{ 
+    initVal();
     _x->whenDomainChange([&] {updateVal();});
 }
 
@@ -69,7 +70,8 @@ LitVar::LitVar(const Literal&& l)
     _rel(l._rel),
     _val(_x->getSolver()->getStateManager(), 0x02),
     _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-{ initVal();
+{
+    initVal();
     _x->whenDomainChange([&] {updateVal();});
 }
 
@@ -81,21 +83,22 @@ LitVar::LitVar(const var<int>::Ptr& x, const int c, LitRel r)
     _rel(r),
     _val(x->getSolver()->getStateManager(), 0x02),
     _onBindList(_x->getSolver()->getStateManager(), _x->getStore())
-{ initVal();
+{   
+    initVal();
     _x->whenDomainChange([&] {updateVal();});
 }
 
 void LitVar::initVal() {
     switch(_rel) {
         case EQ:  if (_x->contains(_c)) {
-                  if (_x->size() == 1) _val = 0x01;
-                  else _val = 0x02;
+                    if (_x->size() == 1) _val = 0x01;
+                    else _val = 0x02;
                   }
                   else _val = 0x00;
                   return;
         case NEQ: if (_x->contains(_c)) {
-                  if (_x->size() == 1) _val = 0x00;
-                  else _val = 0x02;
+                    if (_x->size() == 1) _val = 0x00;
+                    else _val = 0x02;
                   }
                   else _val = 0x01;
                   return;
@@ -175,6 +178,11 @@ void LitVar::assign(bool b) {
     b ? setTrue() : setFalse();
     for(auto& f : _onBindList)
         _x->getSolver()->schedule(f);
+}
+
+void LitVar::print()
+{
+    std::cout << "< " << "x" << _x->getId() << LitRelString(_rel) << _c << " >";
 }
 
 namespace Factory {

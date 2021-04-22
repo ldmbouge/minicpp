@@ -27,7 +27,7 @@ CPSolver::CPSolver()
       _currCon(nullptr),
       _es(nullptr)
 {
-    _varId  = 0;
+    _varId  = 1;
     _nbc = _nbf = _nbs = 0;
 }
 
@@ -37,7 +37,7 @@ CPSolver::CPSolver(Trailer::Ptr t)
       _currCon(nullptr),
       _es(nullptr)
 {
-    _varId  = 0;
+    _varId  = 1;
     _nbc = _nbf = _nbs = 0;
 }
 
@@ -98,7 +98,7 @@ void CPSolver::fixpoint()
       assert(_queue.size() == 0);
       _status = Suspend;
    } catch(Status x) {
-      _status = x;
+      _status = x;  // should always be a Failure status
       while (!_queue.empty()) {
          _queue.deQueue()->setScheduled(false);
       }

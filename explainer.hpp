@@ -26,6 +26,8 @@ class Explainer {
     std::vector<ExpListener*> _listeners;
     std::unordered_map<unsigned long, Literal*> _nogood;
     int _failDepth;
+    int _backjumpTo;
+    bool _nogoodFound;
     // Pool::Ptr    _pool;
 public:
     typedef handle_ptr<Explainer> Ptr;
@@ -44,7 +46,11 @@ public:
     void printNoGood();
     void addCut();
     void checkCuts();
+    void purgeCuts();
+    void postCuts();
     void checkLit(Literal* lp);
+    bool backjumping();
+    int backjumpDepth() { return _backjumpTo;}
     Literal* findLit(Literal&);
 };
 
@@ -71,6 +77,7 @@ public:
     handle_ptr<Constraint> getCurrConstraint() { return _cps->getCurrConstraint();}
     void setCurrConstraint(Constraint::Ptr c) { _cps->setCurrConstraint(c);}
     void setSearchStats(SearchStatistics* stats) { _ss = stats;}
+    void setStatus(Status s) { _cps->setStatus(s);}
     int getDepth();
     void registerVar(AVar::Ptr avar) { _cps->registerVar(avar);}
     void schedule(Constraint::Ptr& c) { _cps->schedule(c);}
@@ -83,6 +90,9 @@ public:
     void incrNbChoices() { _cps->incrNbChoices();}
     void incrNbSol() { _cps->incrNbSol();}
     void fail() { _cps->fail();}
+    void checkCuts() { _exp->checkCuts();}
+    void purgeCuts() { _exp->purgeCuts();}
+    void postCuts() { _exp->postCuts();}
     friend void* operator new(std::size_t sz,ExpSolver::Ptr e);
     friend void* operator new[](std::size_t sz,ExpSolver::Ptr e);
     friend std::ostream& operator<<(std::ostream& os,const ExpSolver& s) {

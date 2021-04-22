@@ -34,6 +34,8 @@ class Literal {
     ConListener* _cLis;
     int _depth;
 public:
+    Literal() 
+      : _x(nullptr), _rel(EQ), _c(0), _cLis(nullptr), _depth(0) {}
     Literal(var<int>::Ptr x, LitRel rel, int c, ConListener* cLis, int depth)
       : _x(x), _rel(rel), _c(c), _cLis(cLis), _depth(depth) {}
     Literal(const Literal& l)
@@ -90,6 +92,7 @@ public:
     virtual IntNotifier* getListener() const override { return nullptr;}
     virtual void setListener(IntNotifier*) override {}
     TLCNode* propagateOnBind(Constraint::Ptr c) { _onBindList.emplace_back(std::move(c));return nullptr;}
+    void print();
 };
 
 namespace Factory {

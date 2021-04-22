@@ -22,7 +22,7 @@
 #include "constraint.hpp"
 #include "search.hpp"
 #include <vector>
-//#include "XCSP3CoreParser.h"
+// #include "XCSP3CoreParser.h"
 // #include "XCSP3lcg.h"
 #include "cnfParser.hpp"
 
@@ -32,8 +32,8 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
     
-    CPSolver::Ptr cp  = Factory::makeSolver();
-   //  ExpSolver::Ptr cp  = Factory::makeExpSolver();
+    // CPSolver::Ptr cp  = Factory::makeSolver();
+    ExpSolver::Ptr cp  = Factory::makeExpSolver();
 
     CNFParser parser(cp, argv[1]);
     parser.parse();
@@ -88,16 +88,16 @@ int main(int argc,char* argv[])
     
    //  ExpTestSearch search(cp);
     
-    DFSearch search(cp,[=]() {
+    ExpDFSearch search(cp,[=]() {
                          auto x = selectMin(q,
                                            [](const auto& x) { return x->size() > 1;},
                                            [](const auto& x) { return x->size();});
                          if (x) {
                             return  [=] { 
-                                          // std::cout << "branching: set " << x->getId() << " [ " << *x << " ] to 1\n";
+                                          std::cout << "branching: set x_" << x->getId() << " [ " << *x << " ] to 1\n";
                                           cp->post(x == true);}
                                | [=] { 
-                                       // std::cout << "branching: set " << x->getId() << " [ " << *x << " ] to 0\n";
+                                       std::cout << "branching: set x_" << x->getId() << " [ " << *x << " ] to 0\n";
                                        cp->post(x == false);};
                          } else return Branches({});
                       });    

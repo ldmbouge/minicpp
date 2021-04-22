@@ -84,14 +84,16 @@ public:
 typedef std::function<bool(const SearchStatistics&)> Limit;
 
 class DFSearch {
+protected:
+    CPSolver::Ptr                          _cp;
     StateManager::Ptr                      _sm;
     std::function<Branches(void)>   _branching;
     std::vector<std::function<void(void)>>    _solutionListeners;
     std::vector<std::function<void(void)>>    _failureListeners;
-    void dfs(SearchStatistics& stats,const Limit& limit);
+    virtual void dfs(SearchStatistics& stats,const Limit& limit);
 public:
    DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b)
-      : _sm(cp->getStateManager()),_branching(std::move(b)) {
+      : _cp(cp),_sm(cp->getStateManager()),_branching(std::move(b)) {
       _sm->enable();
    }
    DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b)
@@ -102,9 +104,9 @@ public:
    template <class B> void onFailure(B c)  { _failureListeners.emplace_back(std::move(c));}
    void notifySolution() { for_each(_solutionListeners.begin(),_solutionListeners.end(),[](std::function<void(void)>& c) { c();});}
    void notifyFailure()  { for_each(_failureListeners.begin(),_failureListeners.end(),[](std::function<void(void)>& c) { c();});}
-   SearchStatistics solve(SearchStatistics& stat,Limit limit);
+   virtual SearchStatistics solve(SearchStatistics& stat,Limit limit);
    SearchStatistics solve(Limit limit);
-   SearchStatistics solve();
+   virtual SearchStatistics solve();
    SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo);
    SearchStatistics optimize(Objective::Ptr obj,SearchStatistics& stat,Limit limit);
    SearchStatistics optimize(Objective::Ptr obj,SearchStatistics& stat);
@@ -113,24 +115,33 @@ public:
    SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo);
 };
 
-class ExpDFSearch {
-   ExpSolver::Ptr _exp;
-   DFSearch _dfs;
+class ExpDFSearch : public DFSearch {
+    ExpSolver::Ptr  _exp;
+    void dfs(SearchStatistics& stats,const Limit& limit) override;
 public:
-   ExpDFSearch(ExpSolver::Ptr exp,std::function<Branches(void)>&& b);
-   ExpDFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b) : _dfs(sm, std::move(b)) {}
-   template <class B> void onSolution(B c) { _dfs.onSolution(c);}
-   template <class B> void onFailure(B c)  { _dfs.onFailure(c);}
-   void notifySolution() { _dfs.notifySolution();}
-   void notifyFailure()  { _dfs.notifyFailure();}
-   SearchStatistics solve(SearchStatistics& stat,Limit limit) { return _dfs.solve(stat, limit);}
-   SearchStatistics solve(Limit limit) { return _dfs.solve(limit);}
-   SearchStatistics solve();
-   SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo) { return _dfs.solveSubjectTo(limit, subjectTo);}
-   SearchStatistics optimize(Objective::Ptr obj,Limit limit) { return _dfs.optimize(obj, limit);}
-   SearchStatistics optimize(Objective::Ptr obj) { return _dfs.optimize(obj);}
-   SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo) { return _dfs.optimizeSubjectTo(obj, limit, subjectTo);}
+    ExpDFSearch(ExpSolver::Ptr exp,std::function<Branches(void)>&& b);
+    SearchStatistics solve() override; 
+    SearchStatistics solve(SearchStatistics& stat,Limit limit) override;
 };
+
+// class ExpDFSearch {
+//    ExpSolver::Ptr _exp;
+//    DFSearch _dfs;
+// public:
+//    ExpDFSearch(ExpSolver::Ptr exp,std::function<Branches(void)>&& b);
+//    ExpDFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b) : _dfs(sm, std::move(b)) {}
+//    template <class B> void onSolution(B c) { _dfs.onSolution(c);}
+//    template <class B> void onFailure(B c)  { _dfs.onFailure(c);}
+//    void notifySolution() { _dfs.notifySolution();}
+//    void notifyFailure()  { _dfs.notifyFailure();}
+//    SearchStatistics solve(SearchStatistics& stat,Limit limit) { return _dfs.solve(stat, limit);}
+//    SearchStatistics solve(Limit limit) { return _dfs.solve(limit);}
+//    SearchStatistics solve();
+//    SearchStatistics solveSubjectTo(Limit limit,std::function<void(void)> subjectTo) { return _dfs.solveSubjectTo(limit, subjectTo);}
+//    SearchStatistics optimize(Objective::Ptr obj,Limit limit) { return _dfs.optimize(obj, limit);}
+//    SearchStatistics optimize(Objective::Ptr obj) { return _dfs.optimize(obj);}
+//    SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo) { return _dfs.optimizeSubjectTo(obj, limit, subjectTo);}
+// };
 
 template<class B> std::function<Branches(void)> land(std::initializer_list<B> allB) {
    std::vector<B> vec(allB);

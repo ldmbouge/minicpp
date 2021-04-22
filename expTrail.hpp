@@ -35,9 +35,12 @@ public:
     ExpTrailer(ExpSolver*, handle_ptr<Explainer>);
     virtual ~ExpTrailer();
     virtual void restoreState() override;
+    virtual void saveState() override;
     void storeLit(Literal*);
+    void removeLit(Literal*);
     void clearLitsTo(size_t);
     Literal* findLit(Literal&);
+    void printLitDatabase();
 };
 
 

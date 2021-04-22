@@ -16,13 +16,39 @@
 #ifndef __FAIL_H
 #define __FAIL_H
 
-enum Status { Failure,Success,Suspend };
+#include <cassert>
+
+enum StatusType { Success,Failure,Suspend,BackJump };
 
 enum FailExpl { EQL, RM, UB, LB };  // equal; removed; upper bound; lower bound
 
+struct Status {
+    unsigned int _code;
+    Status(unsigned int t, unsigned int d=0) : _code( (d << 2) | t) {}
+    Status(Status& s) : _code(s._code) {}
+    Status() : _code(2) {}
+    Status type() {
+        switch (0b11 & _code) {
+            case 0: return Success;
+            case 1: return Failure;
+            case 2: return Suspend;
+            case 3: return BackJump;
+            default: assert(false);
+        }
+    }
+    unsigned int depth() { return (_code >> 2);}
+    bool operator==(StatusType s) { return (0b11 & _code) == s;}
+};
+
 static inline void failNow()
 {
-    throw Failure;
+    // throw Failure;
+    throw Status(1);
+}
+
+static inline void backJumpTo(unsigned int depth)
+{
+    throw Status(3, depth);
 }
 
 #endif
