@@ -12,7 +12,7 @@
 #include <set>
 #include <map>
 #include <string.h>
-#include <xmmintrin.h>
+//#include <xmmintrin.h>
 
 
 class ValueSet {
@@ -131,6 +131,7 @@ public:
    void unionWith(const MDDPropSet& ps) noexcept {
       switch (_mxw) {
          case 1: _t[0] |= ps._t[0];break;
+#if defined(__x86_64__)
          case 2: {
             __m128i op0 = *(__m128i*)_t;
             __m128i op1 = *(__m128i*)ps._t;
@@ -142,6 +143,7 @@ public:
             *(__m128i*)_t = _mm_or_si128(op0,op1);
             _t[2] |= ps._t[2];
          }break;
+#endif
          default: {
             for(short i=0;i < _mxw;++i)
                _t[i] |= ps._t[i]; 

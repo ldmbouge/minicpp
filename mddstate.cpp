@@ -531,9 +531,9 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
    const int nbb = _mddspec->layoutSize();
    char* membuf = new (_mem) char[nbb];
    bzero(membuf,nbb);
-   MDDState* upState = new (_mem) MDDState(_mddspec,membuf); 
+   MDDState* upState = new (_mem) MDDState(_mddspec,membuf);
    _mddspec->copyStateUp(*upState,n->getState());
-   
+
    MDDSKey key { &parent, upState, val };
    auto loc = _hash.get(key,result);
    if (loc) {

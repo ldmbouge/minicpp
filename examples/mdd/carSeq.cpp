@@ -173,13 +173,13 @@ template <typename Fun> vector<int> toVec(int min,int max,Fun f)
 
 void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
 {
-  
+
   // Following [Puget&Regin, 1997] calculate slack for each option:
   //
 
   int nbVars = line.size();
   int nbO = (int) in.options().size();
-  
+
   /***
    *  Code taken from from Gen-Sequence paper.  It is based on [Puget&Regin, 1997] search strategy,
    *  relies on the "capacity" slack of each option: slack[j] = n - q[j](k[j]/p[j]) 
@@ -193,7 +193,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
       if ( in.requires(i,o) ) { nbCarsByOption[o] += in.demand(i); }
     }
   }
-   
+
   pair<int,int> slack[nbO];
   cout << "slack = [";
   for (int opt=0; opt<nbO; opt++) {
@@ -206,7 +206,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
   }
   cout << ']' << endl;
   sort(slack, slack+nbO);
-  
+
   vector<int> optionOrder(nbO, 0);
   for (int i=0; i<nbO; i++){
     optionOrder[i]=slack[i].second;
@@ -242,9 +242,9 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
       tbvars[2*i+1+j]=bvars[mid+i+1+j];
     }
   }
-  
+
   auto start = RuntimeMonitor::now();
-  
+
    DFSearch search(cp,[=]() {
 
        // Puget&Regin ordering: first assign options
@@ -255,10 +255,10 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
        // Next assign configurations to line variable (not sure if this is actually needed) 
        var<int>::Ptr y;
        if (!x) {
-	 // cout << "try to select line variable" << endl;
-	 y = selectMin(line,
-		       [](const auto& x) { return x->size() > 1;},
-		       [](const auto& x) { return x->size();});
+          // cout << "try to select line variable" << endl;
+          y = selectMin(line,
+                        [](const auto& x) { return x->size() > 1;},
+                        [](const auto& x) { return x->size();});
        }
 
        // // Lexicographic ordering
@@ -272,10 +272,9 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
        // auto y = selectMin(line,
        //                   [](const auto& x) { return x->size() > 1;},
        //                   [](const auto& x) { return x->size();});
-       
+
        if (x) {
 	 bool c = x->max();
-         
          return  [=] {
 	         // std::cout << "tbvars[" << i << "] == " << c << std::endl;
                  cp->post(x == c);
@@ -288,7 +287,6 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
        else if (y){
 	 // cout << "select " << y << endl;
 	 int c = y->min();
-         
          return  [=] {
 	         // std::cout << y << " == " << c << std::endl;
                  cp->post(y == c);
@@ -311,13 +309,13 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
                               else std::cout << ' ';
                            }
                            std::cout << std::endl;
-                        }                      
+                        }
                      });
 
    auto stat = search.solve([timelimit](const SearchStatistics& stats) {
        return ((stats.numberOfSolutions() > 0) || (RuntimeMonitor::elapsedSince(stats.startTime()) > 1000*timelimit));
      });
-   
+
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
    cout << stat << endl;
@@ -326,24 +324,23 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit)
 void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
 
   int H = (int)vars.size();
-  
   auto cumul = Factory::intVarArray(cp, H+1, 0, H); 
   cp->post(cumul[0] == 0);
-    
+
   auto boolVar = Factory::boolVarArray(cp, H);
   for (int i=0; i<H; i++) {
     cp->post(isMember(boolVar[i], vars[i], S));
   }
-    
+
   for (int i=0; i<H; i++) {
     cp->post(equal(cumul[i+1], cumul[i], boolVar[i]));
   }
-    
+
   for (int i=0; i<H-N+1; i++) {
     cp->post(cumul[i+N] <= cumul[i] + U);
     cp->post(cumul[i+N] >= cumul[i] + L);
   }
-  
+
 }
 
 void buildModel(CPSolver::Ptr cp, Instance& in, int timelimit)
@@ -368,7 +365,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int timelimit)
      }
      cp->post(sum(boolVar) == in.demand(i));
    }
-   
+
 
    // sequence constraints: use cumulative encoding
    for(int o = 0; o < nbO; o++){
@@ -387,9 +384,9 @@ int main(int argc,char* argv[])
 {
    const char* filename = (argc >= 2) ? argv[1] : "data/dataMini";
    int timelimit = (argc >= 3 && strncmp(argv[2],"-t",2)==0) ? atoi(argv[2]+2) : 60;
-   
-   std::cout << "filename = " << filename << std::endl;   
-   std::cout << "time limit = " << timelimit << std::endl;   
+
+   std::cout << "filename = " << filename << std::endl;
+   std::cout << "time limit = " << timelimit << std::endl;
 
    try {
       Instance in = Instance::readData(filename);

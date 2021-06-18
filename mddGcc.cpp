@@ -81,34 +81,34 @@ namespace Factory {
       std::vector<int> ps = spec.addStates(desc, minFDom, maxLDomUp, sz,[] (int i) -> int { return 0; });
 
       spec.arcExist(desc,[=](const auto& p,const auto& c,auto x,int v,bool up)->bool{
-	  bool cond = true;
+        bool cond = true;
 
-	  int minIdx = v - min;
-	  int maxIdx = maxFDom + v - min;
-	  int minIdxUp = minFDomUp + v - min;
-	  int maxIdxUp = maxFDomUp + v - min;
+        int minIdx = v - min;
+        int maxIdx = maxFDom + v - min;
+        int minIdxUp = minFDomUp + v - min;
+        int maxIdxUp = maxFDomUp + v - min;
 
-	  if (up) {
-	    // check LB and UB thresholds when value v is assigned:
-	    cond = cond && (p.at(ps[minIdx]) + 1 + c.at(ps[minIdxUp]) <= valuesUB[v])
-	                && (p.at(ps[maxIdx]) + 1 + c.at(ps[maxIdxUp]) >= valuesLB[v]);
-	    // check LB and UB thresholds for other values, when they are not assigned:
-	    for (int i=min; i<v; i++) {
-	      if (!cond) break;
-	      cond = cond && (p.at(ps[i-min]) + c.at(ps[minFDomUp+i-min]) <= valuesUB[i])
-	    	          && (p.at(ps[maxFDom+i-min]) + c.at(ps[maxFDomUp+i-min]) >= valuesLB[i]);
-	    }
-	    for (int i=v+1; i<=minLDom+min; i++) {
-	      if (!cond) break;
-	      cond = cond && (p.at(ps[i-min]) + c.at(ps[minFDomUp+i-min]) <= valuesUB[i])
-	    	          && (p.at(ps[maxFDom+i-min]) + c.at(ps[maxFDomUp+i-min]) >= valuesLB[i]);
-	    }
-	  }
-	  else {
-	    cond = (p.at(ps[minIdx]) + 1 <= valuesUB[v]);
-	  }
-	  return cond;
-	});
+        if (up) {
+          // check LB and UB thresholds when value v is assigned:
+          cond = cond && (p.at(ps[minIdx]) + 1 + c.at(ps[minIdxUp]) <= valuesUB[v])
+            && (p.at(ps[maxIdx]) + 1 + c.at(ps[maxIdxUp]) >= valuesLB[v]);
+          // check LB and UB thresholds for other values, when they are not assigned:
+          for (int i=min; i<v; i++) {
+            if (!cond) break;
+            cond = cond && (p.at(ps[i-min]) + c.at(ps[minFDomUp+i-min]) <= valuesUB[i])
+              && (p.at(ps[maxFDom+i-min]) + c.at(ps[maxFDomUp+i-min]) >= valuesLB[i]);
+          }
+          for (int i=v+1; i<=minLDom+min; i++) {
+            if (!cond) break;
+            cond = cond && (p.at(ps[i-min]) + c.at(ps[minFDomUp+i-min]) <= valuesUB[i])
+              && (p.at(ps[maxFDom+i-min]) + c.at(ps[maxFDomUp+i-min]) >= valuesLB[i]);
+          }
+        }
+        else {
+          cond = (p.at(ps[minIdx]) + 1 <= valuesUB[v]);
+        }
+        return cond;
+      });
 
       spec.nodeExist(desc,[=](const auto& p) {
       	  // check global validity: can we still satisfy all lower bounds?
@@ -138,14 +138,14 @@ namespace Factory {
       spec.transitionUp(toDict(minFDomUp,minLDomUp,
                                [min,ps,minFDomUp] (int i) {
                                   return tDesc({ps[i]},[=](auto& out,const auto& c,auto x,const auto& val,bool up) {
-	      out.set(ps[i], c.at(ps[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
-                                                       });
+                                    out.set(ps[i], c.at(ps[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
+                                  });
                                }));
       spec.transitionUp(toDict(maxFDomUp,maxLDomUp,
                                [min,ps,maxFDomUp](int i) {
-                                  return tDesc({ps[i]},[=](auto& out,const auto& c,auto x,const auto& val,bool up) {
-	      out.set(ps[i], c.at(ps[i])+val.contains(i-maxFDomUp+min));
-                                                       });
+                                 return tDesc({ps[i]},[=](auto& out,const auto& c,auto x,const auto& val,bool up) {
+                                   out.set(ps[i], c.at(ps[i])+val.contains(i-maxFDomUp+min));
+                                 });
                                }));
 
       for(ORInt i = minFDom; i <= minLDom; i++){

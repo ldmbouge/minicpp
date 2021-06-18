@@ -25,7 +25,9 @@
 #include <unordered_map>
 #include <bitset>
 #include <utility>
+#if defined(__x86_64__)
 #include <xmmintrin.h>
+#endif
 #include <limits.h>
 #include "hashtable.hpp"
 //#include "xxhash.hpp"
@@ -291,11 +293,13 @@ public:
    __attribute__((always_inline)) inline MDDBSValue& setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept {
       switch(_nbw) {
          case 1: _buf[0] = a._buf[0] | b._buf[0];return *this;
+#if defined(__x86_64__)
          case 2: {
             __m128i p0 = *(__m128i*) a._buf;
             __m128i p1 = *(__m128i*) b._buf;
             *(__m128i*)_buf = _mm_or_si128(p0,p1);
          } return *this;
+#endif
          default:
             for(int i=0;i < _nbw;i++)
                _buf[i] = a._buf[i] | b._buf[i];

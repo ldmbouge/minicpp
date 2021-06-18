@@ -454,6 +454,17 @@ namespace Factory {
       cp->post(new (cp) Sum(xs,s));
       return s;
    }
+   template <class Vec> var<int>::Ptr sum(CPSolver::Ptr cp,Vec& xs) {
+      int sumMin = 0,sumMax = 0;
+      for(const auto& x : xs) {
+         sumMin += x->min();
+         sumMax += x->max();
+      }
+      auto s = Factory::makeIntVar(cp,sumMin,sumMax);
+      if (xs.size() > 0)
+         cp->post(new (cp) Sum(xs,s));
+      return s;
+   }
    template <class Vec> Constraint::Ptr sum(const Vec& xs,var<int>::Ptr s) {
       return new (xs[0]->getSolver()) Sum(xs,s);
    }
