@@ -190,6 +190,41 @@ void EQBinDC::post()
    }
 }
 
+void Conjunction::post() // z == x && y
+{
+   propagate();
+   if (!_x->isBound()) _x->propagateOnBind(this);
+   if (!_y->isBound()) _y->propagateOnBind(this);
+   if (!_z->isBound()) _z->propagateOnBind(this);
+}
+
+void Conjunction::propagate()
+{
+   if (_z->isBound()) {
+      if (_z->isTrue()) {
+         setActive(false);
+         _x->assign(true);
+         _y->assign(true);
+      } else {
+         if (_x->isTrue()) {
+            setActive(false);
+            _y->assign(false);
+         } else if (_y->isTrue()) {
+            setActive(false);
+            _x->assign(false);
+         }
+      }
+   } else {
+      if (_x->isBound() && _y->isBound()) {
+         setActive(false);
+         _z->assign(_x->min() && _y->min());
+      } else if (_x->isFalse() || _y->isFalse()) {
+         setActive(false);
+         _z->assign(false);
+      }        
+   }
+}
+
 void LessOrEqual::post()
 {
    _x->propagateOnBoundChange(this);

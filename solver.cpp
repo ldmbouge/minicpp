@@ -26,7 +26,6 @@ CPSolver::CPSolver()
       _store(new Storage(_sm))
 {
     _varId  = 0;
-    _nbc = _nbf = _nbs = 0;
 }
 
 CPSolver::~CPSolver()
@@ -73,7 +72,6 @@ void CPSolver::fixpoint()
          _queue.deQueue()->setScheduled(false);
       }
       assert(_queue.size() == 0);
-      _nbf += 1;
       throw x;
    }
 }

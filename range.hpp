@@ -3,7 +3,7 @@
 
 #include <tuple>
 
-template <typename T> class Range {
+template <typename T> class Range {  // close range [from,to]
    T _from,_to;
 public:
    class iterator {
@@ -18,12 +18,12 @@ public:
       bool operator ==(const iterator& other) const { return _i == other._i; }
       bool operator !=(const iterator& other) const { return _i != other._i; }
    };
-   Range(T f,T t) : _from(f),_to(t) {}
+   Range(T f,T t) : _from(f),_to(t) {} // [from,to]
    iterator begin() const { return iterator(_from); }
-   iterator end() const   { return iterator(_to); }
+   iterator end() const   { return iterator(_to+1); } // end is always excluded
    T first() const { return _from;}
    T to() const { return _to;}
-   int size() const { return _to - _from;}
+   int size() const { return _to - _from+1;} // size of a closed range
 };
 
 template <typename VT> const Range<VT> range(VT from,VT to)

@@ -31,11 +31,20 @@
 class LexLeq : public Constraint {
    Factory::Veci _x;
    Factory::Veci _y;
+   trail<int>    _q,_r,_s,_u;
+   const int _sz;
+   void listenFrom(int ofs);
+   void propagateFrom(int k);
 public:
    template <class Vec> LexLeq(const Vec& x,const Vec& y)
       : Constraint(x[0]->getSolver()),
         _x(x.size(),Factory::alloci(x[0]->getStore())),
-        _y(y.size(),Factory::alloci(y[0]->getStore()))
+        _y(y.size(),Factory::alloci(y[0]->getStore())),
+        _q(x[0]->getSolver()->getStateManager(),0),
+        _r(x[0]->getSolver()->getStateManager(),0),
+        _s(x[0]->getSolver()->getStateManager(),0),
+        _u(x[0]->getSolver()->getStateManager(),0),
+        _sz(x.size())
    {
       int i = 0;
       for(auto& xi : x) _x[i++] = xi;

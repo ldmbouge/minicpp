@@ -4,11 +4,15 @@ project(miniCPP VERSION 1.0)
 
 configure_file(miniCPP.h.in miniCPP.h)
 
+# ------------------------------------------------------------------------
+# Let's go for Debug by default
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Debug)
+endif()
+# ------------------------------------------------------------------------
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
-endif()
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
@@ -21,6 +25,8 @@ else()
    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 endif()
 
+message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
+message("Build: ${CMAKE_BUILD_TYPE}")
 
 include_directories(.)
 add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp
