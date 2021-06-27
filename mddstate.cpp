@@ -166,7 +166,7 @@ void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue)
 }
 int MDDSpec::numEquivalenceClasses()
 {
-   return _equivalenceValue.size();
+   return (int)_equivalenceValue.size();
 }
 
 void MDDSpec::updateNode(MDDState& a) const noexcept
@@ -528,7 +528,7 @@ void MDDStateFactory::createState(MDDState& result,const MDDState& parent,int la
 bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
 {
    auto mark = _mem->mark();
-   const int nbb = _mddspec->layoutSize();
+   const int nbb = (int)_mddspec->layoutSize();
    char* membuf = new (_mem) char[nbb];
    bzero(membuf,nbb);
    MDDState* upState = new (_mem) MDDState(_mddspec,membuf);

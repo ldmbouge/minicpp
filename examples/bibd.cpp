@@ -78,13 +78,11 @@ int main(int argc,char* argv[])
    DFSearch search(cp,firstFail(cp,M.flat()));
     
    search.onSolution([&M]() {
-      //extern int __nbn,__nbf;
       for(int i=0;i < M.size(0);i++) {
          for(int j=0;j < M.size(1);j++)
-            std::cout << std::setw(3) << M[i][j]->min() << " ";
+            std::cout << std::setw(1) << M[i][j]->min() << " ";
          std::cout << '\n';
       }
-      //std::cout << "#CHOICES =  " <<   __nbn << "\t FAIL:" << __nbf << "\n";
    });
    
    auto stat = search.solve([](const SearchStatistics& stats) {

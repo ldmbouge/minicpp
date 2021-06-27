@@ -450,7 +450,7 @@ void SumBool::post()
       return ;
    }
    _nbOne = nbTrue;
-   _nbZero = _x.size() - nbTrue - nbPos;
+   _nbZero = (int)_x.size() - nbTrue - nbPos;
    for(auto k=0u;k < _x.size();k++) {
       if (_x[k]->isBound()) continue;
       _x[k]->whenBind([this,k]() {

@@ -44,7 +44,7 @@ public:
         _r(x[0]->getSolver()->getStateManager(),0),
         _s(x[0]->getSolver()->getStateManager(),0),
         _u(x[0]->getSolver()->getStateManager(),0),
-        _sz(x.size())
+        _sz((int)x.size())
    {
       int i = 0;
       for(auto& xi : x) _x[i++] = xi;
