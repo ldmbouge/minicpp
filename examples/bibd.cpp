@@ -30,9 +30,9 @@ void showMatrix(Matrix<var<bool>::Ptr,2>& M)
    for(int i=0;i < M.size(0);i++) {
       for(int j=0;j < M.size(1);j++)
          if (M[i][j]->isBound())
-            std::cout << std::setw(3) << M[i][j]->min() << " ";
+            std::cout << std::setw(2) << M[i][j]->min() << " ";
          else
-            std::cout << std::setw(3) << '?' << " ";
+            std::cout << std::setw(2) << '?' << " ";
       std::cout << '\n';
    }
 }

@@ -176,6 +176,26 @@ public:
    void propagate() override;
 };
 
+class SumBool : public Constraint {
+   Factory::Vecb _x;
+   int           _c;
+   trail<int>    _nbOne,_nbZero;
+public:
+   template <class Vec> SumBool(const Vec& x,int c)
+      : Constraint(x[0]->getSolver()),
+        _x(x.size(),Factory::allocb(x[0]->getStore())),
+        _c(c),
+        _nbOne(x[0]->getSolver()->getStateManager(),0),
+        _nbZero(x[0]->getSolver()->getStateManager(),0)
+   {
+       int i = 0;
+       for(auto& xi : x)
+          _x[i++] = xi;      
+   }
+   void propagateIdx(int k);
+   void post() override;
+};
+
 class Clause : public Constraint { // x0 OR x1 .... OR xn
    std::vector<var<bool>::Ptr> _x;
    trail<int> _wL,_wR;
@@ -499,9 +519,19 @@ namespace Factory {
    template <class Vec> Constraint::Ptr sum(const Vec& xs,var<int>::Ptr s) {
       return new (xs[0]->getSolver()) Sum(xs,s);
    }
-   template <class Vec> Constraint::Ptr sum(const Vec& xs,int s) {
+   inline Constraint::Ptr sum(const Factory::Veci& xs,int s) {
       auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
       return new (xs[0]->getSolver()) Sum(xs,sv);
+   }
+   inline Constraint::Ptr sum(const std::vector<var<int>::Ptr>& xs,int s) {
+      auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
+      return new (xs[0]->getSolver()) Sum(xs,sv);
+   }
+   inline Constraint::Ptr sum(const Factory::Vecb& xs,int s) {
+      return new (xs[0]->getSolver()) SumBool(xs,s);
+   }
+   inline Constraint::Ptr sum(const std::vector<var<bool>::Ptr>& xs,int s) {
+      return new (xs[0]->getSolver()) SumBool(xs,s);
    }
    template <class Vec> Constraint::Ptr clause(const Vec& xs) {
       return new (xs[0]->getSolver()) Clause(xs);
