@@ -284,15 +284,15 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             largest = std::max(largest,compat[i][v]);           
          }
          return  [=] {
-                    //cout << tab(i) << "?x(" << i << ") == " << bv << endl;
+                    //cout << tab(i) << "?x(" << i << ") == " << bool_vars << endl;
                     cp->post(x == bv);
-                    //cout << tab(i) << "!x(" << i << ") == " << bv << endl;
+                    //cout << tab(i) << "!x(" << i << ") == " << bool_vars << endl;
                     //theOne->debugGraph();
                  }
             | [=] {
-                 //cout << tab(i) << "?x(" << i << ") != " << bv << " FAIL" << endl;
+                 //cout << tab(i) << "?x(" << i << ") != " << bool_vars << " FAIL" << endl;
                  cp->post(x != bv);
-                 //cout << tab(i) << "!x(" << i << ") != " << bv << endl;
+                 //cout << tab(i) << "!x(" << i << ") != " << bool_vars << endl;
                  //theOne->debugGraph();
               };
       } else return Branches({});

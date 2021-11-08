@@ -32,9 +32,16 @@ include_directories(.)
 add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp
 	mddAlldiff.cpp mddAmong.cpp mddGcc.cpp mddSeq.cpp mddSum.cpp
 	store.cpp bitset.cpp table.cpp regular.cpp lex.cpp
-	acstr.cpp domain.cpp mddnode.cpp constraint.cpp     
-	intvar.cpp mddstate.cpp trail.cpp mallocWatch.cpp    
-	search.cpp trailable.cpp matching.cpp solver.cpp)
+	acstr.cpp domain.cpp mddnode.cpp constraint.cpp
+	intvar.cpp mddstate.cpp trail.cpp mallocWatch.cpp
+	search.cpp trailable.cpp matching.cpp solver.cpp
+	flatzinc/flatzinc.cpp
+	flatzinc/parser.tab.cpp
+	flatzinc/registry.cpp
+	flatzinc/lexer.yy.cpp
+	constraint_flatzinc.cpp
+	constraint_flatzinc_int.cpp
+	constraint_flatzinc_bool.cpp)
 
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")

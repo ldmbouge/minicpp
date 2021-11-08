@@ -259,7 +259,9 @@ namespace Factory {
    using Vecb   = EVec<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);   
+   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::vector<int> const & vals);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
+   var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps, bool value);
    inline var<int>::Ptr minus(var<int>::Ptr x)     { return new (x->getSolver()) IntVarViewOpposite(x);}
    inline var<int>::Ptr operator-(var<int>::Ptr x) { return minus(x);}
    inline var<int>::Ptr operator*(var<int>::Ptr x,int a) {

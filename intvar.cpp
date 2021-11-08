@@ -133,8 +133,41 @@ namespace Factory {
       return var;
    }
 
-    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps) {
+    var<int>::Ptr makeIntVar(CPSolver::Ptr cps, std::vector<int> const & values)
+    {
+        // values is sorted
+        int minValue = *values.begin();
+        int maxValue = *values.end();
+        auto var = makeIntVar(cps, minValue, minValue);
+        int i = 0;
+        int j = minValue;
+        while (j <= maxValue)
+        {
+            if (j == values[i])
+            {
+                i += 1;
+                j += 1;
+            }
+            else
+            {
+                var->remove(j);
+                j += 1;
+            }
+        }
+        return var;
+    }
+
+    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps)
+    {
         var<bool>::Ptr rv = new (cps) var<bool>(cps);
+        cps->registerVar(rv);
+        return rv;
+    }
+
+    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps, bool value)
+    {
+        var<bool>::Ptr rv = new (cps) var<bool>(cps);
+        rv->assign(value);
         cps->registerVar(rv);
         return rv;
     }

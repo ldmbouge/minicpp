@@ -1,0 +1,3 @@
+output ["objective = "++format(obj)++"\n"];
+function string : format(opt $T: x) = show(x);
+int: obj;

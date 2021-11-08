@@ -14,17 +14,125 @@
  */
 
 #include <iostream>
-#include <iomanip>
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
+#include <flatzinc/flatzinc.h>
+#include "constraint_flatzinc.hpp"
+
+void vec2str(std::vector<int> const * const v, std::string * s,  char const brackets[2] = "[]")
+{
+    const int size = v->size();
+    *s = brackets[0];
+    for (int i = 0; i < size; i += 1)
+    {
+        const int t = v->at(i);
+        *s += std::to_string(t);
+        *s += (i < size - 1) ? "," : "";
+    }
+    *s += brackets[1];
+}
 
 int main(int argc,char* argv[])
 {
     using namespace std;
     using namespace Factory;
+
+    //Parsing FlatZinc
+    FlatZinc::Printer p;
+    FlatZinc::FlatZincModel* fm = FlatZinc::parse(argv[1], p);
+
+    //Instantiate the problem
+    CPSolver::Ptr cp  = Factory::makeSolver();
+    std::vector<var<int>::Ptr>* intVars = new std::vector<var<int>::Ptr>();
+    std::vector<var<bool>::Ptr>* boolVars = new std::vector<var<bool>::Ptr>();
+
+    printf("===== VARIABLES =====\n");
+    //Int variables
+    for(size_t i = 0; i < fm->int_vars.size(); i += 1)
+    {
+        FlatZinc::IntVar iv_fzn = fm->int_vars[i];
+        var<int>::Ptr iv_cp;
+        printf("%lu int: ", i);
+        if (iv_fzn.interval)
+        {
+            iv_cp = Factory::makeIntVar(cp, iv_fzn.min, iv_fzn.max);
+            printf("{%d,...,%d}\n", iv_fzn.min, iv_fzn.max);
+        }
+        else
+        {
+            iv_cp = Factory::makeIntVar(cp, iv_fzn.values);
+            string domain;
+            vec2str(&iv_fzn.values, &domain, "{}");
+            printf("%s\n", domain.c_str());
+        }
+        intVars->push_back(iv_cp);
+    }
+
+    //Bool variables
+    for(size_t i = 0; i < fm->bool_vars.size(); i += 1)
+    {
+        FlatZinc::BoolVar bv_fzn = fm->bool_vars[i];
+        var<bool>::Ptr bv_cp;
+        printf("%lu bool: ", i);
+        if (bv_fzn.state == FlatZinc::BoolVar::Unassigned)
+        {
+            bv_cp = Factory::makeBoolVar(cp);
+            printf("{false,true}");
+        }
+        else
+        {
+            bool value = bv_fzn.state == FlatZinc::BoolVar::True;
+            bv_cp = Factory::makeBoolVar(cp, value);
+            printf(value ? "{true}" : "{false}");
+        }
+        printf("\n");
+
+        boolVars->push_back(bv_cp);
+    }
+
+    // Constraints
+    printf("===== CONSTRAINTS =====\n");
+    for(size_t i = 0; i < fm->constraints.size(); i += 1)
+    {
+        FlatZinc::Constraint c = fm->constraints[i];
+        cp->post(FznConstraint(cp, intVars, boolVars, c));
+
+        std::string vars_str;
+        std::string consts_str;
+        vec2str(&c.vars, &vars_str);
+        vec2str(&c.consts, &consts_str);
+        printf("%lu %s: Vaiables %s | Constants %s\n", i, FlatZinc::Constraint::type2str[c.type], vars_str.c_str(), consts_str.c_str());
+    }
+
+    //Search
+    printf("===== SEARCH =====\n");
+    printf("Problem: %s\n", FlatZinc::problem2str[fm->problem]);
+    std::string vars_str;
+    vec2str(&fm->decisionVariables, &vars_str);
+    printf("Decision variables: %s\n", vars_str.c_str());
+    printf("Variable selection: %s\n", FlatZinc::varSel2str[fm->variableSelection]);
+    printf("Value selection: %s\n", FlatZinc::valSel2str[fm->valueSelection]);
+
+    Objective::Ptr obj = Factory::minimize(intVars->at(fm->objective_variable));
+    std::vector<var<int>::Ptr> decisionVariables;
+    for(auto i: fm->decisionVariables)
+    {
+        decisionVariables.push_back(intVars->at(i));
+    }
+    DFSearch search(cp,firstFail(cp,decisionVariables));
+
+    search.onSolution([&obj]() { cout << "objective = " << obj->value() << endl;
+    });
+
+    auto stat = search.optimize(obj);
+    cout << stat << endl;
+    cp.dealloc();
+    return 0;
+
+    /*
     CPSolver::Ptr cp  = Factory::makeSolver();
     const int n = argc >= 2 ? atoi(argv[1]) : 12;
     const bool one = argc >= 3 ? atoi(argv[2])==0 : false;
@@ -61,4 +169,5 @@ int main(int argc,char* argv[])
     cout << stat << endl;
     cp.dealloc();
     return 0;
+     */
 }

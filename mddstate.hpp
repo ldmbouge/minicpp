@@ -28,7 +28,7 @@
 #if defined(__x86_64__)
 #include <xmmintrin.h>
 #endif
-#include <limits.h>
+#include <limits>
 #include "hashtable.hpp"
 //#include "xxhash.hpp"
 #define XXH_INLINE_ALL

@@ -5,15 +5,24 @@
 //  Created by zitoun on 1/11/20.
 //  Copyright © 2020 zitoun. All rights reserved.
 //
-
-#ifndef utilities_h
-#define utilities_h
+#pragma once
 
 #include <set>
 #include <map>
 #include <string.h>
-//#include <xmmintrin.h>
+#include <xmmintrin.h>
+#include <cmath>
+#include <ostream>
 
+inline int floorDivision (int a, int b)
+{
+    return static_cast<int>(floor(static_cast<double>(a) / static_cast<double>(b)));
+}
+
+inline int ceilDivision (int a, int b)
+{
+    return static_cast<int>(ceil(static_cast<double>(a) / static_cast<double>(b)));
+}
 
 class ValueSet {
    char* _data;
@@ -187,5 +196,3 @@ public:
       return os << '}';
    }
 };
-
-#endif /* utilities_h */

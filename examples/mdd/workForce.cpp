@@ -306,14 +306,14 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             largest = std::max(largest,compat[i][v]);           
          }
          return  [=] {
-                    //cout << tab(depth) << "?x(" << i << ") == " << bv << " " <<  x << endl;
+                    //cout << tab(depth) << "?x(" << i << ") == " << bool_vars << " " <<  x << endl;
                     cp->post(x == bv);
-                    //cout << tab(depth) << "!x(" << i << ") == " << bv << endl;
+                    //cout << tab(depth) << "!x(" << i << ") == " << bool_vars << endl;
                  }
             | [=] {
-                 //cout << tab(depth) << "?x(" << i << ") != " << bv << " FAIL" << endl;
+                 //cout << tab(depth) << "?x(" << i << ") != " << bool_vars << " FAIL" << endl;
                  cp->post(x != bv);
-                 //cout << tab(depth) << "!x(" << i << ") != " << bv << endl;
+                 //cout << tab(depth) << "!x(" << i << ") != " << bool_vars << endl;
               };
       } else return Branches({});
    });

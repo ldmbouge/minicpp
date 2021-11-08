@@ -26,6 +26,10 @@
 #include "acstr.hpp"
 #include "matching.hpp"
 
+
+
+
+
 class EQc : public Constraint { // x == c
    var<int>::Ptr _x;
    int           _c;
