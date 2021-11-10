@@ -517,7 +517,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
    int lowest = l;
    MDDState* ms = nullptr;
    const int nbParents = (int) n->getNumParents();
-   auto last = --(n->getParents().rend());
+   auto last = n->getParents().rend();
    for(auto pit = n->getParents().rbegin(); pit != last;pit++) {
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
@@ -575,7 +575,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
    int lowest = l;
    MDDState* ms = nullptr;
    const int nbParents = (int) n->getNumParents();
-   auto last = --(n->getParents().rend());
+   auto last = n->getParents().rend();
    for(auto pit = n->getParents().rbegin(); pit != last;pit++) {
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
@@ -606,12 +606,16 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
             }
             arcsPerClass.insert(std::make_pair(equivalenceValue, a));
          } else {
-            int nbk = (int)n->getNumChildren();
-            bool keepArc[nbk];
-            unsigned idx = 0,cnt = 0;
+            bool hasViableChild = false;
             for(auto ca : n->getChildren()) 
-               cnt += keepArc[idx++] = _mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true);
-            if (cnt == 0) {
+               if (_mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true)) {
+                  hasViableChild = true;
+                  break;
+               }
+            if (hasViableChild) {
+               equivalenceClasses[equivalenceValue] = ms;
+               arcsPerClass.insert({equivalenceValue, a});
+            } else {
                pruneCS++;               
                p->unhook(a);
                if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
@@ -619,13 +623,11 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
                removeArc(l-1,l,a.get());
                if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
                if (lowest < l) return lowest;
-            } else {
-               equivalenceClasses[equivalenceValue] = ms;
-               arcsPerClass.insert({equivalenceValue, a});
             }
          }
       } //out-comment
    } // end of loop over parents.
+
 
    for (auto it = equivalenceClasses.begin(); it != equivalenceClasses.end(); ++it) {
       int equivalenceValue = it->first;
@@ -635,14 +637,14 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
       unsigned idx = 0,cnt = 0;
       for(auto ca : n->getChildren())
          cnt += keepArc[idx++] = _mddspec.exist(*newState,ca->getChild()->getState(),x[l],ca->getValue(),true);
-      bool addedToSplitter = false;
+      int splitterStateIndex = -1;
       for (auto arcIt = arcsPerClass.begin(); arcIt != arcsPerClass.end(); ++arcIt) {
          if (arcIt->first == equivalenceValue) {
             MDDEdge::Ptr arc = arcIt->second;
-            if (addedToSplitter) {
-               splitter.linkChild(splitter.hasState(*newState), arc);
+            if (splitterStateIndex >= 0) {
+               splitter.linkChild(splitterStateIndex, arc);
             } else {
-               addedToSplitter = true;
+               splitterStateIndex = splitter.size();
                auto p = arc->getParent();
                auto v = arc->getValue();
                splitter.addPotential(_pool,n,nbParents,p,arc,newState,v,nbk,(bool*)keepArc);
@@ -683,7 +685,11 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
                      lowest = splitNode(n,l,splitter);
                } else break;
             }
-            if (lowest < l) break;
+            if (n==nullptr) break;
+            if (n->getNumParents() == 0) {
+               delState(n,l);
+            }
+            if (_maxDistance && lowest < l) break;
             splitter.process(layer,_width,trail,mem,
                              [this,l,&layer](MDDNode* n,MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
                                 potEXEC++;
@@ -700,7 +706,9 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
                                 if (_mddspec.usesUp()) _bwd->enQueue(nc);
                                 return nc;
                              });
-            if (n==nullptr) break;
+            if (n->getNumParents() == 0) {
+               delState(n,l);
+            }
          }
          ++nbSplits;
       } // end-if (there is room and variable is not bound)
