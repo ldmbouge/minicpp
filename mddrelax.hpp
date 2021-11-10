@@ -165,6 +165,7 @@ class MDDRelax : public MDD {
    const unsigned int _width;
    const int    _maxDistance;
    const int    _maxSplitIter;
+   const bool _approxThenExact;
    ::trail<unsigned> _lowest;
    std::mt19937 _rnG;
    std::uniform_real_distribution<double> _sampler;
@@ -176,6 +177,7 @@ class MDDRelax : public MDD {
    Pool::Ptr             _pool;
    MDDDelta*            _delta;
    int _domMin,_domMax;
+   int _splitPass;
    const MDDState& pickReference(int layer,int layerSize);
    void checkGraph();
    bool fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l);
@@ -197,7 +199,7 @@ class MDDRelax : public MDD {
    void refreshAll() override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:
-   MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),int maxSplitIter = 5);
+   MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),int maxSplitIter = 5,bool approxThenExact = true);
    void buildDiagram() override;
    void buildNextLayer(unsigned int i) override;
    void propagate() override;

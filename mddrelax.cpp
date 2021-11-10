@@ -7,11 +7,12 @@
 #include "RuntimeMonitor.hpp"
 #include "heap.hpp"
 
-MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter)
+MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,bool approxThenExact)
    : MDD(cp),
      _width(width),
      _maxDistance(maxDistance),
      _maxSplitIter(maxSplitIter),
+     _approxThenExact(approxThenExact),
      _rnG(42),
      _sampler(0.0,1.0)
   
@@ -679,10 +680,10 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
             while(splitter.size() == 0)  {
                n = nSim.extractNode();
                if (n) {
-                  if (_mddspec.approxEquivalence())
-                     lowest = splitNodeApprox(n,l,splitter);
-                  else
+                  if (!_mddspec.approxEquivalence() || (_approxThenExact && _splitPass == 2))
                      lowest = splitNode(n,l,splitter);
+                  else
+                     lowest = splitNodeApprox(n,l,splitter);
                } else break;
             }
             if (n==nullptr) break;
@@ -819,8 +820,14 @@ int __nbn = 0,__nbf = 0;
 
 void MDDRelax::computeDown(int iter)
 {
-   if (iter <= _maxSplitIter)
+   if (iter <= _maxSplitIter) {
+      _splitPass = 1;
       splitLayers();
+      if (_approxThenExact && _mddspec.approxEquivalence()) {
+         _splitPass = 2;
+         splitLayers();
+      }
+   }
    _sf->disable();
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
