@@ -50,6 +50,16 @@ void array_bool_or_reif::propagate()
     }
 }
 
+void array_bool_or_reif::post()
+{
+    for(auto v : _as)
+    {
+        v->propagateOnBind(this);
+    }
+    _r->propagateOnBind(this);
+    propagate();
+}
+
 bool_clause::bool_clause(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts):
     Constraint(cp),
     _as(),
@@ -110,4 +120,17 @@ void bool_clause::propagate()
             _bs[bsNotBoundIndex]->assign(false);
         }
     }
+}
+
+void bool_clause::post()
+{
+    for(auto v : _as)
+    {
+        v->propagateOnBind(this);
+    }
+    for(auto v : _bs)
+    {
+        v->propagateOnBind(this);
+    }
+    propagate();
 }

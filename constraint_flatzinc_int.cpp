@@ -1,14 +1,21 @@
 #include <algorithm>
 #include <climits>
+#include <iostream>
 #include "utilities.hpp"
 #include "constraint_flatzinc_int.hpp"
 
 array_int_element::array_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts) :
     Constraint(cp),
     _b(intVars->at(vars.front())),
-    _as(consts),
+    _as(),
     _c(intVars->at(vars.back()))
-{}
+{
+    _as.push_back(0); // Index from 1
+    for(size_t i = 0; i < consts.size(); i += 1)
+    {
+        _as.push_back(consts[i]);
+    }
+}
 
 void array_int_element::propagate()
 {
@@ -44,6 +51,7 @@ void array_int_element::post()
 {
     _b->propagateOnBoundChange(this);
     _c->propagateOnBoundChange(this);
+    propagate();
 }
 
 array_var_int_element::array_var_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
@@ -51,7 +59,13 @@ array_var_int_element::array_var_int_element(CPSolver::Ptr cp, std::vector<var<i
     _b(intVars->at(vars.front())),
     _as(),
     _c(intVars->at(vars.back()))
-{}
+{
+    _as.push_back(nullptr); // Index from 1
+    for(size_t i = 1; i < vars.size() - 1; i += 1)
+    {
+        _as.push_back(intVars->at(vars[i]));
+    }
+}
 
 void array_var_int_element::propagate()
 {
@@ -86,11 +100,12 @@ void array_var_int_element::propagate()
 void array_var_int_element::post()
 {
     _b->propagateOnBoundChange(this);
-    for(auto v : _as)
+    for(size_t i = 1; i < _as.size() ; i += 1) //Index from 1
     {
-        v->propagateOnBoundChange(this);
+        _as[i]->propagateOnBoundChange(this);
     }
     _c->propagateOnBoundChange(this);
+    propagate();
 }
 
 int_eq_reif::int_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
@@ -103,7 +118,7 @@ int_eq_reif::int_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, 
 void int_eq_reif::propagate()
 {
    // a,b -> r
-   if (_a->min() == _b->min() and _a->max() == _b->max())
+   if (_a->isBound() and _b->isBound() and _a->min() == _b->min())
    {
        _r->assign(true);
    }
@@ -116,9 +131,20 @@ void int_eq_reif::propagate()
    if (_r->isTrue())
    {
        int abMinValue = std::max(_a->min(), _b->min());
-       int abMaxValue = std::min(_a->max(), _b->min());
+       int abMaxValue = std::min(_a->max(), _b->max());
        _a->updateBounds(abMinValue, abMaxValue);
        _b->updateBounds(abMinValue, abMaxValue);
+   }
+   else if (_r->isFalse())
+   {
+       if(_a->isBound())
+       {
+           _b->remove(_a->min());
+       }
+       else if (_b->isBound())
+       {
+           _a->remove(_b->min());
+       }
    }
 }
 void int_eq_reif::post()
@@ -152,6 +178,64 @@ void int_lin_eq::propagate()
 
 void int_lin_eq::propagate(std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int _c)
 {
+
+    /*
+    int sumMin = 0;
+    int sumMax = 0;
+    for(size_t i = 0; i < _bs.size(); i += 1)
+    {
+        int ithBoundValue1 = _as[i] * _bs[i]->min();
+        int ithBoundValue2 = _as[i] * _bs[i]->max();
+
+        int ithLowerBound = std::min(ithBoundValue1, ithBoundValue2);
+        int ithUpperBound = std::max(ithBoundValue1, ithBoundValue2);
+
+        sumMin += ithLowerBound;
+        sumMax += ithUpperBound;
+    }
+
+    // as, c -> bs
+    for (size_t i = 0; i < _bs.size(); i += 1)
+    {
+        int ithBoundValue1 = _as[i] * _bs[i]->min();
+        int ithBoundValue2 = _as[i] * _bs[i]->max();
+
+        int ithLowerBound = std::min(ithBoundValue1, ithBoundValue2);
+        int ithUpperBound = std::max(ithBoundValue1, ithBoundValue2);
+
+        int tmpLowerBound = ithLowerBound;
+        int tmpUpperBound = ithUpperBound;
+
+        if (_as[i] > 0)
+        {
+            int tmpLowerBound1 = ceilDivision(_c - (sumMin - ithLowerBound), _as[i]);
+            int tmpLowerBound2 = ceilDivision(_c - (sumMax - ithUpperBound), _as[i]);
+            tmpLowerBound = std::max(tmpLowerBound1, tmpLowerBound2);
+
+            int tmpUpperBound1 = floorDivision(_c - (sumMin - ithLowerBound), _as[i]);
+            int tmpUpperBound2 = floorDivision(_c - (sumMax - ithUpperBound), _as[i]);
+            tmpUpperBound = std::min(tmpUpperBound1, tmpUpperBound2);
+        }
+        else
+        {
+            int tmpUpperBound1 = ceilDivision(_c - (sumMin - ithLowerBound), _as[i]);
+            int tmpUpperBound2 = ceilDivision(_c - (sumMax - ithUpperBound), _as[i]);
+            tmpUpperBound = std::min(tmpUpperBound1, tmpUpperBound2);
+
+            int tmpLowerBound1 = floorDivision(_c - (sumMin - ithLowerBound), _as[i]);
+            int tmpLowerBound2 = floorDivision(_c - (sumMax - ithUpperBound), _as[i]);
+            tmpLowerBound = std::max(tmpLowerBound1, tmpLowerBound2);
+        }
+
+        sumMin += -ithLowerBound + tmpLowerBound;
+        _bs[i]->removeBelow(tmpLowerBound);
+
+        sumMax += -ithUpperBound + tmpUpperBound;
+        _bs[i]->removeAbove(tmpUpperBound);
+    }
+    */
+
+
     int sumPosMin = 0;
     int sumPosMax = 0;
     int sumNegMin = 0;
@@ -252,6 +336,7 @@ void int_lin_eq::propagate(std::vector<int>& _as, std::vector<var<int>::Ptr>& _b
             }
         }
     }
+
 }
 
 void int_lin_eq::post()
@@ -282,25 +367,18 @@ int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* i
 
 void int_lin_eq_reif::propagate()
 {
-    int sumMax = 0;
     int sumMin = 0;
+    int sumMax = 0;
     for(size_t i = 0; i < _bs.size(); i += 1)
     {
-        int asiValue = _as[i];
+        int ithBoundValue1 = _as[i] * _bs[i]->min();
+        int ithBoundValue2 = _as[i] * _bs[i]->max();
 
-        int bsiMinValue = _bs[i]->min();
-        int bsiMaxValue = _bs[i]->max();
+        int ithLowerBound = std::min(ithBoundValue1, ithBoundValue2);
+        int ithUpperBound = std::max(ithBoundValue1, ithBoundValue2);
 
-        if(asiValue >= 0)
-        {
-            sumMin += asiValue * bsiMinValue;
-            sumMax += asiValue * bsiMaxValue;
-        }
-        else
-        {
-            sumMin += asiValue * bsiMaxValue;
-            sumMax += asiValue * bsiMinValue;
-        }
+        sumMin += ithLowerBound;
+        sumMax += ithUpperBound;
     }
 
     // as,bs,c -> r
@@ -330,7 +408,7 @@ void int_lin_eq_reif::post()
     {
         v->propagateOnBoundChange(this);
     }
-    _r->propagateOnBind(this);
+    _r->propagateOnBoundChange(this);
 }
 
 int_lin_ne::int_lin_ne(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
@@ -355,7 +433,7 @@ void int_lin_ne::propagate()
     propagate(_as, _bs, _c);
 }
 
-void int_lin_ne::propagate(std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int c)
+void int_lin_ne::propagate(std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int _c)
 {
     int notBoundCount = 0;
     int notBoundIndex = 0;
@@ -373,14 +451,13 @@ void int_lin_ne::propagate(std::vector<int>& _as, std::vector<var<int>::Ptr>& _b
         }
     }
 
-    // as, c -> bs
-    if(notBoundCount == 1)
+    if(notBoundCount == 0 and sum == _c)
     {
-        int asNotBounded = _as[notBoundIndex];
-        if ((-sum + c) % asNotBounded == 0)
-        {
-            _bs[notBoundIndex]->remove( (-sum + c) / asNotBounded);
-        }
+        _bs[0]->remove(_bs[0]->min());
+    }
+    else if (notBoundCount == 1 and (_c - sum) % _as[notBoundIndex] == 0)
+    {
+        _bs[notBoundIndex]->remove((_c - sum) / _as[notBoundIndex]);
     }
 }
 
@@ -388,6 +465,6 @@ void int_lin_ne::post()
 {
     for(auto v : _bs)
     {
-        v->propagateOnBoundChange(this);
+        v->propagateOnBind(this);
     }
 }

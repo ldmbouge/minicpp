@@ -255,7 +255,7 @@ void Minimize::print(std::ostream& os) const
 
 void Minimize::tighten()
 {
-   assert(_obj->isBound());
+    assert(_obj->isBound());
    _primal = _obj->max() - 1;
    throw Failure;
 }

@@ -104,12 +104,20 @@ int main(int argc,char* argv[])
         std::string consts_str;
         vec2str(&c.vars, &vars_str);
         vec2str(&c.consts, &consts_str);
-        printf("%lu %s: Vaiables %s | Constants %s\n", i, FlatZinc::Constraint::type2str[c.type], vars_str.c_str(), consts_str.c_str());
+        printf("%lu %s: Variables %s | Constants %s\n", i, FlatZinc::Constraint::type2str[c.type], vars_str.c_str(), consts_str.c_str());
     }
 
     //Search
     printf("===== SEARCH =====\n");
-    printf("Problem: %s\n", FlatZinc::problem2str[fm->problem]);
+    printf("Problem: %s", FlatZinc::problem2str[fm->problem]);
+    if(fm->problem == FlatZinc::Problem::Satisfaction)
+    {
+        printf("\n");
+    }
+    else
+    {
+        printf(" (Objective var %d)\n", fm->objective_variable);
+    }
     std::string vars_str;
     vec2str(&fm->decisionVariables, &vars_str);
     printf("Decision variables: %s\n", vars_str.c_str());
@@ -124,8 +132,14 @@ int main(int argc,char* argv[])
     }
     DFSearch search(cp,firstFail(cp,decisionVariables));
 
-    search.onSolution([&obj]() { cout << "objective = " << obj->value() << endl;
-    });
+    search.onSolution([&obj, &decisionVariables]() {
+        cout << "solution = ";
+        for(size_t i  = 0; i < decisionVariables.size(); i += 1)
+        {
+            cout << decisionVariables[i]->min() << " ";
+        }
+        cout << endl << "objective = " << obj->value() << endl;
+        std::cout << "-----" <<endl;});
 
     auto stat = search.optimize(obj);
     cout << stat << endl;

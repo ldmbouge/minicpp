@@ -66,11 +66,11 @@ namespace FlatZinc
         r[id] = p;
     }
 
-    void Registry::parseScope(FlatZincModel& s, AST::Node* n, Constraint& c)
+    void Registry::parseConstsScope(FlatZincModel& s, AST::Node* n, Constraint& c)
     {
         if (not n->isArray())
         {
-            parseScopeElement(s, n, c);
+            parseConstsScopeElement(s, n, c);
         }
         else
         {
@@ -78,26 +78,47 @@ namespace FlatZinc
             int arraySize = static_cast<int>(array->size());
             for(int i = 0; i < arraySize; i += 1)
             {
-                parseScopeElement(s, array->at(i), c);
+                parseConstsScopeElement(s, array->at(i), c);
             }
         }
     }
 
-    void Registry::parseScopeElement(FlatZincModel& s, AST::Node* n, Constraint& c)
+    void Registry::parseVarsScope(FlatZincModel& s, AST::Node* n, Constraint& c)
+    {
+        if (not n->isArray())
+        {
+            parseVarsScopeElement(s, n, c);
+        }
+        else
+        {
+            std::vector<AST::Node*>* array = &n->getArray()->a;
+            int arraySize = static_cast<int>(array->size());
+            for(int i = 0; i < arraySize; i += 1)
+            {
+                parseVarsScopeElement(s, array->at(i), c);
+            }
+        }
+    }
+
+    void Registry::parseConstsScopeElement(FlatZincModel& s, AST::Node* n, Constraint& c)
     {
         if(n->isBool())
         {
             c.consts.push_back(n->getBool());
         }
-        else if (n->isBoolVar())
-        {
-            c.vars.push_back(s.arg2BoolVar(n));
-        }
         else if (n->isInt())
         {
             c.consts.push_back(n->getInt());
         }
-        else if (n->isIntVar())
+    }
+
+    void Registry::parseVarsScopeElement(FlatZincModel& s, AST::Node* n, Constraint& c)
+    {
+        if (n->isBool() or n->isBoolVar())
+        {
+            c.vars.push_back(s.arg2BoolVar(n));
+        }
+        else if (n->isInt() or n->isIntVar())
         {
             c.vars.push_back(s.arg2IntVar(n));
         }
@@ -111,9 +132,9 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::array_int_element;
-            Registry::parseScope(s, ce[0], c);
-            Registry::parseScope(s, ce[1], c);
-            Registry::parseScope(s, ce[2], c);
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseConstsScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[2], c);
             s.constraints.push_back(c);
         }
 
@@ -121,9 +142,9 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::array_var_int_element;
-            Registry::parseScope(s, ce[0], c);
-            Registry::parseScope(s, ce[1], c);
-            Registry::parseScope(s, ce[2], c);
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[2], c);
             s.constraints.push_back(c);
         }
 
@@ -131,9 +152,9 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::int_eq_reif;
-            Registry::parseScope(s, ce[0], c);
-            Registry::parseScope(s, ce[1], c);
-            Registry::parseScope(s, ce[2], c);
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[2], c);
             s.constraints.push_back(c);
         }
 
@@ -141,9 +162,9 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::int_lin_eq;
-            Registry::parseScope(s, ce[0], c);
-            Registry::parseScope(s, ce[1], c);
-            Registry::parseScope(s, ce[2], c);
+            Registry::parseConstsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseConstsScope(s, ce[2], c);
             s.constraints.push_back(c);
         }
 
@@ -151,10 +172,10 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::int_lin_eq_reif;
-            Registry::parseScope(s, ce[0], c);
-            Registry::parseScope(s, ce[1], c);
-            Registry::parseScope(s, ce[2], c);
-            Registry::parseScope(s, ce[3], c);
+            Registry::parseConstsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseConstsScope(s, ce[2], c);
+            Registry::parseVarsScope(s, ce[3], c);
             s.constraints.push_back(c);
         }
 
@@ -162,9 +183,9 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::int_lin_ne;
-            Registry::parseScope(s, ce[0], c);
-            Registry::parseScope(s, ce[1], c);
-            Registry::parseScope(s, ce[2], c);
+            Registry::parseConstsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseConstsScope(s, ce[2], c);
             s.constraints.push_back(c);
         }
 
@@ -172,8 +193,8 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::array_bool_or_reif;
-            Registry::parseScope(s, ce[0], c);
-            Registry::parseScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
             s.constraints.push_back(c);
         }
 
@@ -181,8 +202,8 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::bool_clause;
-            Registry::parseScope(s, ce[0], c);
-            Registry::parseScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
             c.consts.push_back(ce[0]->getArray()->a.size());
             c.consts.push_back(ce[1]->getArray()->a.size());
             s.constraints.push_back(c);

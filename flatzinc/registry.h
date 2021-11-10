@@ -53,8 +53,10 @@ namespace FlatZinc {
         /// Post constraint specified by \a ce
         void post(FlatZincModel& s, const ConExpr& ce, AST::Node* ann);
 
-        static void parseScope(FlatZincModel& s, AST::Node* n, Constraint& c);
-        static void parseScopeElement(FlatZincModel& s, AST::Node* n, Constraint& c);
+        static void parseConstsScope(FlatZincModel& s, AST::Node* n, Constraint& c);
+        static void parseVarsScope(FlatZincModel& s, AST::Node* n, Constraint& c);
+        static void parseConstsScopeElement(FlatZincModel& s, AST::Node* n, Constraint& c);
+        static void parseVarsScopeElement(FlatZincModel& s, AST::Node* n, Constraint& c);
 
         private:
         /// The actual registry
