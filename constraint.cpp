@@ -24,7 +24,7 @@ void printCstr(Constraint::Ptr c) {
 
 void EQc::post()
 {
-   _x->assign(_c);
+   _x->assign(_c);  
 }
 
 void NEQc::post()

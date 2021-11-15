@@ -216,37 +216,35 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
   auto start = RuntimeMonitor::now();
   
    DFSearch search(cp,[=]() {
-       
+
        // Lexicographic ordering on oline, puts variable selection before option selection (as in carg model)
-       unsigned i = 0u;
-       for(i=0u;i < oline.size();i++)
-	 if (oline[i]->size()> 1) break;
-       auto x = i< oline.size() ? oline[i] : nullptr;
- 
-       if (x) {	 
-	 int c = -1;
+      unsigned i = 0u;
+      for(i=0u;i < oline.size();i++)
+         if (oline[i]->size()> 1) break;
+      auto x = i< oline.size() ? oline[i] : nullptr;
 
-	 // select value by ssu heuristic
-	 int minSSU = INT_MAX;
-	 for (int d=x->min(); d<=x->max(); d++) {
-	   if (x->contains(d) && ssu[d] < minSSU) {
-	     minSSU = ssu[d];
-	     c = d;
-	   }
-	 }
-
+      if (x) {
+         int c = -1;
+         // select value by ssu heuristic
+         int minSSU = INT_MAX;
+         for (int d=x->min(); d<=x->max(); d++) {
+            if (x->contains(d) && ssu[d] < minSSU) {
+               minSSU = ssu[d];
+               c = d;
+            }
+         }
          return  [=] {
-	   // cout << "oline[" << i << "] == " << c << std::endl;
-	   cp->post(x==c);
-	 }
-	 | [=] {
-	   // cout << "oline[" << i << "] != " << c << std::endl;
-	   cp->post(x!=c);
-	 };
-       }
-       else {
-	 return Branches({});
-       }
+            // cout << "oline[" << i << "] == " << c << std::endl;
+            cp->post(x==c);
+         }
+            | [=] {
+               // cout << "oline[" << i << "] != " << c << std::endl;
+               cp->post(x!=c);
+            };
+      }
+      else {
+         return Branches({});
+      }
    });
 
 
@@ -292,19 +290,19 @@ Vec all(CPSolver::Ptr cp,const set<int>& over,const Vec& t)
 void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const std::set<int> S) {
 
   int H = (int)vars.size();
-  
-  auto cumul = Factory::intVarArray(cp, H+1, 0, H); 
+
+  auto cumul = Factory::intVarArray(cp, H+1, 0, H);
   cp->post(cumul[0] == 0);
-    
+
   auto boolVar = Factory::boolVarArray(cp, H);
   for (int i=0; i<H; i++) {
     cp->post(isMember(boolVar[i], vars[i], S));
   }
-    
+
   for (int i=0; i<H; i++) {
     cp->post(equal(cumul[i+1], cumul[i], boolVar[i]));
   }
-    
+
   for (int i=0; i<H-N+1; i++) {
     cp->post(cumul[i+N] <= cumul[i] + U);
     cp->post(cumul[i+N] >= cumul[i] + L);
@@ -314,11 +312,11 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
   for (int i=0; i<H-N+1; i++) {
     set<int> amongVars;
     for (int j=i; j<i+N; j++)
-      amongVars.insert(j);    
+      amongVars.insert(j);
     auto adv = all(cp, amongVars, boolVar);
     cp->post(sum(adv) >= L);
     cp->post(sum(adv) <= U);
-  }  
+  }
 }
 
 
@@ -333,7 +331,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
    int nbO = (int) options.size();
 
    auto line = Factory::intVarArray(cp,(int) cars.size(), 0, mx);
-   
+
    auto mdd = new MDDRelax(cp,width);
 
    for(int o = 0; o < nbO; o++){

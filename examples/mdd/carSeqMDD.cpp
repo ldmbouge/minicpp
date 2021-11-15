@@ -180,7 +180,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
                          [](const auto& x) { return x->size();});
       if (x) {
          int c = x->min();
-         
+
          return  [=] {
                     cp->post(x == c);
                  }
@@ -200,11 +200,11 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,const Instance& in)
                               else std::cout << ' ';
                            }
                            std::cout << std::endl;
-                        }                      
+                        }
                      });
 
    auto stat = search.solve([](const SearchStatistics& stats) {
-                               return stats.numberOfSolutions() > 50;
+                               return stats.numberOfSolutions() > 0;
                             });
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << std::endl;
@@ -223,13 +223,13 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
    using namespace std;
    cout << line << endl;
    auto mdd = new MDDRelax(cp,width);
-   // for(int o = 0; o < nbO;o++) {
-   //    auto vl = slice<var<int>::Ptr>(0,in.nbCars(),[&line,o](int i) { return isEqual(line[i],o);});
-   //    cout << vl << endl;
-   //    //cp->post(sum(vl) == in.demand(o));
-   // }
-   gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
-   cp->post(mdd);
+   for(int o = 0; o < nbO;o++) {
+      auto vl = slice<var<int>::Ptr>(0,in.nbCars(),[&line,o](int i) { return isEqual(line[i],o);});
+      cout << vl << endl;
+      cp->post(sum(vl) == in.demand(o));
+   }
+   //gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
+   //cp->post(mdd);
    //std::cout << mdd->getSpec() << std::endl;
    MDDRelax* as[nbO];
    for(int o = 0; o < nbO; o++){
@@ -250,11 +250,16 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
       }
    }
    for(int o=0;o < nbO;o++) {
-      for(int i=1;i < in.demand(o);i++) {
+      int demandForOption = 0;
+      for(int conf=0;conf < in.nbConf();conf++) {
+         if (in.requires(conf,o))
+            demandForOption += in.demand(conf);
+      }
+      for(int i=0;i < demandForOption/in.lb(o);i++) {
          int rLow = 0;
          int rUp = nbC - i * in.ub(o) - 1;
-         auto sl = slice<var<bool>::Ptr>(rLow,rUp,[&setup,o](int s) { return setup[s][o];});         
-         cp->post(sum(sl) >= in.demand(o) - i * in.lb(o));
+         auto sl = slice<var<bool>::Ptr>(rLow,rUp+1,[&setup,o](int s) { return setup[s][o];});
+         cp->post(sum(cp,sl) >= demandForOption - i * in.lb(o));
       }
    }
    solveModel(cp,line,in);
