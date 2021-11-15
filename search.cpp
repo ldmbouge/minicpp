@@ -100,20 +100,23 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
         stats.incrSolutions();
         notifySolution();
     } else {
-       for(auto& alt : branches) {
-            _sm->saveState();
-            try {
+       auto last = std::prev(branches.end()); // for proper counting of choices.
+       for(auto cur = branches.begin();cur != branches.end() && !limit(stats);cur++) {
+          const auto& alt = *cur;
+          _sm->saveState();
+          try {
+             if (cur != last)
                 stats.incrNodes();
-                alt();
-                dfs(stats,limit);
-            } catch(Status e) {
-                stats.incrFailures();
-                notifyFailure();
-            } catch(...) {
-                stats.incrFailures();
-                notifyFailure();
-            }
-            _sm->restoreState();
-        }
+             alt();
+             dfs(stats,limit);
+          } catch(Status e) {
+             stats.incrFailures();
+             notifyFailure();
+          } catch(...) {
+             stats.incrFailures();
+             notifyFailure();
+          }
+          _sm->restoreState();
+       }
     }
 }

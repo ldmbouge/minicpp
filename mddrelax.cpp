@@ -386,7 +386,7 @@ public:
       : _mem(mem),
         _layer(layer),
         _mddspec(mddspec),
-        _pq(mem,layer.size())
+        _pq(mem,(int)layer.size())
    {
       for(auto& n : _layer)
          if (n->getState().isRelaxed() && n->getNumParents() > 1) {
@@ -545,7 +545,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
          if (reuse != -1) {
             splitter.linkChild(reuse,a);
          } else {
-            int nbk = n->getNumChildren();
+            int nbk = (int)n->getNumChildren();
             bool keepArc[nbk];
             unsigned idx = 0,cnt = 0;
             for(auto ca : n->getChildren()) 
@@ -606,7 +606,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
             }
             arcsPerClass.insert(std::make_pair(equivalenceValue, a));
          } else {
-            int nbk = n->getNumChildren();
+            int nbk = (int)n->getNumChildren();
             bool keepArc[nbk];
             unsigned idx = 0,cnt = 0;
             for(auto ca : n->getChildren()) 
@@ -630,7 +630,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
    for (auto it = equivalenceClasses.begin(); it != equivalenceClasses.end(); ++it) {
       int equivalenceValue = it->first;
       MDDState* newState = it->second;
-      int nbk = n->getNumChildren();
+      int nbk = (int)n->getNumChildren();
       bool keepArc[nbk];
       unsigned idx = 0,cnt = 0;
       for(auto ca : n->getChildren())

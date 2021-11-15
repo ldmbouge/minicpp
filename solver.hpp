@@ -62,9 +62,6 @@ class CPSolver {
     std::list<std::function<void(void)>>  _onFix;
     long                  _afterClose;
     int                        _varId;
-    int                          _nbc; // # choices
-    int                          _nbf; // # fails
-    int                          _nbs; // # solutions
 public:
     template<typename T> friend class var;
     typedef handle_ptr<CPSolver> Ptr;
@@ -85,16 +82,11 @@ public:
     void fixpoint();
    //void fixpointNT();
     void post(Constraint::Ptr c,bool enforceFixPoint=true);
-    void incrNbChoices() { _nbc += 1;}
-    void incrNbSol()     { _nbs += 1;}
    //void fail();
     friend void* operator new(std::size_t sz,CPSolver::Ptr e);
     friend void* operator new[](std::size_t sz,CPSolver::Ptr e);
     friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {
-        return os << "CPSolver(" << &s << ")" << std::endl
-                  << "\t#choices   = " << s._nbc << std::endl
-                  << "\t#fail      = " << s._nbf << std::endl
-                  << "\t#solutions = " << s._nbs << std::endl;
+       return os << "CPSolver(" << &s << ")" << std::endl;
     }
 };
 

@@ -69,7 +69,7 @@ public:
          std::vector<StaticBitSet>& v = _supports.back();
          std::vector<int>& r = _residues.back();
          for (int val=vp->min(); val < vp->max()+1; val++) {
-            v.emplace_back(StaticBitSet(table.size()));  // make bitset for this value
+            v.emplace_back(StaticBitSet((int)table.size()));  // make bitset for this value
             // loop through table to see which table vectors support this value
             for (auto i=0u; i < table.size(); i++) {
                const std::vector<int>& tableEntry = table[i];
