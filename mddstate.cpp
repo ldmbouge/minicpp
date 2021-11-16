@@ -52,6 +52,7 @@ MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& 
 MDDSpec::MDDSpec()
 {
     _approximateSplitting = false;
+    _nodePriorityAggregateStrategy = 1;
 }
 
 void MDDSpec::varOrder()
@@ -98,7 +99,7 @@ void MDDStateSpec::layout()
    std::cout << "State requires:" << _lsz << " bytes" << std::endl;
 }
 
-int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw)
+int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw, int constraintPriority)
 {
    int aid = (int)_nbp;
    addProperty(Factory::makeProperty(aid, 0, init, max,rw));
@@ -136,9 +137,10 @@ std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor::Ptr d,int max,
    return res;
 }
 
-int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw)
+int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
 {
    auto rv = MDDStateSpec::addState(d,init,max,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
    return rv;
 }
 int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw)
@@ -156,17 +158,26 @@ void MDDSpec::onFixpoint(FixFun onFix)
 {
    _onFix.emplace_back(onFix);
 }
-void MDDSpec::splitOnLargest(SplitFun onSplit)
+void MDDSpec::splitOnLargest(SplitFun onSplit, int constraintPriority)
 {
    _onSplit.emplace_back(onSplit);
+   _onSplitByPriorities[constraintPriority].emplace_back(onSplit);
 }
-void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue)
+void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue, int constraintPriority)
 {
    _equivalenceValue.emplace_back(equivalenceValue);
+   _equivalenceValueByPriorities[constraintPriority].emplace_back(equivalenceValue);
 }
 int MDDSpec::numEquivalenceClasses()
 {
    return (int)_equivalenceValue.size();
+}
+bool MDDSpec::equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int constraintPriority) const
+{
+   for (int p : _propertiesByPriorities[constraintPriority])
+      if (_attrs[p]->diff(left._mem, right._mem))
+         return false;
+   return true;
 }
 
 void MDDSpec::updateNode(MDDState& a) const noexcept
@@ -525,7 +536,7 @@ void MDDStateFactory::createState(MDDState& result,const MDDState& parent,int la
    result.computeHash();
 }
 
-bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
+bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val,bool approximate,int constraintPriority)
 {
    auto mark = _mem->mark();
    const int nbb = (int)_mddspec->layoutSize();
@@ -534,11 +545,12 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
    MDDState* upState = new (_mem) MDDState(_mddspec,membuf);
    _mddspec->copyStateUp(*upState,n->getState());
 
-   MDDSKey key { &parent, upState, val };
+   MDDSKey key { &parent, upState, val, approximate, constraintPriority };
    auto loc = _hash.get(key,result);
    if (loc) {
       ++hitCS;
       _mem->clear(mark);
+      result = new (_mem) MDDState(result->clone(_mem));
       return true;
    } else {
       nbCS++;
@@ -550,8 +562,8 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
       if (isOk) {
          result->computeHash();
          MDDState* pc = new (_mem) MDDState(parent.clone(_mem));
-         MDDSKey ikey { pc, upState, val };
-         _hash.insert(ikey,result);
+         MDDSKey ikey { pc, upState, val, approximate, constraintPriority };
+         _hash.insert(ikey,new (_mem) MDDState(result->clone(_mem)));
       }
       return isOk;
    }

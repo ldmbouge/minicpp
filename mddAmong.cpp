@@ -91,7 +91,7 @@ namespace Factory {
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
-   void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
+   void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues, int constraintPriority) {
       mdd.append(x);
       ValueSet values(rawValues);
       auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
@@ -145,14 +145,14 @@ namespace Factory {
       mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
          return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
                   (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
-                         });
+                         }, constraintPriority);
       mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
           return (lb - (c.at(L) + c.at(Lup)) > 3) +
                2*(ub - (c.at(U) + c.at(Uup)) > 3);
-      });
+      }, constraintPriority);
    }
 
-   void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues) {
+   void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues, int constraintPriority) {
       mdd.append(x);
       ValueSet values(rawValues);
       assert(rawValues.size()==1);
@@ -193,10 +193,13 @@ namespace Factory {
       mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
          return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
                   (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
-                         });
+                         }, constraintPriority);
+      //mdd.splitOnLargest([L](const auto& in) {
+      //   return in.getState().at(L);
+      //                   }, constraintPriority);
       mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
           return (lb - (c.at(L) + c.at(Lup)) > 3) +
                2*(ub - (c.at(U) + c.at(Uup)) > 3);
-      });
+      }, constraintPriority);
    }
 }

@@ -700,7 +700,7 @@ public:
    bool isDown(int p) const noexcept { return _attrs[p]->isDown();}
    unsigned short startOfs(int p) const noexcept { return _attrs[p]->startOfs();}
    unsigned short endOfs(int p) const noexcept { return _attrs[p]->endOfs();}
-   virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External);
+   virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
    virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External);
    virtual int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External);
    std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
@@ -887,6 +887,7 @@ public:
       }
       return os << ']';
    }
+   friend class MDDSpec;
 };
 
 class MDDSpec;
@@ -924,7 +925,7 @@ public:
    MDDConstraintDescriptor::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
       return constraints.emplace_back(new MDDConstraintDescriptor(v,n));
    }
-   int addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External) override;
+   int addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External, int constraintPriority = 0) override;
    int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max,enum RelaxWith rw=External) {
       return addState(d,init,(int)max,rw);
    }
@@ -951,8 +952,8 @@ public:
    void transitionUp(const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
-   void splitOnLargest(SplitFun onSplit);
-   void equivalenceClassValue(EquivalenceValueFun equivalenceValue);
+   void splitOnLargest(SplitFun onSplit, int constraintPriority = 0);
+   void equivalenceClassValue(EquivalenceValueFun equivalenceValue, int constraintPriority = 0);
    int numEquivalenceClasses();
    // Internal methods.
    void varOrder() override;
@@ -969,6 +970,18 @@ public:
    bool usesUp() const { return _uptrans.size() > 0;}
    void useApproximateEquivalence() { _approximateSplitting = true;}
    bool approxEquivalence() const { return _approximateSplitting;}
+   void setNodePriorityAggregateStrategy(int aggregateStrategy) { _nodePriorityAggregateStrategy = aggregateStrategy; }
+   int nodePriorityAggregateStrategy() const { return _nodePriorityAggregateStrategy; }
+   void setConstraintPrioritySize(int size) {
+      _onSplitByPriorities.reserve(size);
+      _equivalenceValueByPriorities.reserve(size);
+      _propertiesByPriorities.reserve(size);
+      for (int i = 0; i <= size; i++) {
+         _onSplitByPriorities.push_back(std::vector<SplitFun>());
+         _equivalenceValueByPriorities.push_back(std::vector<EquivalenceValueFun>());
+         _propertiesByPriorities.push_back(std::vector<int>());
+      }
+   }
    template <class Container> void append(const Container& y) {
       for(auto e : y)
          if(std::find(x.cbegin(),x.cend(),e) == x.cend())
@@ -983,8 +996,9 @@ public:
    }
    void reachedFixpoint(const MDDState& sink);
    double splitPriority(const MDDNode& n) const;
-   int equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value);
+   int equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int constraintPriority = 0);
    bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
+   bool equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int constraintPriority) const;
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    std::vector<var<int>::Ptr>& getGlobals() { return z;}
@@ -1021,6 +1035,10 @@ private:
    std::set<int>      _xRelax;
    std::vector<int>   _dRelax;
    bool _approximateSplitting;
+   int _nodePriorityAggregateStrategy;
+   std::vector<std::vector<SplitFun>> _onSplitByPriorities;
+   std::vector<std::vector<EquivalenceValueFun>> _equivalenceValueByPriorities;
+   std::vector<std::vector<int>> _propertiesByPriorities;
 };
 
 inline int rotl(int n,const int d) {
@@ -1032,11 +1050,13 @@ class MDDStateFactory {
    struct MDDSKey {
       const MDDState*   _s0;
       const MDDState*   _s1;
-      const int         _v;
+      const int          _v;
+      const bool         _a;
+      const int   _priority;
    };
    struct EQtoMDDSKey {
       bool operator()(const MDDSKey& a,const MDDSKey& b) const noexcept {
-         return a._v == b._v && a._s0->operator==(*b._s0) && a._s1->operator==(*b._s1);
+         return a._v == b._v && a._s0->operator==(*b._s0) && a._s1->operator==(*b._s1) && a._a == b._a && a._priority == b._priority;
       }
    };
    struct HashMDDSKey {
@@ -1052,7 +1072,7 @@ class MDDStateFactory {
 public:
    MDDStateFactory(MDDSpec* spec);
    void createState(MDDState& result,const MDDState& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
-   bool splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val);
+   bool splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val,bool approximate,int constraintPriority = -1);
    void clear();
    void enable() noexcept { _enabled = true;}
    void disable() noexcept { _enabled = false;}

@@ -7,12 +7,13 @@
 #include "RuntimeMonitor.hpp"
 #include "heap.hpp"
 
-MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,bool approxThenExact)
+MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,bool approxThenExact, int maxConstraintPriority)
    : MDD(cp),
      _width(width),
      _maxDistance(maxDistance),
      _maxSplitIter(maxSplitIter),
      _approxThenExact(approxThenExact),
+     _maxConstraintPriority(maxConstraintPriority),
      _rnG(42),
      _sampler(0.0,1.0)
   
@@ -24,6 +25,7 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,b
    _pool = new Pool;
    _delta = nullptr;
    _nf->setWidth(width);
+   _mddspec.setConstraintPrioritySize(maxConstraintPriority + 1);
 }
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)
@@ -433,7 +435,7 @@ public:
       for(int i=0;i < _nbk;i++) _keepKids[i] = kk[i];
    }
    void computeKey(const MDDSpec& mddspec) {
-      if  (mddspec.hasSplitRule())
+      if (mddspec.hasSplitRule())
          _key = mddspec.splitPriority(*_par);
       else _key = (double) _par->getPosition();
    }
@@ -477,6 +479,13 @@ public:
       for(auto i = 0u;i  < _candidates.size();i++)
          if (_candidates[i]->hasState(s))
             return i;
+      return -1;
+   }
+   int hasMatchingState(MDDState& s, int constraintPriority) {
+      for(auto i = 0u;i  < _candidates.size();i++)
+         if (_mddspec.equivalentForConstraintPriority(*_candidates[i]->getState(), s, constraintPriority)) {
+            return i;
+         }
       return -1;
    }
    void linkChild(int reuse,MDDEdge::Ptr arc) {
@@ -523,7 +532,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();       // value on arc from parent
-      bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v);
+      bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v,false);
       splitCS++;         
       if (!isOk) {
          pruneCS++;
@@ -536,9 +545,8 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
          continue;
       }         
       MDDNode* bj = findMatchInLayer(layers[l],*ms);
-      if (bj) {
-         if (bj != n) 
-            a->moveTo(bj,trail,mem);            
+      if (bj && bj != n) {
+         a->moveTo(bj,trail,mem);            
          // If we matched to n nothing to do. We already point to n.
       } else { // There is an approximate match
          // So, if there is room create a new node
@@ -569,7 +577,95 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
    _bwd->enQueue(n);
    return lowest;
 }
-int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
+int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority)
+{
+   std::vector<MDDState*> candidateStates;
+   std::vector<std::vector<MDDEdge::Ptr>> arcsPerCandidate;
+   int lowest = l;
+   MDDState* ms = nullptr;
+   MDDState* existing = nullptr;
+   const int nbParents = (int) n->getNumParents();
+   auto last = n->getParents().rend();
+   for(auto pit = n->getParents().rbegin(); pit != last;pit++) {
+      auto a = *pit;                // a is the arc p --(v)--> n
+      auto p = a->getParent();      // p is the parent
+      auto v = a->getValue();       // value on arc from parent
+      bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v,false,constraintPriority);
+      splitCS++;         
+      if (!isOk) {
+         pruneCS++;
+         p->unhook(a);
+         if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+         delSupport(l-1,v);
+         removeArc(l-1,l,a.get());
+         if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+         if (lowest < l) return lowest;
+         continue;
+      }
+      MDDNode* bj = findMatchInLayer(layers[l],*ms);
+      if (bj && bj != n) {
+         a->moveTo(bj,trail,mem);            
+         // If we matched to n nothing to do. We already point to n.
+      } else { // There is an approximate match
+         // So, if there is room create a new node
+         int reuse = -1;
+         for(auto i = 0u;i  < candidateStates.size();i++)
+            if (_mddspec.equivalentForConstraintPriority(*candidateStates[i], *ms, constraintPriority)) {
+               reuse = i;
+               break;
+            }
+         if (reuse != -1) {
+            existing = candidateStates[reuse];
+            if (ms != existing) {
+               _mddspec.relaxation(*existing,*ms);
+               existing->relaxDown();
+            }
+            arcsPerCandidate[reuse].emplace_back(a);
+         } else {
+            bool hasViableChild = false;
+            for(auto ca : n->getChildren()) 
+               if (_mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true)) {
+                  hasViableChild = true;
+                  break;
+               }
+            if (hasViableChild) {
+               candidateStates.emplace_back(ms);
+               arcsPerCandidate.emplace_back(std::vector<MDDEdge::Ptr>{a});
+            } else {
+               pruneCS++;               
+               p->unhook(a);
+               if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+               delSupport(l-1,v);
+               removeArc(l-1,l,a.get());
+               if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+               if (lowest < l) return lowest;
+            }
+         }
+      } //out-comment
+   } // end of loop over parents.
+
+   for (unsigned int candidateIndex = 0u; candidateIndex < candidateStates.size(); candidateIndex++) {
+      MDDState* newState = candidateStates[candidateIndex];
+      int nbk = (int)n->getNumChildren();
+      bool keepArc[nbk];
+      unsigned idx = 0,cnt = 0;
+      for(auto ca : n->getChildren())
+         cnt += keepArc[idx++] = _mddspec.exist(*newState,ca->getChild()->getState(),x[l],ca->getValue(),true);
+      MDDEdge::Ptr arc = arcsPerCandidate[candidateIndex][0];
+      auto p = arc->getParent();
+      auto v = arc->getValue();
+      splitter.addPotential(_pool,n,nbParents,p,arc,newState,v,nbk,(bool*)keepArc);
+      for (unsigned int arcIndex = 1u; arcIndex < arcsPerCandidate[candidateIndex].size(); arcIndex++) {
+         MDDEdge::Ptr arc = arcsPerCandidate[candidateIndex][arcIndex];
+         splitter.linkChild(candidateIndex, arc);
+      }
+   }
+
+   _fwd->enQueue(n);
+   _bwd->enQueue(n);
+   return lowest;
+}
+int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority)
 {
    std::map<int,MDDState*> equivalenceClasses;
    std::multimap<int,MDDEdge::Ptr> arcsPerClass;
@@ -581,7 +677,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();       // value on arc from parent
-      bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v);
+      bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v,true,constraintPriority);
       splitCS++;         
       if (!isOk) {
          pruneCS++;
@@ -598,12 +694,12 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
          a->moveTo(bj,trail,mem);            
       } else { // There is an approximate match
          // So, if there is room create a new node
-         int equivalenceValue = _mddspec.equivalenceValue(p->getState(),*ms,x[l-1],v);
+         int equivalenceValue = _mddspec.equivalenceValue(p->getState(),*ms,x[l-1],v,constraintPriority);
          if (equivalenceClasses.count(equivalenceValue)) {
             auto existing = equivalenceClasses.at(equivalenceValue);
             if (ms != existing) {
                _mddspec.relaxation(*existing,*ms);
-               equivalenceClasses.at(equivalenceValue)->relaxDown();
+               existing->relaxDown();
             }
             arcsPerClass.insert(std::make_pair(equivalenceValue, a));
          } else {
@@ -659,7 +755,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter)
 }
 
 
-void MDDRelax::splitLayers() // this can use node from recycled or add node to recycle
+void MDDRelax::splitLayers(int constraintPriority) // this can use node from recycled or add node to recycle
 {
    using namespace std;
    int nbScans = 0,nbSplits = 0;
@@ -667,6 +763,7 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
    const int ub = 300 * (int)numVariables;
    _pool->clear();
    MDDSplitter splitter(_pool,_mddspec,_width);
+   bool approximateSplit = _mddspec.approxEquivalence();
    while (l < (int)numVariables && nbSplits < ub) {
       auto& layer = layers[l];
       int lowest = l;
@@ -680,10 +777,12 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
             while(splitter.size() == 0)  {
                n = nSim.extractNode();
                if (n) {
-                  if (!_mddspec.approxEquivalence() || (_approxThenExact && _splitPass == 2))
-                     lowest = splitNode(n,l,splitter);
+                  if (approximateSplit)
+                     lowest = splitNodeApprox(n,l,splitter,constraintPriority);
+                  else if (_maxConstraintPriority)
+                     lowest = splitNodeForConstraintPriority(n, l, splitter, constraintPriority);
                   else
-                     lowest = splitNodeApprox(n,l,splitter);
+                     lowest = splitNode(n,l,splitter);
                } else break;
             }
             if (n==nullptr) break;
@@ -714,7 +813,15 @@ void MDDRelax::splitLayers() // this can use node from recycled or add node to r
          ++nbSplits;
       } // end-if (there is room and variable is not bound)
       auto jump = std::min(l - lowest,_maxDistance);
-      l = (lowest < l) ? l-jump : l + 1;      
+      if (lowest < l) {
+         l -= jump;
+         approximateSplit = _mddspec.approxEquivalence();
+      } else if (approximateSplit && _approxThenExact) {
+         approximateSplit = false;
+      } else {
+         l++;
+         approximateSplit = _mddspec.approxEquivalence();
+      }
    }
 }
 
@@ -821,11 +928,8 @@ int __nbn = 0,__nbf = 0;
 void MDDRelax::computeDown(int iter)
 {
    if (iter <= _maxSplitIter) {
-      _splitPass = 1;
-      splitLayers();
-      if (_approxThenExact && _mddspec.approxEquivalence()) {
-         _splitPass = 2;
-         splitLayers();
+      for (int i = 0; i <= _maxConstraintPriority; i++) {
+         splitLayers(i);
       }
    }
    _sf->disable();

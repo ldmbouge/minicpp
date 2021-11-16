@@ -190,15 +190,29 @@ void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
 double MDDSpec::splitPriority(const MDDNode& n) const
 {
    double ttl = 0.0;
-   for(const auto& sf : _onSplit)
-      ttl += sf(n);
+   switch (_nodePriorityAggregateStrategy) {
+      case 1:
+         for(const auto& sf : _onSplit)
+            ttl += sf(n);
+         break;
+      case 2:
+         for(const auto& sf : _onSplit)
+            ttl = std::min(ttl,sf(n));
+         break;
+      case 3:
+         for(const auto& sf : _onSplit)
+            ttl = std::min(ttl,sf(n));
+         break;
+      default:
+         ttl = _onSplit[0](n);
+   }
    return ttl;
 }
 
-int MDDSpec::equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value)
+int MDDSpec::equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int constraintPriority)
 {
    int eValue = 0;
-   for (auto ev : _equivalenceValue) {
+   for (auto ev : _equivalenceValueByPriorities[constraintPriority]) {
       eValue *= 4;
       eValue += ev(parent,child,var,value);
    }
