@@ -41,6 +41,7 @@
 
 #include "registry.h"
 #include "flatzinc.h"
+#include <utility>
 
 namespace FlatZinc
 {
@@ -165,6 +166,24 @@ namespace FlatZinc
             Registry::parseConstsScope(s, ce[0], c);
             Registry::parseVarsScope(s, ce[1], c);
             Registry::parseConstsScope(s, ce[2], c);
+
+            // Positive and negative coefficient counts
+            int pos = 0;
+            int neg = 0;
+            for(int i = 0; i < c.vars.size(); i += 1)
+            {
+                if (c.consts[i] > 0)
+                {
+                    pos += 1;
+                }
+                else
+                {
+                    neg += 1;
+                }
+            }
+            c.consts.push_back(pos);
+            c.consts.push_back(neg);
+
             s.constraints.push_back(c);
         }
 
@@ -176,6 +195,24 @@ namespace FlatZinc
             Registry::parseVarsScope(s, ce[1], c);
             Registry::parseConstsScope(s, ce[2], c);
             Registry::parseVarsScope(s, ce[3], c);
+
+            // Positive and negative coefficient counts
+            int pos = 0;
+            int neg = 0;
+            for(int i = 0; i < c.vars.size() - 1; i += 1)
+            {
+                if (c.consts[i] > 0)
+                {
+                    pos += 1;
+                }
+                else
+                {
+                    neg += 1;
+                }
+            }
+            c.consts.push_back(pos);
+            c.consts.push_back(neg);
+
             s.constraints.push_back(c);
         }
 

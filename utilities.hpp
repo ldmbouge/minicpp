@@ -24,6 +24,8 @@ inline int ceilDivision (int a, int b)
     return static_cast<int>(ceil(static_cast<double>(a) / static_cast<double>(b)));
 }
 
+
+
 class ValueSet {
    char* _data;
    int  _min,_max;

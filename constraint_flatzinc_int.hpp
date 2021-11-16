@@ -44,12 +44,14 @@ class int_lin_eq : public Constraint
     std::vector<int> _as;
     std::vector<var<int>::Ptr> _bs;
     int _c;
+    int _pos;
+    int _neg;
 
     public:
     int_lin_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
     void post() override;
     void propagate() override;
-    static void propagate(std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int c);
+    static void propagate(Constraint* c, std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int _c, int _pos, int _neg);
 };
 
 class int_lin_eq_reif : public Constraint
@@ -58,8 +60,10 @@ class int_lin_eq_reif : public Constraint
     std::vector<var<int>::Ptr> _bs;
     int _c;
     var<bool>::Ptr _r;
+    int _pos;
+    int _neg;
 
-    public:
+public:
     int_lin_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
     void post() override;
     void propagate() override;
@@ -75,5 +79,5 @@ class int_lin_ne : public Constraint
     int_lin_ne(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
     void post() override;
     void propagate() override;
-    static void propagate(std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int c);
+    static void propagate(Constraint* c, std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int _c);
 };

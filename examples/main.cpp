@@ -141,10 +141,20 @@ int main(int argc,char* argv[])
         cout << endl << "objective = " << obj->value() << endl;
         std::cout << "-----" <<endl;});
 
+    /*
+    search.onFailure([&decisionVariables]() {
+        cout << "Fail = ";
+        for(size_t i  = 0; i < decisionVariables.size(); i += 1)
+        {
+            cout << decisionVariables[i]->min() << " ";
+        }});
+    */
+
     auto stat = search.optimize(obj);
     cout << stat << endl;
     cp.dealloc();
     return 0;
+
 
     /*
     CPSolver::Ptr cp  = Factory::makeSolver();

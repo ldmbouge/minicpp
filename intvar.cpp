@@ -135,23 +135,20 @@ namespace Factory {
 
     var<int>::Ptr makeIntVar(CPSolver::Ptr cps, std::vector<int> const & values)
     {
-        // values is sorted
-        int minValue = *values.begin();
-        int maxValue = *values.end();
-        auto var = makeIntVar(cps, minValue, minValue);
-        int i = 0;
-        int j = minValue;
-        while (j <= maxValue)
+        // Values are sorted
+        int minValue = values.front();
+        int maxValue = values.back();
+        auto var = makeIntVar(cps, minValue, maxValue);
+        int idx = 0;
+        for(int value = minValue; value <= maxValue; value += 1)
         {
-            if (j == values[i])
+            if (value == values[idx])
             {
-                i += 1;
-                j += 1;
+                idx += 1;
             }
             else
             {
-                var->remove(j);
-                j += 1;
+                var->remove(value);
             }
         }
         return var;

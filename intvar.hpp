@@ -70,9 +70,9 @@ public:
    TLCNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _onDomList.emplace_back(std::move(c));}
 
     std::ostream& print(std::ostream& os) const override {
-        if (size() == 1)
-            os << min();
-        else
+       // if (size() == 1)
+       //     os << min();
+       // else
             os << "x_" << getId() << '(' << *_dom << ')';
         return os;
     }

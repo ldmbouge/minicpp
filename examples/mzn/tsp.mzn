@@ -13,4 +13,4 @@ constraint obj = sum(distSucc);
 
 solve :: int_search(succ, first_fail, indomain_min, complete) minimize obj;
 
-output ["objective = \(obj)\n"]; 
+output ["solution = \(succ)\nobjective = \(obj)\n"]; 

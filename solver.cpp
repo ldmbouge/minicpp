@@ -36,9 +36,10 @@ CPSolver::~CPSolver()
    std::cout << "CPSolver::~CPSolver(" << this << ")" << std::endl;
 }
 
-void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
+void CPSolver::post(Constraint::Ptr c, bool enforceFixPoint)
 {
-    if (!c) return;
+    if (!c)
+        return;
     c->post();
     if (enforceFixPoint)
         fixpoint();

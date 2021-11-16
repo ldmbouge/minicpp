@@ -5,7 +5,7 @@ array_bool_or_reif::array_bool_or_reif(CPSolver::Ptr cp, std::vector<var<int>::P
     _as(),
     _r(boolVars->at(vars.back()))
 {
-    for(size_t i = 1; i < vars.size() - 1; i += 1)
+    for(size_t i = 0; i < vars.size() - 1; i += 1)
     {
         _as.push_back(boolVars->at(vars[i]));
     }
@@ -13,7 +13,7 @@ array_bool_or_reif::array_bool_or_reif(CPSolver::Ptr cp, std::vector<var<int>::P
 
 void array_bool_or_reif::propagate()
 {
-    bool asOrValue = false;
+    bool asSatisfied = false;
     int notBoundCount = 0;
     int notBoundIndex = 0;
     for (size_t i = 0; i < _as.size(); i += 1)
@@ -23,29 +23,32 @@ void array_bool_or_reif::propagate()
             notBoundCount += 1;
             notBoundIndex = i;
         }
-        else
+        else if (_as[i]->isTrue())
         {
-            asOrValue = asOrValue or _as[i]->isTrue();
+            asSatisfied = true;
+            break;
         }
     }
 
     // as -> r
-    if(asOrValue)
+    if (asSatisfied)
     {
         _r->assign(true);
+        setActive(false);
     }
     else if (notBoundCount == 0)
     {
         _r->assign(false);
+        setActive(false);
     }
 
     // r -> as
-
     if(_r->isBound() and notBoundCount == 1)
     {
-        if (not asOrValue)
+        if (not asSatisfied)
         {
             _as[notBoundIndex]->assign(_r->isTrue());
+            setActive(false);
         }
     }
 }
@@ -57,7 +60,6 @@ void array_bool_or_reif::post()
         v->propagateOnBind(this);
     }
     _r->propagateOnBind(this);
-    propagate();
 }
 
 bool_clause::bool_clause(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts):
@@ -87,37 +89,48 @@ void bool_clause::propagate()
             asNotBoundCount += 1;
             asNotBoundIndex = i;
         }
-        else
+        else if (_as[i]->isTrue())
         {
-            asSatisfied = asSatisfied or _as[i]->isTrue();
+            asSatisfied = true;
+            break;
         }
     }
 
-    bool bsSatisfied = false;
-    int bsNotBoundCount = 0;
-    int bsNotBoundIndex = 0;
-    for(size_t i = 0; i < _bs.size(); i += 1)
+    if(not asSatisfied)
     {
-        if(not _bs[i]->isBound())
+        bool bsSatisfied = false;
+        int bsNotBoundCount = 0;
+        int bsNotBoundIndex = 0;
+        for(size_t i = 0; i < _bs.size(); i += 1)
         {
-            bsNotBoundCount += 1;
-            bsNotBoundIndex = i;
+            if(not _bs[i]->isBound())
+            {
+                bsNotBoundCount += 1;
+                bsNotBoundIndex = i;
+            }
+            else if (_bs[i]->isFalse())
+            {
+                bsSatisfied = true;
+                break;
+            }
         }
-        else
-        {
-            bsSatisfied = bsSatisfied or (_bs[i]->isFalse());
-        }
-    }
 
-    if(not (asSatisfied or bsSatisfied) and asNotBoundCount + bsNotBoundCount == 1)
-    {
-        if(asNotBoundCount == 1)
+        if(not bsSatisfied)
         {
-            _as[asNotBoundIndex]->assign(true);
-        }
-        else
-        {
-            _bs[bsNotBoundIndex]->assign(false);
+            if (asNotBoundCount == 0 and bsNotBoundCount == 0)
+            {
+                failNow();
+            }
+            else if (asNotBoundCount == 1 and bsNotBoundCount == 0)
+            {
+                _as[asNotBoundIndex]->assign(true);
+                setActive(false);
+            }
+            else if (asNotBoundCount == 0 and bsNotBoundCount == 1)
+            {
+                _bs[bsNotBoundIndex]->assign(false);
+                setActive(false);
+            }
         }
     }
 }
@@ -132,5 +145,4 @@ void bool_clause::post()
     {
         v->propagateOnBind(this);
     }
-    propagate();
 }
