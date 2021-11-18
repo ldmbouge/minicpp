@@ -42,7 +42,7 @@ class IntVarImpl :public var<int> {
       void bind() override;
       void change()  override;
       void changeMin() override;
-      void changeMax() override;      
+      void changeMax() override;
    };
    DomainListener*       _domListener;
 public:

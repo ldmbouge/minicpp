@@ -21,31 +21,25 @@ void array_int_element::propagate()
 {
     int bMin = _b->min();
     int bMax = _b->max();
-    int cMin;
-    int cMax;
+    int cMin = INT_MAX;
+    int cMax = INT_MIN;
 
-    for(int l = 0; l < 2; l += 1)
+    // b -> c
+    for (int bVal = bMin; bVal <= bMax; bVal += 1)
     {
-        // b -> c
-        cMin = INT_MAX;
-        cMax = INT_MIN;
-        for (int bVal = bMin; bVal <= bMax; bVal += 1)
-        {
-            cMin = std::min(cMin, _as[bVal]);
-            cMax = std::max(cMax, _as[bVal]);
-        }
-        _c->updateBounds(cMin, cMax);
+        cMin = std::min(cMin, _as[bVal]);
+        cMax = std::max(cMax, _as[bVal]);
+    }
+    _c->updateBounds(cMin, cMax);
 
-        // c -> b
-        for (int bVal = bMin; bVal <= bMax; bVal += 1)
+    // c -> b
+    for (int bVal = bMin; bVal <= bMax; bVal += 1)
+    {
+        if (_as[bVal] < cMin or cMax < _as[bVal])
         {
-            if (_as[bVal] < cMin or cMax < _as[bVal])
-            {
-                _b->remove(bVal);
-            }
+            _b->remove(bVal);
         }
     }
-
 }
 
 void array_int_element::post()
@@ -71,31 +65,26 @@ void array_var_int_element::propagate()
 {
     int bMin = _b->min();
     int bMax = _b->max();
-    int cMin;
-    int cMax;
+    int cMin = INT_MAX;
+    int cMax = INT_MIN;
 
-    for(int l = 0; l < 2; l += 1)
+    // b -> c
+    for (int bVal = bMin; bVal <= bMax; bVal += 1)
     {
-        cMin = INT_MAX;
-        cMax = INT_MIN;
+        cMin = std::min(cMin, _as[bVal]->min());
+        cMax = std::max(cMax, _as[bVal]->max());
+    }
+    _c->updateBounds(cMin, cMax);
 
-        // b -> c
-        for (int i = bMin; i <= bMax; i += 1)
+    // c -> b
+    for (int bVal = bMin; bVal <= bMax; bVal += 1)
+    {
+        if (_as[bVal]->max() < cMin or cMax < _as[bVal]->min())
         {
-            cMin = std::min(cMin, _as[i]->min());
-            cMax = std::max(cMin, _as[i]->max());
-        }
-        _c->updateBounds(cMin, cMax);
-
-        // c -> b
-        for (int bVal = bMin; bVal <= bMax; bVal += 1)
-        {
-            if (_as[bVal]->max() < cMin or cMax < _as[bVal]->min())
-            {
-                _b->remove(bVal);
-            }
+            _b->remove(bVal);
         }
     }
+
 }
 
 void array_var_int_element::post()
@@ -126,12 +115,10 @@ void int_eq_reif::propagate()
    if (aMin == aMax and bMin == bMax and aMin == bMin)
    {
        _r->assign(true);
-       setActive(false);
    }
    else if (aMax < bMin or bMax < aMin)
    {
        _r->assign(false);
-       setActive(false);
    }
 
    // r -> a,b
@@ -141,19 +128,16 @@ void int_eq_reif::propagate()
        int abMax = std::min(aMax,bMax);
        _a->updateBounds(abMin, abMax);
        _b->updateBounds(abMin, abMax);
-       setActive(false);
    }
    else if (_r->isFalse())
    {
        if(_a->isBound())
        {
            _b->remove(aMin);
-           setActive(false);
        }
        else if (_b->isBound())
        {
            _a->remove(bMin);
-           setActive(false);
        }
    }
 }
@@ -194,11 +178,13 @@ void int_lin_eq::propagate(Constraint* c, std::vector<int>& _as, std::vector<var
     int sumMax = 0;
     for (int i = 0; i < _pos; i += 1)
     {
+        assert(_as[i] > 0);
         sumMin += _as[i] * _bs[i]->min();
         sumMax += _as[i] * _bs[i]->max();
     }
     for (int i = _pos; i < _pos + _neg; i += 1)
     {
+        assert(_as[i] < 0);
         sumMin += _as[i] * _bs[i]->max();
         sumMax += _as[i] * _bs[i]->min();
     }
@@ -265,8 +251,8 @@ int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* i
     Constraint(cp),
     _as(),
     _bs(),
-    _r(boolVars->at(vars.back())),
     _c(consts[consts.size() - 3]),
+    _r(boolVars->at(vars.back())),
     _pos(consts[consts.size() - 2]),
     _neg(consts[consts.size() - 1])
 {
@@ -283,15 +269,18 @@ int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* i
 
 void int_lin_eq_reif::propagate()
 {
+
     int sumMin = 0;
     int sumMax = 0;
     for (int i = 0; i < _pos; i += 1)
     {
+        assert(_as[i] > 0);
         sumMin += _as[i] * _bs[i]->min();
         sumMax += _as[i] * _bs[i]->max();
     }
     for (int i = _pos; i < _pos + _neg; i += 1)
     {
+        assert(_as[i] < 0);
         sumMin += _as[i] * _bs[i]->max();
         sumMax += _as[i] * _bs[i]->min();
     }
@@ -300,12 +289,10 @@ void int_lin_eq_reif::propagate()
     if(sumMin == sumMax)
     {
         _r->assign(sumMin == _c);
-        setActive(false);
     }
     else if(_c < sumMin or sumMax < _c)
     {
         _r->assign(false);
-        setActive(false);
     }
 
     // r -> as,bs,c
@@ -379,7 +366,6 @@ void int_lin_ne::propagate(Constraint* c, std::vector<int>& _as, std::vector<var
         {
             _bs[notBoundIndex]->remove((_c - sum) / _as[notBoundIndex]);
         }
-        c->setActive(false);
     }
 
 }

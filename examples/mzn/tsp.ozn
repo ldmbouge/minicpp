@@ -1,6 +1,4 @@
 output ["solution = "++format(succ)++"\nobjective = "++format(obj)++"\n"];
-function string : format(array [$U] of opt $T: x) = show(x);
-function string : format(opt $T: x) = show(x);
-int: n = 4;
+int: n = 17;
 array [1..n] of int: succ;
 int: obj;

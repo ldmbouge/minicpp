@@ -148,8 +148,8 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
                                    [](const auto& x) { return x->size();});
                if (sx) {
                    int v = sx->min();
-                   return [cp,sx,v] { return cp->post(sx == v);}
-                       |  [cp,sx,v] { return cp->post(sx != v);};
+                   return [cp,sx,v] { std::cout << "Choosing (" << sx->size() << ") x" << sx->getId() << " == "<< v << std::endl; return cp->post(sx == v);}
+                       |  [cp,sx,v] { std::cout << "Choosing (" << sx->size() << ") x" << sx->getId() << " != "<< v << std::endl; return cp->post(sx != v);};
                } else return Branches({});
            };
 }

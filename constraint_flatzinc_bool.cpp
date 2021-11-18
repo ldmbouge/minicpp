@@ -34,12 +34,10 @@ void array_bool_or_reif::propagate()
     if (asSatisfied)
     {
         _r->assign(true);
-        setActive(false);
     }
     else if (notBoundCount == 0)
     {
         _r->assign(false);
-        setActive(false);
     }
 
     // r -> as
@@ -48,7 +46,6 @@ void array_bool_or_reif::propagate()
         if (not asSatisfied)
         {
             _as[notBoundIndex]->assign(_r->isTrue());
-            setActive(false);
         }
     }
 }
@@ -124,12 +121,10 @@ void bool_clause::propagate()
             else if (asNotBoundCount == 1 and bsNotBoundCount == 0)
             {
                 _as[asNotBoundIndex]->assign(true);
-                setActive(false);
             }
             else if (asNotBoundCount == 0 and bsNotBoundCount == 1)
             {
                 _bs[bsNotBoundIndex]->assign(false);
-                setActive(false);
             }
         }
     }
