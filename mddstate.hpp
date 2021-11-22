@@ -193,6 +193,7 @@ typedef std::function<void(MDDState&,const MDDState&,const var<int>::Ptr&,const 
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
+typedef std::function<double(const MDDState&, void*, int)> CandidateFun;
 typedef std::function<int(const MDDState&,const MDDState&,const var<int>::Ptr&,int)> EquivalenceValueFun;
 typedef std::pair<std::set<int>,lambdaTrans> TransDesc;
 typedef std::map<int,TransDesc> lambdaMap;
@@ -953,6 +954,7 @@ public:
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
    void splitOnLargest(SplitFun onSplit, int constraintPriority = 0);
+   void candidateByLargest(CandidateFun candidateSplit, int constraintPriority = 0);
    void equivalenceClassValue(EquivalenceValueFun equivalenceValue, int constraintPriority = 0);
    int numEquivalenceClasses();
    // Internal methods.
@@ -971,6 +973,7 @@ public:
    void useApproximateEquivalence() { _approximateSplitting = true;}
    bool approxEquivalence() const { return _approximateSplitting;}
    void setNodePriorityAggregateStrategy(int aggregateStrategy) { _nodePriorityAggregateStrategy = aggregateStrategy; }
+   void setCandidatePriorityAggregateStrategy(int aggregateStrategy) { _candidatePriorityAggregateStrategy = aggregateStrategy; }
    int nodePriorityAggregateStrategy() const { return _nodePriorityAggregateStrategy; }
    void setConstraintPrioritySize(int size) {
       _onSplitByPriorities.reserve(size);
@@ -978,6 +981,7 @@ public:
       _propertiesByPriorities.reserve(size);
       for (int i = 0; i <= size; i++) {
          _onSplitByPriorities.push_back(std::vector<SplitFun>());
+         _candidateSplitByPriorities.push_back(std::vector<CandidateFun>());
          _equivalenceValueByPriorities.push_back(std::vector<EquivalenceValueFun>());
          _propertiesByPriorities.push_back(std::vector<int>());
       }
@@ -995,9 +999,11 @@ public:
       std::cout << "size of z: " << z.size() << std::endl;
    }
    void reachedFixpoint(const MDDState& sink);
-   double splitPriority(const MDDNode& n) const;
-   int equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int constraintPriority = 0);
-   bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
+   double nodeSplitPriority(const MDDNode& n, int constraintPriority) const;
+   double candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int constraintPriority) const;
+   std::vector<int> equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int constraintPriority = 0);
+   bool hasNodeSplitRule() const noexcept { return _onSplit.size() > 0;}
+   bool hasCandidateSplitRule() const noexcept { return _candidateSplit.size() > 0;}
    bool equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int constraintPriority) const;
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
@@ -1025,6 +1031,7 @@ private:
    std::vector<lambdaTrans> _uptrans;
    std::vector<FixFun>        _onFix;
    std::vector<SplitFun>      _onSplit;
+   std::vector<CandidateFun>      _candidateSplit;
    std::vector<EquivalenceValueFun> _equivalenceValue;
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;
@@ -1036,7 +1043,9 @@ private:
    std::vector<int>   _dRelax;
    bool _approximateSplitting;
    int _nodePriorityAggregateStrategy;
+   int _candidatePriorityAggregateStrategy;
    std::vector<std::vector<SplitFun>> _onSplitByPriorities;
+   std::vector<std::vector<CandidateFun>> _candidateSplitByPriorities;
    std::vector<std::vector<EquivalenceValueFun>> _equivalenceValueByPriorities;
    std::vector<std::vector<int>> _propertiesByPriorities;
 };

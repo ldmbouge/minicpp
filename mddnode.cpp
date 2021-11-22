@@ -187,36 +187,57 @@ void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
    child->parents.push_back(e,mem);
 }
 
-double MDDSpec::splitPriority(const MDDNode& n) const
+double MDDSpec::nodeSplitPriority(const MDDNode& n, int constraintPriority) const
 {
    double ttl = 0.0;
    switch (_nodePriorityAggregateStrategy) {
       case 1:
-         for(const auto& sf : _onSplit)
+         for(const auto& sf : _onSplitByPriorities[constraintPriority])
             ttl += sf(n);
          break;
       case 2:
-         for(const auto& sf : _onSplit)
+         for(const auto& sf : _onSplitByPriorities[constraintPriority])
             ttl = std::min(ttl,sf(n));
          break;
       case 3:
-         for(const auto& sf : _onSplit)
-            ttl = std::min(ttl,sf(n));
+         for(const auto& sf : _onSplitByPriorities[constraintPriority])
+            ttl = std::max(ttl,sf(n));
          break;
       default:
          ttl = _onSplit[0](n);
    }
    return ttl;
 }
-
-int MDDSpec::equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int constraintPriority)
+double MDDSpec::candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int constraintPriority) const
 {
-   int eValue = 0;
-   for (auto ev : _equivalenceValueByPriorities[constraintPriority]) {
-      eValue *= 4;
-      eValue += ev(parent,child,var,value);
+   double ttl = 0.0;
+   switch (_candidatePriorityAggregateStrategy) {
+      case 1:
+         for(const auto& sf : _candidateSplitByPriorities[constraintPriority])
+            ttl += sf(state, arcs, numArcs);
+         break;
+      case 2:
+         for(const auto& sf : _candidateSplitByPriorities[constraintPriority])
+            ttl = std::min(ttl,sf(state, arcs, numArcs));
+         break;
+      case 3:
+         for(const auto& sf : _candidateSplitByPriorities[constraintPriority])
+            ttl = std::max(ttl,sf(state, arcs, numArcs));
+         break;
+      default:
+         ttl = _candidateSplit[0](state, arcs, numArcs);
    }
-   return eValue;
+   return ttl;
+}
+
+std::vector<int> MDDSpec::equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int constraintPriority)
+{
+   std::vector<int> equivalenceValues(_equivalenceValueByPriorities[constraintPriority].size());
+   for (auto ev : _equivalenceValueByPriorities[constraintPriority]) {
+      equivalenceValues.emplace_back(ev(parent,child,var,value));
+   }
+   //std::cout << equivalenceValues << std::endl;
+   return equivalenceValues;
 }
 
 void MDDEdge::remove(MDD* mdd)

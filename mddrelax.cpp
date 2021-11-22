@@ -378,14 +378,14 @@ class MDDNodeSim {
       MDDNode* _val;
    };
    struct PQOrder {
-      bool operator()(const PQValue& a,const PQValue& b) { return a._key < b._key;}
+      bool operator()(const PQValue& a,const PQValue& b) { return a._key > b._key;}
    };
    Pool::Ptr _mem;
    const TVec<MDDNode*>& _layer;
    const MDDSpec& _mddspec;
    Heap<PQValue,PQOrder>  _pq;
 public:
-   MDDNodeSim(Pool::Ptr mem,const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec)
+   MDDNodeSim(Pool::Ptr mem,const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec, int constraintPriority)
       : _mem(mem),
         _layer(layer),
         _mddspec(mddspec),
@@ -393,7 +393,7 @@ public:
    {
       for(auto& n : _layer)
          if (n->getState().isRelaxed() && n->getNumParents() > 1) {
-            double key = (_mddspec.hasSplitRule()) ? _mddspec.splitPriority(*n) : (double)n->getPosition();
+            double key = (_mddspec.hasNodeSplitRule()) ? _mddspec.nodeSplitPriority(*n, constraintPriority) : (double) n->getPosition();
             _pq.insert(PQValue { key, n});
          }
       _pq.buildHeap();
@@ -421,11 +421,12 @@ class MDDPotential {
    double           _key;
    int       _val;
    int      _nbk;
+   int _constraintPriority;
    bool*   _keepKids;
 public:
    MDDPotential(Pool::Ptr pool,MDDNode* n,const int mxPar,MDDNode* par,MDDEdge::Ptr arc,
-                MDDState* child,int v,int nbKids,bool* kk)
-      : _mem(pool),_n(n),_par(par),_mxPar(mxPar),_nbPar(0) {
+                MDDState* child,int v,int nbKids,bool* kk, int constraintPriority)
+      : _mem(pool),_n(n),_par(par),_mxPar(mxPar),_nbPar(0),_constraintPriority(constraintPriority) {
       _child = child;
       _arc = new (pool) MDDEdge::Ptr[_mxPar];
       _arc[_nbPar++] = arc;
@@ -435,9 +436,7 @@ public:
       for(int i=0;i < _nbk;i++) _keepKids[i] = kk[i];
    }
    void computeKey(const MDDSpec& mddspec) {
-      if (mddspec.hasSplitRule())
-         _key = mddspec.splitPriority(*_par);
-      else _key = (double) _par->getPosition();
+      _key = mddspec.hasCandidateSplitRule() ? mddspec.candidateSplitPriority(*_child, _arc, _nbPar, _constraintPriority) : (double) _par->getPosition();
    }
    double getKey() const noexcept { return _key;}
    bool hasState(const MDDState& s) const { return *_child == s;}
@@ -452,6 +451,7 @@ public:
          _arc[i]->moveTo(nc,trail,mem);      
    }
    MDDState* getState() const noexcept { return _child; }
+   bool* keepKids() { return _keepKids; }
 };
 
 
@@ -491,9 +491,15 @@ public:
    void linkChild(int reuse,MDDEdge::Ptr arc) {
       _candidates[reuse]->link(arc);
    }
+   MDDPotential* getFirstCandidate() {
+      return _candidates[0];
+   }
    template <class CB>
    void process(TVec<MDDNode*>& layer,unsigned long width,Trailer::Ptr trail,Storage::Ptr mem,const CB& cb) {
       if (_candidates.size() + layer.size() <= width) {
+         for(auto i = 0u;i < _candidates.size();++i)
+            _candidates[i]->computeKey(_mddspec);
+         _candidates.buildHeap();
          for(auto i = 0u;i < _candidates.size() && layer.size() < width;i++) 
             _candidates[i]->instantiate(cb,trail,mem);
          _candidates.clear();
@@ -524,6 +530,7 @@ int splitCS = 0,pruneCS = 0,potEXEC = 0;
 
 int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
 {
+   bool foundNonviableCandidate = false;
    int lowest = l;
    MDDState* ms = nullptr;
    const int nbParents = (int) n->getNumParents();
@@ -535,6 +542,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
       bool isOk = _sf->splitState(ms,n,p->getState(),l-1,x[l-1],v,false);
       splitCS++;         
       if (!isOk) {
+         foundNonviableCandidate = true;
          pruneCS++;
          p->unhook(a);
          if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
@@ -568,11 +576,14 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
                if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
                if (lowest < l) return lowest;
             } else {
-               splitter.addPotential(_pool,n,nbParents,p,a,ms,v,nbk,(bool*)keepArc);
+               splitter.addPotential(_pool,n,nbParents,p,a,ms,v,nbk,(bool*)keepArc,0);
             }
          }
       } //out-comment
    } // end of loop over parents.
+
+   if (splitter.size() == 1 && !foundNonviableCandidate) splitter.clear();
+
    _fwd->enQueue(n);
    _bwd->enQueue(n);
    return lowest;
@@ -622,28 +633,30 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
             }
             arcsPerCandidate[reuse].emplace_back(a);
          } else {
-            bool hasViableChild = false;
-            for(auto ca : n->getChildren()) 
-               if (_mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true)) {
-                  hasViableChild = true;
-                  break;
-               }
-            if (hasViableChild) {
+            //bool hasViableChild = false;
+            //for(auto ca : n->getChildren()) 
+            //   if (_mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true)) {
+            //      hasViableChild = true;
+            //      break;
+            //   }
+            //if (hasViableChild) {
                candidateStates.emplace_back(ms);
                arcsPerCandidate.emplace_back(std::vector<MDDEdge::Ptr>{a});
-            } else {
-               pruneCS++;               
-               p->unhook(a);
-               if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
-               delSupport(l-1,v);
-               removeArc(l-1,l,a.get());
-               if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-               if (lowest < l) return lowest;
-            }
+            //} else {
+            //   pruneCS++;               
+            //   p->unhook(a);
+            //   if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+            //   delSupport(l-1,v);
+            //   removeArc(l-1,l,a.get());
+            //   if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+            //   if (lowest < l) return lowest;
+            //}
          }
       } //out-comment
    } // end of loop over parents.
 
+   bool foundNonviableClass = false;
+   int reuseIndex = 0;
    for (unsigned int candidateIndex = 0u; candidateIndex < candidateStates.size(); candidateIndex++) {
       MDDState* newState = candidateStates[candidateIndex];
       int nbk = (int)n->getNumChildren();
@@ -651,24 +664,40 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
       unsigned idx = 0,cnt = 0;
       for(auto ca : n->getChildren())
          cnt += keepArc[idx++] = _mddspec.exist(*newState,ca->getChild()->getState(),x[l],ca->getValue(),true);
-      MDDEdge::Ptr arc = arcsPerCandidate[candidateIndex][0];
-      auto p = arc->getParent();
-      auto v = arc->getValue();
-      splitter.addPotential(_pool,n,nbParents,p,arc,newState,v,nbk,(bool*)keepArc);
-      for (unsigned int arcIndex = 1u; arcIndex < arcsPerCandidate[candidateIndex].size(); arcIndex++) {
-         MDDEdge::Ptr arc = arcsPerCandidate[candidateIndex][arcIndex];
-         splitter.linkChild(candidateIndex, arc);
+      if (cnt == 0) {
+         for (auto arc : arcsPerCandidate[candidateIndex]) {
+            auto p = arc->getParent();      // p is the parent
+            auto v = arc->getValue();       // value on arc from parent
+            pruneCS++;               
+            p->unhook(arc);
+            if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+            delSupport(l-1,v);
+            removeArc(l-1,l,arc.get());
+            if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+         }
+         foundNonviableClass = true;
+         if (_maxDistance && lowest < l) return lowest;
+      } else {
+         MDDEdge::Ptr arc = arcsPerCandidate[candidateIndex][0];
+         auto p = arc->getParent();
+         auto v = arc->getValue();
+         splitter.addPotential(_pool,n,nbParents,p,arc,newState,v,nbk,(bool*)keepArc,constraintPriority);
+         for (unsigned int arcIndex = 1u; arcIndex < arcsPerCandidate[candidateIndex].size(); arcIndex++) {
+            MDDEdge::Ptr arc = arcsPerCandidate[candidateIndex][arcIndex];
+            splitter.linkChild(reuseIndex, arc);
+         }
+         reuseIndex++;
       }
    }
-
+   if (splitter.size() == 1 && !foundNonviableClass) splitter.clear();
    _fwd->enQueue(n);
    _bwd->enQueue(n);
    return lowest;
 }
 int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority)
 {
-   std::map<int,MDDState*> equivalenceClasses;
-   std::multimap<int,MDDEdge::Ptr> arcsPerClass;
+   std::map<std::vector<int>,MDDState*> equivalenceClasses;
+   std::multimap<std::vector<int>,MDDEdge::Ptr> arcsPerClass;
    int lowest = l;
    MDDState* ms = nullptr;
    const int nbParents = (int) n->getNumParents();
@@ -686,7 +715,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
          delSupport(l-1,v);
          removeArc(l-1,l,a.get());
          if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-         if (lowest < l) return lowest;
+         if (_maxDistance && lowest < l) return lowest;
          continue;
       }         
       MDDNode* bj = findMatchInLayer(layers[l],*ms);
@@ -694,7 +723,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
          a->moveTo(bj,trail,mem);            
       } else { // There is an approximate match
          // So, if there is room create a new node
-         int equivalenceValue = _mddspec.equivalenceValue(p->getState(),*ms,x[l-1],v,constraintPriority);
+         std::vector<int> equivalenceValue = _mddspec.equivalenceValue(p->getState(),*ms,x[l-1],v,constraintPriority);
          if (equivalenceClasses.count(equivalenceValue)) {
             auto existing = equivalenceClasses.at(equivalenceValue);
             if (ms != existing) {
@@ -703,59 +732,79 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
             }
             arcsPerClass.insert(std::make_pair(equivalenceValue, a));
          } else {
-            bool hasViableChild = false;
-            for(auto ca : n->getChildren()) 
-               if (_mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true)) {
-                  hasViableChild = true;
-                  break;
-               }
-            if (hasViableChild) {
+            //bool hasViableChild = false;
+            //for(auto ca : n->getChildren()) 
+            //   if (_mddspec.exist(*ms,ca->getChild()->getState(),x[l],ca->getValue(),true)) {
+            //      hasViableChild = true;
+            //      break;
+            //   }
+            //if (hasViableChild) {
                equivalenceClasses[equivalenceValue] = ms;
                arcsPerClass.insert({equivalenceValue, a});
-            } else {
-               pruneCS++;               
-               p->unhook(a);
-               if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
-               delSupport(l-1,v);
-               removeArc(l-1,l,a.get());
-               if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-               if (lowest < l) return lowest;
-            }
+            //} else {
+            //   pruneCS++;               
+            //   p->unhook(a);
+            //   if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+            //   delSupport(l-1,v);
+            //   removeArc(l-1,l,a.get());
+            //   if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+            //   if (_maxDistance && lowest < l) return lowest;
+            //}
          }
       } //out-comment
    } // end of loop over parents.
 
+   bool foundNonviableClass = false;
 
    for (auto it = equivalenceClasses.begin(); it != equivalenceClasses.end(); ++it) {
-      int equivalenceValue = it->first;
+      std::vector<int> equivalenceValue = it->first;
       MDDState* newState = it->second;
       int nbk = (int)n->getNumChildren();
       bool keepArc[nbk];
       unsigned idx = 0,cnt = 0;
       for(auto ca : n->getChildren())
          cnt += keepArc[idx++] = _mddspec.exist(*newState,ca->getChild()->getState(),x[l],ca->getValue(),true);
-      int splitterStateIndex = -1;
-      for (auto arcIt = arcsPerClass.begin(); arcIt != arcsPerClass.end(); ++arcIt) {
-         if (arcIt->first == equivalenceValue) {
-            MDDEdge::Ptr arc = arcIt->second;
-            if (splitterStateIndex >= 0) {
-               splitter.linkChild(splitterStateIndex, arc);
-            } else {
-               splitterStateIndex = splitter.size();
-               auto p = arc->getParent();
-               auto v = arc->getValue();
-               splitter.addPotential(_pool,n,nbParents,p,arc,newState,v,nbk,(bool*)keepArc);
+      if (cnt == 0) {
+         for (auto arcIt = arcsPerClass.begin(); arcIt != arcsPerClass.end(); ++arcIt) {
+            if (arcIt->first == equivalenceValue) {
+               MDDEdge::Ptr arc = arcIt->second;
+               auto p = arc->getParent();      // p is the parent
+               auto v = arc->getValue();       // value on arc from parent
+               pruneCS++;               
+               p->unhook(arc);
+               if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+               delSupport(l-1,v);
+               removeArc(l-1,l,arc.get());
+               if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+            }
+         }
+         foundNonviableClass = true;
+         if (_maxDistance && lowest < l) return lowest;
+      } else {
+         int splitterStateIndex = -1;
+         for (auto arcIt = arcsPerClass.begin(); arcIt != arcsPerClass.end(); ++arcIt) {
+            if (arcIt->first == equivalenceValue) {
+               MDDEdge::Ptr arc = arcIt->second;
+               if (splitterStateIndex >= 0) {
+                  splitter.linkChild(splitterStateIndex, arc);
+               } else {
+                  splitterStateIndex = splitter.size();
+                  auto p = arc->getParent();
+                  auto v = arc->getValue();
+                  splitter.addPotential(_pool,n,nbParents,p,arc,newState,v,nbk,(bool*)keepArc,constraintPriority);
+               }
             }
          }
       }
    }
+   if (splitter.size() == 1 && !foundNonviableClass) splitter.clear();
    _fwd->enQueue(n);
    _bwd->enQueue(n);
    return lowest;
 }
 
 
-void MDDRelax::splitLayers(int constraintPriority) // this can use node from recycled or add node to recycle
+void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can use node from recycled or add node to recycle
 {
    using namespace std;
    int nbScans = 0,nbSplits = 0;
@@ -763,7 +812,6 @@ void MDDRelax::splitLayers(int constraintPriority) // this can use node from rec
    const int ub = 300 * (int)numVariables;
    _pool->clear();
    MDDSplitter splitter(_pool,_mddspec,_width);
-   bool approximateSplit = _mddspec.approxEquivalence();
    while (l < (int)numVariables && nbSplits < ub) {
       auto& layer = layers[l];
       int lowest = l;
@@ -771,19 +819,38 @@ void MDDRelax::splitLayers(int constraintPriority) // this can use node from rec
       ++nbScans;
       if (!x[l-1]->isBound() && layers[l].size() < _width) {
          splitter.clear();
-         MDDNodeSim nSim(_pool,layers[l],_refs[l],_mddspec);
+         MDDNodeSim nSim(_pool,layers[l],_refs[l],_mddspec,constraintPriority);
          MDDNode* n = nullptr;
          while (layer.size() < _width && lowest==l) {
             while(splitter.size() == 0)  {
                n = nSim.extractNode();
                if (n) {
-                  if (approximateSplit)
+                  if (approximate)
                      lowest = splitNodeApprox(n,l,splitter,constraintPriority);
                   else if (_maxConstraintPriority)
                      lowest = splitNodeForConstraintPriority(n, l, splitter, constraintPriority);
                   else
                      lowest = splitNode(n,l,splitter);
                } else break;
+               //if (splitter.size() == 1) {
+               //   MDDPotential* candidate = splitter.getFirstCandidate();
+               //   MDDState* candidateState = candidate->getState();
+               //   if (&n->getState() != candidateState) {
+               //      _delta->setDelta(n,*candidateState);
+               //      n->setState(*candidateState,mem);
+               //      unsigned int idx = 0;
+               //      bool* keepKids = candidate->keepKids();
+               //      for (auto ca : n->getChildren()) {
+               //         if (!keepKids[idx++]) {
+               //            n->unhook(ca);
+               //            delSupport(l,ca->getValue());
+               //            removeArc(l,l+1,ca.get());
+               //            if (ca->getChild()->getNumParents()==0) delState(ca->getChild(),l+1);
+               //         }
+               //      }
+               //   }
+               //   splitter.clear();
+               //}
             }
             if (n==nullptr) break;
             if (n->getNumParents() == 0) {
@@ -813,15 +880,8 @@ void MDDRelax::splitLayers(int constraintPriority) // this can use node from rec
          ++nbSplits;
       } // end-if (there is room and variable is not bound)
       auto jump = std::min(l - lowest,_maxDistance);
-      if (lowest < l) {
-         l -= jump;
-         approximateSplit = _mddspec.approxEquivalence();
-      } else if (approximateSplit && _approxThenExact) {
-         approximateSplit = false;
-      } else {
-         l++;
-         approximateSplit = _mddspec.approxEquivalence();
-      }
+      if (jump) l -= jump;
+      else l++;
    }
 }
 
@@ -929,7 +989,14 @@ void MDDRelax::computeDown(int iter)
 {
    if (iter <= _maxSplitIter) {
       for (int i = 0; i <= _maxConstraintPriority; i++) {
-         splitLayers(i);
+         if (_mddspec.approxEquivalence()) {
+            splitLayers(true, i);
+            if (_approxThenExact) {
+               splitLayers(false, i);
+            }
+         } else {
+            splitLayers(false, i);
+         }
       }
    }
    _sf->disable();

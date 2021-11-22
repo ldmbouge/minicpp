@@ -190,7 +190,7 @@ class MDDRelax : public MDD {
    int splitNode(MDDNode* n,int l,MDDSplitter& splitter);
    int splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority);
    int splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority);
-   void splitLayers(int constraintPriority = 0); // delta is essentially an out argument. 
+   void splitLayers(bool approximate, int constraintPriority = 0); // delta is essentially an out argument. 
    int delState(MDDNode* state,int l); // return lowest layer where a deletion occurred.
    bool processNodeUp(MDDNode* n,int i); // i is the layer number
    void computeUp();

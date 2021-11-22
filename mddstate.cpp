@@ -53,6 +53,7 @@ MDDSpec::MDDSpec()
 {
     _approximateSplitting = false;
     _nodePriorityAggregateStrategy = 1;
+    _candidatePriorityAggregateStrategy = 1;
 }
 
 void MDDSpec::varOrder()
@@ -162,6 +163,11 @@ void MDDSpec::splitOnLargest(SplitFun onSplit, int constraintPriority)
 {
    _onSplit.emplace_back(onSplit);
    _onSplitByPriorities[constraintPriority].emplace_back(onSplit);
+}
+void MDDSpec::candidateByLargest(CandidateFun candidateSplit, int constraintPriority)
+{
+   _candidateSplit.emplace_back(candidateSplit);
+   _candidateSplitByPriorities[constraintPriority].emplace_back(candidateSplit);
 }
 void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue, int constraintPriority)
 {

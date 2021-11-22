@@ -91,14 +91,14 @@ namespace Factory {
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
-   void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues, int constraintPriority) {
+   void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues, int nodePriority, int candidatePriority, int approxEquivMode, int equivalenceThreshold, int constraintPriority) {
       mdd.append(x);
       ValueSet values(rawValues);
       auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-      const int L = mdd.addState(d,0,x.size(),MinFun);
-      const int U = mdd.addState(d,0,x.size(),MaxFun);
-      const int Lup = mdd.addState(d,0,x.size(),MinFun);
-      const int Uup = mdd.addState(d,0,x.size(),MaxFun);
+      const int L = mdd.addState(d,0,x.size(),MinFun, constraintPriority);
+      const int U = mdd.addState(d,0,x.size(),MaxFun, constraintPriority);
+      const int Lup = mdd.addState(d,0,x.size(),MinFun, constraintPriority);
+      const int Uup = mdd.addState(d,0,x.size(),MaxFun, constraintPriority);
 
       mdd.transitionDown(L,{L},[L,values] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
                                 bool allMembers = true;
@@ -142,26 +142,179 @@ namespace Factory {
 	    return (p.at(L) + values.member(val) <= ub);
       });
 
-      mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-         return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
-                  (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
-                         }, constraintPriority);
-      mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
-          return (lb - (c.at(L) + c.at(Lup)) > 3) +
-               2*(ub - (c.at(U) + c.at(Uup)) > 3);
-      }, constraintPriority);
+      switch (nodePriority) {
+         case 0:
+            mdd.splitOnLargest([](const auto& in) {
+               return in.getPosition();
+                               }, constraintPriority);
+            break;
+         case 1:
+            mdd.splitOnLargest([](const auto& in) {
+               return in.getNumParents();
+                               }, constraintPriority);
+            break;
+         case 2:
+            mdd.splitOnLargest([](const auto& in) {
+               return -in.getNumParents();
+                               }, constraintPriority);
+            break;
+         case 3:
+            mdd.splitOnLargest([L](const auto& in) {
+               return in.getState().at(L);
+                               }, constraintPriority);
+            break;
+         case 4:
+            mdd.splitOnLargest([L](const auto& in) {
+               return -in.getState().at(L);
+                               }, constraintPriority);
+            break;
+         case 5:
+            mdd.splitOnLargest([U](const auto& in) {
+               return in.getState().at(U);
+                               }, constraintPriority);
+            break;
+         case 6:
+            mdd.splitOnLargest([U](const auto& in) {
+               return -in.getState().at(U);
+                               }, constraintPriority);
+            break;
+         case 7:
+            mdd.splitOnLargest([L,U](const auto& in) {
+               return in.getState().at(U) - in.getState().at(L);
+                               }, constraintPriority);
+            break;
+         case 8:
+            mdd.splitOnLargest([L,U](const auto& in) {
+               return in.getState().at(L) - in.getState().at(U);
+                               }, constraintPriority);
+            break;
+         case 9:
+            mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+               return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
+                        (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
+                               }, constraintPriority);
+            break;
+         case 10:
+            mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+               return (double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
+                      (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0);
+                               }, constraintPriority);
+         default:
+            break;
+      }
+      switch (candidatePriority) {
+         case 0:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               return ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+                               }, constraintPriority);
+            break;
+         case 1:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               return numArcs;
+                               }, constraintPriority);
+            break;
+         case 2:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               return -numArcs;
+                               }, constraintPriority);
+            break;
+         case 3:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int minParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+               for (int i = 1; i < numArcs; i++) {
+                  minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+               }
+               return minParentIndex;
+                               }, constraintPriority);
+            break;
+         case 4:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int maxParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+               for (int i = 1; i < numArcs; i++) {
+                  maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+               }
+               return maxParentIndex;
+                               }, constraintPriority);
+            break;
+         case 5:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int sumParentIndex = 0;
+               for (int i = 0; i < numArcs; i++) {
+                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+               }
+               return sumParentIndex;
+                               }, constraintPriority);
+            break;
+         case 6:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int sumParentIndex = 0;
+               for (int i = 0; i < numArcs; i++) {
+                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+               }
+               return sumParentIndex/numArcs;
+                               }, constraintPriority);
+            break;
+         case 7:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int minParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+               for (int i = 1; i < numArcs; i++) {
+                  minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+               }
+               return -minParentIndex;
+                               }, constraintPriority);
+            break;
+         case 8:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int maxParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+               for (int i = 1; i < numArcs; i++) {
+                  maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+               }
+               return -maxParentIndex;
+                               }, constraintPriority);
+            break;
+         case 9:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int sumParentIndex = 0;
+               for (int i = 0; i < numArcs; i++) {
+                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+               }
+               return -sumParentIndex;
+                               }, constraintPriority);
+            break;
+         case 10:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int sumParentIndex = 0;
+               for (int i = 0; i < numArcs; i++) {
+                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+               }
+               return -sumParentIndex/numArcs;
+                               }, constraintPriority);
+            break;
+         default:
+            break;
+      }
+      switch (approxEquivMode) {
+         case 0:
+            mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup,equivalenceThreshold](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+                return (lb - (c.at(L) + c.at(Lup)) > equivalenceThreshold) +
+                     2*(ub - (c.at(U) + c.at(Uup)) > equivalenceThreshold);
+            }, constraintPriority);
+            break;
+         default:
+            break;
+      }
    }
 
-   void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues, int constraintPriority) {
+   void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues, int nodePriority, int candidatePriority, int approxEquivMode, int equivalenceThreshold, int constraintPriority) {
       mdd.append(x);
       ValueSet values(rawValues);
       assert(rawValues.size()==1);
       int tv = *rawValues.cbegin();
       auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-      const int L = mdd.addState(d,0,INT_MAX,MinFun);
-      const int U = mdd.addState(d,0,INT_MAX,MaxFun);
-      const int Lup = mdd.addState(d,0,INT_MAX,MinFun);
-      const int Uup = mdd.addState(d,0,INT_MAX,MaxFun);
+      const int L = mdd.addState(d,0,INT_MAX,MinFun, constraintPriority);
+      const int U = mdd.addState(d,0,INT_MAX,MaxFun, constraintPriority);
+      const int Lup = mdd.addState(d,0,INT_MAX,MinFun, constraintPriority);
+      const int Uup = mdd.addState(d,0,INT_MAX,MaxFun, constraintPriority);
 
       mdd.transitionDown(L,{L},[L,tv] (auto& out,const auto& p,const auto& x, const auto& val,bool up) {
                                   bool allMembers = val.size() == 1 && val.singleton() == tv;
@@ -190,16 +343,166 @@ namespace Factory {
                            return (p[L] + vinS <= ub);
       });
 
-      mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-         return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
-                  (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
-                         }, constraintPriority);
-      //mdd.splitOnLargest([L](const auto& in) {
-      //   return in.getState().at(L);
-      //                   }, constraintPriority);
-      mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
-          return (lb - (c.at(L) + c.at(Lup)) > 3) +
-               2*(ub - (c.at(U) + c.at(Uup)) > 3);
-      }, constraintPriority);
+      switch (nodePriority) {
+         case 0:
+            mdd.splitOnLargest([](const auto& in) {
+               return in.getPosition();
+                               }, constraintPriority);
+            break;
+         case 1:
+            mdd.splitOnLargest([](const auto& in) {
+               return in.getNumParents();
+                               }, constraintPriority);
+            break;
+         case 2:
+            mdd.splitOnLargest([](const auto& in) {
+               return -in.getNumParents();
+                               }, constraintPriority);
+            break;
+         case 3:
+            mdd.splitOnLargest([L](const auto& in) {
+               return in.getState().at(L);
+                               }, constraintPriority);
+            break;
+         case 4:
+            mdd.splitOnLargest([L](const auto& in) {
+               return -in.getState().at(L);
+                               }, constraintPriority);
+            break;
+         case 5:
+            mdd.splitOnLargest([U](const auto& in) {
+               return in.getState().at(U);
+                               }, constraintPriority);
+            break;
+         case 6:
+            mdd.splitOnLargest([U](const auto& in) {
+               return -in.getState().at(U);
+                               }, constraintPriority);
+            break;
+         case 7:
+            mdd.splitOnLargest([L,U](const auto& in) {
+               return in.getState().at(U) - in.getState().at(L);
+                               }, constraintPriority);
+            break;
+         case 8:
+            mdd.splitOnLargest([L,U](const auto& in) {
+               return in.getState().at(L) - in.getState().at(U);
+                               }, constraintPriority);
+            break;
+         case 9:
+            mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+               return -((double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
+                        (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0));
+                               }, constraintPriority);
+            break;
+         case 10:
+            mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+               return (double)std::max(lb - (in.getState().at(L) + in.getState().at(Lup)),0) +
+                      (double)std::max((in.getState().at(U) + in.getState().at(Uup)) - ub,0);
+                               }, constraintPriority);
+         default:
+            break;
+      }
+      switch (candidatePriority) {
+         case 0:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               return ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+                               }, constraintPriority);
+            break;
+         case 1:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               return numArcs;
+                               }, constraintPriority);
+            break;
+         case 2:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               return -numArcs;
+                               }, constraintPriority);
+            break;
+         case 3:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int minParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+               for (int i = 1; i < numArcs; i++) {
+                  minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+               }
+               return minParentIndex;
+                               }, constraintPriority);
+            break;
+         case 4:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int maxParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+               for (int i = 1; i < numArcs; i++) {
+                  maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+               }
+               return maxParentIndex;
+                               }, constraintPriority);
+            break;
+         case 5:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int sumParentIndex = 0;
+               for (int i = 0; i < numArcs; i++) {
+                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+               }
+               return sumParentIndex;
+                               }, constraintPriority);
+            break;
+         case 6:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int sumParentIndex = 0;
+               for (int i = 0; i < numArcs; i++) {
+                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+               }
+               return sumParentIndex/numArcs;
+                               }, constraintPriority);
+            break;
+         case 7:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int minParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+               for (int i = 1; i < numArcs; i++) {
+                  minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+               }
+               return -minParentIndex;
+                               }, constraintPriority);
+            break;
+         case 8:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int maxParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+               for (int i = 1; i < numArcs; i++) {
+                  maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+               }
+               return -maxParentIndex;
+                               }, constraintPriority);
+            break;
+         case 9:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int sumParentIndex = 0;
+               for (int i = 0; i < numArcs; i++) {
+                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+               }
+               return -sumParentIndex;
+                               }, constraintPriority);
+            break;
+         case 10:
+            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+               int sumParentIndex = 0;
+               for (int i = 0; i < numArcs; i++) {
+                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+               }
+               return -sumParentIndex/numArcs;
+                               }, constraintPriority);
+            break;
+         default:
+            break;
+      }
+      switch (approxEquivMode) {
+         case 0:
+            mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup,equivalenceThreshold](const auto& p, const auto& c, var<int>::Ptr var, int val) -> int {
+                return (lb - (c.at(L) + c.at(Lup)) > equivalenceThreshold) +
+                     2*(ub - (c.at(U) + c.at(Uup)) > equivalenceThreshold);
+            }, constraintPriority);
+            break;
+         default:
+            break;
+      }
    }
 }
