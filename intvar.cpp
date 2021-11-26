@@ -66,14 +66,31 @@ void IntVarImpl::assign(int v)
 }
 void IntVarImpl::remove(int v)
 {
+    if (contains(v))
+    {
+        //printf("[DEBUG] Removing %d from ", v);
+        //printVar(this);
+    }
     _dom->remove(v,*_domListener);
 }
 void IntVarImpl::removeBelow(int newMin)
 {
+    bool print = newMin > min();
+    if (print)
+    {
+        //printf("[DEBUG] Increasing min to %d of ", newMin);
+        //printVar(this);
+    }
     _dom->removeBelow(newMin,*_domListener);
 }
 void IntVarImpl::removeAbove(int newMax)
 {
+    bool print = newMax < max();
+    if (print)
+    {
+        //printf("[DEBUG] Decreasing max to %d of ", newMax);
+        //printVar(this);
+    }
     _dom->removeAbove(newMax,*_domListener);
 }
 void IntVarImpl::updateBounds(int newMin,int newMax)

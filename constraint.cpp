@@ -255,7 +255,7 @@ void Minimize::print(std::ostream& os) const
 
 void Minimize::tighten()
 {
-    assert(_obj->isBound());
+    //assert(_obj->isBound());
    _primal = _obj->max() - 1;
    throw Failure;
 }
@@ -787,9 +787,11 @@ void Element1D::post()
 
 void Element1DVar::post()
 {
-   _y->updateBounds(0,(int)_array.size() - 1);
-   for(auto t : _array)
-      t->propagateOnBoundChange(this);
+   _y->updateBounds(1,(int)_array.size());
+   for(int i = 1 ; i < _array.size(); i += 1)
+   {
+       _array[i]->propagateOnBoundChange(this);
+   }
    _y->propagateOnDomainChange(this);
    _z->propagateOnBoundChange(this);
    propagate();

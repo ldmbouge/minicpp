@@ -142,6 +142,7 @@ int main(int argc,char* argv[])
         std::cout << "-----" <<endl;});
 
     search.onFailure([&decisionVariables]() {
+        /*
         cout << "Fail = ";
         for(size_t i  = 0; i < decisionVariables.size(); i += 1)
         {
@@ -156,7 +157,9 @@ int main(int argc,char* argv[])
             }
             cout << " ";
         }
-        cout << endl;});
+        cout << endl;
+         */
+    });
 
 
     auto stat = search.optimize(obj);

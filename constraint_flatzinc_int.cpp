@@ -3,6 +3,7 @@
 #include <iostream>
 #include "utilities.hpp"
 #include "constraint_flatzinc_int.hpp"
+#include "constraint.hpp"
 
 array_int_element::array_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts) :
     Constraint(cp),
@@ -27,15 +28,18 @@ void array_int_element::propagate()
     // b -> c
     for (int bVal = bMin; bVal <= bMax; bVal += 1)
     {
-        cMin = std::min(cMin, _as[bVal]);
-        cMax = std::max(cMax, _as[bVal]);
+        if(_b->contains(bVal))
+        {
+            cMin = std::min(cMin, _as[bVal]);
+            cMax = std::max(cMax, _as[bVal]);
+        }
     }
     _c->updateBounds(cMin, cMax);
 
     // c -> b
     for (int bVal = bMin; bVal <= bMax; bVal += 1)
     {
-        if (_as[bVal] < cMin or cMax < _as[bVal])
+        if (_b->contains(bVal) and not _c->contains(_as[bVal]))
         {
             _b->remove(bVal);
         }
@@ -44,8 +48,15 @@ void array_int_element::propagate()
 
 void array_int_element::post()
 {
-    _b->propagateOnBoundChange(this);
+    _b->updateBounds(1,_as.size());
+    _b->propagateOnDomainChange(this);
     _c->propagateOnBoundChange(this);
+    propagate();
+
+    /*
+    auto e1d = new (_b->getSolver()) Element1D(_as,_b,_c);
+    _b->getSolver()->post(e1d);
+     */
 }
 
 array_var_int_element::array_var_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
@@ -68,33 +79,51 @@ void array_var_int_element::propagate()
     int cMin = INT_MAX;
     int cMax = INT_MIN;
 
-    // b -> c
+    // as[b] -> c
     for (int bVal = bMin; bVal <= bMax; bVal += 1)
     {
-        cMin = std::min(cMin, _as[bVal]->min());
-        cMax = std::max(cMax, _as[bVal]->max());
-    }
-    _c->updateBounds(cMin, cMax);
-
-    // c -> b
-    for (int bVal = bMin; bVal <= bMax; bVal += 1)
-    {
-        if (_as[bVal]->max() < cMin or cMax < _as[bVal]->min())
+        if(_b->contains(bVal))
         {
-            _b->remove(bVal);
+            cMin = std::min(cMin, _as[bVal]->min());
+            cMax = std::max(cMax, _as[bVal]->max());
         }
     }
+    _c->updateBounds(cMin, cMax);
+    cMin = _c->min();
+    cMax = _c->max();
 
+    if(_b->isBound())
+    {
+        // c -> as[b]
+        _as[bMin]->updateBounds(cMin, cMax);
+    }
+    else
+    {
+        // as[b], c -> b
+        for (int bVal = bMin; bVal <= bMax; bVal += 1)
+        {
+            if (_b->contains(bVal) and (_as[bVal]->max() < cMin or cMax < _as[bVal]->min()))
+            {
+                _b->remove(bVal);
+            }
+        }
+    }
 }
 
 void array_var_int_element::post()
 {
+    _b->updateBounds(1,_as.size());
     for(size_t i = 1; i < _as.size(); i += 1)
     {
         _as[i]->propagateOnBoundChange(this);
     }
-    _b->propagateOnBoundChange(this);
+    _b->propagateOnDomainChange(this);
     _c->propagateOnBoundChange(this);
+    propagate();
+    /*
+    auto e1dv = new (_b->getSolver()) Element1DVar(_as,_b,_c);
+    _b->getSolver()->post(e1dv);
+     */
 }
 
 int_eq_reif::int_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
@@ -189,6 +218,12 @@ void int_lin_eq::propagate(Constraint* c, std::vector<int>& _as, std::vector<var
         sumMax += _as[i] * _bs[i]->min();
     }
 
+    if (_c < sumMin or sumMax < _c)
+    {
+        failNow();
+    }
+
+    //a, bs, c -> bs
     // LtEq
     for (int i = 0; i < _pos; i += 1)
     {
@@ -245,6 +280,7 @@ void int_lin_eq::post()
     {
         v->propagateOnBoundChange(this);
     }
+    propagate();
 }
 
 int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
@@ -359,13 +395,9 @@ void int_lin_ne::propagate(Constraint* c, std::vector<int>& _as, std::vector<var
     {
         failNow();
     }
-
-    if (notBoundCount == 1)
+    else if (notBoundCount == 1 and (_c - sum) % _as[notBoundIndex] == 0)
     {
-        if ((_c - sum) % _as[notBoundIndex] == 0)
-        {
-            _bs[notBoundIndex]->remove((_c - sum) / _as[notBoundIndex]);
-        }
+        _bs[notBoundIndex]->remove((_c - sum) / _as[notBoundIndex]);
     }
 
 }
@@ -374,6 +406,6 @@ void int_lin_ne::post()
 {
     for(auto v : _bs)
     {
-        v->propagateOnBind(this);
+        v->propagateOnBoundChange(this);
     }
 }
