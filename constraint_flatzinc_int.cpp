@@ -52,11 +52,90 @@ void array_int_element::post()
     _b->propagateOnDomainChange(this);
     _c->propagateOnBoundChange(this);
     propagate();
+}
 
-    /*
-    auto e1d = new (_b->getSolver()) Element1D(_as,_b,_c);
-    _b->getSolver()->post(e1d);
-     */
+array_int_maximum::array_int_maximum(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
+    Constraint(cp),
+    _m(intVars->at(vars.front())),
+    _x()
+{
+    for(size_t i = 1; i < vars.size(); i += 1)
+    {
+        _x.push_back(intVars->at(vars[i]));
+    }
+}
+
+void array_int_maximum::propagate()
+{
+    int mMin = INT_MAX;
+    int mMax = INT_MIN;
+
+    // x -> m
+    for (auto xi : _x)
+    {
+        mMin = std::min(mMin, xi->max());
+        mMax = std::max(mMax, xi->max());
+    }
+    _m->updateBounds(mMin, mMax);
+
+    // m -> x
+    mMax = _m->max();
+    for (auto x : _x)
+    {
+        x->removeAbove(mMax);
+    }
+}
+
+void array_int_maximum::post()
+{
+    _m->propagateOnBoundChange(this);
+    for (auto x : _x)
+    {
+        x->propagateOnBoundChange(this);
+    }
+    propagate();
+}
+
+array_int_minimum::array_int_minimum(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
+        Constraint(cp),
+        _m(intVars->at(vars.front())),
+        _x()
+{
+    for(size_t i = 1; i < vars.size(); i += 1)
+    {
+        _x.push_back(intVars->at(vars[i]));
+    }
+}
+
+void array_int_minimum::propagate()
+{
+    int mMin = INT_MAX;
+    int mMax = INT_MIN;
+
+    // x -> m
+    for (size_t i = 0; i < _x.size(); i += 1)
+    {
+        mMin = std::min(mMin, _x[i]->min());
+        mMax = std::max(mMax, _x[i]->min());
+    }
+    _m->updateBounds(mMin, mMax);
+
+    // m -> x
+    mMin = _m->min();
+    for (auto x : _x)
+    {
+        x->removeBelow(mMin);
+    }
+}
+
+void array_int_minimum::post()
+{
+    _m->propagateOnBoundChange(this);
+    for (auto x : _x)
+    {
+        x->propagateOnBoundChange(this);
+    }
+    propagate();
 }
 
 array_var_int_element::array_var_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
@@ -126,6 +205,171 @@ void array_var_int_element::post()
      */
 }
 
+int_abs::int_abs(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
+    Constraint(cp),
+    _a(intVars->at(vars[0])),
+    _b((intVars->at(vars[1])))
+{}
+
+void int_abs::propagate()
+{
+    //Semantic: b = |a|
+    int aMin = _a->min();
+    int aMax = _a->max();
+    int bMin = _b->min();
+    int bMax = _b->max();
+
+    //Bound propagation: a -> b
+    if(aMin >= 0)
+    {
+        bMin = std::max(bMin, aMin);
+        bMax = std::min(bMax, aMax);
+    }
+    else if (aMax <= 0)
+    {
+        bMin = std::max(bMin, -aMax);
+        bMax = std::min(bMax, -aMin);
+    }
+    else
+    {
+        bMin = std::max(bMin, 0);
+        bMax = std::min(bMax, std::max(-aMin, aMax));
+    }
+    _b->updateBounds(bMin,bMax);
+
+    // Bound propagation: b -> a
+    if(aMin >= 0)
+    {
+        aMin = std::max(aMin, bMin);
+        aMax = std::min(aMax, bMax);
+    }
+    else if (aMax <= 0)
+    {
+        aMin = std::max(aMin, -bMax);
+        aMax = std::min(aMax, -bMin);
+    }
+    else
+    {
+        aMin = std::max(aMin, -bMax);
+        aMax = std::min(aMax, bMax);
+    }
+    _a->updateBounds(aMin,aMax);
+}
+
+void int_abs::post()
+{
+    _a->propagateOnBoundChange(this);
+    _b->propagateOnBoundChange(this);
+    propagate();
+}
+
+int_div::int_div(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
+    Constraint(cp),
+    _a(intVars->at(vars[0])),
+    _b((intVars->at(vars[1]))),
+    _c((intVars->at(vars[2])))
+{}
+
+void int_div::propagate()
+{
+    //Semantic: a / b = c
+    int aMin = _a->min();
+    int aMax = _a->max();
+    int bMin = _b->min();
+    int bMax = _b->max();
+    int cMin;
+    int cMax;
+    int boundsMin;
+    int boundsMax;
+    int bounds[4];
+
+    //Bound propagation: a / b -> c
+    boundsMin = INT_MAX;
+    boundsMax = INT_MIN;
+    bounds[0] = aMin / bMin;
+    bounds[1] = aMax / bMin;
+    bounds[2] = aMin / bMax;
+    bounds[3] = aMax / bMax;
+    for(int i  = 0; i < 4; i += 1)
+    {
+        boundsMin = std::min(boundsMin, bounds[i]);
+        boundsMax = std::max(boundsMax, bounds[i]);
+    }
+    _c->updateBounds(boundsMin, boundsMax);
+    cMin = _c->min();
+    cMax = _c->max();
+
+    //Bound propagation: c * b -> a
+    boundsMin = INT_MAX;
+    boundsMax = INT_MIN;
+    bounds[0] = cMin * bMin;
+    bounds[1] = cMax * bMin;
+    bounds[2] = cMin * bMax;
+    bounds[3] = cMax * bMax;
+    for(int i  = 0; i < 4; i += 1)
+    {
+        boundsMin = std::min(boundsMin, bounds[i]);
+        boundsMax = std::max(boundsMax, bounds[i]);
+    }
+    _a->updateBounds(boundsMin, boundsMax);
+    aMin = _a->min();
+    aMax = _a->max();
+
+    //Bound propagation: a / c -> b
+    boundsMin = INT_MAX;
+    boundsMax = INT_MIN;
+    bounds[0] = aMin / cMin;
+    bounds[1] = aMax / cMin;
+    bounds[2] = aMin / cMax;
+    bounds[3] = aMax / cMax;
+    for(int i  = 0; i < 4; i += 1)
+    {
+        boundsMin = std::min(boundsMin, bounds[i]);
+        boundsMax = std::max(boundsMax, bounds[i]);
+    }
+    _b->updateBounds(boundsMin, boundsMax);
+}
+
+void int_div::post()
+{
+    _b->remove(0);
+    _a->propagateOnBoundChange(this);
+    _b->propagateOnBoundChange(this);
+    _c->propagateOnBoundChange(this);
+    propagate();
+}
+
+
+int_eq::int_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    Constraint(cp),
+    _a(intVars->at(vars[0])),
+    _b((intVars->at(vars[1])))
+{}
+
+void int_eq::propagate()
+{
+   propagate(this, _a, _b);
+}
+
+void int_eq::post()
+{
+    _a->propagateOnBoundChange(this);
+    _b->propagateOnBoundChange(this);
+}
+
+void int_eq::propagate(Constraint* c, var<int>::Ptr _a, var<int>::Ptr _b)
+{
+    //Semantic: a = b
+    int min = std::max(_a->min(), _b->min());
+    int max = std::min(_a->max(), _b->max());
+
+    //Bound propagation: a -> b
+    _b->updateBounds(min, max);
+
+    //Bound propagation: b -> a
+    _a->updateBounds(min, max);
+}
+
 int_eq_reif::int_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
     Constraint(cp),
     _a(intVars->at(vars[0])),
@@ -153,10 +397,7 @@ void int_eq_reif::propagate()
    // r -> a,b
    if (_r->isTrue())
    {
-       int abMin = std::max(aMin,bMin);
-       int abMax = std::min(aMax,bMax);
-       _a->updateBounds(abMin, abMax);
-       _b->updateBounds(abMin, abMax);
+       int_eq::propagate(this, _a, _b);
    }
    else if (_r->isFalse())
    {
@@ -409,3 +650,5 @@ void int_lin_ne::post()
         v->propagateOnBoundChange(this);
     }
 }
+
+

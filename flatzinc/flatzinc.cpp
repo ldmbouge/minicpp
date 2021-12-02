@@ -48,7 +48,12 @@ namespace FlatZinc
     char const * const Constraint::type2str[] =
         {
             "array_int_element",
+            "array_int_maximum",
+            "array_int_minimum",
             "array_var_int_element",
+            "int_abs",
+            "int_div",
+            "int_eq",
             "int_eq_reif",
             "int_lin_eq",
             "int_lin_eq_reif",

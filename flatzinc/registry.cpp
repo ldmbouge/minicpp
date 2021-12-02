@@ -139,6 +139,24 @@ namespace FlatZinc
             s.constraints.push_back(c);
         }
 
+        void p_array_int_maximum(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::array_int_maximum;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            s.constraints.push_back(c);
+        }
+
+        void p_array_int_minimum(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::array_int_minimum;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            s.constraints.push_back(c);
+        }
+
         void p_array_var_int_element(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
         {
             Constraint c;
@@ -146,6 +164,34 @@ namespace FlatZinc
             Registry::parseVarsScope(s, ce[0], c);
             Registry::parseVarsScope(s, ce[1], c);
             Registry::parseVarsScope(s, ce[2], c);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_abs(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_abs;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[2], c);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_div(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_div;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[2], c);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_eq(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_eq;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
             s.constraints.push_back(c);
         }
 
@@ -170,7 +216,7 @@ namespace FlatZinc
             // Positive and negative coefficient counts
             int pos = 0;
             int neg = 0;
-            for(int i = 0; i < c.vars.size(); i += 1)
+            for(size_t i = 0; i < c.vars.size(); i += 1)
             {
                 if (c.consts[i] > 0)
                 {
@@ -199,7 +245,7 @@ namespace FlatZinc
             // Positive and negative coefficient counts
             int pos = 0;
             int neg = 0;
-            for(int i = 0; i < c.vars.size() - 1; i += 1)
+            for(size_t i = 0; i < c.vars.size() - 1; i += 1)
             {
                 if (c.consts[i] > 0)
                 {
@@ -252,7 +298,12 @@ namespace FlatZinc
             IntPoster()
             {
                 registry().add("array_int_element", &p_array_int_element);
+                registry().add("array_int_maximum", &p_array_int_maximum);
+                registry().add("array_int_minimum", &p_array_int_minimum);
                 registry().add("array_var_int_element", &p_array_var_int_element);
+                registry().add("int_abs", &p_int_abs);
+                registry().add("int_div", &p_int_div);
+                registry().add("int_eq", &p_int_eq);
                 registry().add("int_eq_reif", &p_int_eq_reif);
                 registry().add("int_lin_eq", &p_int_lin_eq);
                 registry().add("int_lin_eq_reif", &p_int_lin_eq_reif);

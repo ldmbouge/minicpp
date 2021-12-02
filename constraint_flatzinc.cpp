@@ -8,6 +8,12 @@ Constraint::Ptr FznConstraint(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intV
         case FlatZinc::Constraint::array_int_element:
             return new (cp) array_int_element(cp, intVars, boolVars, c.vars, c.consts);
 
+        case FlatZinc::Constraint::array_int_maximum:
+            return new (cp) array_int_maximum(cp, intVars, boolVars, c.vars, c.consts);
+
+        case FlatZinc::Constraint::array_int_minimum:
+            return new (cp) array_int_minimum(cp, intVars, boolVars, c.vars, c.consts);
+
         case FlatZinc::Constraint::array_var_int_element:
             return new (cp) array_var_int_element(cp, intVars, boolVars, c.vars, c.consts);
 

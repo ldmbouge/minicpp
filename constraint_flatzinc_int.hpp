@@ -15,6 +15,39 @@ class array_int_element : public Constraint
     void propagate() override;
 };
 
+class array_int_maximum : public Constraint
+{
+    var<int>::Ptr _m;
+    std::vector<var<int>::Ptr> _x;
+
+public:
+    array_int_maximum(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    void post() override;
+    void propagate() override;
+};
+
+class array_int_minimum : public Constraint
+{
+    var<int>::Ptr _m;
+    std::vector<var<int>::Ptr> _x;
+
+public:
+    array_int_minimum(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    void post() override;
+    void propagate() override;
+};
+
+class int_abs : public Constraint
+{
+    var<int>::Ptr _a;
+    var<int>::Ptr _b;
+
+public:
+    int_abs(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    void post() override;
+    void propagate() override;
+};
+
 class array_var_int_element : public Constraint
 {
     var<int>::Ptr _b;
@@ -25,6 +58,30 @@ class array_var_int_element : public Constraint
     array_var_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
     void post() override;
     void propagate() override;
+};
+
+class int_div : public Constraint
+{
+    var<int>::Ptr _a;
+    var<int>::Ptr _b;
+    var<int>::Ptr _c;
+
+public:
+    int_div(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    void post() override;
+    void propagate() override;
+};
+
+class int_eq : public Constraint
+{
+    var<int>::Ptr _a;
+    var<int>::Ptr _b;
+
+public:
+    int_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    void post() override;
+    void propagate() override;
+    static void propagate(Constraint* c, var<int>::Ptr _a, var<int>::Ptr _b);
 };
 
 class int_eq_reif : public Constraint
