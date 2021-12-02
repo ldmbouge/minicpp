@@ -55,9 +55,14 @@ namespace FlatZinc
             "int_div",
             "int_eq",
             "int_eq_reif",
+            "int_le",
+            "int_le_reif",
             "int_lin_eq",
             "int_lin_eq_reif",
+            "int_lin_le",
+            "int_lin_le_reif",
             "int_lin_ne",
+            "int_lin_ne_reif",
             "array_bool_or_reif",
             "bool_clause"
         };

@@ -5,6 +5,82 @@
 #include "constraint_flatzinc_int.hpp"
 #include "constraint.hpp"
 
+
+int_bin::int_bin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    Constraint(cp),
+    _a(intVars->at(vars[0])),
+    _b((intVars->at(vars[1])))
+{}
+
+void int_bin::post()
+{
+    _a->propagateOnBoundChange(this);
+    _b->propagateOnBoundChange(this);
+}
+
+int_bin_reif::int_bin_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    int_bin(cp, intVars, boolVars, vars, consts),
+    _r((boolVars->at(vars[2])))
+{}
+
+void int_bin_reif::post()
+{
+   int_bin::post();
+    _r->propagateOnBind(this);
+}
+
+int_lin::int_lin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    Constraint(cp),
+    _as(),
+    _bs(),
+    _c(consts[consts.size() - 3]),
+    _pos(consts[consts.size() - 2]),
+    _neg(consts[consts.size() - 1])
+{
+    for(size_t i = 0; i < consts.size() - 3; i += 1)
+    {
+        _as.push_back(consts[i]);
+    }
+
+    for(size_t i = 0; i < vars.size(); i += 1)
+    {
+        _bs.push_back(intVars->at(vars[i]));
+    }
+}
+
+
+void int_lin::calSumMinMax(std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int _pos, int _neg, int& sumMin, int& sumMax)
+{
+    for (int i = 0; i < _pos; i += 1)
+    {
+        sumMin += _as[i] * _bs[i]->min();
+        sumMax += _as[i] * _bs[i]->max();
+    }
+    for (int i = _pos; i < _pos + _neg; i += 1)
+    {
+        sumMin += _as[i] * _bs[i]->max();
+        sumMax += _as[i] * _bs[i]->min();
+    }
+}
+void int_lin::post()
+{
+    for(auto v : _bs)
+    {
+        v->propagateOnBoundChange(this);
+    }
+}
+
+int_lin_reif::int_lin_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    int_lin(cp, intVars, boolVars, vars, consts),
+    _r(boolVars->at(vars.back()))
+{}
+
+void int_lin_reif::post()
+{
+    int_lin::post();
+    _r->propagateOnBind(this);
+}
+
 array_int_element::array_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts) :
     Constraint(cp),
     _b(intVars->at(vars.front())),
@@ -339,22 +415,19 @@ void int_div::post()
     propagate();
 }
 
-
 int_eq::int_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    Constraint(cp),
-    _a(intVars->at(vars[0])),
-    _b((intVars->at(vars[1])))
+    int_bin(cp, intVars, boolVars, vars, consts)
 {}
+
+void int_eq::post()
+{
+    int_bin::post();
+    propagate();
+}
 
 void int_eq::propagate()
 {
    propagate(this, _a, _b);
-}
-
-void int_eq::post()
-{
-    _a->propagateOnBoundChange(this);
-    _b->propagateOnBoundChange(this);
 }
 
 void int_eq::propagate(Constraint* c, var<int>::Ptr _a, var<int>::Ptr _b)
@@ -371,20 +444,24 @@ void int_eq::propagate(Constraint* c, var<int>::Ptr _a, var<int>::Ptr _b)
 }
 
 int_eq_reif::int_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    Constraint(cp),
-    _a(intVars->at(vars[0])),
-    _b((intVars->at(vars[1]))),
-    _r((boolVars->at(vars[2])))
+    int_bin_reif(cp, intVars, boolVars, vars, consts)
 {}
+
+void int_eq_reif::post()
+{
+    int_bin_reif::post();
+    propagate();
+}
 
 void int_eq_reif::propagate()
 {
+    //Semantic: a == b <-> r
     int aMin = _a->min();
     int aMax = _a->max();
     int bMin = _b->min();
     int bMax = _b->max();
 
-   // a,b -> r
+   //Bound consistency: a == b -> r
    if (aMin == aMax and bMin == bMax and aMin == bMin)
    {
        _r->assign(true);
@@ -394,173 +471,141 @@ void int_eq_reif::propagate()
        _r->assign(false);
    }
 
-   // r -> a,b
+   //Bound consistency: r -> a == b
    if (_r->isTrue())
    {
        int_eq::propagate(this, _a, _b);
    }
    else if (_r->isFalse())
    {
-       if(_a->isBound())
-       {
-           _b->remove(aMin);
-       }
-       else if (_b->isBound())
-       {
-           _a->remove(bMin);
-       }
+       int_ne::propagate(this, _a, _b);
    }
 }
-void int_eq_reif::post()
+
+void int_gt::propagate(Constraint *c, var<int>::Ptr _a, var<int>::Ptr _b)
 {
-    _a->propagateOnBoundChange(this);
-    _b->propagateOnBoundChange(this);
-    _r->propagateOnBind(this);
+    //Semantic: a > b
+    int aMax = _a->max();
+    int bMin = _b->min();
+
+    //Bound propagation: a -> b
+    _b->removeAbove(aMax - 1);
+
+    //Bound propagation: b -> a
+    _a->removeBelow(bMin + 1);
+}
+
+int_le::int_le(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    int_bin(cp, intVars, boolVars, vars, consts)
+{}
+
+void int_le::post()
+{
+    int_bin::post();
+    propagate();
+}
+
+void int_le::propagate()
+{
+    propagate(this, _a, _b);
+}
+
+void int_le::propagate(Constraint* c, var<int>::Ptr _a, var<int>::Ptr _b)
+{
+    //Semantic: a <= b
+    int aMin = _a->min();
+    int bMax = _b->max();
+
+    //Bound propagation: b -> a
+    _a->removeAbove(bMax);
+
+    //Bound propagation: a -> b
+    _b->removeBelow(aMin);
+}
+
+int_le_reif::int_le_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    int_bin_reif(cp, intVars, boolVars, vars, consts)
+{}
+
+void int_le_reif::post()
+{
+    int_bin_reif::post();
+    propagate();
+}
+
+void int_le_reif::propagate()
+{
+    //Semantic: a <= b <-> r
+    int aMin = _a->min();
+    int aMax = _a->max();
+    int bMin = _b->min();
+    int bMax = _b->max();
+
+    //Bound consistency: a <= b -> r
+    if (aMax <= bMin)
+    {
+        _r->assign(true);
+    }
+    else if (bMax < aMin)
+    {
+        _r->assign(false);
+    }
+
+    //Bound consistency: a <= b <- r
+    if (_r->isTrue())
+    {
+        int_le::propagate(this, _a, _b);
+    }
+    else if (_r->isFalse())
+    {
+        int_gt::propagate(this, _a, _b);
+    }
 }
 
 int_lin_eq::int_lin_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    Constraint(cp),
-    _as(),
-    _bs(),
-    _c(consts[consts.size() - 3]),
-    _pos(consts[consts.size() - 2]),
-    _neg(consts[consts.size() - 1])
-{
-    for(size_t i = 0; i < consts.size() - 3; i += 1)
-    {
-        _as.push_back(consts[i]);
-    }
+    int_lin(cp, intVars, boolVars, vars, consts)
+{}
 
-    for(size_t i = 0; i < vars.size(); i += 1)
-    {
-        _bs.push_back(intVars->at(vars[i]));
-    }
+void int_lin_eq::post()
+{
+    int_lin::post();
+    propagate();
 }
 
 void int_lin_eq::propagate()
 {
-   propagate(this, _as,_bs, _c, _pos, _neg);
-}
-
-void int_lin_eq::propagate(Constraint* c, std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int _c, int _pos, int _neg)
-{
     int sumMin = 0;
     int sumMax = 0;
-    for (int i = 0; i < _pos; i += 1)
-    {
-        assert(_as[i] > 0);
-        sumMin += _as[i] * _bs[i]->min();
-        sumMax += _as[i] * _bs[i]->max();
-    }
-    for (int i = _pos; i < _pos + _neg; i += 1)
-    {
-        assert(_as[i] < 0);
-        sumMin += _as[i] * _bs[i]->max();
-        sumMax += _as[i] * _bs[i]->min();
-    }
-
-    if (_c < sumMin or sumMax < _c)
-    {
-        failNow();
-    }
-
-    //a, bs, c -> bs
-    // LtEq
-    for (int i = 0; i < _pos; i += 1)
-    {
-        int iMin = _as[i] * _bs[i]->min();
-        int iMax = _as[i] * _bs[i]->max();
-
-        if (iMax - iMin > _c - sumMin)
-        {
-            int iBsMax = floorDivision(_c - sumMin + iMin, _as[i]);
-            _bs[i]->removeAbove(iBsMax);
-            sumMax = sumMax - iMax + _as[i] * iBsMax;
-        }
-    }
-    for (int i = _pos; i < _pos + _neg; i += 1)
-    {
-        int iMin = _as[i] * _bs[i]->max();
-        int iMax = _as[i] * _bs[i]->min();
-        if (iMax - iMin > _c - sumMin)
-        {
-            int iBsMin = ceilDivision(-(_c - sumMin + iMin), -_as[i]);
-            _bs[i]->removeBelow(iBsMin);
-            sumMax = sumMax - iMax + _as[i] * iBsMin;
-        }
-    }
-
-    //GtEq
-    for (int i = 0; i < _pos; i += 1)
-    {
-        int iMin = _as[i] * _bs[i]->min();
-        int iMax = _as[i] * _bs[i]->max();
-        if (iMax - iMin > -(_c - sumMax))
-        {
-            int iBsMin = ceilDivision(_c - sumMax + iMax, _as[i]);
-            _bs[i]->removeBelow(iBsMin);
-            sumMin = sumMin - iMin + _as[i] * iBsMin;
-        }
-    }
-    for (int i = _pos; i < _pos + _neg; i += 1)
-    {
-        int iMin = _as[i] * _bs[i]->max();
-        int iMax = _as[i] * _bs[i]->min();
-        if (iMax - iMin > -(_c - sumMax))
-        {
-            int iBsMax = floorDivision(-(_c - sumMax + iMax), -_as[i]);
-            _bs[i]->removeAbove(iBsMax);
-            sumMin = sumMin - iMin + _as[i] * iBsMax;
-        }
-    }
+    calSumMinMax(_as,_bs, _pos, _neg, sumMin, sumMax);
+    propagate(this, _as,_bs, _c, _pos, _neg, sumMin, sumMax);
 }
 
-void int_lin_eq::post()
+void int_lin_eq::propagate(Constraint* c, std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int _c, int _pos, int _neg, int sumMin, int sumMax)
 {
-    for(auto v : _bs)
-    {
-        v->propagateOnBoundChange(this);
-    }
-    propagate();
+    //Semantic: as1 * bs1 + ... + asn * bsn = c
+
+    //Bounds propagation: as1 * bs1 + ... + asn * bsn >= c
+    int_lin_ge::propagate(c, _as,_bs, _c, _pos, _neg, sumMin, sumMax);
+
+    //Bounds propagation: as1 * bs1 + ... + asn * bsn <= c
+    int_lin_le::propagate(c, _as,_bs, _c, _pos, _neg, sumMin, sumMax);
 }
 
 int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    Constraint(cp),
-    _as(),
-    _bs(),
-    _c(consts[consts.size() - 3]),
-    _r(boolVars->at(vars.back())),
-    _pos(consts[consts.size() - 2]),
-    _neg(consts[consts.size() - 1])
-{
-    for(size_t i = 0; i < consts.size() - 1; i += 1)
-    {
-        _as.push_back(consts[i]);
-    }
+    int_lin_reif(cp, intVars, boolVars, vars, consts)
+{}
 
-    for(size_t i = 0; i < vars.size() - 1; i += 1)
-    {
-        _bs.push_back(intVars->at(vars[i]));
-    }
+void int_lin_eq_reif::post()
+{
+    int_lin_reif::post();
+    propagate();
 }
 
 void int_lin_eq_reif::propagate()
 {
-
     int sumMin = 0;
     int sumMax = 0;
-    for (int i = 0; i < _pos; i += 1)
-    {
-        assert(_as[i] > 0);
-        sumMin += _as[i] * _bs[i]->min();
-        sumMax += _as[i] * _bs[i]->max();
-    }
-    for (int i = _pos; i < _pos + _neg; i += 1)
-    {
-        assert(_as[i] < 0);
-        sumMin += _as[i] * _bs[i]->max();
-        sumMax += _as[i] * _bs[i]->min();
-    }
+    calSumMinMax(_as,_bs, _pos, _neg, sumMin, sumMax);
 
     // as,bs,c -> r
     if(sumMin == sumMax)
@@ -575,7 +620,7 @@ void int_lin_eq_reif::propagate()
     // r -> as,bs,c
     if(_r->isTrue())
     {
-        int_lin_eq::propagate(this, _as, _bs, _c, _pos, _neg);
+        int_lin_eq::propagate(this, _as, _bs, _c, _pos, _neg, sumMin, sumMax);
     }
     else if (_r->isFalse())
     {
@@ -583,29 +628,142 @@ void int_lin_eq_reif::propagate()
     }
 }
 
-void int_lin_eq_reif::post()
+void int_lin_ge::propagate(Constraint *c, std::vector<int> &_as, std::vector<var<int>::Ptr> &_bs, int _c, int _pos, int _neg, int sumMin, int sumMax)
 {
-    for(auto v : _bs)
+    for (int i = 0; i < _pos; i += 1)
     {
-        v->propagateOnBoundChange(this);
+        int iMin = _as[i] * _bs[i]->min();
+        int iMax = _as[i] * _bs[i]->max();
+        if (iMax - iMin > -(_c - sumMax))
+        {
+            int bsMin = ceilDivision(_c - sumMax + iMax, _as[i]);
+            _bs[i]->removeBelow(bsMin);
+            sumMin = sumMin - iMin + _as[i] * bsMin;
+        }
     }
-    _r->propagateOnBind(this);
+    for (int i = _pos; i < _pos + _neg; i += 1)
+    {
+        int iMin = _as[i] * _bs[i]->max();
+        int iMax = _as[i] * _bs[i]->min();
+        if (iMax - iMin > -(_c - sumMax))
+        {
+            int bsMax = floorDivision(-(_c - sumMax + iMax), -_as[i]);
+            _bs[i]->removeAbove(bsMax);
+            sumMin = sumMin - iMin + _as[i] * bsMax;
+        }
+    }
+}
+
+void int_lin_gt::propagate(Constraint *c, std::vector<int> &_as, std::vector<var<int>::Ptr> &_bs, int _c, int _pos, int _neg, int sumMin, int sumMax)
+{
+    int_lin_ge::propagate(c, _as, _bs, _c + 1, _pos, _neg, sumMin, sumMax);
+}
+
+int_lin_le::int_lin_le(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    int_lin(cp, intVars, boolVars, vars, consts)
+{}
+
+void int_lin_le::post()
+{
+    int_lin::post();
+    propagate();
+}
+
+void int_lin_le::propagate()
+{
+    int sumMin = 0;
+    int sumMax = 0;
+    for (int i = 0; i < _pos; i += 1)
+    {
+        sumMin += _as[i] * _bs[i]->min();
+        sumMax += _as[i] * _bs[i]->max();
+    }
+    for (int i = _pos; i < _pos + _neg; i += 1)
+    {
+        sumMin += _as[i] * _bs[i]->max();
+        sumMax += _as[i] * _bs[i]->min();
+    }
+
+    propagate(this, _as,_bs, _c, _pos, _neg, sumMin, sumMax);
+}
+
+void int_lin_le::propagate(Constraint* c, std::vector<int>& _as, std::vector<var<int>::Ptr>& _bs, int _c, int _pos, int _neg, int sumMin, int sumMax)
+{
+    //Semantic: as1 * bs1 + ... + asn * bsn <= c
+
+    // Bound consistency
+    for (int i = 0; i < _pos; i += 1)
+    {
+        int iMin = _as[i] * _bs[i]->min();
+        int iMax = _as[i] * _bs[i]->max();
+
+        if (iMax - iMin > _c - sumMin)
+        {
+            int bsMax = floorDivision(_c - sumMin + iMin, _as[i]);
+            _bs[i]->removeAbove(bsMax);
+            sumMax = sumMax - iMax + _as[i] * bsMax;
+        }
+    }
+    for (int i = _pos; i < _pos + _neg; i += 1)
+    {
+        int iMin = _as[i] * _bs[i]->max();
+        int iMax = _as[i] * _bs[i]->min();
+        if (iMax - iMin > _c - sumMin)
+        {
+            int bsMin = ceilDivision(-(_c - sumMin + iMin), -_as[i]);
+            _bs[i]->removeBelow(bsMin);
+            sumMax = sumMax - iMax + _as[i] * bsMin;
+        }
+    }
+}
+
+int_lin_le_reif::int_lin_le_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    int_lin_reif(cp, intVars, boolVars, vars, consts)
+{}
+
+void int_lin_le_reif::post()
+{
+    int_lin_reif::post();
+    propagate();
+}
+
+void int_lin_le_reif::propagate()
+{
+    //Semantic: as1 * bs1 + ... + asn * bsn <= c <-> r
+    int sumMin = 0;
+    int sumMax = 0;
+    calSumMinMax(_as,_bs, _pos, _neg, sumMin, sumMax);
+
+    //Bound propagation: as1 * bs1 + ... + asn * bsn <= c -> r
+    if(sumMin == sumMax)
+    {
+        _r->assign(sumMin == _c);
+    }
+    else if(_c < sumMin or sumMax < _c)
+    {
+        _r->assign(false);
+    }
+
+    //Bound propagation: as1 * bs1 + ... + asn * bsn <= c <- r
+    if(_r->isTrue())
+    {
+        int_lin_le::propagate(this, _as, _bs, _c, _pos, _neg, sumMin, sumMax);
+    }
+    else if (_r->isFalse())
+    {
+        int_lin_gt::propagate(this, _as, _bs, _c, _pos, _neg, sumMin, sumMax);
+    }
 }
 
 int_lin_ne::int_lin_ne(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    Constraint(cp),
-    _as(),
-    _bs(),
-    _c(consts.back())
-{
-    for(size_t i = 0; i < consts.size() - 1; i += 1)
-    {
-        _as.push_back(consts[i]);
-    }
+    int_lin(cp, intVars, boolVars, vars, consts)
+{}
 
-    for(size_t i = 0; i < vars.size(); i += 1)
+void int_lin_ne::post()
+{
+    for(auto v : _bs)
     {
-        _bs.push_back(intVars->at(vars[i]));
+        v->propagateOnBind(this);
     }
 }
 
@@ -640,15 +798,66 @@ void int_lin_ne::propagate(Constraint* c, std::vector<int>& _as, std::vector<var
     {
         _bs[notBoundIndex]->remove((_c - sum) / _as[notBoundIndex]);
     }
-
 }
 
-void int_lin_ne::post()
+
+int_lin_ne_reif::int_lin_ne_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+    int_lin_reif(cp, intVars, boolVars, vars, consts)
+{}
+
+void int_lin_ne_reif::post()
 {
-    for(auto v : _bs)
+    int_lin_reif::post();
+    propagate();
+}
+
+void int_lin_ne_reif::propagate()
+{
+    //Semantic: as1 * bs1 + ... + asn * bsn != c <-> r
+    int sumMin = 0;
+    int sumMax = 0;
+    calSumMinMax(_as,_bs, _pos, _neg, sumMin, sumMax);
+
+    //Bound propagation: as1 * bs1 + ... + asn * bsn <= c -> r
+    if(sumMin == sumMax)
     {
-        v->propagateOnBoundChange(this);
+        _r->assign(sumMin != _c);
+    }
+    else if(_c < sumMin or sumMax < _c)
+    {
+        _r->assign(true);
+    }
+
+    //Bound propagation: as1 * bs1 + ... + asn * bsn <= c <- r
+    if(_r->isTrue())
+    {
+        int_lin_ne::propagate(this, _as, _bs, _c);
+    }
+    else if (_r->isFalse())
+    {
+        int_lin_eq::propagate(this, _as, _bs, _c, _pos, _neg, sumMin, sumMax);
     }
 }
 
+
+void int_ne::propagate(Constraint *c, var<int>::Ptr _a, var<int>::Ptr _b)
+{
+    //Semantic: a != b
+    int aMin = _a->min();
+    int aMax = _a->max();
+    int bMin = _b->min();
+    int bMax = _b->max();
+
+    // Unit propagation: a -> b
+    if(aMin == aMax)
+    {
+        _b->remove(aMin);
+    }
+
+    // Unit propagation: b -> a
+    if (bMin == bMax)
+    {
+        _a->remove(bMin);
+    }
+}
 
