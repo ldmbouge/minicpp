@@ -63,7 +63,8 @@ namespace FlatZinc
 
     struct Constraint
     {
-        enum Type {
+        enum Type
+        {
             array_int_element,
             array_int_maximum,
             array_int_minimum,
@@ -80,18 +81,36 @@ namespace FlatZinc
             int_lin_le_reif,
             int_lin_ne,
             int_lin_ne_reif,
-            //int_lt,
-            //int_lt_reif,
-            //int_max,
-            //int_min,
-            //int_mod,
-            //int_ne,
-            //int_ne_reif,
-            //int_plus,
-            //int_pow,
-            //int_times,
+            int_lt,
+            int_lt_reif,
+            int_max,
+            int_min,
+            int_mod,
+            int_ne,
+            int_ne_reif,
+            int_plus,
+            int_pow,
+            int_times,
+            array_bool_and_reif,
+            array_bool_element,
             array_bool_or_reif,
+            array_bool_xor,
+            array_var_bool_element,
+            bool2int,
+            bool_and_reif,
             bool_clause,
+            bool_eq,
+            bool_eq_reif,
+            bool_le,
+            bool_le_reif,
+            bool_lin_eq,
+            bool_lin_le,
+            bool_lt,
+            bool_lt_reif,
+            bool_not,
+            bool_or_reif,
+            bool_xor,
+            bool_xor_reif
         };
 
         Type type;

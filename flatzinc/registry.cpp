@@ -41,8 +41,6 @@
 
 #include "registry.h"
 #include "flatzinc.h"
-#include <utility>
-#include <climits>
 
 namespace FlatZinc
 {
@@ -128,10 +126,7 @@ namespace FlatZinc
 
     namespace
     {
-
-
         // Integer constraints
-
         void p_int_bin(Constraint& c, FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
         {
             Registry::parseVarsScope(s, ce[0], c);
@@ -144,33 +139,18 @@ namespace FlatZinc
             Registry::parseVarsScope(s, ce[2], c);
         }
 
+        void p_int_tern(Constraint& c, FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[2], c);
+        }
+
         void p_int_lin(Constraint& c, FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
         {
             Registry::parseConstsScope(s, ce[0], c);
             Registry::parseVarsScope(s, ce[1], c);
             Registry::parseConstsScope(s, ce[2], c);
-
-            // Positive and negative coefficient counts
-            int lastPosIdx = INT_MIN;
-            int firstNegIdx = INT_MAX;
-            int posCount = 0;
-            int negCount = 0;
-            for(size_t i = 0; i < c.vars.size(); i += 1)
-            {
-                if (c.consts[i] > 0)
-                {
-                    lastPosIdx = std::max(lastPosIdx, static_cast<int>(i));
-                    posCount += 1;
-                }
-                else
-                {
-                    firstNegIdx = std::min(firstNegIdx, static_cast<int>(i));
-                    negCount += 1;
-                }
-            }
-            assert(lastPosIdx < firstNegIdx);
-            c.consts.push_back(posCount);
-            c.consts.push_back(negCount);
         }
 
         void p_int_lin_reif(Constraint& c, FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
@@ -221,8 +201,7 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::int_abs;
-            Registry::parseVarsScope(s, ce[0], c);
-            Registry::parseVarsScope(s, ce[2], c);
+            p_int_bin(c, s, ce , ann);
             s.constraints.push_back(c);
         }
 
@@ -230,9 +209,7 @@ namespace FlatZinc
         {
             Constraint c;
             c.type = Constraint::Type::int_div;
-            Registry::parseVarsScope(s, ce[0], c);
-            Registry::parseVarsScope(s, ce[1], c);
-            Registry::parseVarsScope(s, ce[2], c);
+            p_int_tern(c, s, ce , ann);
             s.constraints.push_back(c);
         }
 
@@ -317,14 +294,168 @@ namespace FlatZinc
             s.constraints.push_back(c);
         }
 
-        void p_array_bool_or_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        void p_int_lt(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_lt;
+            p_int_bin(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_lt_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_lt_reif;
+            p_int_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_max(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_max;
+            p_int_tern(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_min(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_min;
+            p_int_tern(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_mod(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_mod;
+            p_int_tern(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_ne(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_ne;
+            p_int_bin(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_ne_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_ne_reif;
+            p_int_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_plus(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_plus;
+            p_int_tern(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_pow(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_pow;
+            p_int_tern(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_times(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_times;
+            p_int_tern(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        // Boolean constraints
+        void p_bool_bin(Constraint& c, FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+        }
+
+        void p_bool_bin_reif(Constraint& c, FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            p_bool_bin(c,s,ce,ann);
+            Registry::parseVarsScope(s, ce[2], c);
+        }
+
+        void p_bool_lin(Constraint& c, FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Registry::parseConstsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseConstsScope(s, ce[2], c);
+        }
+
+        void p_array_bool_and(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::array_bool_and_reif;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            s.constraints.push_back(c);
+        };
+
+        void p_array_bool_element(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::array_bool_element;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseConstsScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[2], c);
+            s.constraints.push_back(c);
+        };
+
+        void p_array_bool_or(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
         {
             Constraint c;
             c.type = Constraint::Type::array_bool_or_reif;
             Registry::parseVarsScope(s, ce[0], c);
             Registry::parseVarsScope(s, ce[1], c);
             s.constraints.push_back(c);
-        }
+        };
+
+        void p_array_bool_xor(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::array_bool_xor;
+            Registry::parseVarsScope(s, ce[0], c);
+            s.constraints.push_back(c);
+        };
+
+        void p_array_var_bool_element(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::array_var_bool_element;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            Registry::parseVarsScope(s, ce[2], c);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool2int(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool2int;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_and_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_and_reif;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
 
         void p_bool_clause(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
         {
@@ -335,6 +466,104 @@ namespace FlatZinc
             c.consts.push_back(ce[0]->getArray()->a.size());
             c.consts.push_back(ce[1]->getArray()->a.size());
             s.constraints.push_back(c);
+        }
+
+        void p_bool_eq(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_eq;
+            p_bool_bin(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_eq_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_eq_reif;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_le(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_le;
+            p_bool_bin(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_le_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_le_reif;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_lin_eq(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_lin_eq;
+            p_bool_lin(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_lin_le(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_lin_le;
+            p_bool_lin(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_lt(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_lt;
+            p_bool_bin(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+        void p_bool_lt_reif(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_lt_reif;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_not(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_not;
+            p_bool_bin(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_or(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_or_reif;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_xor(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            if (ce.args->a.size() == 2)
+            {
+                Constraint c;
+                p_bool_bin(c, s, ce, ann);
+                s.constraints.push_back(c);
+            }
+            else
+            {
+                Constraint c;
+                c.type = Constraint::Type::bool_xor_reif;
+                Registry::parseVarsScope(s, ce[0], c);
+                Registry::parseVarsScope(s, ce[1], c);
+                Registry::parseVarsScope(s, ce[2], c);
+                s.constraints.push_back(c);
+            }
         }
 
         class IntPoster
@@ -358,8 +587,37 @@ namespace FlatZinc
                 registry().add("int_lin_le_reif", &p_int_lin_le_reif);
                 registry().add("int_lin_ne", &p_int_lin_ne);
                 registry().add("int_lin_ne_reif", &p_int_lin_ne_reif);
-                registry().add("array_bool_or", &p_array_bool_or_reif);
+                registry().add("int_lt", &p_int_lt);
+                registry().add("int_lt_reif", &p_int_lt_reif);
+                registry().add("int_max", &p_int_max);
+                registry().add("int_min", &p_int_min);
+                registry().add("int_mod", &p_int_mod);
+                registry().add("int_ne", &p_int_ne);
+                registry().add("int_ne_reif", &p_int_ne_reif);
+                registry().add("int_plus", &p_int_plus);
+                registry().add("int_pow", &p_int_pow);
+                registry().add("int_times", &p_int_times);
+
+                // Boolean constraints
+                registry().add("array_bool_and", &p_array_bool_and);
+                registry().add("array_bool_element", &p_array_bool_element);
+                registry().add("array_bool_or", &p_array_bool_or);
+                registry().add("array_bool_xor", &p_array_bool_xor);
+                registry().add("array_var_bool_element", &p_array_var_bool_element);
+                registry().add("bool2int", &p_bool2int);
+                registry().add("bool_and", &p_bool_and_reif);
                 registry().add("bool_clause", &p_bool_clause);
+                registry().add("bool_eq", &p_bool_eq);
+                registry().add("bool_eq_reif", &p_bool_eq_reif);
+                registry().add("bool_le", &p_bool_le);
+                registry().add("bool_le_reif", &p_bool_le_reif);
+                registry().add("bool_lin_eq", &p_bool_lin_eq);
+                registry().add("bool_lin_le", &p_bool_lin_le);
+                registry().add("bool_lt", &p_bool_lt);
+                registry().add("bool_lt_reif", &p_bool_lt_reif);
+                registry().add("bool_not", &p_bool_not);
+                registry().add("bool_or", &p_bool_or);
+                registry().add("bool_xor", &p_bool_xor);
             }
         };
 

@@ -1005,77 +1005,221 @@ constraint.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint.cpp.s
 .PHONY : constraint.cpp.s
 
-constraint_flatzinc.o: constraint_flatzinc.cpp.o
-.PHONY : constraint_flatzinc.o
+constraints/bool_array.o: constraints/bool_array.cpp.o
+.PHONY : constraints/bool_array.o
 
 # target to build an object file
-constraint_flatzinc.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc.cpp.o
-.PHONY : constraint_flatzinc.cpp.o
+constraints/bool_array.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_array.cpp.o
+.PHONY : constraints/bool_array.cpp.o
 
-constraint_flatzinc.i: constraint_flatzinc.cpp.i
-.PHONY : constraint_flatzinc.i
+constraints/bool_array.i: constraints/bool_array.cpp.i
+.PHONY : constraints/bool_array.i
 
 # target to preprocess a source file
-constraint_flatzinc.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc.cpp.i
-.PHONY : constraint_flatzinc.cpp.i
+constraints/bool_array.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_array.cpp.i
+.PHONY : constraints/bool_array.cpp.i
 
-constraint_flatzinc.s: constraint_flatzinc.cpp.s
-.PHONY : constraint_flatzinc.s
+constraints/bool_array.s: constraints/bool_array.cpp.s
+.PHONY : constraints/bool_array.s
 
 # target to generate assembly for a file
-constraint_flatzinc.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc.cpp.s
-.PHONY : constraint_flatzinc.cpp.s
+constraints/bool_array.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_array.cpp.s
+.PHONY : constraints/bool_array.cpp.s
 
-constraint_flatzinc_bool.o: constraint_flatzinc_bool.cpp.o
-.PHONY : constraint_flatzinc_bool.o
+constraints/bool_bin.o: constraints/bool_bin.cpp.o
+.PHONY : constraints/bool_bin.o
 
 # target to build an object file
-constraint_flatzinc_bool.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc_bool.cpp.o
-.PHONY : constraint_flatzinc_bool.cpp.o
+constraints/bool_bin.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_bin.cpp.o
+.PHONY : constraints/bool_bin.cpp.o
 
-constraint_flatzinc_bool.i: constraint_flatzinc_bool.cpp.i
-.PHONY : constraint_flatzinc_bool.i
+constraints/bool_bin.i: constraints/bool_bin.cpp.i
+.PHONY : constraints/bool_bin.i
 
 # target to preprocess a source file
-constraint_flatzinc_bool.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc_bool.cpp.i
-.PHONY : constraint_flatzinc_bool.cpp.i
+constraints/bool_bin.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_bin.cpp.i
+.PHONY : constraints/bool_bin.cpp.i
 
-constraint_flatzinc_bool.s: constraint_flatzinc_bool.cpp.s
-.PHONY : constraint_flatzinc_bool.s
+constraints/bool_bin.s: constraints/bool_bin.cpp.s
+.PHONY : constraints/bool_bin.s
 
 # target to generate assembly for a file
-constraint_flatzinc_bool.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc_bool.cpp.s
-.PHONY : constraint_flatzinc_bool.cpp.s
+constraints/bool_bin.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_bin.cpp.s
+.PHONY : constraints/bool_bin.cpp.s
 
-constraint_flatzinc_int.o: constraint_flatzinc_int.cpp.o
-.PHONY : constraint_flatzinc_int.o
+constraints/bool_lin.o: constraints/bool_lin.cpp.o
+.PHONY : constraints/bool_lin.o
 
 # target to build an object file
-constraint_flatzinc_int.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc_int.cpp.o
-.PHONY : constraint_flatzinc_int.cpp.o
+constraints/bool_lin.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_lin.cpp.o
+.PHONY : constraints/bool_lin.cpp.o
 
-constraint_flatzinc_int.i: constraint_flatzinc_int.cpp.i
-.PHONY : constraint_flatzinc_int.i
+constraints/bool_lin.i: constraints/bool_lin.cpp.i
+.PHONY : constraints/bool_lin.i
 
 # target to preprocess a source file
-constraint_flatzinc_int.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc_int.cpp.i
-.PHONY : constraint_flatzinc_int.cpp.i
+constraints/bool_lin.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_lin.cpp.i
+.PHONY : constraints/bool_lin.cpp.i
 
-constraint_flatzinc_int.s: constraint_flatzinc_int.cpp.s
-.PHONY : constraint_flatzinc_int.s
+constraints/bool_lin.s: constraints/bool_lin.cpp.s
+.PHONY : constraints/bool_lin.s
 
 # target to generate assembly for a file
-constraint_flatzinc_int.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraint_flatzinc_int.cpp.s
-.PHONY : constraint_flatzinc_int.cpp.s
+constraints/bool_lin.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_lin.cpp.s
+.PHONY : constraints/bool_lin.cpp.s
+
+constraints/bool_misc.o: constraints/bool_misc.cpp.o
+.PHONY : constraints/bool_misc.o
+
+# target to build an object file
+constraints/bool_misc.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_misc.cpp.o
+.PHONY : constraints/bool_misc.cpp.o
+
+constraints/bool_misc.i: constraints/bool_misc.cpp.i
+.PHONY : constraints/bool_misc.i
+
+# target to preprocess a source file
+constraints/bool_misc.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_misc.cpp.i
+.PHONY : constraints/bool_misc.cpp.i
+
+constraints/bool_misc.s: constraints/bool_misc.cpp.s
+.PHONY : constraints/bool_misc.s
+
+# target to generate assembly for a file
+constraints/bool_misc.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_misc.cpp.s
+.PHONY : constraints/bool_misc.cpp.s
+
+constraints/flatzinc.o: constraints/flatzinc.cpp.o
+.PHONY : constraints/flatzinc.o
+
+# target to build an object file
+constraints/flatzinc.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/flatzinc.cpp.o
+.PHONY : constraints/flatzinc.cpp.o
+
+constraints/flatzinc.i: constraints/flatzinc.cpp.i
+.PHONY : constraints/flatzinc.i
+
+# target to preprocess a source file
+constraints/flatzinc.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/flatzinc.cpp.i
+.PHONY : constraints/flatzinc.cpp.i
+
+constraints/flatzinc.s: constraints/flatzinc.cpp.s
+.PHONY : constraints/flatzinc.s
+
+# target to generate assembly for a file
+constraints/flatzinc.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/flatzinc.cpp.s
+.PHONY : constraints/flatzinc.cpp.s
+
+constraints/int_array.o: constraints/int_array.cpp.o
+.PHONY : constraints/int_array.o
+
+# target to build an object file
+constraints/int_array.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_array.cpp.o
+.PHONY : constraints/int_array.cpp.o
+
+constraints/int_array.i: constraints/int_array.cpp.i
+.PHONY : constraints/int_array.i
+
+# target to preprocess a source file
+constraints/int_array.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_array.cpp.i
+.PHONY : constraints/int_array.cpp.i
+
+constraints/int_array.s: constraints/int_array.cpp.s
+.PHONY : constraints/int_array.s
+
+# target to generate assembly for a file
+constraints/int_array.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_array.cpp.s
+.PHONY : constraints/int_array.cpp.s
+
+constraints/int_bin.o: constraints/int_bin.cpp.o
+.PHONY : constraints/int_bin.o
+
+# target to build an object file
+constraints/int_bin.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_bin.cpp.o
+.PHONY : constraints/int_bin.cpp.o
+
+constraints/int_bin.i: constraints/int_bin.cpp.i
+.PHONY : constraints/int_bin.i
+
+# target to preprocess a source file
+constraints/int_bin.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_bin.cpp.i
+.PHONY : constraints/int_bin.cpp.i
+
+constraints/int_bin.s: constraints/int_bin.cpp.s
+.PHONY : constraints/int_bin.s
+
+# target to generate assembly for a file
+constraints/int_bin.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_bin.cpp.s
+.PHONY : constraints/int_bin.cpp.s
+
+constraints/int_lin.o: constraints/int_lin.cpp.o
+.PHONY : constraints/int_lin.o
+
+# target to build an object file
+constraints/int_lin.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_lin.cpp.o
+.PHONY : constraints/int_lin.cpp.o
+
+constraints/int_lin.i: constraints/int_lin.cpp.i
+.PHONY : constraints/int_lin.i
+
+# target to preprocess a source file
+constraints/int_lin.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_lin.cpp.i
+.PHONY : constraints/int_lin.cpp.i
+
+constraints/int_lin.s: constraints/int_lin.cpp.s
+.PHONY : constraints/int_lin.s
+
+# target to generate assembly for a file
+constraints/int_lin.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_lin.cpp.s
+.PHONY : constraints/int_lin.cpp.s
+
+constraints/int_tern.o: constraints/int_tern.cpp.o
+.PHONY : constraints/int_tern.o
+
+# target to build an object file
+constraints/int_tern.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_tern.cpp.o
+.PHONY : constraints/int_tern.cpp.o
+
+constraints/int_tern.i: constraints/int_tern.cpp.i
+.PHONY : constraints/int_tern.i
+
+# target to preprocess a source file
+constraints/int_tern.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_tern.cpp.i
+.PHONY : constraints/int_tern.cpp.i
+
+constraints/int_tern.s: constraints/int_tern.cpp.s
+.PHONY : constraints/int_tern.s
+
+# target to generate assembly for a file
+constraints/int_tern.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_tern.cpp.s
+.PHONY : constraints/int_tern.cpp.s
 
 domain.o: domain.cpp.o
 .PHONY : domain.o
@@ -3222,15 +3366,33 @@ help:
 	@echo "... constraint.o"
 	@echo "... constraint.i"
 	@echo "... constraint.s"
-	@echo "... constraint_flatzinc.o"
-	@echo "... constraint_flatzinc.i"
-	@echo "... constraint_flatzinc.s"
-	@echo "... constraint_flatzinc_bool.o"
-	@echo "... constraint_flatzinc_bool.i"
-	@echo "... constraint_flatzinc_bool.s"
-	@echo "... constraint_flatzinc_int.o"
-	@echo "... constraint_flatzinc_int.i"
-	@echo "... constraint_flatzinc_int.s"
+	@echo "... constraints/bool_array.o"
+	@echo "... constraints/bool_array.i"
+	@echo "... constraints/bool_array.s"
+	@echo "... constraints/bool_bin.o"
+	@echo "... constraints/bool_bin.i"
+	@echo "... constraints/bool_bin.s"
+	@echo "... constraints/bool_lin.o"
+	@echo "... constraints/bool_lin.i"
+	@echo "... constraints/bool_lin.s"
+	@echo "... constraints/bool_misc.o"
+	@echo "... constraints/bool_misc.i"
+	@echo "... constraints/bool_misc.s"
+	@echo "... constraints/flatzinc.o"
+	@echo "... constraints/flatzinc.i"
+	@echo "... constraints/flatzinc.s"
+	@echo "... constraints/int_array.o"
+	@echo "... constraints/int_array.i"
+	@echo "... constraints/int_array.s"
+	@echo "... constraints/int_bin.o"
+	@echo "... constraints/int_bin.i"
+	@echo "... constraints/int_bin.s"
+	@echo "... constraints/int_lin.o"
+	@echo "... constraints/int_lin.i"
+	@echo "... constraints/int_lin.s"
+	@echo "... constraints/int_tern.o"
+	@echo "... constraints/int_tern.i"
+	@echo "... constraints/int_tern.s"
 	@echo "... domain.o"
 	@echo "... domain.i"
 	@echo "... domain.s"

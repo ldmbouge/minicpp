@@ -2868,22 +2868,58 @@
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraint.hpp">
 			<Option target="copl"/>
 		</Unit>
-		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraint_flatzinc.cpp">
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_array.cpp">
 			<Option target="copl"/>
 		</Unit>
-		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraint_flatzinc.hpp">
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_array.hpp">
 			<Option target="copl"/>
 		</Unit>
-		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraint_flatzinc_bool.cpp">
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_bin.cpp">
 			<Option target="copl"/>
 		</Unit>
-		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraint_flatzinc_bool.hpp">
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_bin.hpp">
 			<Option target="copl"/>
 		</Unit>
-		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraint_flatzinc_int.cpp">
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_lin.cpp">
 			<Option target="copl"/>
 		</Unit>
-		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraint_flatzinc_int.hpp">
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_lin.hpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_misc.cpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_misc.hpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/flatzinc.cpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/flatzinc.hpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_array.cpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_array.hpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_bin.cpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_bin.hpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_lin.cpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_lin.hpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_tern.cpp">
+			<Option target="copl"/>
+		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_tern.hpp">
 			<Option target="copl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/domain.cpp">

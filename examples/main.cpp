@@ -20,7 +20,7 @@
 #include "constraint.hpp"
 #include "search.hpp"
 #include <flatzinc/flatzinc.h>
-#include "constraint_flatzinc.hpp"
+#include <constraints/flatzinc.hpp>
 
 void vec2str(std::vector<int> const * const v, std::string * s,  char const brackets[2] = "[]")
 {

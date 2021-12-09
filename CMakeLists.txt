@@ -29,19 +29,46 @@ message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
 message("Build: ${CMAKE_BUILD_TYPE}")
 
 include_directories(.)
-add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp
-	mddAlldiff.cpp mddAmong.cpp mddGcc.cpp mddSeq.cpp mddSum.cpp
-	store.cpp bitset.cpp table.cpp regular.cpp lex.cpp
-	acstr.cpp domain.cpp mddnode.cpp constraint.cpp
-	intvar.cpp mddstate.cpp trail.cpp mallocWatch.cpp
-	search.cpp trailable.cpp matching.cpp solver.cpp
+add_library(copl
+	RuntimeMonitor.cpp
+	acstr.cpp
+	bitset.cpp
+	constraint.cpp
+	constraints/bool_array.cpp
+	constraints/bool_bin.cpp
+	constraints/bool_lin.cpp
+	constraints/bool_misc.cpp
+	constraints/flatzinc.cpp
+	constraints/int_array.cpp
+	constraints/int_bin.cpp
+	constraints/int_lin.cpp
+	constraints/int_tern.cpp
+	domain.cpp
 	flatzinc/flatzinc.cpp
+	flatzinc/lexer.yy.cpp
 	flatzinc/parser.tab.cpp
 	flatzinc/registry.cpp
-	flatzinc/lexer.yy.cpp
-	constraint_flatzinc.cpp
-	constraint_flatzinc_int.cpp
-	constraint_flatzinc_bool.cpp)
+	intvar.cpp
+	lex.cpp
+	mallocWatch.cpp
+	matching.cpp
+	mdd.cpp
+	mddAlldiff.cpp
+	mddAmong.cpp
+	mddGcc.cpp
+	mddSeq.cpp
+	mddSum.cpp
+	mdddelta.cpp
+	mddnode.cpp
+	mddrelax.cpp
+	mddstate.cpp
+	regular.cpp
+	search.cpp
+	solver.cpp
+	store.cpp
+	table.cpp
+	trail.cpp
+	trailable.cpp)
 
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")

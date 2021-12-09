@@ -1,3 +1,2 @@
-flex -L -o lexer.yy.cu lexer.lxx
-bison -l -t -o parser.tab.cu -d parser.yxx
-mv parser.tab.hu parser.tab.h 
+flex -L -o lexer.yy.cpp lexer.lxx
+bison -l -t -o parser.tab.cpp -d parser.yxx
