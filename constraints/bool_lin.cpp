@@ -1,4 +1,4 @@
-#include <constraints/utils.hpp>
+#include <utils.hpp>
 #include <constraints/bool_lin.hpp>
 
 bool_lin::bool_lin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :

@@ -1,4 +1,4 @@
-#include <constraints/utils.hpp>
+#include <utils.hpp>
 #include <constraints/int_lin.hpp>
 
 int_lin::int_lin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
@@ -134,7 +134,7 @@ void int_lin_eq_reif::propagate()
     }
 }
 
-void int_lin_ge::propagate(int_lin* intLin, int c, int sumMin, int sumMax)
+void int_lin_ge::propagate(int_lin* intLin, int c, int& sumMin, int& sumMax)
 {
     //Semantic: as1*bs1 + ... + asn*bsn >= c
     auto& _as_pos = intLin->_as_pos;
@@ -186,7 +186,7 @@ void int_lin_le::propagate()
     propagate(this, sumMin, sumMax);
 }
 
-void int_lin_le::propagate(int_lin* intLin, int sumMin, int sumMax)
+void int_lin_le::propagate(int_lin* intLin, int& sumMin, int& sumMax)
 {
     //Semantic: as1*bs1 + ... + asn*bsn <= c
     auto& _as_pos = intLin->_as_pos;

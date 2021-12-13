@@ -62,6 +62,9 @@ class int_pow : public int_tern
         int_pow(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
         void post() override;
         void propagate() override;
+    private:
+        static void calcPowMinMax(int aMin, int aMax, int bMin, int bMax, int& min, int& max);
+        static void calcPowMinMax(int aMin, int aMax, double bVal, int& min, int& max);
 };
 
 class int_times : public int_tern

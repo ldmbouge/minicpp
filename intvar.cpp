@@ -13,6 +13,8 @@
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  */
 
+#include <utils.hpp>
+
 #include "intvar.hpp"
 #include "store.hpp"
 #include <algorithm>
@@ -62,41 +64,55 @@ TLCNode* IntVarImpl::whenDomainChange(std::function<void(void)>&& f)
 
 void IntVarImpl::assign(int v)
 {
+    TRACE
+    (
+        printf("[DEBUG] Setting %d to ", v);
+        printVar(this);
+    )
     _dom->assign(v,*_domListener);
 }
 void IntVarImpl::remove(int v)
 {
-    if (contains(v))
-    {
-        //printf("[DEBUG] Removing %d from ", v);
-        //printVar(this);
-    }
+    TRACE
+    (
+        if (contains(v))
+        {
+            printf("[DEBUG] Removing %d from ", v);
+            printVar(this);
+        }
+    )
     _dom->remove(v,*_domListener);
 }
 void IntVarImpl::removeBelow(int newMin)
 {
-    bool print = newMin > min();
-    if (print)
-    {
-        //printf("[DEBUG] Increasing min to %d of ", newMin);
-        //printVar(this);
-    }
+    TRACE
+    (
+        if (newMin > min())
+        {
+            printf("[DEBUG] Increasing min to %d of ", newMin);
+            printVar(this);
+        }
+    )
     _dom->removeBelow(newMin,*_domListener);
 }
 void IntVarImpl::removeAbove(int newMax)
 {
-    bool print = newMax < max();
-    if (print)
-    {
-        //printf("[DEBUG] Decreasing max to %d of ", newMax);
-        //printVar(this);
-    }
+    TRACE
+    (
+        if (newMax < max())
+        {
+            printf("[DEBUG] Decreasing max to %d of ", newMax);
+            printVar(this);
+        }
+    )
     _dom->removeAbove(newMax,*_domListener);
 }
 void IntVarImpl::updateBounds(int newMin,int newMax)
 {
-    _dom->removeBelow(newMin,*_domListener);
-    _dom->removeAbove(newMax,*_domListener);
+    //_dom->removeBelow(newMin,*_domListener);
+    //_dom->removeAbove(newMax,*_domListener);
+    removeBelow(newMin);
+    removeAbove(newMax);
 }
 
 void IntVarImpl::DomainListener::empty() 

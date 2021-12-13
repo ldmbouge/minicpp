@@ -36,10 +36,11 @@ bool_clause::bool_clause(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, 
     {
         _as.push_back(boolVars->at(vars[i]));
     }
-    for(int i = consts[0]; i < consts[1]; i += 1)
+    for(int i = consts[0]; i < consts[0] + consts[1]; i += 1)
     {
         _bs.push_back(boolVars->at(vars[i]));
     }
+    assert(_bs.size() > 0);
 }
 
 void bool_clause::post()
@@ -91,7 +92,7 @@ void bool_clause::propagate()
     }
 
     //Propagation: (as1 \/ ... \/ asn) \/ (-bs1 \/ ... \/ -bsm)
-    if(not asSatisfied or not bsSatisfied)
+    if(not asSatisfied and not bsSatisfied)
     {
         if (asNotBoundCount == 0 and bsNotBoundCount == 0)
         {
@@ -103,7 +104,7 @@ void bool_clause::propagate()
         }
         else if (asNotBoundCount == 0 and bsNotBoundCount == 1)
         {
-            asNotBound->assign(false);
+            bsNotBound->assign(false);
         }
     }
 }

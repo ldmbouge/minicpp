@@ -21,7 +21,7 @@ if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
    set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 else()
-   set(CMAKE_CXX_FLAGS_DEBUG "-g")
+   set(CMAKE_CXX_FLAGS_DEBUG "-g -export-dynamic -ldl")
    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 endif()
 

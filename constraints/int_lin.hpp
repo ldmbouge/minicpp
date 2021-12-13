@@ -52,7 +52,7 @@ class int_lin_eq_reif : public int_lin_reif
 class int_lin_ge
 {
     public:
-        static void propagate(int_lin* intLin, int c, int sumMin, int sumMax);
+        static void propagate(int_lin* intLin, int c, int& sumMin, int& sumMax);
 };
 
 class int_lin_le : public int_lin
@@ -61,7 +61,7 @@ class int_lin_le : public int_lin
         int_lin_le(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
         void post() override;
         void propagate() override;
-        static void propagate(int_lin* intLin, int sumMin, int sumMax);
+        static void propagate(int_lin* intLin, int& sumMin, int& sumMax);
 };
 
 class int_lin_le_reif : public int_lin_reif

@@ -16,6 +16,8 @@
 #ifndef __SEARCH_H
 #define __SEARCH_H
 
+
+
 #include <vector>
 #include <initializer_list>
 #include <functional>
@@ -25,6 +27,7 @@
 #include "solver.hpp"
 #include "constraint.hpp"
 #include "RuntimeMonitor.hpp"
+#include <utils.hpp>
 
 class Branches {
    std::vector<std::function<void(void)>> _alts;
@@ -148,8 +151,8 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
                                    [](const auto& x) { return x->size();});
                if (sx) {
                    int v = sx->min();
-                   return [cp,sx,v] { /*std::cout << "Choosing (" << sx->size() << ") x" << sx->getId() << " == "<< v << std::endl; */ return cp->post(sx == v);}
-                       |  [cp,sx,v] { /*std::cout << "Choosing (" << sx->size() << ") x" << sx->getId() << " != "<< v << std::endl; */ return cp->post(sx != v);};
+                   return [cp,sx,v] { TRACE(std::cout << "Choosing (" << sx->size() << ") x" << sx->getId() << " == "<< v << std::endl;) return cp->post(sx == v);}
+                       |  [cp,sx,v] { TRACE(std::cout << "Choosing (" << sx->size() << ") x" << sx->getId() << " != "<< v << std::endl;)  return cp->post(sx != v);};
                } else return Branches({});
            };
 }
