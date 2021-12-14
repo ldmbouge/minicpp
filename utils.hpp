@@ -47,6 +47,6 @@ inline int floorLogarithm (int base, int number)
 
 inline int ceilLogarithm(int base, int number)
 {
-    return static_cast<int>((std::ceil(logarithm(base, number)));
+    return static_cast<int>((std::ceil(logarithm(base, number))));
 }
 

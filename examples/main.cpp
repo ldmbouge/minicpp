@@ -21,6 +21,7 @@
 #include "search.hpp"
 #include <flatzinc/flatzinc.h>
 #include <constraints/flatzinc.hpp>
+#include <cxxopts.hpp>
 
 void vec2str(std::vector<int> const * const v, std::string * s,  char const brackets[2] = "[]")
 {
@@ -40,9 +41,29 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
 
+    cxxopts::Options options("minicpp", "Minimalistic constraint solver.");
+    options.custom_help("[Options]");
+    options.positional_help("<FlatZinc>");
+    options.add_options()
+            ("a,", "Print all solutions", cxxopts::value<bool>()->default_value("false"))
+            ("n,", "Stop search after 'arg' solutions", cxxopts::value<int>()->default_value("1"))
+            ("s,", "Print search statistics", cxxopts::value<bool>()->default_value("false"))
+            ("t,", "Stop search after 'arg' ms", cxxopts::value<int>()->default_value("1000000000"))
+            ("v,", "Print log messages", cxxopts::value<bool>()->default_value("false"))
+            ("fz", "FlatZinc", cxxopts::value<std::string>())
+            ("h,help", "Print usage");
+    options.parse_positional({"fz"});
+
+    auto result = options.parse(argc, argv);
+    if (result.count("help"))
+    {
+        std::cout << options.help();
+        exit(EXIT_SUCCESS);
+    }
+
     //Parsing FlatZinc
     FlatZinc::Printer p;
-    FlatZinc::FlatZincModel* fm = FlatZinc::parse(argv[1], p);
+    FlatZinc::FlatZincModel* fm = FlatZinc::parse(result["fz"].as<std::string>(), p);
 
     //Instantiate the problem
     CPSolver::Ptr cp  = Factory::makeSolver();
@@ -132,14 +153,9 @@ int main(int argc,char* argv[])
     }
     DFSearch search(cp,firstFail(cp,decisionVariables));
 
-    search.onSolution([&obj, &decisionVariables]() {
-        cout << "solution = ";
-        for(size_t i  = 0; i < decisionVariables.size(); i += 1)
-        {
-            cout << decisionVariables[i]->min() << " ";
-        }
-        cout << endl << "objective = " << obj->value() << endl;
-        std::cout << "-----" <<endl;});
+    search.onSolution([&p, intVars, boolVars]() {
+        p.print(cout, intVars, boolVars);
+        cout << "----------" <<endl;});
 
     search.onFailure([&decisionVariables]() {
         /*
@@ -163,7 +179,11 @@ int main(int argc,char* argv[])
 
 
     auto stat = search.optimize(obj);
-    cout << stat << endl;
+    if(result["s"].as<bool>())
+    {
+        cout << stat << endl;
+    }
+
     cp.dealloc();
     return 0;
 

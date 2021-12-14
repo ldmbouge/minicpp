@@ -50,32 +50,62 @@ public:
 };
 */
 
-class SearchStatistics {
-   int _nFailures;
-   int _nNodes;
-   int _nSolutions;
-   bool _completed;
-   RuntimeMonitor::HRClock _startTime;
-public:
-   SearchStatistics() : _nFailures(0),_nNodes(0),_nSolutions(0),_completed(false) {
-      _startTime = RuntimeMonitor::cputime();
-   }
-   void incrFailures()  noexcept { ++_nFailures;extern int __nbf;__nbf = _nFailures; }
-   void incrNodes()     noexcept { ++_nNodes;extern int __nbn;__nbn = _nNodes;}
-   void incrSolutions() noexcept { ++_nSolutions; }
-   void setCompleted()  noexcept { _completed = true; }
-   int numberOfFailures() const noexcept     { return _nFailures; }
-   int numberOfNodes() const noexcept        { return _nNodes; }
-   int numberOfSolutions() const noexcept    { return _nSolutions; }
-   RuntimeMonitor::HRClock startTime() const { return _startTime;}
-   bool isCompleted() const noexcept         { return _completed; }
-   friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
-      return os << "\n\t#choice   : " << ss._nNodes
-                << "\n\t#fail     : " << ss._nFailures
-                << "\n\t#sols     : " << ss._nSolutions
-                << "\n\tcompleted : " << ss._completed << std::endl;
-   }
-};
+class SearchStatistics
+{
+    protected:
+        int nodes;
+        int solutions;
+        int failures;
+        int variables;
+        int intVariables;
+        int boolVariables;
+        int propagators;
+        int propagations;
+        int peakDepth;
+        RuntimeMonitor::HRClock startTime;
+        RuntimeMonitor::HRClock initTime;
+        RuntimeMonitor::HRClock solveTime;
+        bool completed;
+
+    public:
+       SearchStatistics() :
+        nodes(0),
+        solutions(0),
+        failures(0),
+        variables(0),
+        intVariables(0),
+        boolVariables(0),
+        propagators(0),
+        propagations(0),
+        peakDepth(0),
+        completed(false)
+       {
+          startTime = RuntimeMonitor::now();
+       }
+       void incrFailures()  noexcept {failures += 1; extern int __nbf; __nbf = failures; }
+       void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
+       void incrSolutions() noexcept {solutions += 1;}
+       void setCompleted()  noexcept {completed = true;}
+       void setInitTime() noexcept {initTime = RuntimeMonitor::now();}
+       void setSolveTime() noexcept {solveTime = RuntimeMonitor::now();}
+       friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss)
+       {
+            return os << "%%%mzn-stat: nodes=" << ss.nodes << std::endl
+                      << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
+                      << "%%%mzn-stat: failures=" << ss.failures << std::endl
+                      << "%%%mzn-stat: variables=" << ss.variables << std::endl
+                      << "%%%mzn-stat: intVariables=" << ss.intVariables << std::endl
+                      << "%%%mzn-stat: boolVariables=" << ss.boolVariables << std::endl
+                      << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
+                      << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
+                      << "%%%mzn-stat: peakDepth=" << ss.peakDepth << std::endl
+                      << std::fixed
+                      << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime, ss.initTime) << std::endl
+                      << "%%%mzn-stat: solveTime=" <<  RuntimeMonitor::elapsedSeconds(ss.startTime, ss.solveTime) << std::endl
+                      << std::defaultfloat
+                      << "%%%mzn-stat-end" << std::endl;
+       }
+    };
 
 typedef std::function<bool(const SearchStatistics&)> Limit;
 

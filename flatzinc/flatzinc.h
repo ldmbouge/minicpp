@@ -40,6 +40,8 @@
 #include <iostream>
 #include <map>
 #include <cassert>
+#include <varitf.hpp>
+#include <intvar.hpp>
 
 #include "conexpr.h"
 #include "ast.h"
@@ -197,12 +199,17 @@ namespace FlatZinc
             Printer();
             void init(AST::Array* output);
             void print(std::ostream& out, FlatZincModel const & m) const;
+            void print(std::ostream& out, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars) const;
             ~Printer();
 
         private:
             Printer(Printer const &);
             Printer& operator=(Printer const &);
             void print(std::ostream& out, AST::Node* n, FlatZincModel const & m) const;
+
+
+        void printElem(std::ostream &out, AST::Node *ai, const FlatZincModel &m) const;
+        void printElem(std::ostream &out, AST::Node *ai, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars) const;
     };
 
     class Error 

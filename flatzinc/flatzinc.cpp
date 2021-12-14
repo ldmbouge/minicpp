@@ -40,6 +40,7 @@
 
 #include <vector>
 #include <string>
+#include <intvar.hpp>
 
 using namespace std;
 
@@ -266,56 +267,156 @@ namespace FlatZinc
         this->output = output;
     }
 
-    void Printer::print(std::ostream& out, AST::Node* n, FlatZincModel const & m) const 
+    void Printer::printElem(ostream &out, AST::Node *ai, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars) const
     {
-        if (n->isInt()) 
+        if (ai->isInt())
         {
-            out << n->getInt();
+            out << ai->getInt();
         }
-        else if (n->isIntVar()) 
+        else if (ai->isBool())
         {
-            out << n->getIntVar();
-        } 
-        else if (n->isBool())
+            out << (ai->getBool() ? "true" : "false");
+        }
+        else if (ai->isIntVar())
         {
-            out << (n->getBool() ? "true" : "false");
-        } 
-        else if (n->isBoolVar()) 
+            int val = intVars->at(ai->getIntVar())->min();
+            out << val;
+        }
+        else if (ai->isBoolVar())
         {
-            out << n->getBoolVar();
-        }      
-    }
-
-    void Printer::print(std::ostream& out, FlatZincModel const & m) const
-    {
-        if (output != nullptr)
-        {
-            for (unsigned int i = 0; i < output->a.size(); i++)
-             {
-                AST::Node* n = output->a[i];
-                if (n->isArray())
-                {
-                    AST::Array* array = n->getArray();
-                    int size = array->a.size();
-                    out << "[";
-                    print(out, array->a[0], m);
-                    for (int j = 1; j < size; j += 1) 
-                    {
-                        out << ", ";
-                        print(out, array->a[j], m);                            
+            bool val = boolVars->at(ai->getBoolVar())->isTrue();
+            out << (val ? "true" : "false");
+        }
+        else if (ai->isString()) {
+            std::string s = ai->getString();
+            for (unsigned int i=0; i<s.size(); i++) {
+                if (s[i] == '\\' && i<s.size()-1) {
+                    switch (s[i+1]) {
+                        case 'n': out << "\n"; break;
+                        case '\\': out << "\\"; break;
+                        case 't': out << "\t"; break;
+                        default: out << "\\" << s[i+1];
                     }
-                    out << "]";
-                }
-                else
-                {
-                    print(out, n, m);
+                    i++;
+                } else {
+                    out << s[i];
                 }
             }
         }
     }
 
-    Printer::~Printer()
+    void Printer::printElem(std::ostream& out, AST::Node* ai, const FlatZincModel& m) const
+    {
+
+        if (ai->isInt())
+        {
+            out << ai->getInt();
+        }
+        else if (ai->isIntVar())
+        {
+            out << ai->getIntVar();
+        }
+        else if (ai->isBoolVar())
+        {
+            // TODO: output actual variable
+            out << ai->getBoolVar();
+        }
+        else if (ai->isSetVar())
+        {
+            // TODO: output actual variable
+            out << ai->getSetVar();
+        }
+        else if (ai->isBool())
+        {
+            out << (ai->getBool() ? "true" : "false");
+        } else if (ai->isSet())
+        {
+            AST::SetLit* s = ai->getSet();
+            if (s->interval) {
+                out << s->min << ".." << s->max;
+            } else {
+                out << "{";
+                for (unsigned int i=0; i<s->s.size(); i++) {
+                    out << s->s[i] << (i < s->s.size()-1 ? ", " : "}");
+                }
+            }
+        }
+        else if (ai->isString()) {
+            std::string s = ai->getString();
+            for (unsigned int i=0; i<s.size(); i++) {
+                if (s[i] == '\\' && i<s.size()-1) {
+                    switch (s[i+1]) {
+                        case 'n': out << "\n"; break;
+                        case '\\': out << "\\"; break;
+                        case 't': out << "\t"; break;
+                        default: out << "\\" << s[i+1];
+                    }
+                    i++;
+                } else {
+                    out << s[i];
+                }
+            }
+        }
+    }
+
+    void
+    Printer::print(std::ostream& out, const FlatZincModel& m) const {
+        if (output == NULL)
+            return;
+        for (unsigned int i=0; i< output->a.size(); i++) {
+
+            AST::Node* ai = output->a[i];
+            if (ai->isArray())
+            {
+                AST::Array* aia = ai->getArray();
+                int size = aia->a.size();
+                out << "[";
+                for (int j=0; j<size; j++)
+                {
+                    printElem(out,aia->a[j],m);
+                    if (j<size-1)
+                        out << ", ";
+                }
+                out << "]";
+            }
+            else
+            {
+                printElem(out,ai,m);
+            }
+        }
+    }
+
+    void Printer::print(ostream &out, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars) const
+    {
+        for (unsigned int i=0; i< output->a.size(); i++)
+        {
+
+            AST::Node* ai = output->a[i];
+            if (ai->isArray())
+            {
+                AST::Array* aia = ai->getArray();
+                int size = aia->a.size();
+                out << "[";
+                for (int j=0; j<size; j++)
+                {
+                    printElem(out,aia->a[j], intVars, boolVars );
+                    if (j<size-1)
+                        out << ", ";
+                }
+                out << "]";
+            }
+            else
+            {
+                printElem(out,ai,intVars, boolVars );
+            }
+        }
+    }
+
+    Printer::~Printer(void)
     {
         delete output;
     }
+
+
+
 }
