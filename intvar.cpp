@@ -66,8 +66,11 @@ void IntVarImpl::assign(int v)
 {
     TRACE
     (
-        printf("[DEBUG] Setting %d to ", v);
-        printVar(this);
+        if(not (isBound() and contains(v)))
+        {
+            printf("[DEBUG] Setting %d to ", v);
+            printVar(this);
+        }
     )
     _dom->assign(v,*_domListener);
 }

@@ -3,10 +3,11 @@
 #include <cmath>
 #include <iostream>
 #include <string>
+#include <vector>
 
-#define TRACE(...) __VA_ARGS__
-//#define TRACE(...)
-#define ENUM2STR(e) #e
+//#define TRACE(...) __VA_ARGS__
+#define TRACE(...)
+#define TO_STRING(e) #e
 
 inline double division(int numerator, int denominator)
 {
@@ -56,4 +57,17 @@ inline int ceilLogarithm(int base, int number)
 inline void printError(std::string const & error)
 {
     std::cerr << "% [ERROR] " << error << std::endl;
+}
+
+template<typename T>
+void printVector(std::ostream& os, std::vector<T>& vector)
+{
+    if (not vector.empty())
+    {
+        os << vector[0];
+        for (size_t i = 1; i < vector.size(); i += 1)
+        {
+            os << "," << vector[i];
+        };
+    }
 }

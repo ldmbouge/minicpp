@@ -28,6 +28,8 @@ var<bool>::Ptr makeBoolVar(CPSolver::Ptr cp, FlatZinc::BoolVar& fzBoolVar);
 std::function<Branches(void)> makeSearchHeuristic(CPSolver::Ptr cp, FlatZinc::SearchHeuristic& sh, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
 Limit makeLimit(int solution_limit, int time_limit);
 
+void printFlatZincModel(FlatZinc::FlatZincModel* fzModel);
+
 int main(int argc,char* argv[])
 {
     // Parse options
@@ -52,37 +54,38 @@ int main(int argc,char* argv[])
         SearchStatistics search_statistics;
 
         //Parse FlatZinc
-        FlatZinc::FlatZincModel * const fm = FlatZinc::parse(options["fz"].as<std::string>());
+        FlatZinc::FlatZincModel * const fzModel = FlatZinc::parse(options["fz"].as<std::string>());
+        TRACE(printFlatZincModel(fzModel));
 
         //Create solver
         CPSolver::Ptr cp = Factory::makeSolver();
 
         //Create variables
-        search_statistics.setIntVars(fm->int_vars.size());
+        search_statistics.setIntVars(fzModel->int_vars.size());
         std::vector<var<int>::Ptr> int_vars;
-        for(size_t i = 0; i < fm->int_vars.size(); i += 1)
+        for(size_t i = 0; i < fzModel->int_vars.size(); i += 1)
         {
-            int_vars.push_back(makeIntVar(cp, fm->int_vars[i]));
+            int_vars.push_back(makeIntVar(cp, fzModel->int_vars[i]));
         }
-        search_statistics.setBoolVars(fm->bool_vars.size());
+        search_statistics.setBoolVars(fzModel->bool_vars.size());
         std::vector<var<bool>::Ptr> bool_vars;
-        for(size_t i = 0; i < fm->bool_vars.size(); i += 1)
+        for(size_t i = 0; i < fzModel->bool_vars.size(); i += 1)
         {
-            bool_vars.push_back(makeBoolVar(cp, fm->bool_vars[i]));
+            bool_vars.push_back(makeBoolVar(cp, fzModel->bool_vars[i]));
         }
 
         //Create and post constraints
-        search_statistics.setPropagators(fm->constraints.size());
-        for(size_t i = 0; i < fm->constraints.size(); i += 1)
+        search_statistics.setPropagators(fzModel->constraints.size());
+        for(size_t i = 0; i < fzModel->constraints.size(); i += 1)
         {
-            cp->post(Factory::makeConstraint(cp,fm->constraints[i],int_vars,bool_vars));
+            cp->post(Factory::makeConstraint(cp, fzModel->constraints[i], int_vars, bool_vars));
         }
 
         //Create search combinator
         std::vector<std::function<Branches(void)>> search_heuristics;
-        for(size_t i = 0; i < fm->search_combinator.size(); i += 1)
+        for(size_t i = 0; i < fzModel->search_combinator.size(); i += 1)
         {
-            search_heuristics.push_back(makeSearchHeuristic(cp, fm->search_combinator[i], int_vars, bool_vars));
+            search_heuristics.push_back(makeSearchHeuristic(cp, fzModel->search_combinator[i], int_vars, bool_vars));
         }
         DFSearch search(cp, land(search_heuristics));
 
@@ -90,21 +93,21 @@ int main(int argc,char* argv[])
         Limit search_limit = makeLimit(options.count("a") ? 1000000000 : options["n"].as<int>(), options["t"].as<int>());
 
         //Output printing
-        search.onSolution([&](){fm->print(std::cout,int_vars,bool_vars); std::cout << "----------" << std::endl;});
+        search.onSolution([&](){fzModel->print(std::cout, int_vars, bool_vars); std::cout << "----------" << std::endl;});
 
         //Start search
         search_statistics.setInitTime();
-        if (fm->method.type == FlatZinc::Method::Type::Minimization)
+        if (fzModel->method.type == FlatZinc::Method::Type::Minimization)
         {
-            Objective::Ptr obj = Factory::minimize(int_vars[fm->objective_variable]);
+            Objective::Ptr obj = Factory::minimize(int_vars[fzModel->objective_variable]);
             search.optimize(obj, search_statistics, search_limit);
         }
-        else if(fm->method.type == FlatZinc::Method::Type::Maximization)
+        else if(fzModel->method.type == FlatZinc::Method::Type::Maximization)
         {
-            Objective::Ptr obj = Factory::maximize(int_vars[fm->objective_variable]);
+            Objective::Ptr obj = Factory::maximize(int_vars[fzModel->objective_variable]);
             search.optimize(obj, search_statistics, search_limit);
         }
-        else if (fm->method.type == FlatZinc::Method::Type::Satisfaction)
+        else if (fzModel->method.type == FlatZinc::Method::Type::Satisfaction)
         {
             search.solve(search_statistics, search_limit);
         }
@@ -250,4 +253,27 @@ Limit makeLimit(int solution_limit, int time_limit)
         return search_statistics.getSolutions() >= solution_limit or
                RuntimeMonitor::elapsedSince(search_statistics.getStartTime()) >= time_limit;
     };
+}
+
+void printFlatZincModel(FlatZinc::FlatZincModel* fzModel)
+{
+    //Print variables
+    int j = 0;
+    for(size_t i = 0; i < fzModel->int_vars.size(); i += 1)
+    {
+        std::cout << "xi(" << j << ") "<< fzModel->int_vars[i] << std::endl;
+        j += 1;
+    }
+    for(size_t i = 0; i < fzModel->bool_vars.size(); i += 1)
+    {
+        std::cout << "xb(" << j << ") " << fzModel->bool_vars[i] << std::endl;
+        j += 1;
+    }
+
+    //Print constraints
+    for(size_t i = 0; i < fzModel->constraints.size(); i += 1)
+    {
+        std::cout << "c(" << i << ") " << fzModel->constraints[i] << std::endl;
+    }
+
 }

@@ -178,7 +178,7 @@ void array_bool_or_reif::propagate()
                 x->assign(false);
             }
         }
-        else if (notBoundCount == 1)
+        else if (not asSatisfied and notBoundCount == 1)
         {
             asNotBound->assign(true);
         }

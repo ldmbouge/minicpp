@@ -46,6 +46,7 @@
 #include "conexpr.h"
 #include "ast.h"
 #include "varspec.h"
+#include <utils.hpp>
 
 namespace FlatZinc 
 {
@@ -54,6 +55,21 @@ namespace FlatZinc
         int min;
         int max;
         std::vector<int> values;
+
+        friend std::ostream& operator<<(std::ostream& os, IntVar& int_var)
+        {
+            os << "{";
+            if(int_var.values.empty())
+            {
+               os << int_var.min << ",...," << int_var.max;
+            }
+            else
+            {
+                printVector(os, int_var.values);
+            }
+            os << "}";
+            return os;
+        };
     };
 
     struct BoolVar
@@ -65,6 +81,21 @@ namespace FlatZinc
                 False
             };
         State state;
+
+        friend std::ostream& operator<<(std::ostream& os, BoolVar& bool_var)
+        {
+            os << "{";
+            if(bool_var.state == State::Unassigned)
+            {
+                os << "false, true";
+            }
+            else
+            {
+                os << (bool_var.state == State::True ? "true" : "false");
+            }
+            os << "}";
+            return os;
+        };
     };
 
     struct Constraint
@@ -121,6 +152,19 @@ namespace FlatZinc
         Type type;
         std::vector<int> vars;
         std::vector<int> consts;
+
+        static char const * const type2str[];
+
+        friend std::ostream& operator<<(std::ostream& os, Constraint& constraint)
+        {
+            os << type2str[constraint.type];
+            os << " [";
+            printVector(os, constraint.vars);
+            os << "] | [";
+            printVector(os, constraint.consts);
+            os << "]";
+            return os;
+        };
     };
 
     struct SearchHeuristic

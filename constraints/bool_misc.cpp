@@ -69,7 +69,7 @@ void bool_clause::propagate()
         if(not x->isBound())
         {
             asNotBoundCount += 1;
-            asNotBound= x;
+            asNotBound = x;
         }
         else if (x->isTrue())
         {
@@ -92,7 +92,7 @@ void bool_clause::propagate()
     }
 
     //Propagation: (as1 \/ ... \/ asn) \/ (-bs1 \/ ... \/ -bsm)
-    if(not asSatisfied and not bsSatisfied)
+    if(not (asSatisfied or bsSatisfied))
     {
         if (asNotBoundCount == 0 and bsNotBoundCount == 0)
         {

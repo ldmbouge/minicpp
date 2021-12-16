@@ -239,11 +239,11 @@ void int_lin_le_reif::propagate()
     calSumMinMax(this, sumMin, sumMax);
 
     //Propagation: as1*bs1 + ... + asn*bsn <= c -> r
-    if(sumMin == sumMax)
+    if(sumMax <= _c)
     {
-        _r->assign(sumMin == _c);
+        _r->assign(true);
     }
-    else if(_c < sumMin or sumMax < _c)
+    else if(_c < sumMin)
     {
         _r->assign(false);
     }
