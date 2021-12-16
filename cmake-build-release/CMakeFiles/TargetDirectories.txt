@@ -1,3 +1,4 @@
+/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/fzn-minicpp.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/tsp.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/table.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/steel.dir
@@ -28,11 +29,13 @@
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/alldiffOverlap.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/edit_cache.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/main3.dir
+/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/adac.dir
+/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/tinyAllDiffRelax.dir
+/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/fzl.dir
+/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/gccTest.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/carSeqMDD.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/msperf.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/sequenceTest3.dir
-/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/adac.dir
-/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/tinyAllDiffRelax.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/bibd.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/qaplns.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/amongsum.dir
@@ -41,7 +44,6 @@
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/nqperf.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/carSeqMDD_WVH.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/carSeq_newSearch.dir
-/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/gccTest.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/inout.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/mediumAllDiff.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/sequenceTestSplit.dir
@@ -49,7 +51,6 @@
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/magicserie.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/mediumAmong.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/mediumGCC.dir
-/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/main.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/mediumSeq.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/mediumGCCRelax.dir
 /home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/CMakeFiles/tinyAllDiff.dir

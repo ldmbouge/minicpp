@@ -117,6 +117,19 @@ depend:
 .PHONY : depend
 
 #=============================================================================
+# Target rules for targets named fzn-minicpp
+
+# Build rule for target.
+fzn-minicpp: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fzn-minicpp
+.PHONY : fzn-minicpp
+
+# fast build rule for target.
+fzn-minicpp/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzn-minicpp.dir/build.make CMakeFiles/fzn-minicpp.dir/build
+.PHONY : fzn-minicpp/fast
+
+#=============================================================================
 # Target rules for targets named tsp
 
 # Build rule for target.
@@ -481,6 +494,58 @@ main3/fast:
 .PHONY : main3/fast
 
 #=============================================================================
+# Target rules for targets named adac
+
+# Build rule for target.
+adac: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 adac
+.PHONY : adac
+
+# fast build rule for target.
+adac/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/adac.dir/build.make CMakeFiles/adac.dir/build
+.PHONY : adac/fast
+
+#=============================================================================
+# Target rules for targets named tinyAllDiffRelax
+
+# Build rule for target.
+tinyAllDiffRelax: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tinyAllDiffRelax
+.PHONY : tinyAllDiffRelax
+
+# fast build rule for target.
+tinyAllDiffRelax/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/tinyAllDiffRelax.dir/build.make CMakeFiles/tinyAllDiffRelax.dir/build
+.PHONY : tinyAllDiffRelax/fast
+
+#=============================================================================
+# Target rules for targets named fzl
+
+# Build rule for target.
+fzl: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 fzl
+.PHONY : fzl
+
+# fast build rule for target.
+fzl/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/build
+.PHONY : fzl/fast
+
+#=============================================================================
+# Target rules for targets named gccTest
+
+# Build rule for target.
+gccTest: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gccTest
+.PHONY : gccTest
+
+# fast build rule for target.
+gccTest/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/gccTest.dir/build.make CMakeFiles/gccTest.dir/build
+.PHONY : gccTest/fast
+
+#=============================================================================
 # Target rules for targets named carSeqMDD
 
 # Build rule for target.
@@ -518,32 +583,6 @@ sequenceTest3: cmake_check_build_system
 sequenceTest3/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/sequenceTest3.dir/build.make CMakeFiles/sequenceTest3.dir/build
 .PHONY : sequenceTest3/fast
-
-#=============================================================================
-# Target rules for targets named adac
-
-# Build rule for target.
-adac: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 adac
-.PHONY : adac
-
-# fast build rule for target.
-adac/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/adac.dir/build.make CMakeFiles/adac.dir/build
-.PHONY : adac/fast
-
-#=============================================================================
-# Target rules for targets named tinyAllDiffRelax
-
-# Build rule for target.
-tinyAllDiffRelax: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 tinyAllDiffRelax
-.PHONY : tinyAllDiffRelax
-
-# fast build rule for target.
-tinyAllDiffRelax/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/tinyAllDiffRelax.dir/build.make CMakeFiles/tinyAllDiffRelax.dir/build
-.PHONY : tinyAllDiffRelax/fast
 
 #=============================================================================
 # Target rules for targets named bibd
@@ -650,19 +689,6 @@ carSeq_newSearch/fast:
 .PHONY : carSeq_newSearch/fast
 
 #=============================================================================
-# Target rules for targets named gccTest
-
-# Build rule for target.
-gccTest: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 gccTest
-.PHONY : gccTest
-
-# fast build rule for target.
-gccTest/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/gccTest.dir/build.make CMakeFiles/gccTest.dir/build
-.PHONY : gccTest/fast
-
-#=============================================================================
 # Target rules for targets named inout
 
 # Build rule for target.
@@ -752,19 +778,6 @@ mediumGCC: cmake_check_build_system
 mediumGCC/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/mediumGCC.dir/build.make CMakeFiles/mediumGCC.dir/build
 .PHONY : mediumGCC/fast
-
-#=============================================================================
-# Target rules for targets named main
-
-# Build rule for target.
-main: cmake_check_build_system
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 main
-.PHONY : main
-
-# fast build rule for target.
-main/fast:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/build
-.PHONY : main/fast
 
 #=============================================================================
 # Target rules for targets named mediumSeq
@@ -1011,6 +1024,7 @@ constraints/bool_array.o: constraints/bool_array.cpp.o
 # target to build an object file
 constraints/bool_array.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_array.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_array.cpp.o
 .PHONY : constraints/bool_array.cpp.o
 
 constraints/bool_array.i: constraints/bool_array.cpp.i
@@ -1019,6 +1033,7 @@ constraints/bool_array.i: constraints/bool_array.cpp.i
 # target to preprocess a source file
 constraints/bool_array.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_array.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_array.cpp.i
 .PHONY : constraints/bool_array.cpp.i
 
 constraints/bool_array.s: constraints/bool_array.cpp.s
@@ -1027,6 +1042,7 @@ constraints/bool_array.s: constraints/bool_array.cpp.s
 # target to generate assembly for a file
 constraints/bool_array.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_array.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_array.cpp.s
 .PHONY : constraints/bool_array.cpp.s
 
 constraints/bool_bin.o: constraints/bool_bin.cpp.o
@@ -1035,6 +1051,7 @@ constraints/bool_bin.o: constraints/bool_bin.cpp.o
 # target to build an object file
 constraints/bool_bin.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_bin.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_bin.cpp.o
 .PHONY : constraints/bool_bin.cpp.o
 
 constraints/bool_bin.i: constraints/bool_bin.cpp.i
@@ -1043,6 +1060,7 @@ constraints/bool_bin.i: constraints/bool_bin.cpp.i
 # target to preprocess a source file
 constraints/bool_bin.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_bin.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_bin.cpp.i
 .PHONY : constraints/bool_bin.cpp.i
 
 constraints/bool_bin.s: constraints/bool_bin.cpp.s
@@ -1051,6 +1069,7 @@ constraints/bool_bin.s: constraints/bool_bin.cpp.s
 # target to generate assembly for a file
 constraints/bool_bin.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_bin.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_bin.cpp.s
 .PHONY : constraints/bool_bin.cpp.s
 
 constraints/bool_lin.o: constraints/bool_lin.cpp.o
@@ -1059,6 +1078,7 @@ constraints/bool_lin.o: constraints/bool_lin.cpp.o
 # target to build an object file
 constraints/bool_lin.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_lin.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_lin.cpp.o
 .PHONY : constraints/bool_lin.cpp.o
 
 constraints/bool_lin.i: constraints/bool_lin.cpp.i
@@ -1067,6 +1087,7 @@ constraints/bool_lin.i: constraints/bool_lin.cpp.i
 # target to preprocess a source file
 constraints/bool_lin.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_lin.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_lin.cpp.i
 .PHONY : constraints/bool_lin.cpp.i
 
 constraints/bool_lin.s: constraints/bool_lin.cpp.s
@@ -1075,6 +1096,7 @@ constraints/bool_lin.s: constraints/bool_lin.cpp.s
 # target to generate assembly for a file
 constraints/bool_lin.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_lin.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_lin.cpp.s
 .PHONY : constraints/bool_lin.cpp.s
 
 constraints/bool_misc.o: constraints/bool_misc.cpp.o
@@ -1083,6 +1105,7 @@ constraints/bool_misc.o: constraints/bool_misc.cpp.o
 # target to build an object file
 constraints/bool_misc.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_misc.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_misc.cpp.o
 .PHONY : constraints/bool_misc.cpp.o
 
 constraints/bool_misc.i: constraints/bool_misc.cpp.i
@@ -1091,6 +1114,7 @@ constraints/bool_misc.i: constraints/bool_misc.cpp.i
 # target to preprocess a source file
 constraints/bool_misc.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_misc.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_misc.cpp.i
 .PHONY : constraints/bool_misc.cpp.i
 
 constraints/bool_misc.s: constraints/bool_misc.cpp.s
@@ -1099,6 +1123,7 @@ constraints/bool_misc.s: constraints/bool_misc.cpp.s
 # target to generate assembly for a file
 constraints/bool_misc.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/bool_misc.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/bool_misc.cpp.s
 .PHONY : constraints/bool_misc.cpp.s
 
 constraints/flatzinc.o: constraints/flatzinc.cpp.o
@@ -1107,6 +1132,7 @@ constraints/flatzinc.o: constraints/flatzinc.cpp.o
 # target to build an object file
 constraints/flatzinc.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/flatzinc.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/flatzinc.cpp.o
 .PHONY : constraints/flatzinc.cpp.o
 
 constraints/flatzinc.i: constraints/flatzinc.cpp.i
@@ -1115,6 +1141,7 @@ constraints/flatzinc.i: constraints/flatzinc.cpp.i
 # target to preprocess a source file
 constraints/flatzinc.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/flatzinc.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/flatzinc.cpp.i
 .PHONY : constraints/flatzinc.cpp.i
 
 constraints/flatzinc.s: constraints/flatzinc.cpp.s
@@ -1123,6 +1150,7 @@ constraints/flatzinc.s: constraints/flatzinc.cpp.s
 # target to generate assembly for a file
 constraints/flatzinc.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/flatzinc.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/flatzinc.cpp.s
 .PHONY : constraints/flatzinc.cpp.s
 
 constraints/int_array.o: constraints/int_array.cpp.o
@@ -1131,6 +1159,7 @@ constraints/int_array.o: constraints/int_array.cpp.o
 # target to build an object file
 constraints/int_array.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_array.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_array.cpp.o
 .PHONY : constraints/int_array.cpp.o
 
 constraints/int_array.i: constraints/int_array.cpp.i
@@ -1139,6 +1168,7 @@ constraints/int_array.i: constraints/int_array.cpp.i
 # target to preprocess a source file
 constraints/int_array.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_array.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_array.cpp.i
 .PHONY : constraints/int_array.cpp.i
 
 constraints/int_array.s: constraints/int_array.cpp.s
@@ -1147,6 +1177,7 @@ constraints/int_array.s: constraints/int_array.cpp.s
 # target to generate assembly for a file
 constraints/int_array.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_array.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_array.cpp.s
 .PHONY : constraints/int_array.cpp.s
 
 constraints/int_bin.o: constraints/int_bin.cpp.o
@@ -1155,6 +1186,7 @@ constraints/int_bin.o: constraints/int_bin.cpp.o
 # target to build an object file
 constraints/int_bin.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_bin.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_bin.cpp.o
 .PHONY : constraints/int_bin.cpp.o
 
 constraints/int_bin.i: constraints/int_bin.cpp.i
@@ -1163,6 +1195,7 @@ constraints/int_bin.i: constraints/int_bin.cpp.i
 # target to preprocess a source file
 constraints/int_bin.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_bin.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_bin.cpp.i
 .PHONY : constraints/int_bin.cpp.i
 
 constraints/int_bin.s: constraints/int_bin.cpp.s
@@ -1171,6 +1204,7 @@ constraints/int_bin.s: constraints/int_bin.cpp.s
 # target to generate assembly for a file
 constraints/int_bin.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_bin.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_bin.cpp.s
 .PHONY : constraints/int_bin.cpp.s
 
 constraints/int_lin.o: constraints/int_lin.cpp.o
@@ -1179,6 +1213,7 @@ constraints/int_lin.o: constraints/int_lin.cpp.o
 # target to build an object file
 constraints/int_lin.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_lin.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_lin.cpp.o
 .PHONY : constraints/int_lin.cpp.o
 
 constraints/int_lin.i: constraints/int_lin.cpp.i
@@ -1187,6 +1222,7 @@ constraints/int_lin.i: constraints/int_lin.cpp.i
 # target to preprocess a source file
 constraints/int_lin.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_lin.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_lin.cpp.i
 .PHONY : constraints/int_lin.cpp.i
 
 constraints/int_lin.s: constraints/int_lin.cpp.s
@@ -1195,6 +1231,7 @@ constraints/int_lin.s: constraints/int_lin.cpp.s
 # target to generate assembly for a file
 constraints/int_lin.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_lin.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_lin.cpp.s
 .PHONY : constraints/int_lin.cpp.s
 
 constraints/int_tern.o: constraints/int_tern.cpp.o
@@ -1203,6 +1240,7 @@ constraints/int_tern.o: constraints/int_tern.cpp.o
 # target to build an object file
 constraints/int_tern.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_tern.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_tern.cpp.o
 .PHONY : constraints/int_tern.cpp.o
 
 constraints/int_tern.i: constraints/int_tern.cpp.i
@@ -1211,6 +1249,7 @@ constraints/int_tern.i: constraints/int_tern.cpp.i
 # target to preprocess a source file
 constraints/int_tern.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_tern.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_tern.cpp.i
 .PHONY : constraints/int_tern.cpp.i
 
 constraints/int_tern.s: constraints/int_tern.cpp.s
@@ -1219,6 +1258,7 @@ constraints/int_tern.s: constraints/int_tern.cpp.s
 # target to generate assembly for a file
 constraints/int_tern.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/constraints/int_tern.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/constraints/int_tern.cpp.s
 .PHONY : constraints/int_tern.cpp.s
 
 domain.o: domain.cpp.o
@@ -1293,6 +1333,30 @@ examples/bibd.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/bibd.dir/build.make CMakeFiles/bibd.dir/examples/bibd.cpp.s
 .PHONY : examples/bibd.cpp.s
 
+examples/fz.o: examples/fz.cpp.o
+.PHONY : examples/fz.o
+
+# target to build an object file
+examples/fz.cpp.o:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzn-minicpp.dir/build.make CMakeFiles/fzn-minicpp.dir/examples/fz.cpp.o
+.PHONY : examples/fz.cpp.o
+
+examples/fz.i: examples/fz.cpp.i
+.PHONY : examples/fz.i
+
+# target to preprocess a source file
+examples/fz.cpp.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzn-minicpp.dir/build.make CMakeFiles/fzn-minicpp.dir/examples/fz.cpp.i
+.PHONY : examples/fz.cpp.i
+
+examples/fz.s: examples/fz.cpp.s
+.PHONY : examples/fz.s
+
+# target to generate assembly for a file
+examples/fz.cpp.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzn-minicpp.dir/build.make CMakeFiles/fzn-minicpp.dir/examples/fz.cpp.s
+.PHONY : examples/fz.cpp.s
+
 examples/inout.o: examples/inout.cpp.o
 .PHONY : examples/inout.o
 
@@ -1364,30 +1428,6 @@ examples/magicsquare.s: examples/magicsquare.cpp.s
 examples/magicsquare.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/magicsquare.dir/build.make CMakeFiles/magicsquare.dir/examples/magicsquare.cpp.s
 .PHONY : examples/magicsquare.cpp.s
-
-examples/main.o: examples/main.cpp.o
-.PHONY : examples/main.o
-
-# target to build an object file
-examples/main.cpp.o:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/examples/main.cpp.o
-.PHONY : examples/main.cpp.o
-
-examples/main.i: examples/main.cpp.i
-.PHONY : examples/main.i
-
-# target to preprocess a source file
-examples/main.cpp.i:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/examples/main.cpp.i
-.PHONY : examples/main.cpp.i
-
-examples/main.s: examples/main.cpp.s
-.PHONY : examples/main.s
-
-# target to generate assembly for a file
-examples/main.cpp.s:
-	$(MAKE) $(MAKESILENT) -f CMakeFiles/main.dir/build.make CMakeFiles/main.dir/examples/main.cpp.s
-.PHONY : examples/main.cpp.s
 
 examples/main2.o: examples/main2.cpp.o
 .PHONY : examples/main2.o
@@ -2691,6 +2731,7 @@ flatzinc/flatzinc.o: flatzinc/flatzinc.cpp.o
 # target to build an object file
 flatzinc/flatzinc.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/flatzinc.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/flatzinc.cpp.o
 .PHONY : flatzinc/flatzinc.cpp.o
 
 flatzinc/flatzinc.i: flatzinc/flatzinc.cpp.i
@@ -2699,6 +2740,7 @@ flatzinc/flatzinc.i: flatzinc/flatzinc.cpp.i
 # target to preprocess a source file
 flatzinc/flatzinc.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/flatzinc.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/flatzinc.cpp.i
 .PHONY : flatzinc/flatzinc.cpp.i
 
 flatzinc/flatzinc.s: flatzinc/flatzinc.cpp.s
@@ -2707,6 +2749,7 @@ flatzinc/flatzinc.s: flatzinc/flatzinc.cpp.s
 # target to generate assembly for a file
 flatzinc/flatzinc.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/flatzinc.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/flatzinc.cpp.s
 .PHONY : flatzinc/flatzinc.cpp.s
 
 flatzinc/lexer.yy.o: flatzinc/lexer.yy.cpp.o
@@ -2715,6 +2758,7 @@ flatzinc/lexer.yy.o: flatzinc/lexer.yy.cpp.o
 # target to build an object file
 flatzinc/lexer.yy.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/lexer.yy.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/lexer.yy.cpp.o
 .PHONY : flatzinc/lexer.yy.cpp.o
 
 flatzinc/lexer.yy.i: flatzinc/lexer.yy.cpp.i
@@ -2723,6 +2767,7 @@ flatzinc/lexer.yy.i: flatzinc/lexer.yy.cpp.i
 # target to preprocess a source file
 flatzinc/lexer.yy.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/lexer.yy.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/lexer.yy.cpp.i
 .PHONY : flatzinc/lexer.yy.cpp.i
 
 flatzinc/lexer.yy.s: flatzinc/lexer.yy.cpp.s
@@ -2731,6 +2776,7 @@ flatzinc/lexer.yy.s: flatzinc/lexer.yy.cpp.s
 # target to generate assembly for a file
 flatzinc/lexer.yy.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/lexer.yy.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/lexer.yy.cpp.s
 .PHONY : flatzinc/lexer.yy.cpp.s
 
 flatzinc/parser.tab.o: flatzinc/parser.tab.cpp.o
@@ -2739,6 +2785,7 @@ flatzinc/parser.tab.o: flatzinc/parser.tab.cpp.o
 # target to build an object file
 flatzinc/parser.tab.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/parser.tab.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/parser.tab.cpp.o
 .PHONY : flatzinc/parser.tab.cpp.o
 
 flatzinc/parser.tab.i: flatzinc/parser.tab.cpp.i
@@ -2747,6 +2794,7 @@ flatzinc/parser.tab.i: flatzinc/parser.tab.cpp.i
 # target to preprocess a source file
 flatzinc/parser.tab.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/parser.tab.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/parser.tab.cpp.i
 .PHONY : flatzinc/parser.tab.cpp.i
 
 flatzinc/parser.tab.s: flatzinc/parser.tab.cpp.s
@@ -2755,6 +2803,7 @@ flatzinc/parser.tab.s: flatzinc/parser.tab.cpp.s
 # target to generate assembly for a file
 flatzinc/parser.tab.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/parser.tab.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/parser.tab.cpp.s
 .PHONY : flatzinc/parser.tab.cpp.s
 
 flatzinc/registry.o: flatzinc/registry.cpp.o
@@ -2763,6 +2812,7 @@ flatzinc/registry.o: flatzinc/registry.cpp.o
 # target to build an object file
 flatzinc/registry.cpp.o:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/registry.cpp.o
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/registry.cpp.o
 .PHONY : flatzinc/registry.cpp.o
 
 flatzinc/registry.i: flatzinc/registry.cpp.i
@@ -2771,6 +2821,7 @@ flatzinc/registry.i: flatzinc/registry.cpp.i
 # target to preprocess a source file
 flatzinc/registry.cpp.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/registry.cpp.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/registry.cpp.i
 .PHONY : flatzinc/registry.cpp.i
 
 flatzinc/registry.s: flatzinc/registry.cpp.s
@@ -2779,6 +2830,7 @@ flatzinc/registry.s: flatzinc/registry.cpp.s
 # target to generate assembly for a file
 flatzinc/registry.cpp.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/copl.dir/build.make CMakeFiles/copl.dir/flatzinc/registry.cpp.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/fzl.dir/build.make CMakeFiles/fzl.dir/flatzinc/registry.cpp.s
 .PHONY : flatzinc/registry.cpp.s
 
 intvar.o: intvar.cpp.o
@@ -3311,11 +3363,12 @@ help:
 	@echo "... carSeqMDD_WVH"
 	@echo "... carSeq_newSearch"
 	@echo "... copl"
+	@echo "... fzl"
+	@echo "... fzn-minicpp"
 	@echo "... gccTest"
 	@echo "... inout"
 	@echo "... magicserie"
 	@echo "... magicsquare"
-	@echo "... main"
 	@echo "... main2"
 	@echo "... main3"
 	@echo "... mddamong"
@@ -3402,6 +3455,9 @@ help:
 	@echo "... examples/bibd.o"
 	@echo "... examples/bibd.i"
 	@echo "... examples/bibd.s"
+	@echo "... examples/fz.o"
+	@echo "... examples/fz.i"
+	@echo "... examples/fz.s"
 	@echo "... examples/inout.o"
 	@echo "... examples/inout.i"
 	@echo "... examples/inout.s"
@@ -3411,9 +3467,6 @@ help:
 	@echo "... examples/magicsquare.o"
 	@echo "... examples/magicsquare.i"
 	@echo "... examples/magicsquare.s"
-	@echo "... examples/main.o"
-	@echo "... examples/main.i"
-	@echo "... examples/main.s"
 	@echo "... examples/main2.o"
 	@echo "... examples/main2.i"
 	@echo "... examples/main2.s"

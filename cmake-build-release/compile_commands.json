@@ -196,6 +196,76 @@
 },
 {
   "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/bool_array.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_array.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_array.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/bool_bin.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_bin.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_bin.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/bool_lin.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_lin.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_lin.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/bool_misc.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_misc.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_misc.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/flatzinc.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/flatzinc.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/flatzinc.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/int_array.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_array.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_array.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/int_bin.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_bin.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_bin.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/int_lin.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_lin.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_lin.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/constraints/int_tern.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_tern.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_tern.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/flatzinc/flatzinc.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/flatzinc.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/flatzinc.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/flatzinc/lexer.yy.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/lexer.yy.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/lexer.yy.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/flatzinc/parser.tab.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/parser.tab.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/parser.tab.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzl.dir/flatzinc/registry.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/registry.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/registry.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/fzn-minicpp.dir/examples/fz.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/fz.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/fz.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
   "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/tsp.dir/examples/tsp.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/tsp.cpp\"",
   "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/tsp.cpp"
 },
@@ -331,6 +401,21 @@
 },
 {
   "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/adac.dir/examples/adac.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/adac.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/adac.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/tinyAllDiffRelax.dir/examples/mdd/tinyAllDiffRelax.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/tinyAllDiffRelax.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/tinyAllDiffRelax.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
+  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/gccTest.dir/examples/mdd/gccTest.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/gccTest.cpp\"",
+  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/gccTest.cpp"
+},
+{
+  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
   "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/carSeqMDD.dir/examples/mdd/carSeqMDD.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/carSeqMDD.cpp\"",
   "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/carSeqMDD.cpp"
 },
@@ -343,16 +428,6 @@
   "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
   "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/sequenceTest3.dir/examples/mdd/sequenceTest3.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/sequenceTest3.cpp\"",
   "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/sequenceTest3.cpp"
-},
-{
-  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
-  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/adac.dir/examples/adac.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/adac.cpp\"",
-  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/adac.cpp"
-},
-{
-  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
-  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/tinyAllDiffRelax.dir/examples/mdd/tinyAllDiffRelax.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/tinyAllDiffRelax.cpp\"",
-  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/tinyAllDiffRelax.cpp"
 },
 {
   "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
@@ -396,11 +471,6 @@
 },
 {
   "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
-  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/gccTest.dir/examples/mdd/gccTest.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/gccTest.cpp\"",
-  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/gccTest.cpp"
-},
-{
-  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
   "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/inout.dir/examples/inout.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/inout.cpp\"",
   "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/inout.cpp"
 },
@@ -433,11 +503,6 @@
   "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
   "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/mediumGCC.dir/examples/mdd/mediumGCC.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/mediumGCC.cpp\"",
   "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/mdd/mediumGCC.cpp"
-},
-{
-  "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",
-  "command": "/usr/bin/c++  -I\"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/.\" -Wall -Wsign-compare -O3 -msse4.2 -D_NDEBUG -DNDEBUG -std=gnu++17 -o CMakeFiles/main.dir/examples/main.cpp.o -c \"/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/main.cpp\"",
-  "file": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/main.cpp"
 },
 {
   "directory": "/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release",

@@ -58,8 +58,6 @@ class SearchStatistics
         int intVariables;
         int boolVariables;
         int propagators;
-        int propagations;
-        int peakDepth;
         RuntimeMonitor::HRClock startTime;
         RuntimeMonitor::HRClock initTime;
         RuntimeMonitor::HRClock solveTime;
@@ -74,8 +72,6 @@ class SearchStatistics
         intVariables(0),
         boolVariables(0),
         propagators(0),
-        propagations(0),
-        peakDepth(0),
         completed(false)
        {
           startTime = RuntimeMonitor::now();
@@ -84,8 +80,13 @@ class SearchStatistics
        void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
        void incrSolutions() noexcept {solutions += 1;}
        void setCompleted()  noexcept {completed = true;}
+       void setIntVars(int count) noexcept {intVariables = count; variables += count;};
+       void setBoolVars(int count) noexcept {boolVariables = count; variables += count;};
+       void setPropagators(int count) noexcept {propagators = count;};
        void setInitTime() noexcept {initTime = RuntimeMonitor::now();}
-       void setSolveTime() noexcept {solveTime = RuntimeMonitor::now();}
+       void setSolveTime() noexcept {solveTime = RuntimeMonitor::now();};
+       int getSolutions() const noexcept {return solutions;};
+       RuntimeMonitor::HRClock getStartTime() const noexcept {return startTime;};
        friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss)
        {
             return os << "%%%mzn-stat: nodes=" << ss.nodes << std::endl
@@ -95,11 +96,10 @@ class SearchStatistics
                       << "%%%mzn-stat: intVariables=" << ss.intVariables << std::endl
                       << "%%%mzn-stat: boolVariables=" << ss.boolVariables << std::endl
                       << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
-                      << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
-                      << "%%%mzn-stat: peakDepth=" << ss.peakDepth << std::endl
-                      << std::fixed
+                      << std::setprecision(3)
                       << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime, ss.initTime) << std::endl
-                      << "%%%mzn-stat: solveTime=" <<  RuntimeMonitor::elapsedSeconds(ss.startTime, ss.solveTime) << std::endl
+                      << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss.initTime, ss.solveTime) << std::endl
+                      << "%%%mzn-stat: totalTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime) << std::endl
                       << std::defaultfloat
                       << "%%%mzn-stat-end" << std::endl;
        }
@@ -278,7 +278,7 @@ Branches indomain_max(CPSolver::Ptr cp, Var var)
     {
         auto val = var->max();
         return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " == "<< val << std::endl;) return cp->post(var == val);} |
-               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " != "<< vsl << std::endl;) return cp->post(var != val);};
+               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " != "<< val << std::endl;) return cp->post(var != val);};
     }
     else
     {
@@ -295,7 +295,7 @@ Branches indomain_split(CPSolver::Ptr cp, Var var)
     {
         auto val = (var->max() - var->min()) / 2;
         return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " <= "<< val << std::endl;) return cp->post(var <= val);} |
-               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " > "<< vsl << std::endl;) return cp->post(var >= val + 1);};
+               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " > "<< val << std::endl;) return cp->post(var >= val + 1);};
     }
     else
     {

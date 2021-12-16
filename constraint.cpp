@@ -788,7 +788,7 @@ void Element1D::post()
 void Element1DVar::post()
 {
    _y->updateBounds(1,(int)_array.size());
-   for(int i = 1 ; i < _array.size(); i += 1)
+   for(size_t i = 1 ; i < _array.size(); i += 1)
    {
        _array[i]->propagateOnBoundChange(this);
    }

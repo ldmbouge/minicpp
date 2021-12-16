@@ -4,8 +4,8 @@
 #include <iostream>
 #include <string>
 
-//#define TRACE(...) __VA_ARGS__
-#define TRACE(...)
+#define TRACE(...) __VA_ARGS__
+//#define TRACE(...)
 #define ENUM2STR(e) #e
 
 inline double division(int numerator, int denominator)

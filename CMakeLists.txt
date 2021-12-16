@@ -70,19 +70,40 @@ add_library(copl
 	trail.cpp
 	trailable.cpp)
 
+add_library(fzl
+		constraints/bool_array.cpp
+		constraints/bool_bin.cpp
+		constraints/bool_lin.cpp
+		constraints/bool_misc.cpp
+		constraints/flatzinc.cpp
+		constraints/int_array.cpp
+		constraints/int_bin.cpp
+		constraints/int_lin.cpp
+		constraints/int_tern.cpp
+		flatzinc/flatzinc.cpp
+		flatzinc/lexer.yy.cpp
+		flatzinc/parser.tab.cpp
+		flatzinc/registry.cpp
+		)
+
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
+list(FILTER files EXCLUDE REGEX ".*/examples/fz.cpp")
 message("${files}")
+
 foreach (file ${files})
 	get_filename_component(base ${file} NAME_WE)
 	get_filename_component(dir ${file} DIRECTORY)
-#	message("BASE IS: ${base}")
+	message("BASE IS: ${base}")
 	add_executable(${base} ${dir}/${base}.cpp)
 	target_link_libraries(${base} copl)
 	add_dependencies(${base} copl)
 endforeach()
 
-file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+add_executable(fzn-minicpp examples/fz.cpp)
+target_link_libraries(fzn-minicpp copl fzl)
+
+#file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 #[[ add_subdirectory(pybind11)  ]]
 #find_package(pybind11 REQUIRED)

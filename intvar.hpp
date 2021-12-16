@@ -258,7 +258,7 @@ namespace Factory {
    using Veci   = EVec<var<int>::Ptr,alloci>;
    using Vecb   = EVec<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
-   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);   
+   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::vector<int> const & vals);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps, bool value);

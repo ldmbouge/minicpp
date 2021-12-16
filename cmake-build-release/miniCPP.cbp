@@ -17,6 +17,52 @@
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="fzn-minicpp">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/fzn-minicpp" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 fzn-minicpp"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="fzn-minicpp/fast">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/fzn-minicpp" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 fzn-minicpp/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 			<Target title="tsp">
 				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/tsp" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
@@ -1325,6 +1371,190 @@
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="adac">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/adac" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 adac"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="adac/fast">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/adac" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 adac/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="tinyAllDiffRelax">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/tinyAllDiffRelax" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 tinyAllDiffRelax"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="tinyAllDiffRelax/fast">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/tinyAllDiffRelax" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 tinyAllDiffRelax/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="fzl">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/libfzl.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 fzl"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="fzl/fast">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/libfzl.a" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="2"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 fzl/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gccTest">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/gccTest" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 gccTest"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="gccTest/fast">
+				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/gccTest" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 gccTest/fast"/>
+					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 			<Target title="carSeqMDD">
 				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/carSeqMDD" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
@@ -1458,98 +1688,6 @@
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 sequenceTest3/fast"/>
-					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="adac">
-				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/adac" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 adac"/>
-					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="adac/fast">
-				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/adac" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 adac/fast"/>
-					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="tinyAllDiffRelax">
-				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/tinyAllDiffRelax" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 tinyAllDiffRelax"/>
-					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="tinyAllDiffRelax/fast">
-				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/tinyAllDiffRelax" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 tinyAllDiffRelax/fast"/>
 					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
 					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
@@ -1923,52 +2061,6 @@
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
-			<Target title="gccTest">
-				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/gccTest" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 gccTest"/>
-					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="gccTest/fast">
-				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/gccTest" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 gccTest/fast"/>
-					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
 			<Target title="inout">
 				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/inout" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
@@ -2286,52 +2378,6 @@
 				</Compiler>
 				<MakeCommands>
 					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 mediumGCC/fast"/>
-					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="main">
-				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/main" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 main"/>
-					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="main/fast">
-				<Option output="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release/main" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/cmake-build-release"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/."/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/x86_64-pc-linux-gnu"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/../../../../include/c++/11.1.0/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/lib/gcc/x86_64-pc-linux-gnu/11.1.0/include-fixed"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 main/fast"/>
 					<CompileFile command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
 					<Clean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
 					<DistClean command="/usr/bin/make -j8 -f &quot;/home/void/Workspace\ -\ NMSU/CP-GPU/Code/minicpp/cmake-build-release/Makefile&quot;  VERBOSE=1 clean"/>
@@ -2870,57 +2916,75 @@
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_array.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_array.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_bin.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_bin.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_lin.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_lin.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_misc.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/bool_misc.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/flatzinc.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/flatzinc.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_array.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_array.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_bin.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_bin.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_lin.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_lin.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_tern.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/constraints/int_tern.hpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/domain.cpp">
 			<Option target="copl"/>
@@ -2934,6 +2998,9 @@
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/bibd.cpp">
 			<Option target="bibd"/>
 		</Unit>
+		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/fz.cpp">
+			<Option target="fzn-minicpp"/>
+		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/inout.cpp">
 			<Option target="inout"/>
 		</Unit>
@@ -2942,9 +3009,6 @@
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/magicsquare.cpp">
 			<Option target="magicsquare"/>
-		</Unit>
-		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/main.cpp">
-			<Option target="main"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/examples/main2.cpp">
 			<Option target="main2"/>
@@ -3110,24 +3174,31 @@
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/flatzinc.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/flatzinc.h">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/lexer.yy.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/parser.h">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/parser.tab.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/registry.cpp">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/flatzinc/registry.h">
 			<Option target="copl"/>
+			<Option target="fzl"/>
 		</Unit>
 		<Unit filename="/home/void/Workspace - NMSU/CP-GPU/Code/minicpp/intvar.cpp">
 			<Option target="copl"/>

@@ -38,5 +38,18 @@ namespace RuntimeMonitor {
         auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         return static_cast<double>(diff.count()) / 1000.0;
     }
+
+    double elapsedSeconds(HRClock start)
+    {
+        auto now  = std::chrono::high_resolution_clock::now();
+        auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(now - start);
+        return static_cast<double>(diff.count()) / 1000.0;
+    }
+
+    double elapsedMilliseconds(HRClock start, HRClock end)
+    {
+        auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        return static_cast<double>(diff.count());
+    }
 }
 

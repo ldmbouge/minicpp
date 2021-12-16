@@ -436,6 +436,16 @@ namespace Factory
       x->getSolver()->fixpoint();
       return nullptr;
    }
+    inline Constraint::Ptr operator<=(var<bool>::Ptr x,const int c) {
+        x->removeAbove(c);
+        x->getSolver()->fixpoint();
+        return nullptr;
+    }
+    inline Constraint::Ptr operator>=(var<bool>::Ptr x,const int c) {
+        x->removeBelow(c);
+        x->getSolver()->fixpoint();
+        return nullptr;
+    }
    inline Objective::Ptr minimize(var<int>::Ptr x) {
       return new Minimize(x);
    }
