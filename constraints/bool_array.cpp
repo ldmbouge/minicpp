@@ -1,14 +1,14 @@
 #include <limits>
 #include <constraints/bool_array.hpp>
 
-array_bool_and_reif::array_bool_and_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+array_bool_and_reif::array_bool_and_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
     _as(),
-    _r(boolVars->at(vars.back()))
+    _r(bool_vars[fzConstraint.vars.back()])
 {
-    for(size_t i = 0; i < vars.size() - 1; i += 1)
+    for(size_t i = 0; i < fzConstraint.vars.size() - 1; i += 1)
     {
-        _as.push_back(boolVars->at(vars[i]));
+        _as.push_back(bool_vars[fzConstraint.vars[i]]);
     }
 }
 
@@ -68,16 +68,16 @@ void array_bool_and_reif::propagate()
     }
 }
 
-array_bool_element::array_bool_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+array_bool_element::array_bool_element(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _b(intVars->at(vars[0])),
+    _b(int_vars[fzConstraint.vars[0]]),
     _as(),
-    _c(boolVars->at(vars[1]))
+    _c(bool_vars[fzConstraint.vars[1]])
 {
     _as.push_back(0); // Index from 1
-    for(size_t i = 0; i < consts.size(); i += 1)
+    for(size_t i = 0; i < fzConstraint.consts.size(); i += 1)
     {
-        _as.push_back(consts[i]);
+        _as.push_back(fzConstraint.consts[i]);
     }
 }
 
@@ -118,14 +118,14 @@ void array_bool_element::propagate()
     }
 }
 
-array_bool_or_reif::array_bool_or_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+array_bool_or_reif::array_bool_or_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
     _as(),
-    _r(boolVars->at(vars.back()))
+    _r(bool_vars[fzConstraint.vars.back()])
 {
-    for(size_t i = 0; i < vars.size() - 1; i += 1)
+    for(size_t i = 0; i < fzConstraint.vars.size() - 1; i += 1)
     {
-        _as.push_back(boolVars->at(vars[i]));
+        _as.push_back(bool_vars[fzConstraint.vars[i]]);
     }
 }
 
@@ -185,13 +185,13 @@ void array_bool_or_reif::propagate()
     }
 }
 
-array_bool_xor::array_bool_xor(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+array_bool_xor::array_bool_xor(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
     _as()
 {
-    for(size_t i = 0; i < vars.size(); i += 1)
+    for(size_t i = 0; i < fzConstraint.vars.size(); i += 1)
     {
-        _as.push_back(boolVars->at(vars[i]));
+        _as.push_back(bool_vars[fzConstraint.vars[i]]);
     }
 }
 
@@ -230,16 +230,16 @@ void array_bool_xor::propagate()
     }
 }
 
-array_var_bool_element::array_var_bool_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+array_var_bool_element::array_var_bool_element(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _b(intVars->at(vars.front())),
+    _b(int_vars[fzConstraint.vars.front()]),
     _as(),
-    _c(boolVars->at(vars.back()))
+    _c(bool_vars[fzConstraint.vars.back()])
 {
     _as.push_back(nullptr); // Index from 1
-    for(size_t i = 1; i < vars.size() - 1; i += 1)
+    for(size_t i = 1; i < fzConstraint.vars.size() - 1; i += 1)
     {
-        _as.push_back(boolVars->at(vars[i]));
+        _as.push_back(bool_vars[fzConstraint.vars[i]]);
     }
 }
 

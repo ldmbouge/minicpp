@@ -2,16 +2,17 @@
 #include <limits>
 #include <constraints/int_array.hpp>
 
-array_int_element::array_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts) :
+
+array_int_element::array_int_element(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _b(intVars->at(vars[0])),
+    _b(int_vars[fzConstraint.vars[0]]),
     _as(),
-    _c(intVars->at(vars[1]))
+    _c(int_vars[fzConstraint.vars[1]])
 {
     _as.push_back(0); // Index from 1
-    for(size_t i = 0; i < consts.size(); i += 1)
+    for(size_t i = 0; i < fzConstraint.consts.size(); i += 1)
     {
-        _as.push_back(consts[i]);
+        _as.push_back(fzConstraint.consts[i]);
     }
 }
 
@@ -52,14 +53,14 @@ void array_int_element::propagate()
     }
 }
 
-array_int_maximum::array_int_maximum(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
+array_int_maximum::array_int_maximum(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _m(intVars->at(vars[0])),
+    _m(int_vars[fzConstraint.vars[0]]),
     _x()
 {
-    for(size_t i = 1; i < vars.size(); i += 1)
+    for(size_t i = 1; i < fzConstraint.vars.size(); i += 1)
     {
-        _x.push_back(intVars->at(vars[i]));
+        _x.push_back(int_vars[fzConstraint.vars[i]]);
     }
 }
 
@@ -95,14 +96,14 @@ void array_int_maximum::propagate()
     }
 }
 
-array_int_minimum::array_int_minimum(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
+array_int_minimum::array_int_minimum(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _m(intVars->at(vars[0])),
+    _m(int_vars[fzConstraint.vars[0]]),
     _x()
 {
-    for(size_t i = 1; i < vars.size(); i += 1)
+    for(size_t i = 1; i < fzConstraint.vars.size(); i += 1)
     {
-        _x.push_back(intVars->at(vars[i]));
+        _x.push_back(int_vars[fzConstraint.vars[i]]);
     }
 }
 
@@ -138,16 +139,16 @@ void array_int_minimum::propagate()
     }
 }
 
-array_var_int_element::array_var_int_element(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+array_var_int_element::array_var_int_element(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _b(intVars->at(vars[0])),
+    _b(int_vars[fzConstraint.vars[0]]),
     _as(),
-    _c(intVars->at(vars.back()))
+    _c(int_vars[fzConstraint.vars.back()])
 {
     _as.push_back(nullptr); // Index from 1
-    for(size_t i = 1; i < vars.size() - 1; i += 1)
+    for(size_t i = 1; i < fzConstraint.vars.size() - 1; i += 1)
     {
-        _as.push_back(intVars->at(vars[i]));
+        _as.push_back(int_vars[fzConstraint.vars[i]]);
     }
 }
 

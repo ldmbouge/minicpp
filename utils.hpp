@@ -1,9 +1,12 @@
 #pragma once
 
 #include <cmath>
+#include <iostream>
+#include <string>
 
 //#define TRACE(...) __VA_ARGS__
 #define TRACE(...)
+#define ENUM2STR(e) #e
 
 inline double division(int numerator, int denominator)
 {
@@ -50,3 +53,7 @@ inline int ceilLogarithm(int base, int number)
     return static_cast<int>((std::ceil(logarithm(base, number))));
 }
 
+inline void printError(std::string const & error)
+{
+    std::cerr << "% [ERROR] " << error << std::endl;
+}

@@ -1,25 +1,25 @@
 #include <utils.hpp>
 #include <constraints/int_lin.hpp>
 
-int_lin::int_lin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+int_lin::int_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
     _as_pos(),
     _as_neg(),
     _bs_pos(),
     _bs_neg(),
-    _c(consts.back())
+    _c(fzConstraint.consts.back())
 {
-    for(size_t i = 0; i < consts.size() - 1; i += 1)
+    for(size_t i = 0; i < fzConstraint.consts.size() - 1; i += 1)
     {
-        if(consts[i] > 0)
+        if(fzConstraint.consts[i] > 0)
         {
-            _as_pos.push_back(consts[i]);
-            _bs_pos.push_back(intVars->at(vars[i]));
+            _as_pos.push_back(fzConstraint.consts[i]);
+            _bs_pos.push_back(int_vars[fzConstraint.vars[i]]);
         }
         else
         {
-            _as_neg.push_back(consts[i]);
-            _bs_neg.push_back(intVars->at(vars[i]));
+            _as_neg.push_back(fzConstraint.consts[i]);
+            _bs_neg.push_back(int_vars[fzConstraint.vars[i]]);
         }
     }
 }
@@ -58,9 +58,9 @@ void int_lin::post()
     }
 }
 
-int_lin_reif::int_lin_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    int_lin(cp, intVars, boolVars, vars, consts),
-    _r(boolVars->at(vars.back()))
+int_lin_reif::int_lin_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_lin(cp, fzConstraint, int_vars, bool_vars),
+    _r(bool_vars[fzConstraint.vars.back()])
 {}
 
 void int_lin_reif::post()
@@ -69,8 +69,8 @@ void int_lin_reif::post()
     _r->propagateOnBind(this);
 }
 
-int_lin_eq::int_lin_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    int_lin(cp, intVars, boolVars, vars, consts)
+int_lin_eq::int_lin_eq(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_lin(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_lin_eq::post()
@@ -96,8 +96,8 @@ void int_lin_eq::propagate(int_lin* intLin, int sumMin, int sumMax)
     int_lin_le::propagate(intLin, sumMin, sumMax);
 }
 
-int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    int_lin_reif(cp, intVars, boolVars, vars, consts)
+int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_lin_eq_reif::post()
@@ -168,8 +168,8 @@ void int_lin_ge::propagate(int_lin* intLin, int c, int& sumMin, int& sumMax)
     }
 }
 
-int_lin_le::int_lin_le(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    int_lin(cp, intVars, boolVars, vars, consts)
+int_lin_le::int_lin_le(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_lin(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_lin_le::post()
@@ -221,8 +221,8 @@ void int_lin_le::propagate(int_lin* intLin, int& sumMin, int& sumMax)
     }
 }
 
-int_lin_le_reif::int_lin_le_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    int_lin_reif(cp, intVars, boolVars, vars, consts)
+int_lin_le_reif::int_lin_le_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_lin_le_reif::post()
@@ -259,8 +259,8 @@ void int_lin_le_reif::propagate()
     }
 }
 
-int_lin_ne::int_lin_ne(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    int_lin(cp, intVars, boolVars, vars, consts)
+int_lin_ne::int_lin_ne(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_lin(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_lin_ne::post()
@@ -332,8 +332,8 @@ void int_lin_ne::propagate(int_lin* intLin)
     }
 }
 
-int_lin_ne_reif::int_lin_ne_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    int_lin_reif(cp, intVars, boolVars, vars, consts)
+int_lin_ne_reif::int_lin_ne_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_lin_ne_reif::post()

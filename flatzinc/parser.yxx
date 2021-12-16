@@ -35,7 +35,7 @@
  *
  */
 
-%pure-parser
+%define api.pure
 %parse-param {void *parm}
 %lex-param {void *YYLEX_PARAM}
 %{
@@ -151,14 +151,11 @@ void addDomainConstraint(ParserState* pp, std::string id, AST::Node* var,
 
 void initfg(ParserState* pp) {
   if (!pp->hadError)
-    pp->fg->init(pp->intvars.size(),
-                 pp->boolvars.size(),
-                 pp->setvars.size());
 
   for (unsigned int i=0; i<pp->intvars.size(); i++) {
     if (!pp->hadError) {
       try {
-        pp->fg->newIntVar(static_cast<IntVarSpec*>(pp->intvars[i].second));
+        pp->fg->addIntVar(static_cast<IntVarSpec*>(pp->intvars[i].second));
       } catch (FlatZinc::Error& e) {
         yyerror(pp, e.toString().c_str());
       }
@@ -171,7 +168,7 @@ void initfg(ParserState* pp) {
   for (unsigned int i=0; i<pp->boolvars.size(); i++) {
     if (!pp->hadError) {
       try {
-        pp->fg->newBoolVar(
+        pp->fg->addBoolVar(
           static_cast<BoolVarSpec*>(pp->boolvars[i].second));
       } catch (FlatZinc::Error& e) {
         yyerror(pp, e.toString().c_str());
@@ -182,6 +179,7 @@ void initfg(ParserState* pp) {
       pp->boolvars[i].second = NULL;
     }
   }
+  /*
   for (unsigned int i=0; i<pp->setvars.size(); i++) {
     if (!pp->hadError) {
       try {
@@ -195,11 +193,12 @@ void initfg(ParserState* pp) {
       pp->setvars[i].second = NULL;
     }
   }
+  */
   for (unsigned int i=pp->domainConstraints.size(); i--;) {
     if (!pp->hadError) {
       try {
         assert(pp->domainConstraints[i]->args->a.size() == 2);
-        pp->fg->postConstraint(*pp->domainConstraints[i], NULL);
+        pp->fg->addConstraint(*pp->domainConstraints[i], NULL);
         delete pp->domainConstraints[i];
       } catch (FlatZinc::Error& e) {
         yyerror(pp, e.toString().c_str());        
@@ -208,9 +207,11 @@ void initfg(ParserState* pp) {
   }
 }
 
+/*
 void fillPrinter(ParserState& pp, FlatZinc::Printer& p) {
   p.init(pp.getOutput());
 }
+*/
 
 AST::Node* arrayOutput(AST::Call* ann) {
   AST::Array* a = NULL;
@@ -255,7 +256,7 @@ AST::Node* arrayOutput(AST::Call* ann) {
 
 namespace FlatZinc {
 
-  FlatZincModel* parse(const std::string& filename, Printer& p, std::ostream& err,
+  FlatZincModel* parse(const std::string& filename, std::ostream& err,
                        FlatZincModel* fzs) {
 #ifdef HAVE_MMAP
     int fd;
@@ -298,14 +299,14 @@ namespace FlatZinc {
     yyset_extra(&pp, pp.yyscanner);
     // yydebug = 1;
     yyparse(&pp);
-    fillPrinter(pp, p);
-    
+    pp.fg->output = pp.getOutput();
+
     if (pp.yyscanner)
       yylex_destroy(pp.yyscanner);
     return pp.hadError ? NULL : pp.fg;
   }
 
-  FlatZincModel* parse(std::istream& is, Printer& p, std::ostream& err,
+  FlatZincModel* parse(std::istream& is, std::ostream& err,
                        FlatZincModel* fzs) {
     std::string s = string(istreambuf_iterator<char>(is),
                            istreambuf_iterator<char>());
@@ -318,7 +319,7 @@ namespace FlatZinc {
     yyset_extra(&pp, pp.yyscanner);
     // yydebug = 1;
     yyparse(&pp);
-    fillPrinter(pp, p);
+    pp.fg->output = pp.getOutput();
     
     if (pp.yyscanner)
       yylex_destroy(pp.yyscanner);
@@ -343,7 +344,7 @@ namespace FlatZinc {
          FlatZinc::AST::Array* argVec;
        }
 
-%error-verbose
+%define parse.error verbose
 
 %token <iValue> FZ_INT_LIT FZ_BOOL_LIT
 %token <dValue> FZ_FLOAT_LIT
@@ -1094,7 +1095,7 @@ constraint_item :
         ParserState *pp = static_cast<ParserState*>(parm);
         if (!pp->hadError) {
           try {
-            pp->fg->postConstraint(c, $6);
+            pp->fg->addConstraint(c, $6);
           } catch (FlatZinc::Error& e) {
             yyerror(pp, e.toString().c_str());
           }

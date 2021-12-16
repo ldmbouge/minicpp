@@ -1,6 +1,7 @@
 #pragma once
 
 #include <intvar.hpp>
+#include <flatzinc/flatzinc.h>
 
 class int_lin : public Constraint
 {
@@ -12,7 +13,7 @@ class int_lin : public Constraint
         int _c;
 
     public:
-        int_lin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         static void calSumMinMax(int_lin* intLin, int& min, int& max);
         void post() override;
 
@@ -28,14 +29,14 @@ class int_lin_reif : public int_lin
         var<bool>::Ptr _r;
 
     public:
-        int_lin_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_lin_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
 };
 
 class int_lin_eq : public int_lin
 {
     public:
-        int_lin_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_lin_eq(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
         static void propagate(int_lin* intLin, int sumMin, int sumMax);
@@ -44,7 +45,7 @@ class int_lin_eq : public int_lin
 class int_lin_eq_reif : public int_lin_reif
 {
     public:
-        int_lin_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_lin_eq_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -58,7 +59,7 @@ class int_lin_ge
 class int_lin_le : public int_lin
 {
     public:
-        int_lin_le(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_lin_le(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
         static void propagate(int_lin* intLin, int& sumMin, int& sumMax);
@@ -67,7 +68,7 @@ class int_lin_le : public int_lin
 class int_lin_le_reif : public int_lin_reif
 {
     public:
-        int_lin_le_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_lin_le_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -75,7 +76,7 @@ class int_lin_le_reif : public int_lin_reif
 class int_lin_ne : public int_lin
 {
     public:
-        int_lin_ne(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_lin_ne(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
         static void propagate(int_lin* intLin);
@@ -84,7 +85,7 @@ class int_lin_ne : public int_lin
 class int_lin_ne_reif : public int_lin_reif
 {
     public:
-        int_lin_ne_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_lin_ne_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };

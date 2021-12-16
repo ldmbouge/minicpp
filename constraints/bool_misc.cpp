@@ -1,9 +1,9 @@
 #include <constraints/bool_misc.hpp>
 
-bool2int::bool2int(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+bool2int::bool2int(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _a(boolVars->at(vars[0])),
-    _b(intVars->at(vars[1]))
+    _a(bool_vars[fzConstraint.vars[0]]),
+    _b(int_vars[fzConstraint.vars[1]])
 {}
 
 void bool2int::post()
@@ -27,18 +27,18 @@ void bool2int::propagate()
     _a->updateBounds(min, max);
 }
 
-bool_clause::bool_clause(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts):
+bool_clause::bool_clause(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars):
     Constraint(cp),
     _as(),
     _bs()
 {
-    for(int i = 0; i < consts[0]; i += 1)
+    for(int i = 0; i < fzConstraint.consts[0]; i += 1)
     {
-        _as.push_back(boolVars->at(vars[i]));
+        _as.push_back(bool_vars[fzConstraint.vars[i]]);
     }
-    for(int i = consts[0]; i < consts[0] + consts[1]; i += 1)
+    for(int i = fzConstraint.consts[0]; i < fzConstraint.consts[0] + fzConstraint.consts[1]; i += 1)
     {
-        _bs.push_back(boolVars->at(vars[i]));
+        _bs.push_back(bool_vars[fzConstraint.vars[i]]);
     }
     assert(_bs.size() > 0);
 }

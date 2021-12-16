@@ -1,4 +1,4 @@
-/* A Bison parser, made by GNU Bison 3.7.6.  */
+/* A Bison parser, made by GNU Bison 3.8.2.  */
 
 /* Bison interface for Yacc-like parsers in C
 
@@ -35,8 +35,8 @@
    especially those whose name start with YY_ or yy_.  They are
    private implementation details that can be changed or removed.  */
 
-#ifndef YY_YY_PARSER_TAB_HU_INCLUDED
-# define YY_YY_PARSER_TAB_HU_INCLUDED
+#ifndef YY_YY_PARSER_TAB_HPP_INCLUDED
+# define YY_YY_PARSER_TAB_HPP_INCLUDED
 /* Debug traces.  */
 #ifndef YYDEBUG
 # define YYDEBUG 1
@@ -130,6 +130,8 @@ typedef union YYSTYPE YYSTYPE;
 
 
 
+
 int yyparse (void *parm);
 
-#endif /* !YY_YY_PARSER_TAB_HU_INCLUDED  */
+
+#endif /* !YY_YY_PARSER_TAB_HPP_INCLUDED  */

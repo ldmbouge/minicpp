@@ -51,7 +51,6 @@ namespace FlatZinc
 {
     struct IntVar
     {
-        bool interval;
         int min;
         int max;
         std::vector<int> values;
@@ -59,7 +58,12 @@ namespace FlatZinc
 
     struct BoolVar
     {
-        enum State {Unassigned, True, False};
+        enum State
+            {
+                Unassigned,
+                True,
+                False
+            };
         State state;
     };
 
@@ -114,47 +118,50 @@ namespace FlatZinc
             bool_xor,
             bool_xor_reif
         };
-
         Type type;
         std::vector<int> vars;
         std::vector<int> consts;
-
-        static char const * const type2str[];
     };
 
-    enum Problem
+    struct SearchHeuristic
     {
-        Satisfaction,
-        Minimization,
-        Maximization
+        enum Type
+        {
+            boolean,
+            integer
+        };
+        enum VariableSelection
+            {
+                first_fail,
+                input_order,
+                smallest,
+                largest
+            };
+        enum ValueSelection
+            {
+                indomain_min,
+                indomain_max,
+                indomain_split
+            };
+        Type type;
+        std::vector<int> decision_variables;
+        VariableSelection variable_selection;
+        ValueSelection value_selection;
+
+        static VariableSelection str2varSel(std::string const & str);
+        static ValueSelection str2valSel(std::string const & str);
     };
 
-    char const * const problem2str[] =
-        {
-            "Satisfaction",
-            "Minimization",
-            "Maximization"
-        };
-
-    enum VariableSelection
+    struct Method
     {
-        FirstFail
+        enum Type
+            {
+                Maximization,
+                Minimization,
+                Satisfaction
+            };
+        Type type;
     };
-    char const * const varSel2str[] =
-        {
-            "FirstFail"
-        };
-
-    enum ValueSelection
-    {
-        IndomainMin
-    };
-    static char const * const valSel2str[] =
-        {
-            "IndomainMin"
-        };
-
-    class Printer;
 
     class FlatZincModel
     {
@@ -162,54 +169,27 @@ namespace FlatZinc
         std::vector<IntVar> int_vars;
         std::vector<BoolVar> bool_vars;
         std::vector<Constraint> constraints;
-        Problem problem;
-        std::vector<int> decisionVariables;
-        VariableSelection variableSelection;
-        ValueSelection valueSelection;
+        std::vector<SearchHeuristic> search_combinator;
         int objective_variable;
+        Method method;
+        AST::Array* output;
 
         FlatZincModel();
-        ~FlatZincModel();
 
-        void init(int intVars, int boolVars, int setVars);
-
-        void newIntVar(IntVarSpec* vs);
-        void newBoolVar(BoolVarSpec* vs);
-        void newSetVar(SetVarSpec* vs);
-        void postConstraint(ConExpr const & ce, AST::Node* annotation);
-
+        void addIntVar(IntVarSpec* vs);
+        void addBoolVar(BoolVarSpec* vs);
         int arg2IntVar(AST::Node* n);
         int arg2BoolVar(AST::Node* n);
-
-        void parseSearchAnnotation(AST::Array* annotation);
+        void addConstraint(const ConExpr& ce, AST::Node* annotation);
 
         void solve(AST::Array* annotation);
         void minimize(int var, AST::Array* annotation);
         void maximize(int var, AST::Array* annotation);
+        void flatSolveAnnotation(AST::Array* ann, std::vector<AST::Node*>& flat_ann);
+        void parseSolveAnnotation(AST::Array* ann);
 
-        void print(std::ostream& out, Printer const & p) const;
-    };
-
-    class Printer
-    {
-        private:
-            AST::Array* output;
-
-        public:
-            Printer();
-            void init(AST::Array* output);
-            void print(std::ostream& out, FlatZincModel const & m) const;
-            void print(std::ostream& out, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars) const;
-            ~Printer();
-
-        private:
-            Printer(Printer const &);
-            Printer& operator=(Printer const &);
-            void print(std::ostream& out, AST::Node* n, FlatZincModel const & m) const;
-
-
-        void printElem(std::ostream &out, AST::Node *ai, const FlatZincModel &m) const;
-        void printElem(std::ostream &out, AST::Node *ai, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars) const;
+        void print(std::ostream& out, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) const;
+        void printElem(std::ostream& out, AST::Node* ai,  std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) const;
     };
 
     class Error 
@@ -221,6 +201,5 @@ namespace FlatZinc
             std::string const & toString() const;
     };
 
-    FlatZincModel* parse(std::string const & fileName, Printer& p, std::ostream& err = std::cerr, FlatZincModel* fzs = nullptr);
-    FlatZincModel* parse(std::istream& is, Printer& p, std::ostream& err = std::cerr, FlatZincModel* fzs = nullptr);
+    FlatZincModel* parse(std::string const & fileName, std::ostream& err = std::cerr, FlatZincModel* fzs = nullptr);
 }

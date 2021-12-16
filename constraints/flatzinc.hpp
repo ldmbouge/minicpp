@@ -11,4 +11,7 @@
 #include <constraints/int_lin.hpp>
 #include <constraints/int_tern.hpp>
 
-Constraint::Ptr FznConstraint(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, FlatZinc::Constraint const & c);
+namespace Factory
+{
+    Constraint::Ptr makeConstraint(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+}

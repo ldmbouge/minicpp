@@ -16,8 +16,6 @@
 #ifndef __SEARCH_H
 #define __SEARCH_H
 
-
-
 #include <vector>
 #include <initializer_list>
 #include <functional>
@@ -139,16 +137,25 @@ public:
    SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo);
 };
 
-template<class B> std::function<Branches(void)> land(std::initializer_list<B> allB) {
+template<class B>
+std::function<Branches(void)> land(std::initializer_list<B> allB) {
    std::vector<B> vec(allB);
-   return [vec]() {
-             for(const B& brs : vec) {
-                auto br = brs();
-                if (br.size() != 0)
-                   return br;
-             }
-             return Branches({});
-          };
+   return land(vec);
+}
+
+template<class B>
+std::function<Branches(void)> land(std::vector<B> vec)
+{
+    return [vec]()
+    {
+        for(size_t i = 0; i < vec.size(); i += 1)
+        {
+            auto br = vec[i]();
+            if (br.size() != 0)
+                return br;
+        }
+        return Branches({});
+    };
 }
 
 inline Branches operator|(std::function<void(void)> b0, std::function<void(void)> b1) {
@@ -156,15 +163,19 @@ inline Branches operator|(std::function<void(void)> b0, std::function<void(void)
 }
 
 
-template<class Container,typename Predicate,typename Fun>
-inline typename Container::value_type selectMin(Container& c,Predicate test,Fun f) {
-   auto from = c.begin(),to  = c.end();
+template<class Container,typename Predicate, typename Fun>
+typename Container::value_type selectMin(Container& c,Predicate test, Fun f)
+{
+   auto from = c.begin();
+   auto to = c.end();
    auto min = to;
-   for(;from != to;++from) {
-       if (test(*from)) {
+   for(; from != to; from += 1)
+   {
+       if (test(*from))
+       {
            auto fv = f(*from);
            if (min == to || fv < f(*min))
-              min = from;
+               min = from;
        }
    }
    if (min == to)
@@ -173,18 +184,124 @@ inline typename Container::value_type selectMin(Container& c,Predicate test,Fun 
       return *min;
 }
 
-template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,Container& c) {
-    using namespace Factory;
-    return [=]() {
-               auto sx = selectMin(c,
-                                   [](const auto& x) { return x->size() > 1;},
-                                   [](const auto& x) { return x->size();});
-               if (sx) {
-                   int v = sx->min();
-                   return [cp,sx,v] { TRACE(std::cout << "Choosing (" << sx->size() << ") x" << sx->getId() << " == "<< v << std::endl;) return cp->post(sx == v);}
-                       |  [cp,sx,v] { TRACE(std::cout << "Choosing (" << sx->size() << ") x" << sx->getId() << " != "<< v << std::endl;)  return cp->post(sx != v);};
-               } else return Branches({});
-           };
+template<class Container,typename Predicate, typename Fun>
+typename Container::value_type selectMax(Container& c,Predicate test, Fun f)
+{
+    auto from = c.begin();
+    auto to = c.end();
+    auto max = to;
+    for(; from != to; from += 1)
+    {
+        if (test(*from))
+        {
+            auto fv = f(*from);
+            if (max == to || fv > f(*max))
+                max = from;
+        }
+    }
+    if (max == to)
+        return typename Container::value_type();
+    else
+        return *max;
 }
+
+
+template<class Vars, class Var>
+Var first_fail(Vars const & vars)
+{
+    return selectMin(
+                vars,
+                [](const auto& x) { return x->size() > 1;},
+                [](const auto& x) { return x->size();}
+            );
+}
+
+template<class Vars, class Var>
+Var input_order(Vars const & vars)
+{
+    return selectMin(
+            vars,
+            [](const auto& x) { return x->size() > 1;},
+            [&](const auto& x)
+            {
+                auto it = std::find(vars.begin(), vars.end(), x);
+                return std::distance(vars.begin(), it);
+            }
+    );
+}
+
+template<class Vars, class Var>
+Var smallest(Vars const & vars)
+{
+    return selectMin(
+            vars,
+            [](const auto& x) { return x->size() > 1;},
+            [](const auto& x) { return x->min();}
+    );
+}
+
+template<class Vars, class Var>
+Var largest(Vars const & vars)
+{
+    return selectMax(
+            vars,
+            [](const auto& x) { return x->size() > 1;},
+            [](const auto& x) { return x->max();}
+    );
+}
+
+
+// Values selections
+template<class Var>
+Branches indomain_min(CPSolver::Ptr cp, Var var)
+{
+    using namespace Factory;
+
+    if (var)
+    {
+        auto val = var->min();
+        return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " == "<< val << std::endl;) return cp->post(var == val);} |
+               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " != "<< val << std::endl;) return cp->post(var != val);};
+    }
+    else
+    {
+        return Branches({});
+    }
+}
+
+template <class Var>
+Branches indomain_max(CPSolver::Ptr cp, Var var)
+{
+    using namespace Factory;
+
+    if (var)
+    {
+        auto val = var->max();
+        return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " == "<< val << std::endl;) return cp->post(var == val);} |
+               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " != "<< vsl << std::endl;) return cp->post(var != val);};
+    }
+    else
+    {
+        return Branches({});
+    }
+}
+
+template <class Var>
+Branches indomain_split(CPSolver::Ptr cp, Var var)
+{
+    using namespace Factory;
+
+    if (var)
+    {
+        auto val = (var->max() - var->min()) / 2;
+        return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " <= "<< val << std::endl;) return cp->post(var <= val);} |
+               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " > "<< vsl << std::endl;) return cp->post(var >= val + 1);};
+    }
+    else
+    {
+        return Branches({});
+    }
+}
+
 
 #endif

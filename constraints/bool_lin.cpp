@@ -1,25 +1,25 @@
 #include <utils.hpp>
 #include <constraints/bool_lin.hpp>
 
-bool_lin::bool_lin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+bool_lin::bool_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
     _as_pos(),
     _as_neg(),
     _bs_pos(),
     _bs_neg(),
-    _c(consts.back())
+    _c(fzConstraint.consts.back())
 {
-    for(size_t i = 0; i < consts.size() - 1; i += 1)
+    for(size_t i = 0; i < fzConstraint.consts.size() - 1; i += 1)
     {
-        if(consts[i] > 0)
+        if(fzConstraint.consts[i] > 0)
         {
-            _as_pos.push_back(consts[i]);
-            _bs_pos.push_back(boolVars->at(vars[i]));
+            _as_pos.push_back(fzConstraint.consts[i]);
+            _bs_pos.push_back(bool_vars[fzConstraint.vars[i]]);
         }
         else
         {
-            _as_neg.push_back(consts[i]);
-            _bs_neg.push_back(boolVars->at(vars[i]));
+            _as_neg.push_back(fzConstraint.consts[i]);
+            _bs_neg.push_back(bool_vars[fzConstraint.vars[i]]);
         }
     }
 }
@@ -59,8 +59,8 @@ void bool_lin::post()
 }
 
 
-bool_lin_eq::bool_lin_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    bool_lin(cp, intVars, boolVars, vars, consts)
+bool_lin_eq::bool_lin_eq(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    bool_lin(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void bool_lin_eq::post()
@@ -115,8 +115,8 @@ void bool_lin_ge::propagate(bool_lin* boolLin, int sumMin, int sumMax)
     }
 }
 
-bool_lin_le::bool_lin_le(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
-    bool_lin(cp, intVars, boolVars, vars, consts)
+bool_lin_le::bool_lin_le(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    bool_lin(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void bool_lin_le::post()

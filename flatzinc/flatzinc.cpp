@@ -40,73 +40,72 @@
 
 #include <vector>
 #include <string>
+#include <cstring>
 #include <intvar.hpp>
+#include <search.hpp>
+#include <utils.hpp>
 
 using namespace std;
 
 namespace FlatZinc 
 {
-    char const * const Constraint::type2str[] =
-        {
-            "array_int_element",
-            "array_int_maximum",
-            "array_int_minimum",
-            "array_var_int_element",
-            "int_abs",
-            "int_div",
-            "int_eq",
-            "int_eq_reif",
-            "int_le",
-            "int_le_reif",
-            "int_lin_eq",
-            "int_lin_eq_reif",
-            "int_lin_le",
-            "int_lin_le_reif",
-            "int_lin_ne",
-            "int_lin_ne_reif",
-            "int_lt",
-            "int_lt_reif",
-            "int_max",
-            "int_min",
-            "int_mod",
-            "int_ne",
-            "int_ne_reif",
-            "int_plus",
-            "int_pow",
-            "int_times",
-            "array_bool_and_reif",
-            "array_bool_element",
-            "array_bool_or_reif",
-            "array_bool_xor",
-            "array_var_bool_element",
-            "bool2int",
-            "bool_and_reif",
-            "bool_clause",
-            "bool_eq",
-            "bool_eq_reif",
-            "bool_le",
-            "bool_le_reif",
-            "bool_lin_eq",
-            "bool_lin_le",
-            "bool_lt",
-            "bool_lt_reif",
-            "bool_not",
-            "bool_or_reif",
-            "bool_xor",
-            "bool_xor_reif"
-        };
-
-    FlatZincModel::FlatZincModel(void)
-    {}
-
-    void FlatZincModel::init(int intVars, int boolVars, int setVars)
+    SearchHeuristic::VariableSelection SearchHeuristic::str2varSel(std::string const & str)
     {
-        int_vars = std::vector<IntVar>();
-        bool_vars = std::vector<BoolVar>();
-        constraints = std::vector<Constraint>();
+        if (str == ENUM2STR(first_fail))
+        {
+            return first_fail;
+        }
+        else if (str == ENUM2STR(input_order))
+        {
+            return input_order;
+        }
+        else if (str == ENUM2STR(smallest))
+        {
+            return smallest;
+        }
+        else if (str == ENUM2STR(largest))
+        {
+            return largest;
+        }
+        else
+        {
+            std::string error = "Unsupported variable selection: ";
+            error += str;
+            printError(error);
+            exit(EXIT_FAILURE);
+        }
     }
 
-    void FlatZincModel::newIntVar(IntVarSpec* vs)
+    SearchHeuristic::ValueSelection SearchHeuristic::str2valSel(std::string const & str)
+    {
+        if (str == ENUM2STR(indomain_min))
+        {
+            return indomain_min;
+        }
+        else if (str == ENUM2STR(indomain_max))
+        {
+            return indomain_max;
+        }
+        else if (str == ENUM2STR(indomain_split))
+        {
+            return indomain_split;
+        }
+        else
+        {
+            std::string error = "Unsupported variable selection: ";
+            error += str;
+            printError(error);
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    FlatZincModel::FlatZincModel(void) :
+        int_vars(),
+        bool_vars(),
+        constraints()
+    {}
+
+    void FlatZincModel::addIntVar(IntVarSpec* vs)
     {
         if (vs->alias)
         {
@@ -114,7 +113,7 @@ namespace FlatZinc
         }
         else if (vs->assigned)
         {
-            IntVar v = {true, vs->i, vs->i};
+            IntVar v = {vs->i, vs->i};
             int_vars.push_back(v);
         }
         else
@@ -122,17 +121,17 @@ namespace FlatZinc
             IntVar v;
             if (vs->domain.some()->interval)
             {
-                v = {true, vs->domain.some()->min, vs->domain.some()->max};
+                v = {vs->domain.some()->min, vs->domain.some()->max};
             }
             else
             {
-                v = {false, -1, 1, vs->domain.some()->s};
+                v = {0,0, vs->domain.some()->s};
             }
             int_vars.push_back(v);
         }
     }
 
-    void FlatZincModel::newBoolVar(BoolVarSpec* vs)
+    void FlatZincModel::addBoolVar(BoolVarSpec* vs)
     {
         if (vs->alias)
         {
@@ -150,38 +149,16 @@ namespace FlatZinc
         }
     }
 
-    void FlatZincModel::newSetVar(SetVarSpec* vs)
-    {}
-
-    void FlatZincModel::postConstraint(const ConExpr& ce, AST::Node* ann)
+    void FlatZincModel::addConstraint(const ConExpr& ce, AST::Node* annotation)
     {
         try
         {
-            registry().post(*this, ce, ann);
+            registry().post(*this, ce, annotation);
         }
         catch (AST::TypeError& e)
         {
             throw FlatZinc::Error("Type error", e.what());
         }
-    }
-
-    void FlatZincModel::solve(AST::Array* ann) 
-    {
-        problem = Problem::Satisfaction;
-    }
-
-    void FlatZincModel::minimize(int var, AST::Array* ann) 
-    {
-        problem = Problem::Minimization;
-        parseSearchAnnotation(ann);
-        objective_variable = var;
-    }
-
-    void FlatZincModel::maximize(int var, AST::Array* ann) 
-    {
-        problem = Problem::Maximization;
-        parseSearchAnnotation(ann);
-        objective_variable = var;   
     }
 
     int FlatZincModel::arg2IntVar(AST::Node* n)
@@ -192,7 +169,7 @@ namespace FlatZinc
         }
         else
         {
-            newIntVar(new IntVarSpec(n->getInt(), true));
+            addIntVar(new IntVarSpec(n->getInt(), true));
             return int_vars.size() - 1;
         }
     }
@@ -205,47 +182,197 @@ namespace FlatZinc
         }
         else
         {
-            newBoolVar(new BoolVarSpec(n->getBool(), true));
+            addBoolVar(new BoolVarSpec(n->getBool(), true));
             return bool_vars.size() - 1;
         }
     }
 
-    void FlatZincModel::print(std::ostream& out, Printer const & p) const
+    void FlatZincModel::solve(AST::Array* ann) 
     {
-        p.print(out, *this);
+        method.type = Method::Satisfaction;
+        parseSolveAnnotation(ann);
     }
 
-    void FlatZincModel::parseSearchAnnotation(AST::Array* annotation)
+    void FlatZincModel::minimize(int var, AST::Array* ann) 
     {
-        AST::Call* call = annotation->getArray()->a[0]->getCall();
-        AST::Array* args = call->getArgs(4);
-        AST::Array* vars = args->a[0]->getArray();
-        AST::Atom* varSel = args->a[1]->getAtom();
-        AST::Atom* valSel = args->a[2]->getAtom();
+        method.type = Method::Minimization;
+        objective_variable = var;
+        parseSolveAnnotation(ann);
+    }
 
-        for(size_t i = 0; i < vars->a.size(); i += 1)
+    void FlatZincModel::maximize(int var, AST::Array* ann) 
+    {
+        method.type = Method::Minimization;
+        objective_variable = var;
+        parseSolveAnnotation(ann);
+    }
+
+    void FlatZincModel::flatSolveAnnotation(AST::Array* ann, std::vector<AST::Node*>& flat_ann)
+    {
+        for (size_t i = 0; i < ann->a.size(); i+=1)
         {
-            decisionVariables.push_back(vars->a[i]->getIntVar());
+            if (ann->a[i]->isCall("seq_search"))
+            {
+                AST::Call* c = ann->a[i]->getCall();
+                if (c->args->isArray())
+                {
+                    flatSolveAnnotation(c->args->getArray(), flat_ann);
+                }
+                else
+                {
+                    flat_ann.push_back(c->args);
+                }
+            }
+            else
+            {
+                flat_ann.push_back(ann->a[i]);
+            }
         }
+    }
 
-        if(varSel->id == "first_fail")
+    void FlatZincModel::parseSolveAnnotation(AST::Array *ann)
+    {
+        if (ann)
         {
-            variableSelection = VariableSelection::FirstFail;
+            std::vector<AST::Node *> flat_ann;
+            if (ann->isArray())
+            {
+                flatSolveAnnotation(ann->getArray(), flat_ann);
+            }
+            else
+            {
+                flat_ann.push_back(ann);
+            }
+
+            for (size_t i = 0; i < flat_ann.size(); i += 1)
+            {
+                AST::Call* call = flat_ann[i]->getCall("int_search");
+                AST::Array* args = call->getArgs(4);
+                AST::Array* vars = args->a[0]->getArray();
+                AST::Atom* varSel = args->a[1]->getAtom();
+                AST::Atom* valSel = args->a[2]->getAtom();
+
+                SearchHeuristic sh;
+                if (call->isCall("int_search"))
+                {
+                    sh.type = SearchHeuristic::Type::integer;
+                    for (size_t i = 0; i < vars->a.size(); i += 1)
+                    {
+                        sh.decision_variables.push_back(vars->a[i]->getIntVar());
+                    }
+                }
+                else if (call->isCall("bool_search"))
+                {
+                    sh.type = SearchHeuristic::Type::boolean;
+                    for (size_t i = 0; i < vars->a.size(); i += 1)
+                    {
+                        sh.decision_variables.push_back(vars->a[i]->getBoolVar());
+                    }
+                }
+                else
+                {
+                    std::string error = "Unsupported search : ";
+                    error += call->id;
+                    printError(error);
+                    exit(EXIT_FAILURE);
+                }
+                sh.variable_selection = SearchHeuristic::str2varSel(varSel->id);
+                sh.value_selection = SearchHeuristic::str2valSel(valSel->id);
+
+                search_combinator.push_back(sh);
+            }
         }
         else
         {
-            printf("[ERROR] Unsupported variable selection %s\n", varSel->getString().c_str());
+            std::string error = "Missing search annotation";
+            printError(error);
             exit(EXIT_FAILURE);
-        }
+        };
+    }
 
-        if(valSel->id== "indomain_min")
+    void FlatZincModel::print(ostream& out, vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) const
+    {
+        if (output != nullptr)
         {
-            valueSelection = ValueSelection::IndomainMin;
+            for (size_t i = 0; i < output->a.size(); i += 1)
+            {
+                AST::Node* ai = output->a[i];
+                if (ai->isArray())
+                {
+                    AST::Array* aia = ai->getArray();
+                    int size = aia->a.size();
+                    out << "[";
+                    for (int j = 0; j < size; j += 1)
+                    {
+                        printElem(out, aia->a[j], int_vars, bool_vars);
+                        if (j < size - 1)
+                        {
+                            out << ", ";
+                        }
+                    }
+                    out << "]";
+                }
+                else
+                {
+                    printElem(out, ai, int_vars, bool_vars);
+                }
+            }
         }
         else
         {
-            printf("[ERROR] Unsupported value selection %s\n", valSel->getString().c_str());
+            std::string error = "Missing output annotation";
+            printError(error);
             exit(EXIT_FAILURE);
+        }
+    }
+
+    void FlatZincModel::printElem(ostream& out, AST::Node* ai, vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) const
+    {
+        if (ai->isInt())
+        {
+            out << ai->getInt();
+        }
+        if (ai->isBool())
+        {
+            out << (ai->getBool() ? "true" : "false");
+        }
+        else if (ai->isIntVar())
+        {
+            out << int_vars[ai->getIntVar()]->min();
+        }
+        else if (ai->isBoolVar())
+        {
+            out << (bool_vars[ai->getBoolVar()]->isTrue() ? "true" : "false");
+        }
+        else if (ai->isString())
+        {
+            std::string s = ai->getString();
+            for (size_t i = 0; i < s.size(); i += 1)
+            {
+                if (s[i] == '\\' and i < s.size()-1)
+                {
+                    switch (s[i+1])
+                    {
+                        case 'n':
+                            out << "\n";
+                            break;
+                        case '\\':
+                            out << "\\";
+                            break;
+                        case 't':
+                            out << "\t";
+                            break;
+                        default:
+                            out << "\\" << s[i+1];
+                    }
+
+                    i += 1;
+                }
+                else
+                {
+                    out << s[i];
+                }
+            }
         }
     }
 
@@ -257,166 +384,4 @@ namespace FlatZinc
     { 
         return msg; 
     }
-
-    Printer::Printer() :
-        output(nullptr)
-    {}
-
-    void Printer::init(AST::Array* output)
-    {
-        this->output = output;
-    }
-
-    void Printer::printElem(ostream &out, AST::Node *ai, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars) const
-    {
-        if (ai->isInt())
-        {
-            out << ai->getInt();
-        }
-        else if (ai->isBool())
-        {
-            out << (ai->getBool() ? "true" : "false");
-        }
-        else if (ai->isIntVar())
-        {
-            int val = intVars->at(ai->getIntVar())->min();
-            out << val;
-        }
-        else if (ai->isBoolVar())
-        {
-            bool val = boolVars->at(ai->getBoolVar())->isTrue();
-            out << (val ? "true" : "false");
-        }
-        else if (ai->isString()) {
-            std::string s = ai->getString();
-            for (unsigned int i=0; i<s.size(); i++) {
-                if (s[i] == '\\' && i<s.size()-1) {
-                    switch (s[i+1]) {
-                        case 'n': out << "\n"; break;
-                        case '\\': out << "\\"; break;
-                        case 't': out << "\t"; break;
-                        default: out << "\\" << s[i+1];
-                    }
-                    i++;
-                } else {
-                    out << s[i];
-                }
-            }
-        }
-    }
-
-    void Printer::printElem(std::ostream& out, AST::Node* ai, const FlatZincModel& m) const
-    {
-
-        if (ai->isInt())
-        {
-            out << ai->getInt();
-        }
-        else if (ai->isIntVar())
-        {
-            out << ai->getIntVar();
-        }
-        else if (ai->isBoolVar())
-        {
-            // TODO: output actual variable
-            out << ai->getBoolVar();
-        }
-        else if (ai->isSetVar())
-        {
-            // TODO: output actual variable
-            out << ai->getSetVar();
-        }
-        else if (ai->isBool())
-        {
-            out << (ai->getBool() ? "true" : "false");
-        } else if (ai->isSet())
-        {
-            AST::SetLit* s = ai->getSet();
-            if (s->interval) {
-                out << s->min << ".." << s->max;
-            } else {
-                out << "{";
-                for (unsigned int i=0; i<s->s.size(); i++) {
-                    out << s->s[i] << (i < s->s.size()-1 ? ", " : "}");
-                }
-            }
-        }
-        else if (ai->isString()) {
-            std::string s = ai->getString();
-            for (unsigned int i=0; i<s.size(); i++) {
-                if (s[i] == '\\' && i<s.size()-1) {
-                    switch (s[i+1]) {
-                        case 'n': out << "\n"; break;
-                        case '\\': out << "\\"; break;
-                        case 't': out << "\t"; break;
-                        default: out << "\\" << s[i+1];
-                    }
-                    i++;
-                } else {
-                    out << s[i];
-                }
-            }
-        }
-    }
-
-    void
-    Printer::print(std::ostream& out, const FlatZincModel& m) const {
-        if (output == NULL)
-            return;
-        for (unsigned int i=0; i< output->a.size(); i++) {
-
-            AST::Node* ai = output->a[i];
-            if (ai->isArray())
-            {
-                AST::Array* aia = ai->getArray();
-                int size = aia->a.size();
-                out << "[";
-                for (int j=0; j<size; j++)
-                {
-                    printElem(out,aia->a[j],m);
-                    if (j<size-1)
-                        out << ", ";
-                }
-                out << "]";
-            }
-            else
-            {
-                printElem(out,ai,m);
-            }
-        }
-    }
-
-    void Printer::print(ostream &out, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars) const
-    {
-        for (unsigned int i=0; i< output->a.size(); i++)
-        {
-
-            AST::Node* ai = output->a[i];
-            if (ai->isArray())
-            {
-                AST::Array* aia = ai->getArray();
-                int size = aia->a.size();
-                out << "[";
-                for (int j=0; j<size; j++)
-                {
-                    printElem(out,aia->a[j], intVars, boolVars );
-                    if (j<size-1)
-                        out << ", ";
-                }
-                out << "]";
-            }
-            else
-            {
-                printElem(out,ai,intVars, boolVars );
-            }
-        }
-    }
-
-    Printer::~Printer(void)
-    {
-        delete output;
-    }
-
-
-
 }

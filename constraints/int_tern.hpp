@@ -1,6 +1,7 @@
 #pragma once
 
 #include <intvar.hpp>
+#include <flatzinc/flatzinc.h>
 
 class int_tern : public Constraint
 {
@@ -10,7 +11,7 @@ class int_tern : public Constraint
         var<int>::Ptr _c;
 
     public:
-        int_tern(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_tern(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         static void calMulMinMax(int aMin, int aMax, int bMin, int bMax, int& min, int& max);
         static void calDivMinMax(int aMin, int aMax, int bMin, int bMax, int& min, int& max);
         void post() override;
@@ -19,7 +20,7 @@ class int_tern : public Constraint
 class int_div : public int_tern
 {
     public:
-        int_div(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_div(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -27,7 +28,7 @@ class int_div : public int_tern
 class int_max : public int_tern
 {
     public:
-        int_max(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_max(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -35,7 +36,7 @@ class int_max : public int_tern
 class int_min : public int_tern
 {
     public:
-        int_min(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_min(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -43,7 +44,7 @@ class int_min : public int_tern
 class int_mod : public int_tern
 {
     public:
-        int_mod(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_mod(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -51,7 +52,7 @@ class int_mod : public int_tern
 class int_plus : public int_tern
 {
     public:
-        int_plus(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_plus(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -59,7 +60,7 @@ class int_plus : public int_tern
 class int_pow : public int_tern
 {
     public:
-        int_pow(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_pow(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
     private:
@@ -70,7 +71,7 @@ class int_pow : public int_tern
 class int_times : public int_tern
 {
     public:
-        int_times(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        int_times(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };

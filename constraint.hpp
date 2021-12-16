@@ -351,7 +351,8 @@ public:
    void propagate() override;
 };
 
-namespace Factory {
+namespace Factory
+{
    inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
       return new (x->getSolver()) EQBinBC(x,y,c);
    }

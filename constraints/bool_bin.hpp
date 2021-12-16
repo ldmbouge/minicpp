@@ -1,6 +1,7 @@
 #pragma once
 
 #include <intvar.hpp>
+#include <flatzinc/flatzinc.h>
 
 class bool_bin : public Constraint
 {
@@ -9,7 +10,7 @@ class bool_bin : public Constraint
         var<bool>::Ptr _b;
 
     public:
-        bool_bin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_bin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
 };
 
@@ -19,14 +20,14 @@ class bool_bin_reif : public bool_bin
         var<bool>::Ptr _r;
 
     public:
-        bool_bin_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_bin_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
 };
 
 class bool_and_reif : public bool_bin_reif
 {
     public:
-        bool_and_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_and_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -34,7 +35,7 @@ class bool_and_reif : public bool_bin_reif
 class bool_eq : public bool_bin
 {
     public:
-        bool_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_eq(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
         static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
@@ -43,7 +44,7 @@ class bool_eq : public bool_bin
 class bool_eq_reif : public bool_bin_reif
 {
     public:
-        bool_eq_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_eq_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -51,7 +52,7 @@ class bool_eq_reif : public bool_bin_reif
 class bool_le : public bool_bin
 {
 public:
-    bool_le(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    bool_le(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
     void post() override;
     void propagate() override;
     static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
@@ -60,7 +61,7 @@ public:
 class bool_le_reif : public bool_bin_reif
 {
 public:
-    bool_le_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    bool_le_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
     void post() override;
     void propagate() override;
 };
@@ -68,7 +69,7 @@ public:
 class bool_lt : public bool_bin
 {
 public:
-    bool_lt(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    bool_lt(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
     void post() override;
     void propagate() override;
     static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
@@ -78,7 +79,7 @@ public:
 class bool_lt_reif : public bool_bin_reif
 {
 public:
-    bool_lt_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    bool_lt_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
     void post() override;
     void propagate() override;
 };
@@ -86,7 +87,7 @@ public:
 class bool_not : public bool_bin
 {
 public:
-    bool_not(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    bool_not(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
     void post() override;
     void propagate() override;
     static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
@@ -95,7 +96,7 @@ public:
 class bool_or_reif : public bool_bin_reif
 {
 public:
-    bool_or_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    bool_or_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
     void post() override;
     void propagate() override;
 };
@@ -103,7 +104,7 @@ public:
 class bool_xor : public bool_bin
 {
 public:
-    bool_xor(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    bool_xor(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
     void post() override;
     void propagate() override;
 };
@@ -111,7 +112,7 @@ public:
 class bool_xor_reif : public bool_bin_reif
 {
 public:
-    bool_xor_reif(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+    bool_xor_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
     void post() override;
     void propagate() override;
 };

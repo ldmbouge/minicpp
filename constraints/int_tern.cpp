@@ -3,11 +3,11 @@
 #include <limits>
 #include <constraints/int_tern.hpp>
 
-int_tern::int_tern(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const& vars, std::vector<int> const& consts) :
+int_tern::int_tern(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _a(intVars->at(vars[0])),
-    _b((intVars->at(vars[1]))),
-    _c((intVars->at(vars[2])))
+    _a(int_vars[fzConstraint.vars[0]]),
+    _b(int_vars[fzConstraint.vars[1]]),
+    _c(int_vars[fzConstraint.vars[2]])
 {}
 
 
@@ -61,8 +61,8 @@ void int_tern::post()
     _c->propagateOnBoundChange(this);
 }
 
-int_div::int_div(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
-    int_tern(cp, intVars, boolVars, vars, consts)
+int_div::int_div(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_tern(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_div::post()
@@ -95,8 +95,8 @@ void int_div::propagate()
     _b->updateBounds(boundsMin, boundsMax);
 }
 
-int_max::int_max(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
-    int_tern(cp, intVars, boolVars, vars, consts)
+int_max::int_max(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_tern(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_max::post()
@@ -122,8 +122,8 @@ void int_max::propagate()
     _b->removeAbove(cMax);
 }
 
-int_min::int_min(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
-    int_tern(cp, intVars, boolVars, vars, consts)
+int_min::int_min(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_tern(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_min::post()
@@ -149,8 +149,8 @@ void int_min::propagate()
     _b->removeBelow(cMin);
 }
 
-int_mod::int_mod(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
-    int_tern(cp, intVars, boolVars, vars, consts)
+int_mod::int_mod(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_tern(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_mod::post()
@@ -246,8 +246,8 @@ void int_mod::propagate()
     }
 }
 
-int_plus::int_plus(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
-    int_tern(cp, intVars, boolVars, vars, consts)
+int_plus::int_plus(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_tern(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_plus::post()
@@ -282,8 +282,8 @@ void int_plus::propagate()
     _b->updateBounds(boundsMin, boundsMax);
 }
 
-int_pow::int_pow(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
-    int_tern(cp, intVars, boolVars, vars, consts)
+int_pow::int_pow(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_tern(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_pow::post()
@@ -402,8 +402,8 @@ void int_pow::calcPowMinMax(int aMin, int aMax, double bVal, int& min, int& max)
 }
 
 
-int_times::int_times(CPSolver::Ptr cp, std::vector<var<int>::Ptr> *intVars, std::vector<var<bool>::Ptr> *boolVars, const std::vector<int> &vars, const std::vector<int> &consts) :
-    int_tern(cp, intVars, boolVars, vars, consts)
+int_times::int_times(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    int_tern(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_times::post()

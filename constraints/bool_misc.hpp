@@ -1,6 +1,7 @@
 #pragma once
 
 #include <intvar.hpp>
+#include <flatzinc/flatzinc.h>
 
 class bool2int : public Constraint
 {
@@ -9,7 +10,7 @@ class bool2int : public Constraint
         var<int>::Ptr _b;
 
     public:
-        bool2int(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool2int(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -21,7 +22,7 @@ class bool_clause : public Constraint
         std::vector<var<bool>::Ptr> _bs;
 
     public:
-        bool_clause(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_clause(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };

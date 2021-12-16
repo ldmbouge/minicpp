@@ -1,6 +1,7 @@
 #pragma once
 
 #include <intvar.hpp>
+#include <flatzinc/flatzinc.h>
 
 class bool_lin : public Constraint
 {
@@ -12,7 +13,7 @@ class bool_lin : public Constraint
         int _c;
 
     public:
-        bool_lin(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         static void calSumMinMax(bool_lin* boolLin, int& sumMin, int& sumMax);
         void post() override;
 
@@ -23,7 +24,7 @@ class bool_lin : public Constraint
 class bool_lin_eq : public bool_lin
 {
     public:
-        bool_lin_eq(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_lin_eq(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
 };
@@ -37,7 +38,7 @@ class bool_lin_ge
 class bool_lin_le : public bool_lin
 {
     public:
-        bool_lin_le(CPSolver::Ptr cp, std::vector<var<int>::Ptr>* intVars, std::vector<var<bool>::Ptr>* boolVars, std::vector<int> const & vars, std::vector<int> const & consts);
+        bool_lin_le(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
         static void propagate(bool_lin* boolLin, int sumMin, int sumMax);
