@@ -530,7 +530,7 @@ bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pa
    auto mark = _mem->mark();
    const int nbb = (int)_mddspec->layoutSize();
    char* membuf = new (_mem) char[nbb];
-   bzero(membuf,nbb);
+   memset(membuf, '\0', nbb);
    MDDState* upState = new (_mem) MDDState(_mddspec,membuf);
    _mddspec->copyStateUp(*upState,n->getState());
 

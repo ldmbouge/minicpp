@@ -51,7 +51,7 @@ public:
    }
    void clear() {
       _pool->clear();
-      bzero(_t,sizeof(MDDStateDelta*)*_csz);
+      memset(_t,'\0',sizeof(MDDStateDelta*)*_csz);
    }
    MDDStateDelta* makeDelta(MDDNode* n) {
       if (_nf->peakNodes() > _csz) adaptDelta();

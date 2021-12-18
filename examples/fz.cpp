@@ -26,6 +26,7 @@
 var<int>::Ptr makeIntVar(CPSolver::Ptr cp, FlatZinc::IntVar& fzIntVar);
 var<bool>::Ptr makeBoolVar(CPSolver::Ptr cp, FlatZinc::BoolVar& fzBoolVar);
 std::function<Branches(void)> makeSearchHeuristic(CPSolver::Ptr cp, FlatZinc::SearchHeuristic& sh, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+std::vector<std::function<Branches(void)>> makeSearchCombinator(CPSolver::Ptr cp, FlatZinc::FlatZincModel* fzModel,  std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
 Limit makeLimit(int solution_limit, int time_limit);
 
 void printFlatZincModel(FlatZinc::FlatZincModel* fzModel);
@@ -82,11 +83,7 @@ int main(int argc,char* argv[])
         }
 
         //Create search combinator
-        std::vector<std::function<Branches(void)>> search_heuristics;
-        for(size_t i = 0; i < fzModel->search_combinator.size(); i += 1)
-        {
-            search_heuristics.push_back(makeSearchHeuristic(cp, fzModel->search_combinator[i], int_vars, bool_vars));
-        }
+        std::vector<std::function<Branches(void)>> search_heuristics = makeSearchCombinator(cp, fzModel, int_vars, bool_vars);
         DFSearch search(cp, land(search_heuristics));
 
         //Create search limit
@@ -244,6 +241,54 @@ std::function<Branches(void)> makeSearchHeuristic(CPSolver::Ptr cp, FlatZinc::Se
         printError("Unexpected search heuristic");
         exit(EXIT_FAILURE);
     }
+}
+
+std::vector<std::function<Branches(void)>> makeSearchCombinator(CPSolver::Ptr cp, FlatZinc::FlatZincModel* fzModel,  std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars)
+{
+    // Initialize not decision variables as all the variables
+    std::set<int> int_not_decision_vars;
+    std::set<int> bool_not_decision_vars;
+    for (size_t i = 0; i < fzModel->int_vars.size(); i += 1)
+    {
+        int_not_decision_vars.insert(int_not_decision_vars.end(), i);
+    }
+    for (size_t i = 0; i < fzModel->bool_vars.size(); i += 1)
+    {
+        bool_not_decision_vars.insert(bool_not_decision_vars.end(), i);
+    }
+
+    //Create the search heuristics
+    std::vector<std::function<Branches(void)>> search_heuristics;
+    for (size_t i = 0; i < fzModel->search_combinator.size(); i += 1)
+    {
+        auto& sh =  fzModel->search_combinator[i];
+        search_heuristics.push_back(makeSearchHeuristic(cp, sh, int_vars, bool_vars));
+
+        //Remove decision variables from not decision variables
+        if(sh.type == FlatZinc::SearchHeuristic::Type::integer)
+        {
+            for (size_t i = 0; i < sh.decision_variables.size(); i += 1)
+            {
+                int_not_decision_vars.erase(sh.decision_variables[i]);
+            }
+        }
+        else
+        {
+            for (size_t i = 0; i < sh.decision_variables.size(); i += 1)
+            {
+                bool_not_decision_vars.erase(sh.decision_variables[i]);
+            }
+        }
+
+    }
+
+    //Add the default search heuristic for the not decision variables
+    FlatZinc::SearchHeuristic int_not_decision_sh(FlatZinc::SearchHeuristic::Type::integer, int_not_decision_vars);
+    FlatZinc::SearchHeuristic bool_not_decision_sh(FlatZinc::SearchHeuristic::Type::boolean, bool_not_decision_vars);
+    search_heuristics.push_back(makeSearchHeuristic(cp, int_not_decision_sh, int_vars, bool_vars));
+    search_heuristics.push_back(makeSearchHeuristic(cp, bool_not_decision_sh, int_vars, bool_vars));
+
+    return search_heuristics;
 }
 
 Limit makeLimit(int solution_limit, int time_limit)

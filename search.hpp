@@ -79,28 +79,27 @@ class SearchStatistics
        void incrFailures()  noexcept {failures += 1; extern int __nbf; __nbf = failures; }
        void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
        void incrSolutions() noexcept {solutions += 1;}
-       void setCompleted()  noexcept {completed = true;}
        void setIntVars(int count) noexcept {intVariables = count; variables += count;};
        void setBoolVars(int count) noexcept {boolVariables = count; variables += count;};
        void setPropagators(int count) noexcept {propagators = count;};
        void setInitTime() noexcept {initTime = RuntimeMonitor::now();}
        void setSolveTime() noexcept {solveTime = RuntimeMonitor::now();};
        int getSolutions() const noexcept {return solutions;};
+       int getFailues() const noexcept {return failures;};
        RuntimeMonitor::HRClock getStartTime() const noexcept {return startTime;};
        friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss)
        {
-            return os << "%%%mzn-stat: nodes=" << ss.nodes << std::endl
+            return os << "%%%mzn-stat: nodes=" << ss.nodes + ss.failures << std::endl
                       << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
                       << "%%%mzn-stat: failures=" << ss.failures << std::endl
                       << "%%%mzn-stat: variables=" << ss.variables << std::endl
                       << "%%%mzn-stat: intVariables=" << ss.intVariables << std::endl
                       << "%%%mzn-stat: boolVariables=" << ss.boolVariables << std::endl
                       << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
-                      << std::setprecision(3)
+                      << std::fixed << std::setprecision(3)
                       << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime, ss.initTime) << std::endl
                       << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss.initTime, ss.solveTime) << std::endl
                       << "%%%mzn-stat: totalTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime) << std::endl
-                      << std::defaultfloat
                       << "%%%mzn-stat-end" << std::endl;
        }
     };
@@ -182,6 +181,20 @@ typename Container::value_type selectMin(Container& c,Predicate test, Fun f)
       return typename Container::value_type();
    else 
       return *min;
+}
+
+template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,Container& c) {
+    using namespace Factory;
+    return [=]() {
+        auto sx = selectMin(c,
+                            [](const auto& x) { return x->size() > 1;},
+                            [](const auto& x) { return x->size();});
+        if (sx) {
+            int v = sx->min();
+            return [cp,sx,v] { return cp->post(sx == v);}
+                   |  [cp,sx,v] { return cp->post(sx != v);};
+        } else return Branches({});
+    };
 }
 
 template<class Container,typename Predicate, typename Fun>

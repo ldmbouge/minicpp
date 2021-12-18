@@ -187,6 +187,20 @@ namespace FlatZinc
                 indomain_max,
                 indomain_split
             };
+
+
+        SearchHeuristic();
+
+        template<typename Container>
+        SearchHeuristic(Type type, Container& decision_variables) :
+            type(type),
+            decision_variables(decision_variables.begin(), decision_variables.end()),
+            value_selection(ValueSelection::indomain_min),
+            variable_selection(VariableSelection::first_fail)
+        {
+           // printVector(std::cout, this->decision_variables);
+        }
+
         Type type;
         std::vector<int> decision_variables;
         VariableSelection variable_selection;

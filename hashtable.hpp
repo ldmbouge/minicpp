@@ -52,8 +52,8 @@ public:
       std::cout << "SIZE:" << _mxs << '\n';
       _tab = new (_pool) HTNode*[_mxs];
       _mgc = new (_pool) unsigned[_mxs];
-      bzero(_tab,sizeof(HTNode*)*_mxs);
-      bzero(_mgc,sizeof(unsigned)*_mxs);
+       memset(_tab, '\0', sizeof(HTNode*)*_mxs);
+       memset(_mgc, '\0', sizeof(unsigned)*_mxs);
       _magic = 0;
       _nbp = 0;
    }

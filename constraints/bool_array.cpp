@@ -61,7 +61,7 @@ void array_bool_and_reif::propagate()
                 x->assign(true);
             }
         }
-        else if (notBoundCount == 1)
+        else if (asSatisfied and notBoundCount == 1)
         {
             asNotBound->assign(false);
         }

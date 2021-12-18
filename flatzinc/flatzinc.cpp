@@ -150,6 +150,9 @@ namespace FlatZinc
         }
     }
 
+    SearchHeuristic::SearchHeuristic()
+    {}
+
     FlatZincModel::FlatZincModel(void) :
         int_vars(),
         bool_vars(),
@@ -333,12 +336,6 @@ namespace FlatZinc
                 search_combinator.push_back(sh);
             }
         }
-        else
-        {
-            std::string error = "Missing search annotation";
-            printError(error);
-            exit(EXIT_FAILURE);
-        };
     }
 
     void FlatZincModel::print(ostream& out, vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) const
