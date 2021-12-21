@@ -66,14 +66,14 @@ if [ -z "$build_dir" ]
   then
     build_dir="cmake-build-${system_type,,}-${build_type,,}"
 fi
-rm -rf $build_dir &> /dev/null
-mkdir -p build_dir
+rm -rf "$build_dir" &> /dev/null
+mkdir -p ""$build_dir""
 
 #CMake
 cmake \
-  -B $build_dir \
-  -D CMAKE_SYSTEM_NAME=$system_type \
-  -D CMAKE_C_COMPILER=$c_compiler \
-  -D CMAKE_CXX_COMPILER=$cxx_compiler \
-  -D CMAKE_BUILD_TYPE=$build_type \
+  -B "$build_dir" \
+  -D CMAKE_SYSTEM_NAME="$system_type" \
+  -D CMAKE_C_COMPILER="$c_compiler" \
+  -D CMAKE_CXX_COMPILER="$cxx_compiler" \
+  -D CMAKE_BUILD_TYPE="$build_type" \
   -D CMAKE_EXE_LINKER_FLAGS="-static-libgcc -static-libstdc++ -static"
