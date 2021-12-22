@@ -24,24 +24,26 @@ int_lin::int_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vect
     }
 }
 
-void int_lin::calSumMinMax(int_lin* intLin, int& min, int& max)
+void int_lin::calSumMinMax(int_lin* il)
 {
-    auto& _as_pos = intLin->_as_pos;
-    auto& _as_neg = intLin->_as_neg;
-    auto& _bs_pos = intLin->_bs_pos;
-    auto& _bs_neg = intLin->_bs_neg;
+    auto& _as_pos = il->_as_pos;
+    auto& _as_neg = il->_as_neg;
+    auto& _bs_pos = il->_bs_pos;
+    auto& _bs_neg = il->_bs_neg;
+    auto& _sumMin = il->_sumMin;
+    auto& _sumMax = il->_sumMax;
 
-    min = 0;
-    max = 0;
+    _sumMin = 0;
+    _sumMax = 0;
     for (size_t i = 0; i < _as_pos.size(); i += 1)
     {
-        min += _as_pos[i] * _bs_pos[i]->min();
-        max += _as_pos[i] * _bs_pos[i]->max();
+        _sumMin += _as_pos[i] * _bs_pos[i]->min();
+        _sumMax += _as_pos[i] * _bs_pos[i]->max();
     }
     for (size_t i = 0; i < _as_neg.size(); i += 1)
     {
-        min += _as_neg[i] * _bs_neg[i]->max();
-        max += _as_neg[i] * _bs_neg[i]->min();
+        _sumMin += _as_neg[i] * _bs_neg[i]->max();
+        _sumMax += _as_neg[i] * _bs_neg[i]->min();
     }
 }
 
@@ -81,19 +83,17 @@ void int_lin_eq::post()
 
 void int_lin_eq::propagate()
 {
-    int sumMin;
-    int sumMax;
-    calSumMinMax(this, sumMin, sumMax);
-    propagate(this, sumMin, sumMax);
+    calSumMinMax(this);
+    propagate(this);
 }
 
-void int_lin_eq::propagate(int_lin* intLin, int sumMin, int sumMax)
+void int_lin_eq::propagate(int_lin* il)
 {
     //Semantic: as1*bs1 + ... + asn*bsn = c
 
     //Propagation: as1*bs1 + ... + asn*bsn <- c
-    int_lin_ge::propagate(intLin, intLin->_c, sumMin, sumMax);
-    int_lin_le::propagate(intLin, sumMin, sumMax);
+    int_lin_ge::propagate(il, il->_c);
+    int_lin_le::propagate(il);
 }
 
 int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
@@ -109,16 +109,14 @@ void int_lin_eq_reif::post()
 void int_lin_eq_reif::propagate()
 {
     //Semantic: as1*bs1 + ... + asn*bsn = c <-> r
-    int sumMin;
-    int sumMax;
-    calSumMinMax(this, sumMin, sumMax);
+    calSumMinMax(this);
 
     //Propagation: as1*bs1 + ... + asn*bsn = c -> r
-    if(sumMin == sumMax)
+    if(_sumMin == _sumMax)
     {
-        _r->assign(sumMin == _c);
+        _r->assign(_sumMin == _c);
     }
-    else if(_c < sumMin or sumMax < _c)
+    else if(_c < _sumMin or _sumMax < _c)
     {
         _r->assign(false);
     }
@@ -126,7 +124,7 @@ void int_lin_eq_reif::propagate()
     //Propagation: as1*bs1 + ... + asn*bsn = c <- r
     if(_r->isTrue())
     {
-        int_lin_eq::propagate(this, sumMin, sumMax);
+        int_lin_eq::propagate(this);
     }
     else if (_r->isFalse())
     {
@@ -134,36 +132,38 @@ void int_lin_eq_reif::propagate()
     }
 }
 
-void int_lin_ge::propagate(int_lin* intLin, int c, int& sumMin, int& sumMax)
+void int_lin_ge::propagate(int_lin* il, int c)
 {
     //Semantic: as1*bs1 + ... + asn*bsn >= c
-    auto& _as_pos = intLin->_as_pos;
-    auto& _as_neg = intLin->_as_neg;
-    auto& _bs_pos = intLin->_bs_pos;
-    auto& _bs_neg = intLin->_bs_neg;
+    auto& _as_pos = il->_as_pos;
+    auto& _as_neg = il->_as_neg;
+    auto& _bs_pos = il->_bs_pos;
+    auto& _bs_neg = il->_bs_neg;
     auto& _c = c;
+    auto& _sumMin = il->_sumMin;
+    auto& _sumMax = il->_sumMax;
 
     //Propagation: as1*bs1 + ... + asn*bsn <- c
     for (size_t i = 0; i < _as_pos.size(); i += 1)
     {
         int iMin = _as_pos[i] * _bs_pos[i]->min();
         int iMax = _as_pos[i] * _bs_pos[i]->max();
-        if (iMax - iMin > -(_c - sumMax))
+        if (iMax - iMin > -(_c - _sumMax))
         {
-            int bsMin = ceilDivision(_c - sumMax + iMax, _as_pos[i]);
+            int bsMin = ceilDivision(_c - _sumMax + iMax, _as_pos[i]);
             _bs_pos[i]->removeBelow(bsMin);
-            sumMin = sumMin - iMin + _as_pos[i]*bsMin;
+            _sumMin = _sumMin - iMin + _as_pos[i]*bsMin;
         }
     }
     for (size_t i = 0; i < _as_neg.size(); i += 1)
     {
         int iMin = _as_neg[i] * _bs_neg[i]->max();
         int iMax = _as_neg[i] * _bs_neg[i]->min();
-        if (iMax - iMin > -(_c - sumMax))
+        if (iMax - iMin > -(_c - _sumMax))
         {
-            int bsMax = floorDivision(-(_c - sumMax + iMax), -_as_neg[i]);
+            int bsMax = floorDivision(-(_c - _sumMax + iMax), -_as_neg[i]);
             _bs_neg[i]->removeAbove(bsMax);
-            sumMin = sumMin - iMin + _as_neg[i]*bsMax;
+            _sumMin = _sumMin - iMin + _as_neg[i]*bsMax;
         }
     }
 }
@@ -180,20 +180,20 @@ void int_lin_le::post()
 
 void int_lin_le::propagate()
 {
-    int sumMin;
-    int sumMax;
-    calSumMinMax(this, sumMin, sumMax);
-    propagate(this, sumMin, sumMax);
+    calSumMinMax(this);
+    propagate(this);
 }
 
-void int_lin_le::propagate(int_lin* intLin, int& sumMin, int& sumMax)
+void int_lin_le::propagate(int_lin* il)
 {
     //Semantic: as1*bs1 + ... + asn*bsn <= c
-    auto& _as_pos = intLin->_as_pos;
-    auto& _as_neg = intLin->_as_neg;
-    auto& _bs_pos = intLin->_bs_pos;
-    auto& _bs_neg = intLin->_bs_neg;
-    auto& _c = intLin->_c;
+    auto& _as_pos = il->_as_pos;
+    auto& _as_neg = il->_as_neg;
+    auto& _bs_pos = il->_bs_pos;
+    auto& _bs_neg = il->_bs_neg;
+    auto& _c = il->_c;
+    auto& _sumMin = il->_sumMin;
+    auto& _sumMax = il->_sumMax;
 
     //Propagation: as1*bs1 + ... + asn*bsn <- c
     for (size_t i = 0; i < _as_pos.size(); i += 1)
@@ -201,22 +201,22 @@ void int_lin_le::propagate(int_lin* intLin, int& sumMin, int& sumMax)
         int iMin = _as_pos[i] * _bs_pos[i]->min();
         int iMax = _as_pos[i] * _bs_pos[i]->max();
 
-        if (iMax - iMin > _c - sumMin)
+        if (iMax - iMin > _c - _sumMin)
         {
-            int bsMax = floorDivision(_c - sumMin + iMin, _as_pos[i]);
+            int bsMax = floorDivision(_c - _sumMin + iMin, _as_pos[i]);
             _bs_pos[i]->removeAbove(bsMax);
-            sumMax = sumMax - iMax + _as_pos[i]*bsMax;
+            _sumMax = _sumMax - iMax + _as_pos[i]*bsMax;
         }
     }
     for (size_t i = 0; i < _as_neg.size(); i += 1)
     {
         int iMin = _as_neg[i] * _bs_neg[i]->max();
         int iMax = _as_neg[i] * _bs_neg[i]->min();
-        if (iMax - iMin > _c - sumMin)
+        if (iMax - iMin > _c - _sumMin)
         {
-            int bsMin = ceilDivision(-(_c - sumMin + iMin), -_as_neg[i]);
+            int bsMin = ceilDivision(-(_c - _sumMin + iMin), -_as_neg[i]);
             _bs_neg[i]->removeBelow(bsMin);
-            sumMax = sumMax - iMax + _as_neg[i]*bsMin;
+            _sumMax = _sumMax - iMax + _as_neg[i]*bsMin;
         }
     }
 }
@@ -234,16 +234,14 @@ void int_lin_le_reif::post()
 void int_lin_le_reif::propagate()
 {
     //Semantic: as1*bs1 + ... + asn*bsn <= c <-> r
-    int sumMin;
-    int sumMax;
-    calSumMinMax(this, sumMin, sumMax);
+    calSumMinMax(this);
 
     //Propagation: as1*bs1 + ... + asn*bsn <= c -> r
-    if(sumMax <= _c)
+    if(_sumMax <= _c)
     {
         _r->assign(true);
     }
-    else if(_c < sumMin)
+    else if(_c < _sumMin)
     {
         _r->assign(false);
     }
@@ -251,11 +249,11 @@ void int_lin_le_reif::propagate()
     //Bound propagation: as1*bs1 + ... + asn*bsn <= c <- r
     if(_r->isTrue())
     {
-        int_lin_le::propagate(this,  sumMin, sumMax);
+        int_lin_le::propagate(this);
     }
     else if (_r->isFalse())
     {
-        int_lin_ge::propagate(this, _c + 1, sumMin, sumMax);
+        int_lin_ge::propagate(this, _c + 1);
     }
 }
 
@@ -281,14 +279,14 @@ void int_lin_ne::propagate()
     propagate(this);
 }
 
-void int_lin_ne::propagate(int_lin* intLin)
+void int_lin_ne::propagate(int_lin* il)
 {
     //Semantic: as1*bs1 + ... + asn*bsn != c
-    auto& _as_pos = intLin->_as_pos;
-    auto& _as_neg = intLin->_as_neg;
-    auto& _bs_pos = intLin->_bs_pos;
-    auto& _bs_neg = intLin->_bs_neg;
-    auto& _c = intLin->_c;
+    auto& _as_pos = il->_as_pos;
+    auto& _as_neg = il->_as_neg;
+    auto& _bs_pos = il->_bs_pos;
+    auto& _bs_neg = il->_bs_neg;
+    auto& _c = il->_c;
 
     //Propagation: as1*bs1 + ... + asn*bsn <- c
     int asNotBound = 0;
@@ -345,16 +343,14 @@ void int_lin_ne_reif::post()
 void int_lin_ne_reif::propagate()
 {
     //Semantic: as1*bs1 + ... + asn*bsn != c <-> r
-    int sumMin;
-    int sumMax;
-    calSumMinMax(this, sumMin, sumMax);
+    calSumMinMax(this);
 
     //Propagation: as1*bs1 + ... + asn*bsn <= c -> r
-    if(sumMin == sumMax)
+    if(_sumMin == _sumMax)
     {
-        _r->assign(sumMin != _c);
+        _r->assign(_sumMin != _c);
     }
-    else if(_c < sumMin or sumMax < _c)
+    else if(_c < _sumMin or _sumMax < _c)
     {
         _r->assign(true);
     }
@@ -366,6 +362,6 @@ void int_lin_ne_reif::propagate()
     }
     else if (_r->isFalse())
     {
-        int_lin_eq::propagate(this, sumMin, sumMax);
+        int_lin_eq::propagate(this);
     }
 }
