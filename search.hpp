@@ -58,6 +58,7 @@ class SearchStatistics
         int intVariables;
         int boolVariables;
         int propagators;
+        unsigned long long propagations;
         RuntimeMonitor::HRClock startTime;
         RuntimeMonitor::HRClock initTime;
         RuntimeMonitor::HRClock solveTime;
@@ -72,6 +73,7 @@ class SearchStatistics
         intVariables(0),
         boolVariables(0),
         propagators(0),
+        propagations(0),
         completed(false)
        {
           startTime = RuntimeMonitor::now();
@@ -84,6 +86,7 @@ class SearchStatistics
        void setPropagators(int count) noexcept {propagators = count;};
        void setInitTime() noexcept {initTime = RuntimeMonitor::now();}
        void setSolveTime() noexcept {solveTime = RuntimeMonitor::now();};
+       void setPropagations(unsigned long long p) noexcept {propagations = p;};
        int getSolutions() const noexcept {return solutions;};
        int getFailues() const noexcept {return failures;};
        RuntimeMonitor::HRClock getStartTime() const noexcept {return startTime;};
@@ -96,6 +99,7 @@ class SearchStatistics
                       << "%%%mzn-stat: intVariables=" << ss.intVariables << std::endl
                       << "%%%mzn-stat: boolVariables=" << ss.boolVariables << std::endl
                       << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
+                      << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
                       << std::fixed << std::setprecision(3)
                       << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime, ss.initTime) << std::endl
                       << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss.initTime, ss.solveTime) << std::endl

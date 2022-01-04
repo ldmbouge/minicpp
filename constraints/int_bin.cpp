@@ -134,10 +134,14 @@ void int_eq_reif::propagate()
    if (aMin == aMax and bMin == bMax and aMin == bMin)
    {
        _r->assign(true);
+       setActive(false);
+       return;
    }
    else if (aMax < bMin or bMax < aMin)
    {
        _r->assign(false);
+       setActive(false);
+       return;
    }
 
    //Propagation: a = b <- r
@@ -164,6 +168,11 @@ void int_le::post()
 void int_le::propagate()
 {
     propagate(this, _a, _b);
+
+    if(_a->max() <= _b->min())
+    {
+        setActive(false);
+    }
 }
 
 void int_le::propagate(Constraint* c, var<int>::Ptr _a, var<int>::Ptr _b)
@@ -201,10 +210,14 @@ void int_le_reif::propagate()
     if (aMax <= bMin)
     {
         _r->assign(true);
+        setActive(false);
+        return;
     }
     else if (bMax < aMin)
     {
         _r->assign(false);
+        setActive(false);
+        return;
     }
 
     //Propagation: a <= b <- r

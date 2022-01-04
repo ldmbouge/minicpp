@@ -26,6 +26,7 @@ CPSolver::CPSolver()
       _store(new Storage(_sm))
 {
     _varId  = 0;
+    _propagations = 0;
 }
 
 CPSolver::~CPSolver()

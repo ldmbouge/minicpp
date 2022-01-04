@@ -116,6 +116,7 @@ int main(int argc,char* argv[])
         search_statistics.setSolveTime();
         if(options["s"].as<bool>())
         {
+            search_statistics.setPropagations(cp->getPropagations());
             std::cout << search_statistics;
         }
 

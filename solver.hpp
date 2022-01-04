@@ -62,6 +62,7 @@ class CPSolver {
     std::list<std::function<void(void)>>  _onFix;
     long                  _afterClose;
     int                        _varId;
+    unsigned long long  _propagations;
 public:
     template<typename T> friend class var;
     typedef handle_ptr<CPSolver> Ptr;
@@ -69,6 +70,7 @@ public:
     ~CPSolver();
     Trailer::Ptr getStateManager()       { return _sm;}
     Storage::Ptr getStore()              { return _store;}
+    unsigned long long getPropagations() {return _propagations;};
     void registerVar(AVar::Ptr avar);
     void schedule(Constraint::Ptr& c) {
         if (c->isActive() && !c->isScheduled()) {

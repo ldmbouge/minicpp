@@ -25,6 +25,11 @@ void bool2int::propagate()
 
     //Propagation: a <- b
     _a->updateBounds(min, max);
+
+    if(0 < min  or max < 1)
+    {
+        setActive(false);
+    }
 }
 
 bool_clause::bool_clause(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars):

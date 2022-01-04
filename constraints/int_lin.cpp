@@ -85,6 +85,10 @@ void int_lin_eq::propagate()
 {
     calSumMinMax(this);
     propagate(this);
+    if(_sumMin == _sumMax or (_c < _sumMin or _sumMax < _c))
+    {
+        setActive(false);
+    }
 }
 
 void int_lin_eq::propagate(int_lin* il)
@@ -115,6 +119,7 @@ void int_lin_eq_reif::propagate()
     if(_sumMin == _sumMax)
     {
         _r->assign(_sumMin == _c);
+
     }
     else if(_c < _sumMin or _sumMax < _c)
     {
@@ -182,6 +187,10 @@ void int_lin_le::propagate()
 {
     calSumMinMax(this);
     propagate(this);
+    if(_sumMax <= _c or _c < _sumMin)
+    {
+        setActive(false);
+    }
 }
 
 void int_lin_le::propagate(int_lin* il)
@@ -240,10 +249,14 @@ void int_lin_le_reif::propagate()
     if(_sumMax <= _c)
     {
         _r->assign(true);
+        setActive(false);
+        return;
     }
     else if(_c < _sumMin)
     {
         _r->assign(false);
+        setActive(false);
+        return;
     }
 
     //Bound propagation: as1*bs1 + ... + asn*bsn <= c <- r
@@ -300,6 +313,11 @@ void int_lin_ne::propagate(int_lin* il)
             notBoundCount += 1;
             asNotBound = _as_pos[i];
             bsNotBound = _bs_pos[i];
+
+            if(notBoundCount > 1)
+            {
+                return;
+            }
         }
         else
         {
@@ -313,6 +331,11 @@ void int_lin_ne::propagate(int_lin* il)
             notBoundCount += 1;
             asNotBound = _as_neg[i];
             bsNotBound = _bs_neg[i];
+
+            if(notBoundCount > 1)
+            {
+                return;
+            }
         }
         else
         {
@@ -324,9 +347,13 @@ void int_lin_ne::propagate(int_lin* il)
     {
         failNow();
     }
-    else if (notBoundCount == 1 and (_c - sum) % asNotBound == 0)
+    else if (notBoundCount == 1)
     {
-        bsNotBound->remove((_c - sum) / asNotBound);
+        if((_c - sum) % asNotBound == 0)
+        {
+            bsNotBound->remove((_c - sum) / asNotBound);
+        }
+        il->setActive(false);
     }
 }
 
