@@ -36,12 +36,12 @@ do
             build_type="Debug"
             ;;
         -h|--help)
-            printHelp
+            print_help
             exit 0
             ;;
         *)
             echo "[ERROR] Unrecognized argument: $arg"
-            printHelp
+            print_help
             exit 1
             ;;
     esac
