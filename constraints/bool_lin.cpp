@@ -24,24 +24,24 @@ bool_lin::bool_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::ve
     }
 }
 
-void bool_lin::calSumMinMax(bool_lin* boolLin, int& min, int& max)
+void bool_lin::calSumMinMax(bool_lin* bl)
 {
-    auto& _as_pos = boolLin->_as_pos;
-    auto& _as_neg = boolLin->_as_neg;
-    auto& _bs_pos = boolLin->_bs_pos;
-    auto& _bs_neg = boolLin->_bs_neg;
+    auto& _as_pos = bl->_as_pos;
+    auto& _as_neg = bl->_as_neg;
+    auto& _bs_pos = bl->_bs_pos;
+    auto& _bs_neg = bl->_bs_neg;
 
-    min = 0;
-    max = 0;
+    bl->_sumMin = 0;
+    bl->_sumMax = 0;
     for (size_t i = 0; i < _as_pos.size(); i += 1)
     {
-        min += _as_pos[i] * _bs_pos[i]->min();
-        max += _as_pos[i] * _bs_pos[i]->max();
+        bl->_sumMin += _as_pos[i] * _bs_pos[i]->min();
+        bl->_sumMax += _as_pos[i] * _bs_pos[i]->max();
     }
     for (size_t i = 0; i < _as_neg.size(); i += 1)
     {
-        min += _as_neg[i] * _bs_neg[i]->max();
-        max += _as_neg[i] * _bs_neg[i]->min();
+        bl->_sumMin += _as_neg[i] * _bs_neg[i]->max();
+        bl->_sumMax += _as_neg[i] * _bs_neg[i]->min();
     }
 }
 
@@ -72,45 +72,44 @@ void bool_lin_eq::post()
 void bool_lin_eq::propagate()
 {
     //Semantic: as1*bs1 + ... + asn*bsn = c
-    int sumMin;
-    int sumMax;
-    calSumMinMax(this, sumMin, sumMax);
+    calSumMinMax(this);
 
     //Propagation: as1*bs1 + ... + asn*bsn <- c
-    bool_lin_ge::propagate(this, sumMin, sumMax);
-    bool_lin_le::propagate(this, sumMin, sumMax);
+    bool_lin_ge::propagate(this);
 }
 
-void bool_lin_ge::propagate(bool_lin* boolLin, int sumMin, int sumMax)
+void bool_lin_ge::propagate(bool_lin* bl)
 {
     //Semantic: as1*bs1 + ... + asn*bsn >= c
-    auto& _as_pos = boolLin->_as_pos;
-    auto& _as_neg = boolLin->_as_neg;
-    auto& _bs_pos = boolLin->_bs_pos;
-    auto& _bs_neg = boolLin->_bs_neg;
-    auto& _c = boolLin->_c;
+    auto& _as_pos = bl->_as_pos;
+    auto& _as_neg = bl->_as_neg;
+    auto& _bs_pos = bl->_bs_pos;
+    auto& _bs_neg = bl->_bs_neg;
+    auto& _c = bl->_c;
+    auto& _sumMin = bl->_sumMin;
+    auto& _sumMax = bl->_sumMax;
 
     //Propagation: as1*bs1 + ... + asn*bsn <- c
     for (size_t i = 0; i < _as_pos.size(); i += 1)
     {
         int iMin = _as_pos[i] * _bs_pos[i]->min();
         int iMax = _as_pos[i] * _bs_pos[i]->max();
-        if (iMax - iMin > -(_c - sumMax))
+        if (iMax - iMin > -(_c - _sumMax))
         {
-            int bsMin = ceilDivision(_c - sumMax + iMax, _as_pos[i]);
+            int bsMin = ceilDivision(_c - _sumMax + iMax, _as_pos[i]);
             _bs_pos[i]->removeBelow(bsMin);
-            sumMin = sumMin - iMin + _as_pos[i]*bsMin;
+            _sumMin = _sumMin - iMin + _as_pos[i]*bsMin;
         }
     }
     for (size_t i = 0; i < _as_neg.size(); i += 1)
     {
         int iMin = _as_neg[i] * _bs_neg[i]->max();
         int iMax = _as_neg[i] * _bs_neg[i]->min();
-        if (iMax - iMin > -(_c - sumMax))
+        if (iMax - iMin > -(_c - _sumMax))
         {
-            int bsMax = floorDivision(-(_c - sumMax + iMax), -_as_neg[i]);
+            int bsMax = floorDivision(-(_c - _sumMax + iMax), -_as_neg[i]);
             _bs_neg[i]->removeAbove(bsMax);
-            sumMin = sumMin - iMin + _as_neg[i]*bsMax;
+            _sumMin = _sumMin - iMin + _as_neg[i]*bsMax;
         }
     }
 }
@@ -127,20 +126,30 @@ void bool_lin_le::post()
 
 void bool_lin_le::propagate()
 {
-    int sumMin;
-    int sumMax;
-    calSumMinMax(this, sumMin, sumMax);
-    propagate(this, sumMin, sumMax);
+    calSumMinMax(this);
+
+    propagate(this);
+
+    if(_sumMax <= _c)
+    {
+        setActive(false);
+    }
+    else if (_sumMin > _c)
+    {
+        failNow();
+    }
 }
 
-void bool_lin_le::propagate(bool_lin* boolLin, int sumMin, int sumMax)
+void bool_lin_le::propagate(bool_lin* bl)
 {
     //Semantic: as1*bs1 + ... + asn*bsn <= c
-    auto& _as_pos = boolLin->_as_pos;
-    auto& _as_neg = boolLin->_as_neg;
-    auto& _bs_pos = boolLin->_bs_pos;
-    auto& _bs_neg = boolLin->_bs_neg;
-    auto& _c = boolLin->_c;
+    auto& _as_pos = bl->_as_pos;
+    auto& _as_neg = bl->_as_neg;
+    auto& _bs_pos = bl->_bs_pos;
+    auto& _bs_neg = bl->_bs_neg;
+    auto& _c = bl->_c;
+    auto& _sumMin = bl->_sumMin;
+    auto& _sumMax = bl->_sumMax;
 
     //Propagation: as1*bs1 + ... + asn*bsn <- c
     for (size_t i = 0; i < _as_pos.size(); i += 1)
@@ -148,22 +157,22 @@ void bool_lin_le::propagate(bool_lin* boolLin, int sumMin, int sumMax)
         int iMin = _as_pos[i] * _bs_pos[i]->min();
         int iMax = _as_pos[i] * _bs_pos[i]->max();
 
-        if (iMax - iMin > _c - sumMin)
+        if (iMax - iMin > _c - _sumMin)
         {
-            int bsMax = floorDivision(_c - sumMin + iMin, _as_pos[i]);
+            int bsMax = floorDivision(_c - _sumMin + iMin, _as_pos[i]);
             _bs_pos[i]->removeAbove(bsMax);
-            sumMax = sumMax - iMax + _as_pos[i]*bsMax;
+            _sumMax = _sumMax - iMax + _as_pos[i]*bsMax;
         }
     }
     for (size_t i = 0; i < _as_neg.size(); i += 1)
     {
         int iMin = _as_neg[i] * _bs_neg[i]->max();
         int iMax = _as_neg[i] * _bs_neg[i]->min();
-        if (iMax - iMin > _c - sumMin)
+        if (iMax - iMin > _c - _sumMin)
         {
-            int bsMin = ceilDivision(-(_c - sumMin + iMin), -_as_neg[i]);
+            int bsMin = ceilDivision(-(_c - _sumMin + iMin), -_as_neg[i]);
             _bs_neg[i]->removeBelow(bsMin);
-            sumMax = sumMax - iMax + _as_neg[i]*bsMin;
+            _sumMax = _sumMax - iMax + _as_neg[i]*bsMin;
         }
     }
 }

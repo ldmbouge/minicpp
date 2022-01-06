@@ -26,7 +26,7 @@ void bool2int::propagate()
     //Propagation: a <- b
     _a->updateBounds(min, max);
 
-    if(0 < min  or max < 1)
+    if(0 < min or max < 1)
     {
         setActive(false);
     }
@@ -45,7 +45,6 @@ bool_clause::bool_clause(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, s
     {
         _bs.push_back(bool_vars[fzConstraint.vars[i]]);
     }
-    assert(_bs.size() > 0);
 }
 
 void bool_clause::post()
@@ -97,7 +96,11 @@ void bool_clause::propagate()
     }
 
     //Propagation: (as1 \/ ... \/ asn) \/ (-bs1 \/ ... \/ -bsm)
-    if(not (asSatisfied or bsSatisfied))
+    if(asSatisfied or bsSatisfied)
+    {
+        setActive(false);
+    }
+    else
     {
         if (asNotBoundCount == 0 and bsNotBoundCount == 0)
         {

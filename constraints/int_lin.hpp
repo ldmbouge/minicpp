@@ -13,6 +13,10 @@ class int_lin : public Constraint
         int _c;
         int _sumMin;
         int _sumMax;
+        int _posNotBoundCount;
+        int _negNotBoundCount;
+        int _posNotBoundIdx;
+        int _negNotBoundIdx;
 
     public:
         int_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);

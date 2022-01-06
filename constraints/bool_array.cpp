@@ -45,18 +45,18 @@ void array_bool_and_reif::propagate()
     if (not asSatisfied)
     {
         _r->assign(false);
+        setActive(false);
     }
     else if (notBoundCount == 0)
     {
         _r->assign(true);
+        setActive(false);
     }
-
-    //Propagation: as1 /\ ... /\ asn <- r
-    if(_r->isBound())
+    else if (_r->isBound()) //Propagation: as1 /\ ... /\ asn <- r
     {
         if (_r->isTrue())
         {
-            for(auto x : _as)
+            for (auto x: _as)
             {
                 x->assign(true);
             }
@@ -163,18 +163,13 @@ void array_bool_or_reif::propagate()
     {
         _r->assign(true);
         setActive(false);
-        return;
     }
     else if (notBoundCount == 0)
     {
         _r->assign(false);
         setActive(false);
-        return;
     }
-
-
-    //Propagation: as1 \/ ... \/ asn <- r
-    if(_r->isBound())
+    else if (_r->isBound()) //Propagation: as1 \/ ... \/ asn <- r
     {
         if(_r->isFalse())
         {
@@ -182,12 +177,10 @@ void array_bool_or_reif::propagate()
             {
                 x->assign(false);
             }
-            setActive(false);
         }
         else if (not asSatisfied and notBoundCount == 1)
         {
             asNotBound->assign(true);
-            setActive(false);
         }
     }
 }

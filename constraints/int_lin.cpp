@@ -32,18 +32,48 @@ void int_lin::calSumMinMax(int_lin* il)
     auto& _bs_neg = il->_bs_neg;
     auto& _sumMin = il->_sumMin;
     auto& _sumMax = il->_sumMax;
+    auto& _posNotBoundCount = il->_posNotBoundCount;
+    auto& _negNotBoundCount = il->_negNotBoundCount;
+    auto& _posNotBoundIdx = il->_posNotBoundIdx;
+    auto& _negNotBoundIdx = il->_negNotBoundIdx;
 
     _sumMin = 0;
     _sumMax = 0;
+    _posNotBoundCount = 0;
+    _negNotBoundCount = 0;
+    _posNotBoundIdx = 0;
+    _negNotBoundIdx = 0;
     for (size_t i = 0; i < _as_pos.size(); i += 1)
     {
-        _sumMin += _as_pos[i] * _bs_pos[i]->min();
-        _sumMax += _as_pos[i] * _bs_pos[i]->max();
+        auto& asi = _as_pos[i];
+        auto& bsi = _bs_pos[i];
+        int bsMin = bsi->min();
+        int bsMax = bsi->max();
+
+        _sumMin += asi * bsMin;
+        _sumMax += asi * bsMax;
+
+        if(bsMin != bsMax)
+        {
+            _posNotBoundCount += 1;
+            _posNotBoundIdx = i;
+        }
     }
     for (size_t i = 0; i < _as_neg.size(); i += 1)
     {
-        _sumMin += _as_neg[i] * _bs_neg[i]->max();
-        _sumMax += _as_neg[i] * _bs_neg[i]->min();
+        auto& asi = _as_neg[i];
+        auto& bsi = _bs_neg[i];
+        int bsMin = bsi->min();
+        int bsMax = bsi->max();
+
+        _sumMin += asi * bsMax;
+        _sumMax += asi * bsMin;
+
+        if(bsMin != bsMax)
+        {
+            _negNotBoundCount += 1;
+            _negNotBoundIdx = i;
+        }
     }
 }
 
@@ -84,10 +114,12 @@ void int_lin_eq::post()
 void int_lin_eq::propagate()
 {
     calSumMinMax(this);
+
     propagate(this);
-    if(_sumMin == _sumMax or (_c < _sumMin or _sumMax < _c))
+
+    if (_c < _sumMin or _sumMax < _c)
     {
-        setActive(false);
+        failNow();
     }
 }
 
@@ -119,21 +151,23 @@ void int_lin_eq_reif::propagate()
     if(_sumMin == _sumMax)
     {
         _r->assign(_sumMin == _c);
-
+        setActive(false);
     }
     else if(_c < _sumMin or _sumMax < _c)
     {
         _r->assign(false);
+        setActive(false);
     }
-
-    //Propagation: as1*bs1 + ... + asn*bsn = c <- r
-    if(_r->isTrue())
+    else if (_r->isBound()) //Propagation: as1*bs1 + ... + asn*bsn = c <- r
     {
-        int_lin_eq::propagate(this);
-    }
-    else if (_r->isFalse())
-    {
-        int_lin_ne::propagate(this);
+        if(_r->isTrue())
+        {
+            int_lin_eq::propagate(this);
+        }
+        else
+        {
+            int_lin_ne::propagate(this);
+        }
     }
 }
 
@@ -186,10 +220,16 @@ void int_lin_le::post()
 void int_lin_le::propagate()
 {
     calSumMinMax(this);
+
     propagate(this);
-    if(_sumMax <= _c or _c < _sumMin)
+
+    if(_sumMax <= _c)
     {
         setActive(false);
+    }
+    else if(_c < _sumMin)
+    {
+        failNow();
     }
 }
 
@@ -250,23 +290,22 @@ void int_lin_le_reif::propagate()
     {
         _r->assign(true);
         setActive(false);
-        return;
     }
     else if(_c < _sumMin)
     {
         _r->assign(false);
         setActive(false);
-        return;
     }
-
-    //Bound propagation: as1*bs1 + ... + asn*bsn <= c <- r
-    if(_r->isTrue())
+    else if (_r->isBound())  //Bound propagation: as1*bs1 + ... + asn*bsn <= c <- r
     {
-        int_lin_le::propagate(this);
-    }
-    else if (_r->isFalse())
-    {
-        int_lin_ge::propagate(this, _c + 1);
+        if (_r->isTrue())
+        {
+            int_lin_le::propagate(this);
+        }
+        else
+        {
+            int_lin_ge::propagate(this, _c + 1);
+        }
     }
 }
 
@@ -289,7 +328,18 @@ void int_lin_ne::post()
 
 void int_lin_ne::propagate()
 {
+    calSumMinMax(this);
+
     propagate(this);
+
+    if(_c < _sumMin or _sumMax < _c)
+    {
+        setActive(false);
+    }
+    else if (_sumMin == _sumMax and _sumMin == _c)
+    {
+        failNow();
+    }
 }
 
 void int_lin_ne::propagate(int_lin* il)
@@ -300,60 +350,21 @@ void int_lin_ne::propagate(int_lin* il)
     auto& _bs_pos = il->_bs_pos;
     auto& _bs_neg = il->_bs_neg;
     auto& _c = il->_c;
+    auto& _sumMin = il->_sumMin;
+    auto& _posNotBoundCount = il->_posNotBoundCount;
+    auto& _negNotBoundCount = il->_negNotBoundCount;
+    auto& _posNotBoundIdx = il->_posNotBoundIdx;
+    auto& _negNotBoundIdx = il->_posNotBoundIdx;
 
     //Propagation: as1*bs1 + ... + asn*bsn <- c
-    int asNotBound = 0;
-    var<int>::Ptr bsNotBound = nullptr;
-    int notBoundCount = 0;
-    int sum = 0;
-    for (size_t i = 0; i < _bs_pos.size(); i += 1)
+    if (_posNotBoundCount + _negNotBoundCount == 1)
     {
-        if (not _bs_pos[i]->isBound())
+        auto& asNotBound = _posNotBoundCount == 1 ? _as_pos[_posNotBoundIdx] : _as_neg[_negNotBoundIdx];
+        auto& bsNotBound = _posNotBoundCount == 1 ? _bs_pos[_posNotBoundIdx] : _bs_neg[_negNotBoundIdx];
+        if((_c - _sumMin) % asNotBound == 0)
         {
-            notBoundCount += 1;
-            asNotBound = _as_pos[i];
-            bsNotBound = _bs_pos[i];
-
-            if(notBoundCount > 1)
-            {
-                return;
-            }
+            bsNotBound->remove((_c - _sumMin) / asNotBound);
         }
-        else
-        {
-            sum += _as_pos[i] * _bs_pos[i]->min();
-        }
-    }
-    for (size_t i = 0; i < _bs_neg.size(); i += 1)
-    {
-        if (not _bs_neg[i]->isBound())
-        {
-            notBoundCount += 1;
-            asNotBound = _as_neg[i];
-            bsNotBound = _bs_neg[i];
-
-            if(notBoundCount > 1)
-            {
-                return;
-            }
-        }
-        else
-        {
-            sum += _as_neg[i] * _bs_neg[i]->min();
-        }
-    }
-
-    if(notBoundCount == 0 and sum == _c)
-    {
-        failNow();
-    }
-    else if (notBoundCount == 1)
-    {
-        if((_c - sum) % asNotBound == 0)
-        {
-            bsNotBound->remove((_c - sum) / asNotBound);
-        }
-        il->setActive(false);
     }
 }
 
@@ -376,19 +387,22 @@ void int_lin_ne_reif::propagate()
     if(_sumMin == _sumMax)
     {
         _r->assign(_sumMin != _c);
+        setActive(false);
     }
     else if(_c < _sumMin or _sumMax < _c)
     {
         _r->assign(true);
+        setActive(false);
     }
-
-    //Propagation: as1*bs1 + ... + asn*bsn <= c <- r
-    if(_r->isTrue())
+    else if (_r->isBound()) //Propagation: as1*bs1 + ... + asn*bsn <= c <- r
     {
-        int_lin_ne::propagate(this);
-    }
-    else if (_r->isFalse())
-    {
-        int_lin_eq::propagate(this);
+        if(_r->isTrue())
+        {
+            int_lin_ne::propagate(this);
+        }
+        else
+        {
+            int_lin_eq::propagate(this);
+        }
     }
 }

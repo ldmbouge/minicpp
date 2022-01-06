@@ -51,23 +51,24 @@ void bool_and_reif::propagate()
     {
         _r->assign(false);
     }
-
-    //Propagation: a /\ b <- r
-    if (_r->isTrue())
+    else if (_r->isBound()) //Propagation: a /\ b <- r
     {
-        _a->assign(true);
-        _b->assign(true);
-    }
-    else if (_r->isFalse())
-    {
-       if(aMin == 1)
-       {
-           _b->assign(false);
-       }
-       else if(bMin == 1)
-       {
-           _a->assign(false);
-       }
+        if (_r->isTrue())
+        {
+            _a->assign(true);
+            _b->assign(true);
+        }
+        else
+        {
+            if (aMin == 1)
+            {
+                _b->assign(false);
+            }
+            else if (bMin == 1)
+            {
+                _a->assign(false);
+            }
+        }
     }
 }
 
@@ -127,15 +128,16 @@ void bool_eq_reif::propagate()
     {
         _r->assign(false);
     }
-
-    //Propagation: a = b <- r
-    if (_r->isTrue())
+    else if (_r->isBound())  //Propagation: a = b <- r
     {
-        bool_eq::propagate(this, _a, _b);
-    }
-    else if (_r->isFalse())
-    {
-        bool_not::propagate(this, _a, _b);
+        if (_r->isTrue())
+        {
+            bool_eq::propagate(this, _a, _b);
+        }
+        else
+        {
+            bool_not::propagate(this, _a, _b);
+        }
     }
 }
 
@@ -194,15 +196,16 @@ void bool_le_reif::propagate()
     {
         _r->assign(false);
     }
-
-    //Propagation: a <= b <- r
-    if (_r->isTrue())
+    else if (_r->isBound())  //Propagation: a <= b <- r
     {
-        bool_le::propagate(this, _a, _b);
-    }
-    else if (_r->isFalse())
-    {
-        bool_lt::propagate(this, _b, _a);
+        if (_r->isTrue())
+        {
+            bool_le::propagate(this, _a, _b);
+        }
+        else
+        {
+            bool_lt::propagate(this, _b, _a);
+        }
     }
 }
 
@@ -261,15 +264,16 @@ void bool_lt_reif::propagate()
     {
         _r->assign(false);
     }
-
-    //Propagation: a < b <- r
-    if (_r->isTrue())
+    else if (_r->isBound()) //Propagation: a < b <- r
     {
-        bool_lt::propagate(this, _a, _b);
-    }
-    else if (_r->isFalse())
-    {
-        bool_le::propagate(this, _b, _a);
+        if (_r->isTrue())
+        {
+            bool_lt::propagate(this, _a, _b);
+        }
+        else
+        {
+            bool_le::propagate(this, _b, _a);
+        }
     }
 }
 
@@ -336,23 +340,24 @@ void bool_or_reif::propagate()
     {
         _r->assign(false);
     }
-
-    //Propagation: a < b <- r
-    if (_r->isTrue())
+    else if (_r->isBound()) //Propagation: a < b <- r
     {
-        if(aMax == 0)
+        if (_r->isTrue())
         {
-            _b->assign(true);
+            if (aMax == 0)
+            {
+                _b->assign(true);
+            }
+            else if (bMax == 0)
+            {
+                _a->assign(true);
+            }
         }
-        else if(bMax == 0)
+        else
         {
-            _a->assign(true);
+            _a->assign(false);
+            _b->assign(false);
         }
-    }
-    else if (_r->isFalse())
-    {
-       _a->assign(false);
-       _b->assign(false);
     }
 }
 
@@ -398,15 +403,16 @@ void bool_xor_reif::propagate()
     {
         _r->assign(false);
     }
-
-    //Propagation: a + b <- r
-    if (_r->isTrue())
+    else if (_r->isBound()) //Propagation: a + b <- r
     {
-        bool_not::propagate(this, _a, _b);
-    }
-    else if (_r->isFalse())
-    {
-        bool_eq::propagate(this, _a, _b);
+        if (_r->isTrue())
+        {
+            bool_not::propagate(this, _a, _b);
+        }
+        else
+        {
+            bool_eq::propagate(this, _a, _b);
+        }
     }
 }
 

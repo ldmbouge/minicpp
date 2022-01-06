@@ -182,10 +182,10 @@ void array_var_int_element::propagate()
         }
     }
     _c->updateBounds(cMin, cMax);
-    cMin = _c->min();
-    cMax = _c->max();
 
     //Propagation: as[b] <- c
+    cMin = _c->min();
+    cMax = _c->max();
     if(_b->isBound())
     {
         _as[bMin]->updateBounds(cMin, cMax);

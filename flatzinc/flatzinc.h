@@ -195,8 +195,9 @@ namespace FlatZinc
         SearchHeuristic(Type type, Container& decision_variables) :
             type(type),
             decision_variables(decision_variables.begin(), decision_variables.end()),
-            value_selection(ValueSelection::indomain_min),
-            variable_selection(VariableSelection::first_fail)
+            variable_selection(VariableSelection::first_fail),
+            value_selection(ValueSelection::indomain_min)
+
         {
            // printVector(std::cout, this->decision_variables);
         }

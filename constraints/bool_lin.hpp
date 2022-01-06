@@ -11,10 +11,12 @@ class bool_lin : public Constraint
         std::vector<var<bool>::Ptr> _bs_pos;
         std::vector<var<bool>::Ptr> _bs_neg;
         int _c;
+        int _sumMin;
+        int _sumMax;
 
     public:
         bool_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-        static void calSumMinMax(bool_lin* boolLin, int& sumMin, int& sumMax);
+        static void calSumMinMax(bool_lin* bl);
         void post() override;
 
     friend class bool_lin_ge;
@@ -32,7 +34,7 @@ class bool_lin_eq : public bool_lin
 class bool_lin_ge
 {
     public:
-        static void propagate(bool_lin* boolLin, int sumMin, int sumMax);
+        static void propagate(bool_lin* bl);
 };
 
 class bool_lin_le : public bool_lin
@@ -41,5 +43,5 @@ class bool_lin_le : public bool_lin
         bool_lin_le(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
         void post() override;
         void propagate() override;
-        static void propagate(bool_lin* boolLin, int sumMin, int sumMax);
+        static void propagate(bool_lin* bl);
 };
