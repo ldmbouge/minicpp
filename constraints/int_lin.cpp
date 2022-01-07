@@ -117,7 +117,11 @@ void int_lin_eq::propagate()
 
     propagate(this);
 
-    if (_c < _sumMin or _sumMax < _c)
+    if(_sumMin == _sumMax)
+    {
+        setActive(false);
+    }
+    else if (_c < _sumMin or _sumMax < _c)
     {
         failNow();
     }
@@ -158,7 +162,9 @@ void int_lin_eq_reif::propagate()
         _r->assign(false);
         setActive(false);
     }
-    else if (_r->isBound()) //Propagation: as1*bs1 + ... + asn*bsn = c <- r
+
+    //Propagation: as1*bs1 + ... + asn*bsn = c <- r
+    if (_r->isBound())
     {
         if(_r->isTrue())
         {
@@ -296,7 +302,9 @@ void int_lin_le_reif::propagate()
         _r->assign(false);
         setActive(false);
     }
-    else if (_r->isBound())  //Bound propagation: as1*bs1 + ... + asn*bsn <= c <- r
+
+    //Propagation: as1*bs1 + ... + asn*bsn <= c <- r
+    if (_r->isBound())
     {
         if (_r->isTrue())
         {
@@ -359,11 +367,13 @@ void int_lin_ne::propagate(int_lin* il)
     //Propagation: as1*bs1 + ... + asn*bsn <- c
     if (_posNotBoundCount + _negNotBoundCount == 1)
     {
-        auto& asNotBound = _posNotBoundCount == 1 ? _as_pos[_posNotBoundIdx] : _as_neg[_negNotBoundIdx];
-        auto& bsNotBound = _posNotBoundCount == 1 ? _bs_pos[_posNotBoundIdx] : _bs_neg[_negNotBoundIdx];
-        if((_c - _sumMin) % asNotBound == 0)
+        int asNotBound = _posNotBoundCount == 1 ? _as_pos[_posNotBoundIdx] : _as_neg[_negNotBoundIdx];
+        auto bsNotBound = _posNotBoundCount == 1 ? _bs_pos[_posNotBoundIdx] : _bs_neg[_negNotBoundIdx];
+        int sumNotBound = _sumMin - asNotBound * (_posNotBoundCount == 1 ? bsNotBound->min() : bsNotBound->max());
+
+        if((_c - sumNotBound) % asNotBound == 0)
         {
-            bsNotBound->remove((_c - _sumMin) / asNotBound);
+            bsNotBound->remove((_c - sumNotBound) / asNotBound);
         }
     }
 }
@@ -394,7 +404,9 @@ void int_lin_ne_reif::propagate()
         _r->assign(true);
         setActive(false);
     }
-    else if (_r->isBound()) //Propagation: as1*bs1 + ... + asn*bsn <= c <- r
+
+    //Propagation: as1*bs1 + ... + asn*bsn <= c <- r
+    if (_r->isBound())
     {
         if(_r->isTrue())
         {
