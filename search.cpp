@@ -27,7 +27,7 @@ SearchStatistics DFSearch::solve(SearchStatistics& stats,Limit limit)
                                try {
                                   dfs(stats,limit);
                                } catch(StopException& sx) {
-                                   stats.setStopped();
+                                   stats.setNotCompleted();
                                }
                             }));
     return stats;
@@ -95,20 +95,17 @@ SearchStatistics DFSearch::optimizeSubjectTo(Objective::Ptr obj,Limit limit,std:
 
 void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
 {
-    if (limit(stats))
-    {
-        std::cout << "LAMA DONNA" << std::endl;
-        std::cout.flush();
-        throw StopException();
-    }
     Branches branches = _branching();
-    if (branches.size() == 0) {
+    if (branches.size() == 0)
+    {
         stats.incrSolutions();
         notifySolution();
-    } else {
-       stats.incrDfsDepth();
+    }
+    else
+    {
        auto last = std::prev(branches.end()); // for proper counting of choices.
-       for(auto cur = branches.begin();cur != branches.end() && !limit(stats);cur++) {
+       for(auto cur = branches.begin(); cur != branches.end() and !limit(stats); cur++)
+       {
           const auto& alt = *cur;
           _sm->saveState();
           try
@@ -117,10 +114,6 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
                   stats.incrNodes();
               alt();
               dfs(stats, limit);
-          }
-          catch (StopException& sx)
-          {
-              stats.setStopped();
           }
           catch (Status e)
           {
@@ -134,6 +127,10 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
           }
           _sm->restoreState();
        }
-       stats.decrDfsDepth();
+
+        if (limit(stats))
+        {
+            throw StopException();
+        }
     }
 }

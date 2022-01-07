@@ -58,8 +58,6 @@ class SearchStatistics
         int boolVariables;
         int propagators;
         unsigned long long propagations;
-        int dfsCurrentDepth;
-        int dfsMaxDepth;
         RuntimeMonitor::HRClock startTime;
         RuntimeMonitor::HRClock initTime;
         RuntimeMonitor::HRClock solveTime;
@@ -74,8 +72,6 @@ class SearchStatistics
         boolVariables(0),
         propagators(0),
         propagations(0),
-        dfsCurrentDepth(0),
-        dfsMaxDepth(0),
         completed(true)
        {
           startTime = RuntimeMonitor::now();
@@ -83,15 +79,13 @@ class SearchStatistics
        void incrFailures()  noexcept {failures += 1; extern int __nbf; __nbf = failures; }
        void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
        void incrSolutions() noexcept {solutions += 1;}
-       void incrDfsDepth() noexcept {dfsCurrentDepth += 1; dfsMaxDepth = std::max(dfsMaxDepth, dfsCurrentDepth);};
-       void decrDfsDepth() noexcept {dfsCurrentDepth -= 1;};
        void setIntVars(int count) noexcept {intVariables = count;};
        void setBoolVars(int count) noexcept {boolVariables = count;};
        void setPropagators(int count) noexcept {propagators = count;};
        void setInitTime() noexcept {initTime = RuntimeMonitor::now();}
        void setSolveTime() noexcept {solveTime = RuntimeMonitor::now();};
        void setPropagations(unsigned long long p) noexcept {propagations = p;};
-       void setStopped() noexcept { completed = false;};
+       void setNotCompleted() noexcept { completed = false;};
        bool getCompleted() noexcept {return completed;};
        int getSolutions() const noexcept {return solutions;};
        RuntimeMonitor::HRClock getStartTime() const noexcept {return startTime;};
@@ -107,7 +101,6 @@ class SearchStatistics
                 << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
                 << "%%%mzn-stat: nodes=" << ss.nodes + ss.failures << std::endl
                 << "%%%mzn-stat: failures=" << ss.failures << std::endl
-                << "%%%mzn-stat: peakDepth=" << ss.dfsMaxDepth << std::endl
                 << "%%%mzn-stat-end" << std::endl;
        }
     };
