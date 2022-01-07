@@ -66,7 +66,10 @@ void CPSolver::fixpoint()
          auto c = _queue.deQueue();
          c->setScheduled(false);
          if (c->isActive())
-            c->propagate();
+         {
+             c->propagate();
+             _propagations += 1;
+         }
       }
       assert(_queue.size() == 0);
    } catch(Status x) {

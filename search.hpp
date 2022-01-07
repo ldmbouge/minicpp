@@ -54,11 +54,12 @@ class SearchStatistics
         int nodes;
         int solutions;
         int failures;
-        int variables;
         int intVariables;
         int boolVariables;
         int propagators;
         unsigned long long propagations;
+        int dfsCurrentDepth;
+        int dfsMaxDepth;
         RuntimeMonitor::HRClock startTime;
         RuntimeMonitor::HRClock initTime;
         RuntimeMonitor::HRClock solveTime;
@@ -69,42 +70,45 @@ class SearchStatistics
         nodes(0),
         solutions(0),
         failures(0),
-        variables(0),
         intVariables(0),
         boolVariables(0),
         propagators(0),
         propagations(0),
-        completed(false)
+        dfsCurrentDepth(0),
+        dfsMaxDepth(0),
+        completed(true)
        {
           startTime = RuntimeMonitor::now();
        }
        void incrFailures()  noexcept {failures += 1; extern int __nbf; __nbf = failures; }
        void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
        void incrSolutions() noexcept {solutions += 1;}
-       void setIntVars(int count) noexcept {intVariables = count; variables += count;};
-       void setBoolVars(int count) noexcept {boolVariables = count; variables += count;};
+       void incrDfsDepth() noexcept {dfsCurrentDepth += 1; dfsMaxDepth = std::max(dfsMaxDepth, dfsCurrentDepth);};
+       void decrDfsDepth() noexcept {dfsCurrentDepth -= 1;};
+       void setIntVars(int count) noexcept {intVariables = count;};
+       void setBoolVars(int count) noexcept {boolVariables = count;};
        void setPropagators(int count) noexcept {propagators = count;};
        void setInitTime() noexcept {initTime = RuntimeMonitor::now();}
        void setSolveTime() noexcept {solveTime = RuntimeMonitor::now();};
        void setPropagations(unsigned long long p) noexcept {propagations = p;};
+       void setStopped() noexcept { completed = false;};
+       bool getCompleted() noexcept {return completed;};
        int getSolutions() const noexcept {return solutions;};
-       int getFailues() const noexcept {return failures;};
        RuntimeMonitor::HRClock getStartTime() const noexcept {return startTime;};
        friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss)
        {
-            return os << "%%%mzn-stat: nodes=" << ss.nodes + ss.failures << std::endl
-                      << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
-                      << "%%%mzn-stat: failures=" << ss.failures << std::endl
-                      << "%%%mzn-stat: variables=" << ss.variables << std::endl
-                      << "%%%mzn-stat: intVariables=" << ss.intVariables << std::endl
-                      << "%%%mzn-stat: boolVariables=" << ss.boolVariables << std::endl
-                      << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
-                      << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
-                      << std::fixed << std::setprecision(3)
-                      << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime, ss.initTime) << std::endl
-                      << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss.initTime, ss.solveTime) << std::endl
-                      << "%%%mzn-stat: totalTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime) << std::endl
-                      << "%%%mzn-stat-end" << std::endl;
+            return os
+                << std::fixed << std::setprecision(3)
+                << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime, ss.initTime) << std::endl
+                << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss.initTime, ss.solveTime) << std::endl
+                << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
+                << "%%%mzn-stat: variables=" << ss.intVariables + ss.boolVariables << std::endl
+                << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
+                << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
+                << "%%%mzn-stat: nodes=" << ss.nodes + ss.failures << std::endl
+                << "%%%mzn-stat: failures=" << ss.failures << std::endl
+                << "%%%mzn-stat: peakDepth=" << ss.dfsMaxDepth << std::endl
+                << "%%%mzn-stat-end" << std::endl;
        }
     };
 

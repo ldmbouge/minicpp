@@ -110,7 +110,17 @@ int main(int argc,char* argv[])
         }
 
         //Print termination line
-        std::cout << (search_statistics.getSolutions() > 0 ? "==========" : "=====UNSATISFIABLE=====") << std::endl;
+        if (search_statistics.getCompleted())
+        {
+            if(search_statistics.getSolutions() > 0)
+            {
+                std::cout <<  "==========" << std::endl;
+            }
+            else
+            {
+                std::cout << "=====UNSATISFIABLE=====" << std::endl;
+            }
+        }
 
         //Statistics printing
         search_statistics.setSolveTime();
@@ -119,9 +129,6 @@ int main(int argc,char* argv[])
             search_statistics.setPropagations(cp->getPropagations());
             std::cout << search_statistics;
         }
-
-
-
         exit(EXIT_SUCCESS);
     }
     else
@@ -296,8 +303,7 @@ Limit makeLimit(int solution_limit, int time_limit)
 {
     return [=](SearchStatistics const & search_statistics)
     {
-        return search_statistics.getSolutions() >= solution_limit or
-               RuntimeMonitor::elapsedSince(search_statistics.getStartTime()) >= time_limit;
+        return search_statistics.getSolutions() >= solution_limit or  RuntimeMonitor::elapsedSince(search_statistics.getStartTime()) >= time_limit;
     };
 }
 
