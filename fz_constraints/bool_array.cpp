@@ -1,5 +1,5 @@
 #include <limits>
-#include <constraints/bool_array.hpp>
+#include <fz_constraints/bool_array.hpp>
 
 array_bool_and_reif::array_bool_and_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
@@ -169,7 +169,9 @@ void array_bool_or_reif::propagate()
         _r->assign(false);
         setActive(false);
     }
-    else if (_r->isBound()) //Propagation: as1 \/ ... \/ asn <- r
+
+    //Propagation: as1 \/ ... \/ asn <- r
+    if (_r->isBound())
     {
         if(_r->isFalse())
         {

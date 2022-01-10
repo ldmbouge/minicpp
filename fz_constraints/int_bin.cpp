@@ -1,5 +1,5 @@
 #include <algorithm>
-#include <constraints/int_bin.hpp>
+#include <fz_constraints/int_bin.hpp>
 
 int_bin::int_bin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
@@ -136,11 +136,12 @@ void int_eq_reif::propagate()
        _r->assign(true);
        setActive(false);
     }
-    if(aMax < bMin or bMax < aMin)
+    else if(aMax < bMin or bMax < aMin)
     {
         _r->assign(false);
         setActive(false);
     }
+    /*
     else if(aMin == aMax and (not _b->contains(aMin)))
     {
         _r->assign(false);
@@ -151,7 +152,10 @@ void int_eq_reif::propagate()
         _r->assign(false);
         setActive(false);
     }
-    else if (_r->isBound()) //Propagation: a = b <- r
+     */
+
+    //Propagation: a = b <- r
+    if (_r->isBound())
     {
        if (_r->isTrue())
        {
@@ -226,7 +230,9 @@ void int_le_reif::propagate()
         _r->assign(false);
         setActive(false);
     }
-    else if (_r->isBound()) //Propagation: a <= b <- r
+
+    //Propagation: a <= b <- r
+    if (_r->isBound())
     {
         if (_r->isTrue())
         {

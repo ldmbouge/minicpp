@@ -1,5 +1,5 @@
 #include <utils.hpp>
-#include <constraints/bool_lin.hpp>
+#include <fz_constraints/bool_lin.hpp>
 
 bool_lin::bool_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),

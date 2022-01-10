@@ -34,20 +34,20 @@ add_library(copl
 	acstr.cpp
 	bitset.cpp
 	constraint.cpp
-	constraints/bool_array.cpp
-	constraints/bool_bin.cpp
-	constraints/bool_lin.cpp
-	constraints/bool_misc.cpp
-	constraints/flatzinc.cpp
-	constraints/int_array.cpp
-	constraints/int_bin.cpp
-	constraints/int_lin.cpp
-	constraints/int_tern.cpp
 	domain.cpp
-	flatzinc/flatzinc.cpp
-	flatzinc/lexer.yy.cpp
-	flatzinc/parser.tab.cpp
-	flatzinc/registry.cpp
+	fz_constraints/bool_array.cpp
+	fz_constraints/bool_bin.cpp
+	fz_constraints/bool_lin.cpp
+	fz_constraints/bool_misc.cpp
+	fz_constraints/flatzinc.cpp
+	fz_constraints/int_array.cpp
+	fz_constraints/int_bin.cpp
+	fz_constraints/int_lin.cpp
+	fz_constraints/int_tern.cpp
+	fz_parser/flatzinc.cpp
+	fz_parser/lexer.yy.cpp
+	fz_parser/parser.tab.cpp
+	fz_parser/registry.cpp
 	intvar.cpp
 	lex.cpp
 	mallocWatch.cpp
@@ -71,19 +71,19 @@ add_library(copl
 	trailable.cpp)
 
 add_library(fzl
-		constraints/bool_array.cpp
-		constraints/bool_bin.cpp
-		constraints/bool_lin.cpp
-		constraints/bool_misc.cpp
-		constraints/flatzinc.cpp
-		constraints/int_array.cpp
-		constraints/int_bin.cpp
-		constraints/int_lin.cpp
-		constraints/int_tern.cpp
-		flatzinc/flatzinc.cpp
-		flatzinc/lexer.yy.cpp
-		flatzinc/parser.tab.cpp
-		flatzinc/registry.cpp
+		fz_constraints/bool_array.cpp
+		fz_constraints/bool_bin.cpp
+		fz_constraints/bool_lin.cpp
+		fz_constraints/bool_misc.cpp
+		fz_constraints/flatzinc.cpp
+		fz_constraints/int_array.cpp
+		fz_constraints/int_bin.cpp
+		fz_constraints/int_lin.cpp
+		fz_constraints/int_tern.cpp
+		fz_parser/flatzinc.cpp
+		fz_parser/lexer.yy.cpp
+		fz_parser/parser.tab.cpp
+		fz_parser/registry.cpp
 		)
 
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp")

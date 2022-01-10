@@ -222,7 +222,6 @@ void initfg(ParserState* pp) {
       pp->setvars[i].second = NULL;
     }
   }
-  */
   for (unsigned int i=pp->domainConstraints.size(); i--;) {
     if (!pp->hadError) {
       try {
@@ -234,6 +233,7 @@ void initfg(ParserState* pp) {
       }
     }
   }
+  */
 }
 
 /*

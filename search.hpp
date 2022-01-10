@@ -307,7 +307,7 @@ Branches indomain_split(CPSolver::Ptr cp, Var var)
 
     if (var)
     {
-        auto val = (var->max() - var->min()) / 2;
+        auto val = (var->max() + var->min()) / 2;
         return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " <= "<< val << std::endl;) return cp->post(var <= val);} |
                [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " > "<< val << std::endl;) return cp->post(var >= val + 1);};
     }

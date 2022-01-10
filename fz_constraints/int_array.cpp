@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <limits>
-#include <constraints/int_array.hpp>
+#include <fz_constraints/int_array.hpp>
 
 
 array_int_element::array_int_element(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
@@ -189,6 +189,10 @@ void array_var_int_element::propagate()
     if(_b->isBound())
     {
         _as[bMin]->updateBounds(cMin, cMax);
+        if(cMin == cMax)
+        {
+            setActive(false);
+        }
     }
     else
     {

@@ -371,7 +371,7 @@ namespace Factory
       cp->fixpoint();
       return nullptr;
    }
-   inline Constraint::Ptr operator!=(var<int>::Ptr x,const int c) {
+   inline Constraint::Ptr operator!=(var<int>::Ptr x, const int c) {
       auto cp = x->getSolver();
       x->remove(c);
       cp->fixpoint();
@@ -427,13 +427,15 @@ namespace Factory
       return new (x->getSolver()) LessOrEqual(y,x-1);
    }
    inline Constraint::Ptr operator<=(var<int>::Ptr x,const int c) {
+      auto cp = x->getSolver();
       x->removeAbove(c);
-      x->getSolver()->fixpoint();
+      cp->fixpoint();
       return nullptr;
    }
    inline Constraint::Ptr operator>=(var<int>::Ptr x,const int c) {
+      auto cp = x->getSolver();
       x->removeBelow(c);
-      x->getSolver()->fixpoint();
+      cp->fixpoint();
       return nullptr;
    }
     inline Constraint::Ptr operator<=(var<bool>::Ptr x,const int c) {

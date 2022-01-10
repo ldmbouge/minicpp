@@ -1,5 +1,5 @@
 #include <utils.hpp>
-#include <constraints/int_lin.hpp>
+#include <fz_constraints/int_lin.hpp>
 
 int_lin::int_lin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),

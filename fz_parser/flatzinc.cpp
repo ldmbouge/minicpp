@@ -51,6 +51,7 @@ namespace FlatZinc
 {
     char const * const Constraint::type2str[] =
         {
+            //Builtins
             "array_int_element",
             "array_int_maximum",
             "array_int_minimum",
@@ -96,7 +97,9 @@ namespace FlatZinc
             "bool_not",
             "bool_or_reif",
             "bool_xor",
-            "bool_xor_reif"
+            "bool_xor_reif",
+            //Globals
+            "all_different"
         };
 
 
@@ -300,7 +303,7 @@ namespace FlatZinc
 
             for (size_t i = 0; i < flat_ann.size(); i += 1)
             {
-                AST::Call* call = flat_ann[i]->getCall("int_search");
+                AST::Call* call = flat_ann[i]->getCall();
                 AST::Array* args = call->getArgs(4);
                 AST::Array* vars = args->a[0]->getArray();
                 AST::Atom* varSel = args->a[1]->getAtom();

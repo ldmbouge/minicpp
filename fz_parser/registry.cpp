@@ -566,11 +566,21 @@ namespace FlatZinc
             }
         }
 
+
+        void p_all_different(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::all_different;
+            Registry::parseVarsScope(s, ce[0], c);
+            s.constraints.push_back(c);
+        }
+
         class IntPoster
         {
             public:
             IntPoster()
             {
+                //Builtins
                 registry().add("array_int_element", &p_array_int_element);
                 registry().add("array_int_maximum", &p_array_int_maximum);
                 registry().add("array_int_minimum", &p_array_int_minimum);
@@ -597,8 +607,6 @@ namespace FlatZinc
                 registry().add("int_plus", &p_int_plus);
                 registry().add("int_pow", &p_int_pow);
                 registry().add("int_times", &p_int_times);
-
-                // Boolean constraints
                 registry().add("array_bool_and", &p_array_bool_and);
                 registry().add("array_bool_element", &p_array_bool_element);
                 registry().add("array_bool_or", &p_array_bool_or);
@@ -618,6 +626,8 @@ namespace FlatZinc
                 registry().add("bool_not", &p_bool_not);
                 registry().add("bool_or", &p_bool_or);
                 registry().add("bool_xor", &p_bool_xor);
+                //Globals
+                registry().add("minicpp_all_different", &p_all_different);
             }
         };
 

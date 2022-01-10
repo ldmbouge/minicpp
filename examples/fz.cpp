@@ -19,8 +19,8 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include <flatzinc/flatzinc.h>
-#include <constraints/flatzinc.hpp>
+#include <fz_parser/flatzinc.h>
+#include <fz_constraints/flatzinc.hpp>
 #include <cxxopts.hpp>
 
 var<int>::Ptr makeIntVar(CPSolver::Ptr cp, FlatZinc::IntVar& fzIntVar);

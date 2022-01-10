@@ -102,6 +102,7 @@ namespace FlatZinc
     {
         enum Type
         {
+            //Builtins
             array_int_element,
             array_int_maximum,
             array_int_minimum,
@@ -147,7 +148,9 @@ namespace FlatZinc
             bool_not,
             bool_or_reif,
             bool_xor,
-            bool_xor_reif
+            bool_xor_reif,
+            //Globals
+            all_different
         };
         Type type;
         std::vector<int> vars;

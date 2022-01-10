@@ -1,4 +1,5 @@
-#include <constraints/flatzinc.hpp>
+#include <fz_constraints/flatzinc.hpp>
+#include <constraint.hpp>
 #include <utils.hpp>
 
 Constraint::Ptr Factory::makeConstraint(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars)
@@ -6,6 +7,7 @@ Constraint::Ptr Factory::makeConstraint(CPSolver::Ptr cp, FlatZinc::Constraint& 
 
     switch (fzConstraint.type)
     {
+        //Builtins
         case FlatZinc::Constraint::array_int_element:
             return new (cp) array_int_element(cp, fzConstraint, int_vars, bool_vars);
 
@@ -143,6 +145,17 @@ Constraint::Ptr Factory::makeConstraint(CPSolver::Ptr cp, FlatZinc::Constraint& 
 
         case FlatZinc::Constraint::bool_xor_reif:
             return new (cp) bool_xor_reif(cp, fzConstraint, int_vars, bool_vars);
+
+        //Globals
+        case FlatZinc::Constraint::all_different:
+        {
+            std::vector<var<int>::Ptr> x;
+            for(size_t i = 0; i < fzConstraint.vars.size(); i += 1)
+            {
+                x.push_back(int_vars[fzConstraint.vars[i]]);
+            }
+            return new (cp) AllDifferentAC(x);
+        }
 
         default:
             printError("Unsupported constraint");

@@ -160,7 +160,7 @@ public:
    }
 };
 
-class IntVarViewOffset :public var<int> {
+class IntVarViewOffset : public var<int> {
     var<int>::Ptr _x;
     int _o;
 public:

@@ -1,7 +1,7 @@
 #pragma once
 
 #include <intvar.hpp>
-#include <flatzinc/flatzinc.h>
+#include <fz_parser/flatzinc.h>
 
 class int_tern : public Constraint
 {

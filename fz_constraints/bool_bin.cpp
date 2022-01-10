@@ -1,5 +1,4 @@
-
-#include <constraints/bool_bin.hpp>
+#include <fz_constraints/bool_bin.hpp>
 
 bool_bin::bool_bin(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),

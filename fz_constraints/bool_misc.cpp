@@ -1,4 +1,4 @@
-#include <constraints/bool_misc.hpp>
+#include <fz_constraints/bool_misc.hpp>
 
 bool2int::bool2int(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),

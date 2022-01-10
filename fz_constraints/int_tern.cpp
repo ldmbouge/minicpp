@@ -1,7 +1,7 @@
 #include <algorithm>
 #include <utils.hpp>
 #include <limits>
-#include <constraints/int_tern.hpp>
+#include <fz_constraints/int_tern.hpp>
 
 int_tern::int_tern(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
@@ -30,7 +30,7 @@ void int_tern::calMulMinMax(int aMin, int aMax, int bMin, int bMax, int& min, in
 
 void int_tern::calDivMinMax(int aMin, int aMax, int bMin, int bMax, int& min, int& max)
 {
-    double bounds[4];
+    double bounds[4] = {0,0,0,0};
     int boundsCount = 0;
     if(bMin != 0)
     {
@@ -85,14 +85,20 @@ void int_div::propagate()
     int boundsMax;
 
     //Propagation: a / b -> c
-    calDivMinMax(aMin, aMax, bMin, bMax, boundsMin, boundsMax);
-    _c->updateBounds(boundsMin, boundsMax);
+    if(bMin != 0 or bMax != 0)
+    {
+        calDivMinMax(aMin, aMax, bMin, bMax, boundsMin, boundsMax);
+        _c->updateBounds(boundsMin, boundsMax);
+    }
 
     //Propagation: a / b <- c
     calMulMinMax(cMin, cMax, bMin, bMax, boundsMin, boundsMax);
     _a->updateBounds(boundsMin, boundsMax);
-    calDivMinMax(aMin, aMax, cMin, cMax, boundsMin, boundsMax);
-    _b->updateBounds(boundsMin, boundsMax);
+    if(cMin != 0 or cMax != 0)
+    {
+        calDivMinMax(aMin, aMax, cMin, cMax, boundsMin, boundsMax);
+        _b->updateBounds(boundsMin, boundsMax);
+    }
 }
 
 int_max::int_max(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
@@ -429,10 +435,16 @@ void int_times::propagate()
     _c->updateBounds(boundsMin, boundsMax);
 
     //Propagation: a * b <- c
-    calDivMinMax(cMin, cMax, bMin, bMax, boundsMin, boundsMax);
-    _a->updateBounds(boundsMin, boundsMax);
-    calDivMinMax(cMin, cMax, aMin, aMax, boundsMin, boundsMax);
-    _b->updateBounds(boundsMin, boundsMax);
+    if (bMin != 0 or bMax != 0)
+    {
+        calDivMinMax(cMin, cMax, bMin, bMax, boundsMin, boundsMax);
+        _a->updateBounds(boundsMin, boundsMax);
+    }
+    if (aMin != 0 or aMax != 0)
+    {
+        calDivMinMax(cMin, cMax, aMin, aMax, boundsMin, boundsMax);
+        _b->updateBounds(boundsMin, boundsMax);
+    }
 }
 
 
