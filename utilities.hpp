@@ -12,7 +12,7 @@
 #include <set>
 #include <map>
 #include <string.h>
-//#include <xmmintrin.h>
+#include <xmmintrin.h>
 
 
 class ValueSet {
