@@ -194,15 +194,22 @@ namespace FlatZinc
 
         SearchHeuristic();
 
-        template<typename Container>
-        SearchHeuristic(Type type, Container& decision_variables) :
-            type(type),
-            decision_variables(decision_variables.begin(), decision_variables.end()),
-            variable_selection(VariableSelection::first_fail),
-            value_selection(ValueSelection::indomain_min)
-
-        {
-           // printVector(std::cout, this->decision_variables);
+        template<typename Container,typename Vec>
+        SearchHeuristic(Type type,const Container& vars,const Vec& rv,
+                        VariableSelection defaultVar = VariableSelection::first_fail,
+                        ValueSelection defaultVal = ValueSelection::indomain_min)
+          : type(type),
+            decision_variables(), 
+            variable_selection(defaultVar),
+            value_selection(defaultVal)
+        { 
+          auto inserter = std::back_inserter(decision_variables);
+          for(const auto& i : vars) {
+              auto xi = rv[i];
+              if (!xi->isBound()) 
+                *inserter = i;
+          }      
+          //printVector(std::cout, decision_variables);              
         }
 
         Type type;
