@@ -869,7 +869,7 @@ int iterMDD = 0;
 
 void MDDRelax::propagate()
 {
-   try {
+   TRYFAIL
       setScheduled(true);
       bool change = false;
       MDD::propagate();
@@ -891,12 +891,11 @@ void MDDRelax::propagate()
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getState());
       setScheduled(false);
-  } catch(Status s) {
-      assert(s == Failure);
+  ONFAIL    
       queue.clear();
       setScheduled(false);
       failNow();
-   }
+  ENDFAIL
 }
 
 void MDDRelax::refreshAll()

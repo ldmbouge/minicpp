@@ -104,7 +104,7 @@ endforeach()
 add_executable(fzn-minicpp examples/fz.cpp)
 target_link_libraries(fzn-minicpp copl fzl)
 
-#file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
 #[[ add_subdirectory(pybind11)  ]]
 #find_package(pybind11 REQUIRED)
