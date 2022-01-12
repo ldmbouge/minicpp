@@ -88,7 +88,7 @@ void EQTernBCbool::post()
       else if (_x->min() - _y->min() == 0) {
          _b->assign(false);
       } else {
-         throw Failure;
+         failNow();
       }
    }
    else if (_x->isBound() && _b->isTrue())
@@ -257,7 +257,7 @@ void Minimize::tighten()
 {
     //assert(_obj->isBound());
    _primal = _obj->max() - 1;
-   throw Failure;
+   failNow();
 }
 
 Maximize::Maximize(var<int>::Ptr& x)
@@ -278,7 +278,7 @@ void Maximize::tighten()
 {
    assert(_obj->isBound());
    _primal = _obj->min() + 1;
-   throw Failure;
+   failNow();
 }
 
 void IsEqual::post() 
@@ -418,7 +418,7 @@ void Sum::propagate()
    }
    _nUnBounds = nU;
    if (0 < sumMin ||  sumMax < 0)
-      throw Failure;
+      failNow();
    for(int i = nU - 1; i >= 0;i--) {
       auto idx = _unBounds[i];
       _x[idx]->removeAbove(-(sumMin - _x[idx]->min()));
@@ -434,7 +434,7 @@ void SumBool::post()
       nbPos  += !_x[i]->isBound();
    }
    if (nbTrue > _c)
-      throw Failure;
+      failNow();
    if (nbTrue == _c) {
       for(auto xi : _x)
          if (!xi->isBound())
@@ -442,7 +442,7 @@ void SumBool::post()
       return ;
    }
    if (nbTrue + nbPos < _c)
-      throw Failure;
+      failNow();
    if (nbTrue + nbPos == _c) {
       for(auto xi : _x)
          if (!xi->isBound())
@@ -470,7 +470,7 @@ void SumBool::propagateIdx(int k)
                _x[i]->assign(false);
          }
          if (nb1 != _c)
-            throw Failure;
+            failNow();
       } else
          _nbOne = _nbOne + 1;
    } else {
@@ -483,7 +483,7 @@ void SumBool::propagateIdx(int k)
             }
          }
          if (nb1 != _c)
-            throw Failure;
+            failNow();
       } else
          _nbZero = _nbZero + 1;
    }
@@ -518,7 +518,7 @@ void Clause::propagate()
       i -= 1;
    }
    _wR = i;
-   if (_wL > _wR) throw Failure;
+   if (_wL > _wR) failNow();
    else if (_wL == _wR) {
       _x[_wL]->assign(true);
       setActive(false);
@@ -644,7 +644,7 @@ void AllDifferentAC::propagate()
 {
    int size = _mm.compute(_match);
    if (size < _nVar)
-      throw Failure;
+      failNow();
    updateRange();
    updateGraph();
    int nc = 0;
@@ -754,11 +754,11 @@ void Element2D::propagate()
    int zMin = _z->min(),zMax = _z->max();
    while (_xyz[l].z < zMin || !_x->contains(_xyz[l].x) || !_y->contains(_xyz[l].y)) {
       updateSupport(l++);
-      if (l > u) throw Failure;
+      if (l > u) failNow();
    }
    while (_xyz[u].z > zMax || !_x->contains(_xyz[u].x) || !_y->contains(_xyz[u].y)) {
       updateSupport(u--);
-      if (l > u) throw Failure;
+      if (l > u) failNow();
    }
    _z->updateBounds(_xyz[l].z,_xyz[u].z);
    _low = l;

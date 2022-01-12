@@ -480,9 +480,10 @@ namespace Factory
    }
    inline var<bool>::Ptr isEqual(var<int>::Ptr x,const int c) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
-      try {
+      TRYFAIL
          x->getSolver()->post(new (x->getSolver()) IsEqual(b,x,c));
-      } catch(Status s) {}
+      ONFAIL
+      ENDFAIL
       return b;
    }
    inline Constraint::Ptr isMember(var<bool>::Ptr b, var<int>::Ptr x, const std::set<int> S) {
@@ -490,16 +491,18 @@ namespace Factory
    }
    inline var<bool>::Ptr isMember(var<int>::Ptr x,const std::set<int> S) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
-      try {
+      TRYFAIL
          x->getSolver()->post(new (x->getSolver()) IsMember(b,x,S));
-      } catch(Status s) {}
+      ONFAIL
+      ENDFAIL
       return b;
    }
    inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x,const int c) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
-      try {
+      TRYFAIL
          x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b,x,c));
-      } catch(Status s) {}
+      ONFAIL
+      ENDFAIL
       return b;
    }
    inline var<bool>::Ptr isLess(var<int>::Ptr x,const int c) {

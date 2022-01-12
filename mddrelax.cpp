@@ -892,9 +892,10 @@ void MDDRelax::propagate()
       _mddspec.reachedFixpoint(sink->getState());
       setScheduled(false);
   } catch(Status s) {
+      assert(s == Failure);
       queue.clear();
       setScheduled(false);
-      throw s;
+      failNow();
    }
 }
 

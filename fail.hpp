@@ -18,9 +18,39 @@
 
 enum Status { Failure,Success,Suspend };
 
-static inline void failNow()
-{
+//#define CPPFAIL 1
+#if defined(CPPFAIL)
+static inline void failNow() {
     throw Failure;
 }
+
+#define TRYFAIL try {
+#define ONFAIL  } catch(...) {
+#define ENDFAIL }
+
+#else
+
+#include <stdio.h>
+#include <setjmp.h>
+extern __thread jmp_buf* ptr;
+
+#define TRYFAIL  { \
+   jmp_buf buf; \
+   jmp_buf* old = ptr; \
+   int st = _setjmp(buf); \
+   if (st==0) { \
+      ptr = &buf;
+
+#define ONFAIL ptr = old; \
+     } else {             \
+      ptr = old;
+
+#define ENDFAIL }}
+
+static inline void failNow() {
+   _longjmp(*ptr,1);
+}
+
+#endif
 
 #endif

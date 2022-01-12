@@ -108,29 +108,19 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
        {
           const auto& alt = *cur;
           _sm->saveState();
-          try
-          {
+          TRYFAIL
               if (cur != last)
                   stats.incrNodes();
               alt();
               dfs(stats, limit);
-          }
-          catch (Status e)
-          {
+          ONFAIL
              stats.incrFailures();
              notifyFailure();
-          }
-          catch (...)
-          {
-             stats.incrFailures();
-             notifyFailure();
-          }
-          _sm->restoreState();
+          ENDFAIL
+             _sm->restoreState();
        }
-
-        if (limit(stats))
-        {
-            throw StopException();
-        }
+       if (limit(stats)) {
+          throw StopException();
+       }
     }
 }

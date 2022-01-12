@@ -45,7 +45,7 @@ void TableCT::propagate()  // enforceGAC
    updateTable();
    // check size of currTable
    if (_currTable.isEmpty())
-      throw Failure;
+      failNow();
    // call filterDomains
    filterDomains();
 }

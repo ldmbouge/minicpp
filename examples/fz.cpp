@@ -61,19 +61,23 @@ int main(int argc,char* argv[])
         //Create solver
         CPSolver::Ptr cp = Factory::makeSolver();
 
-        //Create variables
-        search_statistics.setIntVars(fzModel->int_vars.size());
+        //Create variables: no longer count the vars that are constant.
         std::vector<var<int>::Ptr> int_vars;
-        for(size_t i = 0; i < fzModel->int_vars.size(); i += 1)
-        {
-            int_vars.push_back(makeIntVar(cp, fzModel->int_vars[i]));
+        size_t nbV = 0;
+        for(size_t i = 0; i < fzModel->int_vars.size(); i += 1) {
+           auto theVar = makeIntVar(cp, fzModel->int_vars[i]);
+           nbV += !theVar->isBound();
+           int_vars.push_back(theVar);
         }
-        search_statistics.setBoolVars(fzModel->bool_vars.size());
+        search_statistics.setIntVars(nbV);
         std::vector<var<bool>::Ptr> bool_vars;
-        for(size_t i = 0; i < fzModel->bool_vars.size(); i += 1)
-        {
-            bool_vars.push_back(makeBoolVar(cp, fzModel->bool_vars[i]));
+        nbV = 0;
+        for(size_t i = 0; i < fzModel->bool_vars.size(); i += 1) {
+           auto theVar = makeBoolVar(cp, fzModel->bool_vars[i]);
+           nbV += !theVar->isBound();
+           bool_vars.push_back(theVar);
         }
+        search_statistics.setBoolVars(nbV);
 
         //Create and post constraints
         search_statistics.setPropagators(fzModel->constraints.size());
@@ -141,14 +145,10 @@ int main(int argc,char* argv[])
 
 var<int>::Ptr makeIntVar(CPSolver::Ptr cp, FlatZinc::IntVar& fzIntVar)
 {
-    if(fzIntVar.values.empty())
-    {
-        return Factory::makeIntVar(cp, fzIntVar.min, fzIntVar.max);
-    }
+    if(fzIntVar.values.empty())    
+       return Factory::makeIntVar(cp, fzIntVar.min, fzIntVar.max);
     else
-    {
-        return Factory::makeIntVar(cp, fzIntVar.values);
-    }
+       return Factory::makeIntVar(cp, fzIntVar.values);
 }
 
 var<bool>::Ptr makeBoolVar(CPSolver::Ptr cp, FlatZinc::BoolVar& fzBoolVar)
@@ -254,24 +254,20 @@ std::function<Branches(void)> makeSearchHeuristic(CPSolver::Ptr cp, FlatZinc::Se
 std::vector<std::function<Branches(void)>> makeSearchCombinator(CPSolver::Ptr cp, FlatZinc::FlatZincModel* fzModel,  std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars)
 {
     // Initialize not decision variables as all the variables
-    std::set<int> int_not_decision_vars;
-    std::set<int> bool_not_decision_vars;
-    for (size_t i = 0; i < fzModel->int_vars.size(); i += 1)
-    {
-        int_not_decision_vars.insert(int_not_decision_vars.end(), i);
-    }
-    for (size_t i = 0; i < fzModel->bool_vars.size(); i += 1)
-    {
-        bool_not_decision_vars.insert(bool_not_decision_vars.end(), i);
-    }
+   std::set<int> int_not_decision_vars;
+   std::set<int> bool_not_decision_vars;
+   for (size_t i = 0; i < fzModel->int_vars.size(); i += 1)
+      int_not_decision_vars.insert(int_not_decision_vars.end(), i);
+   for (size_t i = 0; i < fzModel->bool_vars.size(); i += 1)
+      bool_not_decision_vars.insert(bool_not_decision_vars.end(), i);
 
-    //Create the search heuristics
+   //Create the search heuristics
     std::vector<std::function<Branches(void)>> search_heuristics;
     for (size_t i = 0; i < fzModel->search_combinator.size(); i += 1)
     {
         auto& sh =  fzModel->search_combinator[i];
         search_heuristics.push_back(makeSearchHeuristic(cp, sh, int_vars, bool_vars));
-
+        std::cout << "SC[" << i << "] covers " << sh.decision_variables.size() << " variables\n";
         //Remove decision variables from not decision variables
         if(sh.type == FlatZinc::SearchHeuristic::Type::integer)
         {
@@ -291,8 +287,20 @@ std::vector<std::function<Branches(void)>> makeSearchCombinator(CPSolver::Ptr cp
     }
 
     //Add the default search heuristic for the not decision variables
-    FlatZinc::SearchHeuristic int_not_decision_sh(FlatZinc::SearchHeuristic::Type::integer, int_not_decision_vars);
-    FlatZinc::SearchHeuristic bool_not_decision_sh(FlatZinc::SearchHeuristic::Type::boolean, bool_not_decision_vars);
+    FlatZinc::SearchHeuristic int_not_decision_sh(FlatZinc::SearchHeuristic::Type::integer,
+                                                  int_not_decision_vars,int_vars,
+                                                  FlatZinc::SearchHeuristic::VariableSelection::first_fail);
+    FlatZinc::SearchHeuristic bool_not_decision_sh(FlatZinc::SearchHeuristic::Type::boolean,
+                                                   bool_not_decision_vars,bool_vars,
+                                                   FlatZinc::SearchHeuristic::VariableSelection::first_fail);
+
+    std::cout << "REM INT[" << int_not_decision_sh.decision_variables.size() << "] --> "
+              << int_not_decision_sh.variable_selection << " | "
+              << int_not_decision_sh.value_selection << "\n";
+    std::cout << "REM BOOL[" << bool_not_decision_sh.decision_variables.size() << "] --> "
+              << bool_not_decision_sh.variable_selection << " | "
+              << bool_not_decision_sh.value_selection << "\n";
+    
     search_heuristics.push_back(makeSearchHeuristic(cp, int_not_decision_sh, int_vars, bool_vars));
     search_heuristics.push_back(makeSearchHeuristic(cp, bool_not_decision_sh, int_vars, bool_vars));
 

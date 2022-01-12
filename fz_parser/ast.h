@@ -137,9 +137,12 @@ namespace FlatZinc { namespace AST {
   template<class Char, class Traits>
   std::basic_ostream<Char,Traits>&
   operator <<(std::basic_ostream<Char,Traits>& os, const Node& x) {
-    if (&x==NULL)
+    /*    assert(&x != NULL);
+    if (&x==NULL) // Node is a reference to a class instance. It should *NEVER* be null!
       return os << "NULL";
-    x.print(os); return os;
+    */
+    x.print(os);
+    return os;
   }
   
 

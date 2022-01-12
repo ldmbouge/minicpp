@@ -136,7 +136,7 @@ public:
    void assign(int v) override {
       if (v % _a == 0)
          _x->assign(v / _a);
-      else throw Failure;
+      else failNow();
    }
    void remove(int v) override {
       if (v % _a == 0)
