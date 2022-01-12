@@ -31,6 +31,7 @@ message("Build: ${CMAKE_BUILD_TYPE}")
 include_directories(.)
 add_library(copl
 	RuntimeMonitor.cpp
+	fail.cpp
 	acstr.cpp
 	bitset.cpp
 	constraint.cpp

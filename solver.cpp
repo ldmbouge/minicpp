@@ -60,7 +60,7 @@ void CPSolver::notifyFixpoint()
 
 void CPSolver::fixpoint()
 {
-   try {
+   TRYFAIL
       notifyFixpoint();
       while (!_queue.empty()) {
          auto c = _queue.deQueue();
@@ -72,11 +72,11 @@ void CPSolver::fixpoint()
          }
       }
       assert(_queue.size() == 0);
-   } catch(Status x) {
+   ONFAIL
       while (!_queue.empty()) {
          _queue.deQueue()->setScheduled(false);
       }
       assert(_queue.size() == 0);
-      throw x;
-   }
+      failNow();
+   ENDFAIL
 }

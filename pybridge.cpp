@@ -28,7 +28,7 @@ PYBIND11_MODULE(minicpp,m) {
    py::register_exception_translator([](std::exception_ptr p) {
                                         try {
                                            if (p) std::rethrow_exception(p);
-                                        } catch (Status e) {
+                                        } catch (...) {
                                            PyErr_SetString(PyExc_RuntimeError, "FAIL");
                                         }
                                      });
