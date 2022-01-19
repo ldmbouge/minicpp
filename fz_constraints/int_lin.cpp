@@ -136,6 +136,41 @@ void int_lin_eq::propagate(int_lin* il)
     int_lin_le::propagate(il);
 }
 
+int_lin_eq_imp::int_lin_eq_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+        int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
+void int_lin_eq_imp::post()
+{
+    int_lin_reif::post();
+    propagate();
+}
+
+void int_lin_eq_imp::propagate()
+{
+    //Semantic: r -> as1*bs1 + ... + asn*bsn = c
+    calSumMinMax(this);
+
+    //Propagation: r <- as1*bs1 + ... + asn*bsn = c
+    if(_c < _sumMin or _sumMax < _c)
+    {
+        _r->assign(false);
+    }
+
+    //Propagation: r -> as1*bs1 + ... + asn*bsn = c
+    if (_r->isBound())
+    {
+        if(_r->isTrue())
+        {
+            int_lin_eq::propagate(this);
+        }
+        else
+        {
+            setActive(false);
+        }
+    }
+}
+
 int_lin_eq_reif::int_lin_eq_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
 {}
@@ -276,8 +311,44 @@ void int_lin_le::propagate(int_lin* il)
     }
 }
 
-int_lin_le_reif::int_lin_le_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+int_lin_le_imp::int_lin_le_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
+void int_lin_le_imp::post()
+{
+    int_lin_reif::post();
+    propagate();
+}
+
+void int_lin_le_imp::propagate()
+{
+    //Semantic: r -> as1*bs1 + ... + asn*bsn <= c
+    calSumMinMax(this);
+
+    //Propagation: r <- as1*bs1 + ... + asn*bsn <= c
+    if(_c < _sumMin)
+    {
+        _r->assign(false);
+    }
+
+    //Propagation: r -> as1*bs1 + ... + asn*bsn <= c
+    if (_r->isBound())
+    {
+        if (_r->isTrue())
+        {
+            int_lin_le::propagate(this);
+        }
+        else
+        {
+            setActive(false);
+        }
+    }
+}
+
+
+int_lin_le_reif::int_lin_le_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+        int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
 {}
 
 void int_lin_le_reif::post()
@@ -378,6 +449,41 @@ void int_lin_ne::propagate(int_lin* il)
     }
 }
 
+int_lin_ne_imp::int_lin_ne_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+        int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
+void int_lin_ne_imp::post()
+{
+    int_lin_reif::post();
+    propagate();
+}
+
+void int_lin_ne_imp::propagate()
+{
+    //Semantic: r -> as1*bs1 + ... + asn*bsn != c
+    calSumMinMax(this);
+
+    //Propagation: r <- as1*bs1 + ... + asn*bsn != c
+    if(_sumMin == _sumMax and _sumMin == _c)
+    {
+        _r->assign(false);
+    }
+
+    //Propagation: r -> as1*bs1 + ... + asn*bsn != c
+    if (_r->isBound())
+    {
+        if(_r->isTrue())
+        {
+            int_lin_ne::propagate(this);
+        }
+        else
+        {
+            setActive(false);
+        }
+    }
+}
+
 int_lin_ne_reif::int_lin_ne_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     int_lin_reif(cp, fzConstraint, int_vars, bool_vars)
 {}
@@ -393,7 +499,7 @@ void int_lin_ne_reif::propagate()
     //Semantic: as1*bs1 + ... + asn*bsn != c <-> r
     calSumMinMax(this);
 
-    //Propagation: as1*bs1 + ... + asn*bsn <= c -> r
+    //Propagation: as1*bs1 + ... + asn*bsn != c -> r
     if(_sumMin == _sumMax)
     {
         _r->assign(_sumMin != _c);
@@ -405,7 +511,7 @@ void int_lin_ne_reif::propagate()
         setActive(false);
     }
 
-    //Propagation: as1*bs1 + ... + asn*bsn <= c <- r
+    //Propagation: as1*bs1 + ... + asn*bsn != c <- r
     if (_r->isBound())
     {
         if(_r->isTrue())

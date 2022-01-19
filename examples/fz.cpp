@@ -267,7 +267,7 @@ std::vector<std::function<Branches(void)>> makeSearchCombinator(CPSolver::Ptr cp
     {
         auto& sh =  fzModel->search_combinator[i];
         search_heuristics.push_back(makeSearchHeuristic(cp, sh, int_vars, bool_vars));
-        std::cout << "SC[" << i << "] covers " << sh.decision_variables.size() << " variables\n";
+        //std::cout << "SC[" << i << "] covers " << sh.decision_variables.size() << " variables\n";
         //Remove decision variables from not decision variables
         if(sh.type == FlatZinc::SearchHeuristic::Type::integer)
         {
@@ -294,12 +294,12 @@ std::vector<std::function<Branches(void)>> makeSearchCombinator(CPSolver::Ptr cp
                                                    bool_not_decision_vars,bool_vars,
                                                    FlatZinc::SearchHeuristic::VariableSelection::first_fail);
 
-    std::cout << "REM INT[" << int_not_decision_sh.decision_variables.size() << "] --> "
-              << int_not_decision_sh.variable_selection << " | "
-              << int_not_decision_sh.value_selection << "\n";
-    std::cout << "REM BOOL[" << bool_not_decision_sh.decision_variables.size() << "] --> "
-              << bool_not_decision_sh.variable_selection << " | "
-              << bool_not_decision_sh.value_selection << "\n";
+    //std::cout << "REM INT[" << int_not_decision_sh.decision_variables.size() << "] --> "
+    //          << int_not_decision_sh.variable_selection << " | "
+    //          << int_not_decision_sh.value_selection << "\n";
+    //std::cout << "REM BOOL[" << bool_not_decision_sh.decision_variables.size() << "] --> "
+    //          << bool_not_decision_sh.variable_selection << " | "
+    //          << bool_not_decision_sh.value_selection << "\n";
     
     search_heuristics.push_back(makeSearchHeuristic(cp, int_not_decision_sh, int_vars, bool_vars));
     search_heuristics.push_back(makeSearchHeuristic(cp, bool_not_decision_sh, int_vars, bool_vars));

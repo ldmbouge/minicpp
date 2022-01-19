@@ -126,7 +126,7 @@ namespace FlatZinc
 
     namespace
     {
-        // Integer constraints
+        //Builtins
         void p_int_bin(Constraint& c, FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
         {
             Registry::parseVarsScope(s, ce[0], c);
@@ -566,7 +566,114 @@ namespace FlatZinc
             }
         }
 
+        //Implications
+        void p_int_eq_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_eq_imp;
+            p_int_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
 
+        void p_int_le_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_le_imp;
+            p_int_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_lin_eq_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_lin_eq_imp;
+            p_int_lin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_lin_le_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_lin_le_imp;
+            p_int_lin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_int_lin_ne_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::int_lin_ne_imp;
+            p_int_lin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        }
+
+        void p_array_bool_and_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::array_bool_and_imp;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            s.constraints.push_back(c);
+        }
+
+        void p_array_bool_or_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::array_bool_or_imp;
+            Registry::parseVarsScope(s, ce[0], c);
+            Registry::parseVarsScope(s, ce[1], c);
+            s.constraints.push_back(c);
+        }
+
+        void p_bool_and_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_and_imp;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_eq_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_eq_imp;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_le_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_le_imp;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_lt_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_lt_imp;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_or_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_or_imp;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        void p_bool_xor_imp(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
+        {
+            Constraint c;
+            c.type = Constraint::Type::bool_or_imp;
+            p_bool_bin_reif(c, s, ce, ann);
+            s.constraints.push_back(c);
+        };
+
+        //Globals
         void p_all_different(FlatZincModel& s, const ConExpr& ce, AST::Node* ann)
         {
             Constraint c;
@@ -626,6 +733,20 @@ namespace FlatZinc
                 registry().add("bool_not", &p_bool_not);
                 registry().add("bool_or", &p_bool_or);
                 registry().add("bool_xor", &p_bool_xor);
+                //Implications
+                registry().add("int_eq_imp", &p_int_eq_imp);
+                registry().add("int_le_imp", &p_int_le_imp);
+                registry().add("int_lin_eq_imp", &p_int_lin_eq_imp);
+                registry().add("int_lin_le_imp", &p_int_lin_le_imp);
+                registry().add("int_lin_ne_imp", &p_int_lin_ne_imp);
+                registry().add("array_bool_and_imp", &p_array_bool_and_imp);
+                registry().add("array_bool_or_imp", &p_array_bool_or_imp);
+                registry().add("bool_and_imp", &p_bool_and_imp);
+                registry().add("bool_eq_imp", &p_bool_eq_imp);
+                registry().add("bool_le_imp", &p_bool_le_imp);
+                registry().add("bool_lt_imp", &p_bool_lt_imp);
+                registry().add("bool_or_imp", &p_bool_or_imp);
+                registry().add("bool_xor_imp", &p_bool_xor_imp);
                 //Globals
                 registry().add("minicpp_all_different", &p_all_different);
             }

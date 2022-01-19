@@ -8,12 +8,9 @@ Constraint::Ptr Factory::makeConstraint(CPSolver::Ptr cp, FlatZinc::Constraint& 
     switch (fzConstraint.type)
     {
         //Builtins
-       case FlatZinc::Constraint::array_int_element: {
-          //var<int>::Ptr _b = new (cp) IntVarViewOffset(int_vars[fzConstraint.vars[0]], -1);  
-          //var<int>::Ptr _c = int_vars[fzConstraint.vars[1]];  
-          //return new (cp) Element1D(fzConstraint.consts, _b, _c);
-          return new (cp) array_int_element(cp, fzConstraint, int_vars, bool_vars);
-       }
+        case FlatZinc::Constraint::array_int_element:
+            return new (cp) array_int_element(cp, fzConstraint, int_vars, bool_vars);
+
         case FlatZinc::Constraint::array_int_maximum:
             return new (cp) array_int_maximum(cp, fzConstraint, int_vars, bool_vars);
 
@@ -32,15 +29,9 @@ Constraint::Ptr Factory::makeConstraint(CPSolver::Ptr cp, FlatZinc::Constraint& 
         case FlatZinc::Constraint::int_eq:
             return new (cp) int_eq(cp, fzConstraint, int_vars, bool_vars);
 
-       case FlatZinc::Constraint::int_eq_reif: { // b <-> x == y
-          auto b = bool_vars[fzConstraint.vars[2]];
-          auto x = int_vars[fzConstraint.vars[0]];
-          auto y = int_vars[fzConstraint.vars[1]];
-          if (y->isBound()) {
-             return new (cp) IsEqual(b,x,y->min());
-          } else 
-             return new (cp) int_eq_reif(cp, fzConstraint, int_vars, bool_vars);
-       }
+        case FlatZinc::Constraint::int_eq_reif:
+           return new (cp) int_eq_reif(cp, fzConstraint, int_vars, bool_vars);
+
         case FlatZinc::Constraint::int_le:
             return new (cp) int_le(cp, fzConstraint, int_vars, bool_vars);
 
@@ -154,6 +145,46 @@ Constraint::Ptr Factory::makeConstraint(CPSolver::Ptr cp, FlatZinc::Constraint& 
 
         case FlatZinc::Constraint::bool_xor_reif:
             return new (cp) bool_xor_reif(cp, fzConstraint, int_vars, bool_vars);
+
+        //Implications
+        case FlatZinc::Constraint::int_eq_imp:
+            return new (cp) int_eq_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::int_le_imp:
+            return new (cp) int_le_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::int_lin_eq_imp:
+            return new (cp) int_lin_eq_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::int_lin_le_imp:
+            return new (cp) int_lin_le_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::int_lin_ne_imp:
+            return new (cp) int_lin_ne_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::array_bool_and_imp:
+            return new (cp) array_bool_and_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::array_bool_or_imp:
+            return new (cp) array_bool_or_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::bool_and_imp:
+            return new (cp) bool_and_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::bool_eq_imp:
+            return new (cp) bool_eq_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::bool_le_imp:
+            return new (cp) bool_le_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::bool_lt_imp:
+            return new (cp) bool_lt_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::bool_or_imp:
+            return new (cp) bool_or_imp(cp, fzConstraint, int_vars, bool_vars);
+
+        case FlatZinc::Constraint::bool_xor_imp:
+            return new (cp) bool_xor_imp(cp, fzConstraint, int_vars, bool_vars);
 
         //Globals
         case FlatZinc::Constraint::all_different:

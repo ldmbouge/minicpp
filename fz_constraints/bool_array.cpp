@@ -1,24 +1,93 @@
 #include <limits>
 #include <fz_constraints/bool_array.hpp>
 
-array_bool_and_reif::array_bool_and_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+
+array_bool::array_bool(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     Constraint(cp),
-    _as(),
-    _r(bool_vars[fzConstraint.vars.back()])
+    _as()
 {
-    for(size_t i = 0; i < fzConstraint.vars.size() - 1; i += 1)
+    for(size_t i = 0; i < fzConstraint.vars.size(); i += 1)
     {
         _as.push_back(bool_vars[fzConstraint.vars[i]]);
     }
 }
 
-void array_bool_and_reif::post()
+void array_bool::post()
 {
     for(auto x : _as)
     {
         x->propagateOnBind(this);
     }
+}
+
+array_bool_reif::array_bool_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    array_bool(cp, fzConstraint, int_vars, bool_vars)
+{
+    _r = _as.back();
+    _as.pop_back();
+}
+
+void array_bool_reif::post()
+{
+    array_bool::post();
     _r->propagateOnBind(this);
+}
+
+
+array_bool_and_imp::array_bool_and_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+        array_bool_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
+void array_bool_and_imp::post()
+{
+    array_bool_reif::post();
+    propagate();
+}
+
+void array_bool_and_imp::propagate()
+{
+    //Semantic: r -> as1 /\ ... /\ asn
+    bool asSatisfied = true;
+    for(auto x : _as)
+    {
+        if (x->isFalse())
+        {
+            asSatisfied = false;
+            break;
+        }
+    }
+
+    //Propagation: r <- as1 /\ ... /\ asn
+    if (not asSatisfied)
+    {
+        _r->assign(false);
+    }
+
+    //Propagation: r -> as1 /\ ... /\ asn
+    if (_r->isBound())
+    {
+        if (_r->isTrue())
+        {
+            for (auto x: _as)
+            {
+                x->assign(true);
+            }
+        }
+        else
+        {
+            setActive(false);
+        }
+    }
+}
+
+array_bool_and_reif::array_bool_and_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    array_bool_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
+void array_bool_and_reif::post()
+{
+    array_bool_reif::post();
+    propagate();
 }
 
 void array_bool_and_reif::propagate()
@@ -52,7 +121,9 @@ void array_bool_and_reif::propagate()
         _r->assign(true);
         setActive(false);
     }
-    else if (_r->isBound()) //Propagation: as1 /\ ... /\ asn <- r
+
+    //Propagation: as1 /\ ... /\ asn <- r
+    if (_r->isBound())
     {
         if (_r->isTrue())
         {
@@ -118,24 +189,66 @@ void array_bool_element::propagate()
     }
 }
 
-array_bool_or_reif::array_bool_or_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
-    Constraint(cp),
-    _as(),
-    _r(bool_vars[fzConstraint.vars.back()])
+
+
+array_bool_or_imp::array_bool_or_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+        array_bool_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
+void array_bool_or_imp::post()
 {
-    for(size_t i = 0; i < fzConstraint.vars.size() - 1; i += 1)
+    array_bool_reif::post();
+    propagate();
+}
+
+void array_bool_or_imp::propagate()
+{
+    //Semantic: r -> as1 \/ ... \/ asn
+    bool asSatisfied = false;
+    int notBoundCount = 0;
+    var<bool>::Ptr asNotBound = nullptr;
+    for (auto x : _as)
     {
-        _as.push_back(bool_vars[fzConstraint.vars[i]]);
+        if(not x->isBound())
+        {
+            notBoundCount += 1;
+            asNotBound = x;
+        }
+        else if (x->isTrue())
+        {
+            asSatisfied = true;
+            break;
+        }
+    }
+
+    //Propagation: r <- as1 \/ ... \/ asn
+    if ((not asSatisfied) and notBoundCount == 0)
+    {
+        _r->assign(false);
+    }
+
+    //Propagation: r -> as1 \/ ... \/ asn
+    if (_r->isBound())
+    {
+        if(_r->isFalse())
+        {
+            setActive(false);
+        }
+        else if ((not asSatisfied) and notBoundCount == 1)
+        {
+            asNotBound->assign(true);
+        }
     }
 }
 
+array_bool_or_reif::array_bool_or_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+    array_bool_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
 void array_bool_or_reif::post()
 {
-    for(auto v : _as)
-    {
-        v->propagateOnBind(this);
-    }
-    _r->propagateOnBind(this);
+    array_bool_reif::post();
+    propagate();
 }
 
 void array_bool_or_reif::propagate()
@@ -188,21 +301,12 @@ void array_bool_or_reif::propagate()
 }
 
 array_bool_xor::array_bool_xor(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
-    Constraint(cp),
-    _as()
-{
-    for(size_t i = 0; i < fzConstraint.vars.size(); i += 1)
-    {
-        _as.push_back(bool_vars[fzConstraint.vars[i]]);
-    }
-}
+        array_bool(cp, fzConstraint, int_vars, bool_vars)
+{}
 
 void array_bool_xor::post()
 {
-    for(auto v : _as)
-    {
-        v->propagateOnBind(this);
-    }
+    array_bool::post();
     propagate();
 }
 

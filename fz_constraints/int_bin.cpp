@@ -112,6 +112,46 @@ void int_eq::propagate(Constraint* c, var<int>::Ptr _a, var<int>::Ptr _b)
     _a->updateBounds(min, max);
 }
 
+
+int_eq_imp::int_eq_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+        int_bin_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
+void int_eq_imp::post()
+{
+    int_bin_reif::post();
+    propagate();
+}
+
+void int_eq_imp::propagate()
+{
+    //Semantic: r -> a = b
+    int aMin = _a->min();
+    int aMax = _a->max();
+    int bMin = _b->min();
+    int bMax = _b->max();
+
+    //Propagation: r <- a = b
+    if(aMax < bMin or bMax < aMin)
+    {
+        _r->assign(false);
+    }
+
+    //Propagation: r -> a = b
+    if (_r->isBound())
+    {
+        if (_r->isTrue())
+        {
+            int_eq::propagate(this, _a, _b);
+        }
+        else
+        {
+            setActive(false);
+        }
+    }
+}
+
+
 int_eq_reif::int_eq_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
     int_bin_reif(cp, fzConstraint, int_vars, bool_vars)
 {}
@@ -199,6 +239,43 @@ void int_le::propagate(Constraint* c, var<int>::Ptr _a, var<int>::Ptr _b)
 
     //Propagation: a -> b
     _b->removeBelow(aMin);
+}
+
+
+int_le_imp::int_le_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :
+        int_bin_reif(cp, fzConstraint, int_vars, bool_vars)
+{}
+
+void int_le_imp::post()
+{
+    int_bin_reif::post();
+    propagate();
+}
+
+void int_le_imp::propagate()
+{
+    //Semantic:  r -> a <= b
+    int aMin = _a->min();
+    int bMax = _b->max();
+
+    //Propagation: r <- a <= b
+    if (bMax < aMin)
+    {
+        _r->assign(false);
+    }
+
+    //Propagation: r -> a <= b
+    if (_r->isBound())
+    {
+        if (_r->isTrue())
+        {
+            int_le::propagate(this, _a, _b);
+        }
+        else
+        {
+            setActive(false);
+        }
+    }
 }
 
 int_le_reif::int_le_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars) :

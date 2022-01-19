@@ -98,6 +98,20 @@ namespace FlatZinc
             "bool_or_reif",
             "bool_xor",
             "bool_xor_reif",
+            // Implications
+            "int_eq_imp",
+            "int_le_imp",
+            "int_lin_eq_imp",
+            "int_lin_le_imp",
+            "int_lin_ne_imp",
+            "array_bool_and_imp",
+            "array_bool_or_imp",
+            "bool_and_imp",
+            "bool_eq_imp",
+            "bool_le_imp",
+            "bool_lt_imp",
+            "bool_or_imp",
+            "bool_xor_imp",
             //Globals
             "all_different"
         };

@@ -24,6 +24,14 @@ class bool_bin_reif : public bool_bin
         void post() override;
 };
 
+class bool_and_imp : public bool_bin_reif
+{
+    public:
+        bool_and_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
+};
+
 class bool_and_reif : public bool_bin_reif
 {
     public:
@@ -41,6 +49,14 @@ class bool_eq : public bool_bin
         static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
 };
 
+class bool_eq_imp : public bool_bin_reif
+{
+    public:
+        bool_eq_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
+};
+
 class bool_eq_reif : public bool_bin_reif
 {
     public:
@@ -51,68 +67,100 @@ class bool_eq_reif : public bool_bin_reif
 
 class bool_le : public bool_bin
 {
-public:
-    bool_le(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-    void post() override;
-    void propagate() override;
-    static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
+    public:
+        bool_le(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
+        static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
+};
+
+class bool_le_imp : public bool_bin_reif
+{
+    public:
+        bool_le_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
 };
 
 class bool_le_reif : public bool_bin_reif
 {
-public:
-    bool_le_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-    void post() override;
-    void propagate() override;
+    public:
+        bool_le_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
 };
 
 class bool_lt : public bool_bin
 {
-public:
-    bool_lt(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-    void post() override;
-    void propagate() override;
-    static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
+    public:
+        bool_lt(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
+        static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
 
+};
+
+class bool_lt_imp : public bool_bin_reif
+{
+    public:
+        bool_lt_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
 };
 
 class bool_lt_reif : public bool_bin_reif
 {
-public:
-    bool_lt_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-    void post() override;
-    void propagate() override;
+    public:
+        bool_lt_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
 };
 
 class bool_not : public bool_bin
 {
-public:
-    bool_not(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-    void post() override;
-    void propagate() override;
-    static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
+    public:
+        bool_not(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
+        static void propagate(Constraint* c, var<bool>::Ptr _a, var<bool>::Ptr _b);
+};
+
+class bool_or_imp : public bool_bin_reif
+{
+    public:
+        bool_or_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
 };
 
 class bool_or_reif : public bool_bin_reif
 {
-public:
-    bool_or_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-    void post() override;
-    void propagate() override;
+    public:
+        bool_or_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
 };
 
 class bool_xor : public bool_bin
 {
-public:
-    bool_xor(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-    void post() override;
-    void propagate() override;
+    public:
+        bool_xor(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
+};
+
+class bool_xor_imp : public bool_bin_reif
+{
+    public:
+        bool_xor_imp(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
 };
 
 class bool_xor_reif : public bool_bin_reif
 {
-public:
-    bool_xor_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
-    void post() override;
-    void propagate() override;
+    public:
+        bool_xor_reif(CPSolver::Ptr cp, FlatZinc::Constraint& fzConstraint, std::vector<var<int>::Ptr>& int_vars, std::vector<var<bool>::Ptr>& bool_vars);
+        void post() override;
+        void propagate() override;
 };
