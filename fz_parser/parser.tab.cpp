@@ -81,7 +81,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/types.h>
-#include <sys/mman.h>
 #include <sys/stat.h>
 
 using namespace std;
@@ -287,30 +286,6 @@ namespace FlatZinc {
 
   FlatZincModel* parse(const std::string& filename, std::ostream& err,
                        FlatZincModel* fzs) {
-#ifdef HAVE_MMAP
-    int fd;
-    char* data;
-    struct stat sbuf;
-    fd = open(filename.c_str(), O_RDONLY);
-    if (fd == -1) {
-      err << "Cannot open file " << filename << endl;
-      return NULL;
-    }
-    if (stat(filename.c_str(), &sbuf) == -1) {
-      err << "Cannot stat file " << filename << endl;
-      return NULL;      
-    }
-    data = (char*)mmap((caddr_t)0, sbuf.st_size, PROT_READ, MAP_SHARED, fd,0);
-    if (data == (caddr_t)(-1)) {
-      err << "Cannot mmap file " << filename << endl;
-      return NULL;      
-    }
-
-    if (fzs == NULL) {
-      fzs = new FlatZincModel();
-    }
-    ParserState pp(data, sbuf.st_size, err, fzs);
-#else
     std::ifstream file;
     file.open(filename.c_str());
     if (!file.is_open()) {
@@ -323,7 +298,7 @@ namespace FlatZinc {
       fzs = new FlatZincModel();
     }
     ParserState pp(s, err, fzs);
-#endif
+
     yylex_init(&pp.yyscanner);
     yyset_extra(&pp, pp.yyscanner);
     // yydebug = 1;

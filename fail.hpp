@@ -32,12 +32,13 @@ static inline void failNow() {
 
 #include <stdio.h>
 #include <setjmp.h>
+
 extern __thread jmp_buf* ptr;
 
 #define TRYFAIL  { \
    jmp_buf buf; \
    jmp_buf* old = ptr; \
-   int st = _setjmp(buf); \
+   int st = setjmp(buf); \
    if (st==0) { \
       ptr = &buf;
 
@@ -48,7 +49,7 @@ extern __thread jmp_buf* ptr;
 #define ENDFAIL }}
 
 static inline void failNow() {
-   _longjmp(*ptr,1);
+   longjmp(*ptr,1);
 }
 
 #endif

@@ -20,6 +20,7 @@
 #include <deque>
 #include <functional>
 #include <stdlib.h>
+#include <setjmp.h>
 
 #include "cont.hpp"
 #include "handle.hpp"
