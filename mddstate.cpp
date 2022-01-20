@@ -2,7 +2,7 @@
 //  mddstate.cpp
 //  minicpp
 //
-//  Created by Waldy on 10/28/19.
+//  Created by Waldy on 10/28/19.
 //  Copyright © 2019 Waldy. All rights reserved.
 //
 
