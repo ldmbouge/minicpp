@@ -12,7 +12,7 @@
 #include <set>
 #include <map>
 #include <string.h>
-//#include <xmmintrin.h>
+#include <xmmintrin.h>
 
 
 class ValueSet {
@@ -105,8 +105,10 @@ public:
    MDDPropSet(int nb) {
       _mxw = (nb >> 6) + (((nb & 63) != 0) ? 1 : 0);
       _nbp = nb;
-      _t   = new long long[_mxw];
-      for(int i=0;i<_mxw;i++) _t[i]=0;
+      if (_mxw) {
+         _t   = new long long[_mxw];
+         for(int i=0;i<_mxw;i++) _t[i]=0;
+      } else _t = nullptr;
    }
    MDDPropSet(long long* buf,int nb) {
       _mxw = (nb >> 6) + (((nb & 63) != 0) ? 1 : 0);

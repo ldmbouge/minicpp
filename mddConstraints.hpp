@@ -34,8 +34,8 @@ namespace Factory {
          r[p[i]] = clo(i,p[i]);
       return r;
    }
-   inline TransDesc tDesc(std::initializer_list<int> sp,lambdaTrans f) {
-      return std::make_pair<std::set<int>,lambdaTrans>(sp,std::move(f));
+   inline TransDesc tDesc(std::initializer_list<int> sp1,std::initializer_list<int> sp2,lambdaTrans f) {
+      return std::make_tuple<std::set<int>,std::set<int>,lambdaTrans>(sp1,sp2,std::move(f));
    }
    void amongMDD(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub,std::set<int> rawValues);
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);

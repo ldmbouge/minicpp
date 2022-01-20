@@ -13,10 +13,10 @@
 
 void pN(MDDNode* n)
 {
-   std::cout << n->getState() << " [" << n->getNumChildren() << "]" << std::endl;
+   std::cout << n->getDownState() << " [" << n->getNumChildren() << "]" << std::endl;
    for(auto& arc : n->getChildren()) {
       std::cout << '\t' << " - "  << arc->getValue() << " -> " 
-                << arc->getChild()->getState() << " P:" << arc->getChild() << std::endl;
+                << arc->getChild()->getDownState() << " P:" << arc->getChild() << std::endl;
    }
 }
 
@@ -90,17 +90,19 @@ struct MDDStateEqual {
 void MDD::buildNextLayer(unsigned int i)
 {
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
-   MDDState state(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSize()));
+   MDDState downState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
+   MDDState upState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
+   MDDState combinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    for(int v = x[i]->min(); v <= x[i]->max(); v++) {
       if(!x[i]->contains(v)) continue;
       for(auto parent : layers[i]) { 
-         if (!_mddspec.exist(parent->getState(),sink->getState(),x[i],v,false)) continue;
+         if (!_mddspec.exist(parent->getDownState(),parent->getCombinedState(),sink->getUpState(),sink->getCombinedState(),x[i],v,false)) continue;
          if(i < numVariables - 1){
-            _sf->createState(state,parent->getState(),i,x[i],MDDIntSet(v),false);
-            auto found = umap.find(&state);
+            _sf->createState(downState,parent->getDownState(),parent->getCombinedState(),i,x[i],MDDIntSet(v),false);
+            auto found = umap.find(&downState);
             MDDNode* child = nullptr;
             if (found == umap.end()){
-               child = _nf->makeNode(state,x[i]->size(),i+1,(int)layers[i+1].size());
+               child = _nf->makeNode(downState,upState,combinedState,x[i]->size(),i+1,(int)layers[i+1].size());
                umap.insert({child->key(),child});
                layers[i+1].push_back(child,mem);
             }  else {
@@ -108,15 +110,14 @@ void MDD::buildNextLayer(unsigned int i)
             }
             parent->addArc(mem,child, v);
          } else {
-            MDDState sinkState(sink->getState());
-            _mddspec.copyStateUp(state,sink->getState());
-            _sf->createState(state, parent->getState(), i, x[i], MDDIntSet(v),false);
+            MDDState sinkState(sink->getDownState());
+            _sf->createState(downState, parent->getDownState(), parent->getCombinedState(), i, x[i], MDDIntSet(v),false);
             if (sink->getNumParents() == 0) {
-               sinkState.copyState(state);
+               sinkState.copyState(downState);
             } else {
-               if (sinkState != state) {
-                  _mddspec.relaxation(sinkState, state);
-                  sinkState.relaxDown();
+               if (sinkState != downState) {
+                  _mddspec.relaxationDown(sinkState, downState);
+                  sinkState.relax();
                }
             }
             parent->addArc(mem,sink, v);
@@ -175,11 +176,18 @@ void MDD::buildDiagram()
    _mddspec.layout();
    _mddspec.compile();
    std::cout << _mddspec << std::endl;
-   auto rootState = _mddspec.rootState(mem);
-   auto sinkState = _mddspec.rootState(mem);
-   sink = _nf->makeNode(sinkState,0,(int)numVariables,0);
-   root = _nf->makeNode(rootState,x[0]->size(),0,0);
+
+   auto rootDownState = _mddspec.rootState(mem);
+   MDDState rootUpState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
+   MDDState rootCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
+   root = _nf->makeNode(rootDownState,rootUpState,rootCombinedState,x[0]->size(),0,0);
    layers[0].push_back(root,mem);
+   _mddspec.updateNode(rootDownState,rootUpState,rootCombinedState);
+
+   MDDState sinkDownState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Up);
+   auto sinkUpState = _mddspec.sinkState(mem);
+   MDDState sinkCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
+   sink = _nf->makeNode(sinkDownState,sinkUpState,sinkCombinedState,0,(int)numVariables,0);
    layers[numVariables].push_back(sink,mem);
 
    for(auto i = 0u; i < numVariables; i++)

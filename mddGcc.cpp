@@ -31,35 +31,35 @@ namespace Factory {
       ValueMap<int> values(udom.first, udom.second,0,ub);
       auto desc = spec.makeConstraintDescriptor(vars,"gccMDD");
 
-      std::vector<int> ps = spec.addStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
+      std::vector<int> ps = spec.addDownStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
 
-      spec.arcExist(desc,[=](const auto& p,const auto& c,auto x,int v,bool)->bool{
-                          return p.at(ps[v-min]) < values[v];
+      spec.arcExist(desc,[=](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto x,int v,bool)->bool{
+                          return pDown.at(ps[v-min]) < values[v];
                        });
 
       lambdaMap d0 = toDict(minFDom,minLDom,ps,
                             [min,ps] (int i,int pi) -> auto {
-                               return tDesc({pi},[=] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-                                                    out.set(pi,p.at(pi) + ((val.singleton() - min) == i));
+                               return tDesc({pi},{},[=] (auto& out,const auto& pDown,const auto& pCombined,auto x, const auto& val,bool up) {
+                                                    out.set(pi,pDown.at(pi) + ((val.singleton() - min) == i));
                                                  });
                             });
       spec.transitionDown(d0);
       lambdaMap d1 = toDict(maxFDom,maxLDom,ps,
                             [dz,min,ps] (int i,int pi) -> auto {
-                               return tDesc({pi},[=] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-                                                    out.set(pi,p.at(pi) + ((val.singleton() - min) == (i - dz)));
+                               return tDesc({pi},{},[=] (auto& out,const auto& pDown,const auto& pCombined,auto x, const auto& val,bool up) {
+                                                    out.set(pi,pDown.at(pi) + ((val.singleton() - min) == (i - dz)));
                                                  });
                             });
       spec.transitionDown(d1);
 
       for(ORInt i = minFDom; i <= minLDom; i++){
          int p = ps[i];
-         spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addRelaxationDown(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
       }
 
       for(ORInt i = maxFDom; i <= maxLDom; i++){
          int p = ps[i];
-         spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         spec.addRelaxationDown(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
    }
 
@@ -71,16 +71,17 @@ namespace Factory {
       int dz = udom.second - udom.first + 1;
       int minFDom = 0,      minLDom = dz-1;
       int maxFDom = dz,     maxLDom = dz*2-1;
-      int minFDomUp = dz*2, minLDomUp = dz*3-1;
-      int maxFDomUp = dz*3, maxLDomUp = dz*4-1;
+      int minFDomUp = 0, minLDomUp = dz-1;
+      int maxFDomUp = dz, maxLDomUp = dz*2-1;
       int min = udom.first;
       ValueMap<int> valuesLB(udom.first, udom.second,0,lb);
       ValueMap<int> valuesUB(udom.first, udom.second,0,ub);
       auto desc = spec.makeConstraintDescriptor(vars,"gccMDD");
 
-      std::vector<int> ps = spec.addStates(desc, minFDom, maxLDomUp, sz,[] (int i) -> int { return 0; });
+      std::vector<int> downPs = spec.addDownStates(desc, minFDom, maxLDom, sz,[] (int i) -> int { return 0; });
+      std::vector<int> upPs = spec.addUpStates(desc, minFDomUp, maxLDomUp, sz,[] (int i) -> int { return 0; });
 
-      spec.arcExist(desc,[=](const auto& p,const auto& c,auto x,int v,bool up)->bool{
+      spec.arcExist(desc,[=](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto x,int v,bool up)->bool{
         bool cond = true;
 
         int minIdx = v - min;
@@ -90,82 +91,82 @@ namespace Factory {
 
         if (up) {
           // check LB and UB thresholds when value v is assigned:
-          cond = cond && (p.at(ps[minIdx]) + 1 + c.at(ps[minIdxUp]) <= valuesUB[v])
-            && (p.at(ps[maxIdx]) + 1 + c.at(ps[maxIdxUp]) >= valuesLB[v]);
+          cond = cond && (pDown.at(downPs[minIdx]) + 1 + cUp.at(upPs[minIdxUp]) <= valuesUB[v])
+            && (pDown.at(downPs[maxIdx]) + 1 + cUp.at(upPs[maxIdxUp]) >= valuesLB[v]);
           // check LB and UB thresholds for other values, when they are not assigned:
           for (int i=min; i<v; i++) {
             if (!cond) break;
-            cond = cond && (p.at(ps[i-min]) + c.at(ps[minFDomUp+i-min]) <= valuesUB[i])
-              && (p.at(ps[maxFDom+i-min]) + c.at(ps[maxFDomUp+i-min]) >= valuesLB[i]);
+            cond = cond && (pDown.at(downPs[i-min]) + cUp.at(upPs[i-min]) <= valuesUB[i])
+              && (pDown.at(downPs[maxFDom+i-min]) + cUp.at(upPs[i-min]) >= valuesLB[i]);
           }
           for (int i=v+1; i<=minLDom+min; i++) {
             if (!cond) break;
-            cond = cond && (p.at(ps[i-min]) + c.at(ps[minFDomUp+i-min]) <= valuesUB[i])
-              && (p.at(ps[maxFDom+i-min]) + c.at(ps[maxFDomUp+i-min]) >= valuesLB[i]);
+            cond = cond && (pDown.at(downPs[i-min]) + cUp.at(upPs[i-min]) <= valuesUB[i])
+              && (pDown.at(downPs[maxFDom+i-min]) + cUp.at(upPs[i-min]) >= valuesLB[i]);
           }
         }
         else {
-          cond = (p.at(ps[minIdx]) + 1 <= valuesUB[v]);
+          cond = (pDown.at(downPs[minIdx]) + 1 <= valuesUB[v]);
         }
         return cond;
       });
 
-      spec.nodeExist(desc,[=](const auto& p) {
+      spec.nodeExist([=](const auto& down,const auto& up,const auto& combined) {
       	  // check global validity: can we still satisfy all lower bounds?
       	  int remainingLB=0;
       	  int fixedValues=0;
       	  for (int i=0; i<=minLDom; i++) {
-      	    remainingLB += std::max(0, valuesLB[i+min] - (p.at(ps[i]) + p.at(ps[minFDomUp+i])));
-	    fixedValues += p.at(ps[i]) + p.at(ps[minFDomUp+i]);
+      	    remainingLB += std::max(0, valuesLB[i+min] - (down.at(downPs[i]) + up.at(upPs[i])));
+	    fixedValues += down.at(downPs[i]) + up.at(upPs[i]);
 	  }
       	  return (fixedValues+remainingLB<=sz);
       	});
       spec.transitionDown(toDict(minFDom,minLDom,
-                                 [min,ps] (int i) {
-                                    return tDesc({ps[i]},[=](auto& out,const auto& p,auto x,const auto& val,bool up) {
-                                                            int tmp = p.at(ps[i]);
+                                 [min,downPs] (int i) {
+                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& pDown,const auto& pCombined,auto x,const auto& val,bool up) {
+                                                            int tmp = pDown.at(downPs[i]);
                                                             if (val.isSingleton() && (val.singleton() - min) == i) tmp++;
-                                                            out.set(ps[i], tmp);
+                                                            out.set(downPs[i], tmp);
                                                          });
                                  }));
       spec.transitionDown(toDict(maxFDom,maxLDom,
-                                 [min,ps,maxFDom](int i) {
-                                    return tDesc({ps[i]},[=](auto& out,const auto& p,auto x,const auto& val,bool up) {
-                                                            out.set(ps[i], p.at(ps[i])+val.contains(i-maxFDom+min));
+                                 [min,downPs,maxFDom](int i) {
+                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& pDown,const auto& pCombined,auto x,const auto& val,bool up) {
+                                                            out.set(downPs[i], pDown.at(downPs[i])+val.contains(i-maxFDom+min));
                                                          });
                                  }));
 
       spec.transitionUp(toDict(minFDomUp,minLDomUp,
-                               [min,ps,minFDomUp] (int i) {
-                                  return tDesc({ps[i]},[=](auto& out,const auto& c,auto x,const auto& val,bool up) {
-                                    out.set(ps[i], c.at(ps[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
+                               [min,upPs,minFDomUp] (int i) {
+                                  return tDesc({upPs[i]},{},[=](auto& out,const auto& cUp,const auto& cCombined,auto x,const auto& val,bool up) {
+                                    out.set(upPs[i], cUp.at(upPs[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
                                   });
                                }));
       spec.transitionUp(toDict(maxFDomUp,maxLDomUp,
-                               [min,ps,maxFDomUp](int i) {
-                                 return tDesc({ps[i]},[=](auto& out,const auto& c,auto x,const auto& val,bool up) {
-                                   out.set(ps[i], c.at(ps[i])+val.contains(i-maxFDomUp+min));
+                               [min,upPs,maxFDomUp](int i) {
+                                 return tDesc({upPs[i]},{},[=](auto& out,const auto& cUp,const auto& cCombined,auto x,const auto& val,bool up) {
+                                   out.set(upPs[i], cUp.at(upPs[i])+val.contains(i-maxFDomUp+min));
                                  });
                                }));
 
       for(ORInt i = minFDom; i <= minLDom; i++){
-         int p = ps[i];
-         spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         int p = downPs[i];
+         spec.addRelaxationDown(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
       }
 
       for(ORInt i = maxFDom; i <= maxLDom; i++){
-         int p = ps[i];
-         spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         int p = downPs[i];
+         spec.addRelaxationDown(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
 
       for(ORInt i = minFDomUp; i <= minLDomUp; i++){
-         int p = ps[i];
-         spec.addRelaxation(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         int p = upPs[i];
+         spec.addRelaxationUp(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
       }
 
       for(ORInt i = maxFDomUp; i <= maxLDomUp; i++){
-         int p = ps[i];
-         spec.addRelaxation(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         int p = upPs[i];
+         spec.addRelaxationUp(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
    }
 }

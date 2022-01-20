@@ -28,17 +28,19 @@ std::ostream& operator<<(std::ostream& os,enum Direction d)
    }
 }
 
-MDDNode* MDDNodeFactory::makeNode(const MDDState& ms,int domSize,int layer,int layerSize)
+MDDNode* MDDNodeFactory::makeNode(const MDDState& down,const MDDState& up,const MDDState& combined,int domSize,int layer,int layerSize)
 {
    if (_pool.size() > 0) {
       MDDNode* n = _pool.pop_back();
-      n->setState(ms,_mem);
+      n->setDownState(down,_mem);
+      n->setUpState(up,_mem);
+      n->setCombinedState(combined,_mem);
       n->setPosition(layerSize,_mem);
       n->setLayer(layer,_mem);
       n->activate();
       return n;
    } else {
-      MDDNode* retVal = new (_mem) MDDNode(_lastID++,_mem,_trailer,ms.clone(_mem),domSize,layer,layerSize);
+      MDDNode* retVal = new (_mem) MDDNode(_lastID++,_mem,_trailer,down.clone(_mem),up.clone(_mem),combined.clone(_mem),domSize,layer,layerSize);
       _peakID = std::max(_peakID,_lastID.value());
       return retVal;
    }
@@ -49,7 +51,7 @@ void MDDNodeFactory::returnNode(MDDNode* n)
    _pool.push_back(n,_mem);
 }
 
-MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
+MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& down, const MDDState& up, const MDDState& combined, 
 		 int dsz,unsigned layer, int id)
    : pos(id),
      _nid(nid),
@@ -58,7 +60,11 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,
      layer(layer),
      children(t,mem,std::max(dsz,1)),
      parents(t,mem,std::max(dsz,1)),
-     state(state)
+     downState(down),
+     upState(up),
+     combinedState(combined),
+     _parentsChanged(t,false),
+     _childrenChanged(t,false)
 {
    _fq = _bq = nullptr;
 }
@@ -75,6 +81,7 @@ bool MDDNode::unhookOutgoing(MDDEdge::Ptr arc)
    bool moreKids = children.size() > 0;
    if (moreKids)
       children.get(at)->setChildPosition(parents.getTrail(), at);
+   _childrenChanged = true;
    return !moreKids;
 }
 
@@ -89,6 +96,7 @@ bool MDDNode::unhookIncoming(MDDEdge::Ptr arc)
    bool moreParents = parents.size() > 0;
    if (moreParents)
       parents.get(at)->setParentPosition(parents.getTrail(), at);  // whoever was moved needs to know their position.
+   _parentsChanged = true;
    return !moreParents;
 }
 
@@ -103,6 +111,7 @@ void MDDNode::unhook(MDDEdge::Ptr arc)
       children.get(at)->setChildPosition(parents.getTrail(), at);
    auto childNode = arc->getChild();
    childNode->unhookChild(arc);
+   _childrenChanged = true;
 }
 
 void MDDNode::unhookChild(MDDEdge::Ptr arc)
@@ -114,6 +123,7 @@ void MDDNode::unhookChild(MDDEdge::Ptr arc)
    parents.remove(at);
    if (parents.size() > 0)
       parents.get(at)->setParentPosition(parents.getTrail(), at);  // whoever was moved needs to know their position.
+   _parentsChanged = true;
 }
 
 void MDDNode::hookChild(MDDEdge::Ptr arc,Storage::Ptr mem)
@@ -121,6 +131,7 @@ void MDDNode::hookChild(MDDEdge::Ptr arc,Storage::Ptr mem)
    auto at = parents.size();
    parents.push_back(arc,mem);
    arc->setParentPosition(parents.getTrail(),at);  // arc needs to know where it is.
+   _parentsChanged = true;
 }
 
 
@@ -148,6 +159,7 @@ void MDDNode::remove(MDD* mdd)
 */
 void MDDNode::removeChild(MDD* mdd,int value,int arc)
 {
+   _childrenChanged = true;
    mdd->removeSupport(layer,value);
 
    auto sz = children.remove(arc);
@@ -164,6 +176,7 @@ void MDDNode::removeChild(MDD* mdd,int value,int arc)
 */
 void MDDNode::removeParent(MDD* mdd,int value,int arc)
 {
+   _parentsChanged = true;
    auto sz = parents.remove(arc);
    if (sz) parents.get(arc)->setParentPosition(parents.getTrail(),arc);
    
@@ -180,6 +193,8 @@ void MDDNode::removeParent(MDD* mdd,int value,int arc)
 void MDDNode::addArc(Storage::Ptr& mem,MDDNode* child, int v)
 {
    assert(isActive());
+   _childrenChanged = true;
+   child->setParentsChanged();
    MDDEdge::Ptr e = new (mem) MDDEdge(this, child, v,
                                       (unsigned short)children.size(),
                                       (unsigned int)child->parents.size());
@@ -230,11 +245,11 @@ double MDDSpec::candidateSplitPriority(const MDDState& state, void* arcs, int nu
    return ttl;
 }
 
-std::vector<int> MDDSpec::equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value, int constraintPriority)
+std::vector<int> MDDSpec::equivalenceValue(const MDDState& downState, const MDDState& upState, int constraintPriority)
 {
-   std::vector<int> equivalenceValues(_equivalenceValueByPriorities[constraintPriority].size());
+   std::vector<int> equivalenceValues;
    for (auto ev : _equivalenceValueByPriorities[constraintPriority]) {
-      equivalenceValues.emplace_back(ev(parent,child,var,value));
+      equivalenceValues.emplace_back(ev(downState, upState));
    }
    //std::cout << equivalenceValues << std::endl;
    return equivalenceValues;
