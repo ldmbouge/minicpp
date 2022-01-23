@@ -38,7 +38,7 @@ extern __thread jmp_buf* ptr;
 #define TRYFAIL  { \
    jmp_buf buf; \
    jmp_buf* old = ptr; \
-   int st = setjmp(buf); \
+   int st = _setjmp(buf); \
    if (st==0) { \
       ptr = &buf;
 
@@ -49,7 +49,7 @@ extern __thread jmp_buf* ptr;
 #define ENDFAIL }}
 
 static inline void failNow() {
-   longjmp(*ptr,1);
+   _longjmp(*ptr,1);
 }
 
 #endif
