@@ -770,6 +770,85 @@ void Element2D::print(std::ostream& os) const
    os << "element2D(" << _x << ',' << _y << ',' << _z << ')' << std::endl;
 }
 
+Element1DBasic::Element1DBasic(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z)
+   : Constraint(y->getSolver()),_t(array),_y(y),_z(z),
+     _from(_y->getSolver()->getStateManager(),-1),
+     _to(_y->getSolver()->getStateManager(),-1) // z == array[y]
+{
+   _kv = NULL;
+}
+
+void Element1DBasic::post() 
+{
+   if (_y->isBound()) {
+      _z->assign(_t[_y->min()]);
+   } else if (_z->isBound()) {
+      const int zv = _z->min();
+      for(int v = _y->min(); v <= _y->max();v++) { // loop on index
+         if (v < 0 || v >= (int)_t.size() || _t[v] != zv) // does not yield val in dom
+            _y->remove(v);
+      }
+   } else { // nobody bound.
+      _kv = new (_y->getSolver()) Pair[_t.size()];
+      for(int k = 0;k < (int)_t.size();k++) 
+         _kv[k] = (Pair){k,_t[k]};
+      qsort(_kv,_t.size(),sizeof(Pair),[](const void* a,const void* b) {
+         const Pair* ap = reinterpret_cast<const Pair*>(a);
+         const Pair* bp = reinterpret_cast<const Pair*>(b);
+         int d = ap->_v - bp->_v;
+         return d ? d : (ap->_k - bp->_k);
+      });
+      for(int k=0;k < (int)_t.size();k++) {
+         if (!_z->contains(_kv[k]._v))
+            _y->remove(_kv[k]._k);
+         else {
+            if (_from == -1)
+               _from = k;
+            _to = k;
+         }
+      }
+      if (_y->isBound())
+         _z->assign(_t[_y->min()]);
+      else {
+         _y->propagateOnDomainChange(this);
+         _z->propagateOnBoundChange(this);
+      }      
+   }
+}
+
+void Element1DBasic::propagate() 
+{
+   if (_y->isBound())
+      _z->assign(_t[_y->min()]);
+   else {
+      int k = _from;
+      while (k < (int)_t.size() && !_y->contains(_kv[k]._k)) ++k;
+      if (k < (int)_t.size()) {
+         _z->removeBelow(_kv[k]._v);
+         _from = k;
+      } else failNow();
+      k = _to;
+      while (k>=0 && !_y->contains(_kv[k]._k)) --k;
+      if (k >= 0) {
+         _z->removeAbove(_kv[k]._v);
+         _to = k;
+      } else failNow();
+      k = _from;
+      while (k < (int)_t.size() && _kv[k]._v < _z->min())
+         _y->remove(_kv[k++]._k);
+      _from = k;
+      k = _to;
+      while (k>=0 && _kv[k]._v > _z->max())
+         _y->remove(_kv[k--]._k);
+      _to = k;
+   }
+}
+
+void Element1DBasic::print(std::ostream& os) const 
+{
+   os << "element1DBasic(" << _t << ',' << _y << ',' << _z << ')' << std::endl;
+}
+
 Element1D::Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z)
    : Constraint(y->getSolver()),_t(array),_y(y),_z(z)
 {}

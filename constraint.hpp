@@ -328,6 +328,26 @@ public:
    void post() override;
 };
 
+class Element1DBasic : public Constraint { // z == t[y]
+   std::vector<int> _t;
+   var<int>::Ptr _y;
+   var<int>::Ptr _z;
+   struct Pair {
+      int _k;
+      int _v;
+      Pair() : _k(0),_v(0) {}
+      Pair(int k,int v) : _k(k),_v(v) {}
+      Pair(const Pair& p) : _k(p._k),_v(p._k) {}
+   };
+   Pair* _kv;
+   trail<int> _from,_to;
+public:
+   Element1DBasic(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z);
+   void post() override;;
+   void propagate() override;
+   void print(std::ostream& os) const override;
+};
+
 class Element1DVar : public Constraint {  // _z = _array[y]
    Factory::Veci  _array;
    var<int>::Ptr   _y,_z;

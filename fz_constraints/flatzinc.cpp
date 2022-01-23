@@ -11,7 +11,7 @@ Constraint::Ptr Factory::makeConstraint(CPSolver::Ptr cp, FlatZinc::Constraint& 
        case FlatZinc::Constraint::array_int_element: {
           var<int>::Ptr _b = new (cp) IntVarViewOffset(int_vars[fzConstraint.vars[0]], -1);
           var<int>::Ptr _c = int_vars[fzConstraint.vars[1]];
-          return new (cp) Element1D(fzConstraint.consts, _b, _c);
+          return new (cp) Element1DBasic(fzConstraint.consts, _b, _c);
           //return new (cp) array_int_element(cp, fzConstraint, int_vars, bool_vars);
        }
         case FlatZinc::Constraint::array_int_maximum:
