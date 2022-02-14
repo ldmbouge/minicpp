@@ -139,7 +139,7 @@ void MDDStateSpec::layout()
    _lszDown = lszBit >> 3;
    _lszDown = (_lszDown & 0x7) ? (_lszDown | 0x7)+1 : _lszDown;
    assert(_lszDown % 8 == 0); // # bytes is always a multiple of 8.
-   std::cout << "Down State requires:" << _lszDown << " bytes" << std::endl;
+   //std::cout << "Down State requires:" << _lszDown << " bytes" << std::endl;
 
    lszBit = 0;
    for(int p = 0;p <_nbpUp;p++) {
@@ -152,7 +152,7 @@ void MDDStateSpec::layout()
    _lszUp = lszBit >> 3;
    _lszUp = (_lszUp & 0x7) ? (_lszUp | 0x7)+1 : _lszUp;
    assert(_lszUp % 8 == 0); // # bytes is always a multiple of 8.
-   std::cout << "Up State requires:" << _lszUp << " bytes" << std::endl;
+   //std::cout << "Up State requires:" << _lszUp << " bytes" << std::endl;
 
    lszBit = 0;
    for(int p = 0;p <_nbpCombined;p++) {
@@ -165,7 +165,7 @@ void MDDStateSpec::layout()
    _lszCombined = lszBit >> 3;
    _lszCombined = (_lszCombined & 0x7) ? (_lszCombined | 0x7)+1 : _lszCombined;
    assert(_lszCombined % 8 == 0); // # bytes is always a multiple of 8.
-   std::cout << "Combined State requires:" << _lszCombined << " bytes" << std::endl;
+   //std::cout << "Combined State requires:" << _lszCombined << " bytes" << std::endl;
 }
 
 int MDDStateSpec::addDownState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw, int constraintPriority)
@@ -474,7 +474,7 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
    MDDState rootState(this,(char*)mem->allocate(layoutSizeDown()),Down);
    for(auto k=0;k < sizeDown();k++)
       rootState.init(k);
-   std::cout << "ROOT:" << rootState << std::endl;
+   //std::cout << "ROOT:" << rootState << std::endl;
    return rootState;
 }
 
@@ -483,7 +483,7 @@ MDDState MDDSpec::sinkState(Storage::Ptr& mem)
    MDDState sinkState(this,(char*)mem->allocate(layoutSizeUp()),Up);
    for(auto k=0;k < sizeUp();k++)
       sinkState.init(k);
-   std::cout << "SINK:" << sinkState << std::endl;
+   //std::cout << "SINK:" << sinkState << std::endl;
    return sinkState;
 }
 
@@ -590,7 +590,7 @@ void MDDSpec::compile()
             outDown.setProp(s);
          }
       }
-      std::cout << "omapDown[" << p << "] = " << outDown << '\n';
+      //std::cout << "omapDown[" << p << "] = " << outDown << '\n';
       if (_nbpCombined) {
          auto& outDownToCombined = _omapDownToCombined[p];
          for(int s=0;s < _nbpCombined;s++) {
@@ -599,7 +599,7 @@ void MDDSpec::compile()
                outDownToCombined.setProp(s);
             }
          }
-         std::cout << "omapDownToCombined[" << p << "] = " << outDownToCombined << '\n';
+         //std::cout << "omapDownToCombined[" << p << "] = " << outDownToCombined << '\n';
       }
    }
    for(int p=0;p < _nbpUp;p++) {
@@ -610,7 +610,7 @@ void MDDSpec::compile()
             outUp.setProp(s);
          }
       }
-      std::cout << "omapUp[" << p << "] = " << outUp << '\n';
+      //std::cout << "omapUp[" << p << "] = " << outUp << '\n';
       if (_nbpCombined) {
          auto& outUpToCombined = _omapUpToCombined[p];
          for(int s=0;s < _nbpCombined;s++) {
@@ -619,7 +619,7 @@ void MDDSpec::compile()
                outUpToCombined.setProp(s);
             }
          }
-         std::cout << "omapUpToCombined[" << p << "] = " << outUpToCombined << '\n';
+         //std::cout << "omapUpToCombined[" << p << "] = " << outUpToCombined << '\n';
       }
    }
    for(int p=0;p < _nbpCombined;p++) {
@@ -637,8 +637,8 @@ void MDDSpec::compile()
             outCombinedToUp.setProp(s);
          }
       }
-      std::cout << "omapCombinedToDown[" << p << "] = " << outCombinedToDown << '\n';
-      std::cout << "omapCombinedToUp[" << p << "] = " << outCombinedToUp << '\n';
+      //std::cout << "omapCombinedToDown[" << p << "] = " << outCombinedToDown << '\n';
+      //std::cout << "omapCombinedToUp[" << p << "] = " << outCombinedToUp << '\n';
    }
    const unsigned nbL = (unsigned)x.size();
    _transLayer.reserve(nbL);
@@ -685,7 +685,7 @@ void MDDSpec::compile()
    }
 }
 
-void MDDSpec::createState(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
+void MDDSpec::fullStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
 {
    result.clear();
    for(const auto& t : _transLayer[l])
@@ -694,7 +694,7 @@ void MDDSpec::createState(MDDState& result,const MDDState& parentDown,const MDDS
    result.relax(parentDown.isRelaxed() || v.size() > 1);
 }
 
-void MDDSpec::createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,
+void MDDSpec::incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,
                               const MDDIntSet& v,bool hasUp)
 {
    result.clear();
@@ -763,15 +763,17 @@ void MDDSpec::relaxationUpIncr(const MDDPropSet& out,MDDState& a,const MDDState&
    }
    a.computeHash();
 }
-void MDDSpec::updateState(MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
+void MDDSpec::fullStateUp(MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
+   target.clear();
    for(const auto& t : _uptransLayer[l])
       t(target,childUp,childCombined,var,v,true);
    _frameLayer[l].frameUp(target,childUp);
    target.relax(childUp.isRelaxed() || v.size() > 1);
 }
-void MDDSpec::updateStateIncr(const MDDPropSet& out,MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
+void MDDSpec::incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
+   target.clear();
    for(auto p : out) {
       int tid = _frameLayer[l].hasUpProp(p) ? -1 : _attrsUp[p]->getTransition();
       if (tid != -1)
@@ -783,49 +785,114 @@ void MDDSpec::updateStateIncr(const MDDPropSet& out,MDDState& target,const MDDSt
 }
 
 
-int nbCS  = 0;
-int hitCS = 0;
-int vs = 0;
+int nbCSDown  = 0;
+int hitCSDown = 0;
+int nbCSUp  = 0;
+int hitCSUp = 0;
 
 MDDStateFactory::MDDStateFactory(MDDSpec* spec)
    : _mddspec(spec),
      _mem(new Pool()),
-     _hash(_mem,300149),
+     _downHash(_mem,300149),
+     _upHash(_mem,300149),
      _mark(_mem->mark()),
      _enabled(false)
 {
 }
 
 
-void MDDStateFactory::createState(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
+//void MDDStateFactory::createState(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
+//{
+//   nbCS++;
+//   _mddspec->createState(result,parentDown,parentCombined,layer,x,vals,up);
+//   result.computeHash();
+//}
+
+void MDDStateFactory::createStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
 {
-   nbCS++;
-   _mddspec->createState(result,parentDown,parentCombined,layer,x,vals,up);
-   result.computeHash();
+   //std::cout << "Start createStateDown\n";
+   if (vals.isSingleton()) {
+      //std::cout << "Singleton\n";
+      MDDSKey key { &parentDown, &parentCombined, layer, vals.singleton() };
+      //std::cout << "Made key\n";
+      MDDState* match = nullptr;
+      auto loc = _downHash.get(key,match);
+      //std::cout << "Made loc " << loc << "\n";
+      if (loc) {
+         ++hitCSDown;
+         result.copyState(*match);
+      } else {
+         nbCSDown++;
+         _mddspec->fullStateDown(result,parentDown,parentCombined,layer,x,MDDIntSet(vals.singleton()),up);
+         result.computeHash();
+         MDDState* pdc = new (_mem) MDDState(parentDown.clone(_mem));
+         MDDState* pcc = new (_mem) MDDState(parentCombined.clone(_mem));
+         MDDSKey ikey { pdc, pcc, layer, vals.singleton() };
+         _downHash.insert(ikey,new (_mem) MDDState(result.clone(_mem)));
+      }
+   } else {
+      nbCSDown++;
+      //std::cout << "Pre fullStateDown\n";
+      _mddspec->fullStateDown(result,parentDown,parentCombined,layer,x,vals,up);
+      //std::cout << "Post fullStateDown\n";
+      result.computeHash();
+   }
+   //std::cout << "End createStateDown\n";
+}
+void MDDStateFactory::createStateUp(MDDState& result,const MDDState& childUp,const MDDState& childCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals)
+{
+   if (vals.isSingleton()) {
+      MDDSKey key { &childUp, &childCombined, layer, vals.singleton() };
+      MDDState* match = nullptr;
+      auto loc = _upHash.get(key,match);
+      if (loc) {
+         ++hitCSUp;
+         result.copyState(*match);
+      } else {
+         nbCSUp++;
+         _mddspec->fullStateUp(result,childUp,childCombined,layer,x,MDDIntSet(vals.singleton()));
+         result.computeHash();
+         MDDState* cuc = new (_mem) MDDState(childUp.clone(_mem));
+         MDDState* ccc = new (_mem) MDDState(childCombined.clone(_mem));
+         MDDSKey ikey { cuc, ccc, layer, vals.singleton() };
+         _upHash.insert(ikey,new (_mem) MDDState(result.clone(_mem)));
+      }
+   } else {
+      nbCSUp++;
+      _mddspec->fullStateUp(result,childUp,childCombined,layer,x,vals);
+      result.computeHash();
+   }
 }
 
-void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,int val,bool approximate,int constraintPriority)
+void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,int val)
 {
-   MDDSKey key { &parentDown, &parentCombined, layer, val, approximate, constraintPriority };
-   auto loc = _hash.get(key,result);
+//std::cout << "Start splitState\n";
+   MDDSKey key { &parentDown, &parentCombined, layer, val };
+//std::cout << "Pre loc\n";
+   auto loc = _downHash.get(key,result);
    if (loc) {
-      ++hitCS;
+//std::cout << "loc\n";
+      ++hitCSDown;
       result = new (_mem) MDDState(result->clone(_mem));
    } else {
-      nbCS++;
+//std::cout << "not loc\n";
+      nbCSDown++;
       result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
-      _mddspec->createState(*result,parentDown,parentCombined,layer,x,MDDIntSet(val),true);
+      //std::cout << "Pre fullState\n";
+      _mddspec->fullStateDown(*result,parentDown,parentCombined,layer,x,MDDIntSet(val),true);
+      //std::cout << "Post fullState\n";
       result->computeHash();
       MDDState* pdc = new (_mem) MDDState(parentDown.clone(_mem));
       MDDState* pcc = new (_mem) MDDState(parentCombined.clone(_mem));
-      MDDSKey ikey { pdc, pcc, layer, val, approximate, constraintPriority };
-      _hash.insert(ikey,new (_mem) MDDState(result->clone(_mem)));
+      MDDSKey ikey { pdc, pcc, layer, val };
+      _downHash.insert(ikey,new (_mem) MDDState(result->clone(_mem)));
    }
 }
 
 void MDDStateFactory::clear()
 {
-   _hash.clear();
+   _downHash.clear();
+   _upHash.clear();
    _mem->clear(_mark);
    _enabled = true;
 }

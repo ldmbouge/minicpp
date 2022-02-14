@@ -7,6 +7,8 @@
 #include "RuntimeMonitor.hpp"
 #include "heap.hpp"
 
+int timeDoingDown = 0, timeDoingSplit = 0, timeDoingUp = 0, timeDoingUpProcess = 0, timeDoingUpFilter = 0;
+
 MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,bool approxThenExact, int maxConstraintPriority)
    : MDD(cp),
      _width(width),
@@ -53,7 +55,7 @@ MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,
 
 void MDDRelax::buildDiagram()
 {
-   std::cout << "MDDRelax::buildDiagram" << '\n';
+   //std::cout << "MDDRelax::buildDiagram" << '\n';
    _mddspec.layout();
    _mddspec.compile();
    _deltaDown = new MDDDelta(_nf,_mddspec.sizeDown(),Down);
@@ -62,7 +64,7 @@ void MDDRelax::buildDiagram()
 
    _fwd = new (mem) MDDFQueue(numVariables+1);
    _bwd = new (mem) MDDBQueue(numVariables+1);
-   std::cout << _mddspec << '\n';
+   //std::cout << _mddspec << '\n';
    auto uDom = domRange(x);
    const int sz = uDom.second - uDom.first + 1;
    _domMin = uDom.first;
@@ -79,6 +81,7 @@ void MDDRelax::buildDiagram()
    _mddspec.updateNode(rootCombinedState,rootDownState,rootUpState);
    layers[0].push_back(root,mem);
 
+
    MDDState sinkDownState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
    auto sinkUpState = _mddspec.sinkState(mem);
    MDDState sinkCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
@@ -86,7 +89,8 @@ void MDDRelax::buildDiagram()
    sink = _nf->makeNode(sinkDownState,sinkUpState,sinkCombinedState,0,(int)numVariables,0);
    layers[numVariables].push_back(sink,mem);
 
-   auto start = RuntimeMonitor::now();
+
+   //auto start = RuntimeMonitor::now();
    _refs.emplace_back(rootDownState);
    for(auto i = 0u; i < numVariables; i++) {
       buildNextLayer(i);
@@ -94,8 +98,8 @@ void MDDRelax::buildDiagram()
    }
    postUp();
    trimDomains();
-   auto dur = RuntimeMonitor::elapsedSince(start);
-   std::cout << "build/Relax:" << dur << '\n';
+   //auto dur = RuntimeMonitor::elapsedSince(start);
+   //std::cout << "build/Relax:" << dur << '\n';
    propagate();
    hookupPropagators();
 }
@@ -114,7 +118,7 @@ void MDDRelax::buildNextLayer(unsigned int i)
       MDDState downState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
       MDDState upState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
       MDDState combinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
-      _sf->createState(downState,parent->getDownState(),parent->getCombinedState(),i,x[i],xv,false);
+      _sf->createStateDown(downState,parent->getDownState(),parent->getCombinedState(),i,x[i],xv,false);
       MDDNode* child = _nf->makeNode(downState,upState,combinedState,x[i]->size(),i+1,(int)layers[i+1].size());
       _mddspec.updateNode(combinedState,downState,upState);
       layers[i+1].push_back(child,mem);
@@ -125,7 +129,7 @@ void MDDRelax::buildNextLayer(unsigned int i)
    } else {
       MDDState sinkDownState(sink->getDownState());
       MDDState sinkCombinedState(sink->getCombinedState());
-      _sf->createState(sinkDownState, parent->getDownState(), parent->getCombinedState(), i, x[i],xv,false);
+      _sf->createStateDown(sinkDownState, parent->getDownState(), parent->getCombinedState(), i, x[i],xv,false);
       _mddspec.updateNode(sinkCombinedState,sink->getDownState(),sink->getUpState());
       assert(sink->getNumParents() == 0);
       for(auto v : xv) {
@@ -204,11 +208,12 @@ void MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l)
       if (_src[i]==nullptr) continue;
       auto p = _src[i];                           // this is the parent
       assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
-      _sf->createState(cs,p->getDownState(),p->getCombinedState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      _sf->createStateDown(cs,p->getDownState(),p->getCombinedState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
       //assert(cs.getBS(6) == cs.getBS(7));
-      if (first)
+      if (first) {
          ms.copyState(cs); // install the result into an accumulator
-      else {
+         first = false;
+      } else {
          if (ms != cs) {
             //assert(ms.getBS(6) == ms.getBS(7));
             //assert(cs.getBS(6) == cs.getBS(7));
@@ -217,7 +222,6 @@ void MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l)
             ms.relax();               // indidcate this is a down relaxation.
          }
       }
-      first = false;
    }
 }
 
@@ -229,16 +233,16 @@ void MDDRelax::incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDD
       auto p = _src[i];                           // this is the parent
       assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
       cs.copyState(n->getDownState());       // grab the down information from other properties
-      _mddspec.createStateIncr(out,cs,p->getDownState(),p->getCombinedState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
-      if (first)
+      _mddspec.incrStateDown(out,cs,p->getDownState(),p->getCombinedState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      if (first) {
          ms.copyState(cs); // install the result into an accumulator
-      else {
+         first = false;
+      } else {
          if (ms != cs) {
             _mddspec.relaxationDownIncr(out,ms,cs);   // compute an incremental  relaxation of cs with the accumulator (ms). 
             ms.relax();               // indidcate this is a down relaxation.
          }
       }
-      first = false;
    }
 }
    
@@ -527,7 +531,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();       // value on arc from parent
-      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v,false);
+      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v);
       splitCS++;         
       MDDNode* bj = findMatchInLayer(layers[l],*ms);
       if (bj && bj != n) {
@@ -565,7 +569,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
    }
 
    _fwd->enQueue(n);
-   _bwd->enQueue(n);
+   //_bwd->enQueue(n);
    return lowest;
 }
 int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority)
@@ -581,7 +585,7 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();       // value on arc from parent
-      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v,false,constraintPriority);
+      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v);
       splitCS++;         
       MDDNode* bj = findMatchInLayer(layers[l],*ms);
       if (bj && bj != n) {
@@ -647,7 +651,7 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
       splitter.clear();
    }
    _fwd->enQueue(n);
-   _bwd->enQueue(n);
+   //_bwd->enQueue(n);
    return lowest;
 }
 int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority)
@@ -662,7 +666,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();       // value on arc from parent
-      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v,true,constraintPriority);
+      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v);
       splitCS++;         
       MDDNode* bj = findMatchInLayer(layers[l],*ms);
       if (bj && bj != n) {
@@ -731,7 +735,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
       splitter.clear();
    }
    _fwd->enQueue(n);
-   _bwd->enQueue(n);
+   //_bwd->enQueue(n);
    return lowest;
 }
 
@@ -870,16 +874,16 @@ void MDDRelax::fullStateUp(MDDState& ms,MDDState& cs,MDDNode* n,int l)
    for(auto k=0u;k < wub;k++) {
       if (_afp[k].size() > 0) {
          auto c = layers[l+1][k];
-         _mddspec.updateState(cs,c->getUpState(),c->getCombinedState(),l,x[l],_afp[k]);
-         if (first)
+         _sf->createStateUp(cs,c->getUpState(),c->getCombinedState(),l,x[l],_afp[k]); // compute a full scale transitions (all props).
+         if (first) {
             ms.copyState(cs);
-         else {
+            first = false;
+         } else {
             if (ms != cs) {
                _mddspec.relaxationUp(ms,cs);
                ms.relax();
             }
          }
-         first = false;
       }
    }
 }
@@ -892,16 +896,16 @@ void MDDRelax::incrStateUp(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNo
       if (_afp[k].size() > 0) {
          cs.copyState(n->getUpState());
          auto c = layers[l+1][k];
-         _mddspec.updateStateIncr(out,cs,c->getUpState(),c->getCombinedState(),l,x[l],_afp[k]);
-         if (first)
+         _mddspec.incrStateUp(out,cs,c->getUpState(),c->getCombinedState(),l,x[l],_afp[k]);
+         if (first) {
             ms.copyState(cs);
-         else {
+            first = false;
+         } else {
             if (ms != cs) {
                _mddspec.relaxationUpIncr(out,ms,cs);
                ms.relax();
             }
          }
-         first = false;
       }
    }
 }
@@ -1015,6 +1019,7 @@ int __nbn = 0,__nbf = 0;
 
 void MDDRelax::computeDown(int iter)
 {
+   //auto start = RuntimeMonitor::now();
    if (iter <= _maxSplitIter) {
       for (int i = 0; i <= _maxConstraintPriority; i++) {
          if (_mddspec.approxEquivalence()) {
@@ -1027,7 +1032,9 @@ void MDDRelax::computeDown(int iter)
          }
       }
    }
-   _sf->disable();
+   //timeDoingSplit += RuntimeMonitor::elapsedSinceMicro(start);
+   //_sf->disable();
+   //start = RuntimeMonitor::now();
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
       //if (node==nullptr) break;            
@@ -1053,6 +1060,7 @@ void MDDRelax::computeDown(int iter)
          if (combinedDirty) filterParents(node, l);
       }
    }
+   //timeDoingDown += RuntimeMonitor::elapsedSinceMicro(start);
 }
 
 void MDDRelax::computeUp()
@@ -1090,7 +1098,9 @@ void MDDRelax::propagate()
          _deltaDown->clear();
          _deltaUp->clear();
          _deltaCombined->clear();
+         //auto start = RuntimeMonitor::now();
          computeUp();
+         //timeDoingUp += RuntimeMonitor::elapsedSinceMicro(start);
          _sf->clear();
          computeDown(iter);
          assert(layers[numVariables].size() == 1);

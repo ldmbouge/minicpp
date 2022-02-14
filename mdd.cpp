@@ -98,7 +98,7 @@ void MDD::buildNextLayer(unsigned int i)
       for(auto parent : layers[i]) { 
          if (!_mddspec.exist(parent->getDownState(),parent->getCombinedState(),sink->getUpState(),sink->getCombinedState(),x[i],v,false)) continue;
          if(i < numVariables - 1){
-            _sf->createState(downState,parent->getDownState(),parent->getCombinedState(),i,x[i],MDDIntSet(v),false);
+            _sf->createStateDown(downState,parent->getDownState(),parent->getCombinedState(),i,x[i],MDDIntSet(v),false);
             auto found = umap.find(&downState);
             MDDNode* child = nullptr;
             if (found == umap.end()){
@@ -111,7 +111,7 @@ void MDD::buildNextLayer(unsigned int i)
             parent->addArc(mem,child, v);
          } else {
             MDDState sinkState(sink->getDownState());
-            _sf->createState(downState, parent->getDownState(), parent->getCombinedState(), i, x[i], MDDIntSet(v),false);
+            _sf->createStateDown(downState, parent->getDownState(), parent->getCombinedState(), i, x[i], MDDIntSet(v),false);
             if (sink->getNumParents() == 0) {
                sinkState.copyState(downState);
             } else {

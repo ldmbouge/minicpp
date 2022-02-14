@@ -470,7 +470,7 @@ public:
    virtual void minWith(char* buf,char* other) const noexcept {}
    virtual void maxWith(char* buf,char* other) const noexcept {}
    virtual bool diff(char* buf,char* other) const noexcept  { return false;}
-   int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
+   virtual int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
    int getByte(char* buf) const noexcept                    { return buf[_ofs];}
    MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
    template <class ET>
@@ -558,6 +558,7 @@ public:
       : MDDProperty(id,ofs,1,rw),_init(init),_max(max) {}
    void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
    int get(char* buf) const  noexcept override       { return buf[_ofs];}
+   int getInt(char* buf) const  noexcept override       { return buf[_ofs];}
    void set(char* buf,int v) noexcept override       { buf[_ofs] = (char)v;}
    void stream(char* buf,std::ostream& os) const override { int v = buf[_ofs];os << v;}
    void minWith(char* buf,char* other) const noexcept override {
@@ -895,7 +896,7 @@ public:
    template <class Allocator>
    MDDState clone(Allocator pool) const {
       char* block = (_spec && _spec->layoutSize(_dir)) ? new (pool) char[_spec->layoutSize(_dir)] : nullptr;
-      if (_spec)  memcpy(block,_mem,_spec->layoutSize(_dir));
+      if (_spec && _spec->layoutSize(_dir))  memcpy(block,_mem,_spec->layoutSize(_dir));
       return MDDState(_spec,block,_hash,_rip,_dir,_flags);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
@@ -989,7 +990,7 @@ public:
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
       os << (s._flags._relax ? 'T' : 'F') << '[';
-      for(int p=0;p < s._spec->_nbpDown;p++) {
+      for(int p=0;p < s.nbp();p++) {
          auto atr = s.propAt(p);
          atr->stream(s._mem,os);
          os << ' ';
@@ -1074,7 +1075,7 @@ public:
             _attrsUp[p]->setRelax(rid);
             break;
          }  
-      _downRelaxation.emplace_back(std::move(r));
+      _upRelaxation.emplace_back(std::move(r));
    }
    void addSimilarity(int,lambdaSim);
    void transitionDown(const lambdaMap& map);
@@ -1090,10 +1091,10 @@ public:
    bool consistent(const MDDState& down,const MDDState& up,const MDDState& combined) const noexcept;
    void updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept;
    bool exist(const MDDState& parentDown,const MDDState& parentCombined,const MDDState& childUp,const MDDState& childCombined,const var<int>::Ptr& x,int v,bool up) const noexcept;
-   void createState(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
-   void createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
-   void updateState(MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
-   void updateStateIncr(const MDDPropSet& out,MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   void fullStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
+   void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
+   void fullStateUp(MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   void incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
    void relaxationDown(MDDState& a,const MDDState& b) const noexcept;
    void relaxationUp(MDDState& a,const MDDState& b) const noexcept;
    void relaxationDownIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
@@ -1122,13 +1123,13 @@ public:
       for(auto e : y)
          if(std::find(x.cbegin(),x.cend(),e) == x.cend())
             x.push_back(e);
-      std::cout << "size of x: " << x.size() << std::endl;
+      //std::cout << "size of x: " << x.size() << std::endl;
    }
    template <class Container> void addGlobal(const Container& y) {
       for(auto e : y)
          if(std::find(z.cbegin(),z.cend(),e) == z.cend())
             z.push_back(e);
-      std::cout << "size of z: " << z.size() << std::endl;
+      //std::cout << "size of z: " << z.size() << std::endl;
    }
    void reachedFixpoint(const MDDState& sinkDown,const MDDState& sinkUp,const MDDState& sinkCombined);
    double nodeSplitPriority(const MDDNode& n, int constraintPriority) const;
@@ -1141,9 +1142,21 @@ public:
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    std::vector<var<int>::Ptr>& getGlobals() { return z;}
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
-      os << "Spec(";
+      os << "Spec Down(";
       for(int p=0;p < s._nbpDown;p++) {
          s._attrsDown[p]->print(os);
+         os << ' ';
+      }
+      os << ')';
+      os << "\nSpec Up(";
+      for(int p=0;p < s._nbpUp;p++) {
+         s._attrsUp[p]->print(os);
+         os << ' ';
+      }
+      os << ')';
+      os << "\nSpec Combined(";
+      for(int p=0;p < s._nbpCombined;p++) {
+         s._attrsCombined[p]->print(os);
          os << ' ';
       }
       os << ')';
@@ -1194,12 +1207,10 @@ class MDDStateFactory {
       const MDDState*   _s1;
       const int          _l;
       const int          _v;
-      const bool         _a;
-      const int   _priority;
    };
    struct EQtoMDDSKey {
       bool operator()(const MDDSKey& a,const MDDSKey& b) const noexcept {
-         return a._l == b._l && a._v == b._v && a._s0->operator==(*b._s0) && a._s1->operator==(*b._s1) && a._a == b._a && a._priority == b._priority;
+         return a._l == b._l && a._v == b._v && a._s0->operator==(*b._s0) && a._s1->operator==(*b._s1);
       }
    };
    struct HashMDDSKey {
@@ -1209,17 +1220,20 @@ class MDDStateFactory {
    };
    MDDSpec*      _mddspec;
    Pool::Ptr         _mem;
-   Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
+   Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _downHash;
+   Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _upHash;
    PoolMark         _mark;
    bool          _enabled;
 public:
    MDDStateFactory(MDDSpec* spec);
-   void createState(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
-   void splitState(MDDState*& result,MDDNode* n,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,int val,bool approximate,int constraintPriority = -1);
+   void createStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
+   void createStateUp(MDDState& result,const MDDState& childUp,const MDDState& childCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals);
+   void splitState(MDDState*& result,MDDNode* n,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,int val);
    void clear();
    void enable() noexcept { _enabled = true;}
    void disable() noexcept { _enabled = false;}
-   unsigned size() const noexcept { return _hash.size();}
+   unsigned sizeDown() const noexcept { return _downHash.size();}
+   unsigned sizeUp() const noexcept { return _upHash.size();}
 };
 
 

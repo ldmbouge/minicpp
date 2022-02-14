@@ -165,54 +165,59 @@ namespace Factory {
             break;
          case 1:
             mdd.splitOnLargest([](const auto& in) {
-               return in.getNumParents();
+               return -in.getPosition();
                                }, constraintPriority);
             break;
          case 2:
             mdd.splitOnLargest([](const auto& in) {
-               return -in.getNumParents();
+               return in.getNumParents();
                                }, constraintPriority);
             break;
          case 3:
-            mdd.splitOnLargest([L](const auto& in) {
-               return in.getDownState().at(L);
+            mdd.splitOnLargest([](const auto& in) {
+               return -in.getNumParents();
                                }, constraintPriority);
             break;
          case 4:
             mdd.splitOnLargest([L](const auto& in) {
-               return -in.getDownState().at(L);
+               return in.getDownState().at(L);
                                }, constraintPriority);
             break;
          case 5:
-            mdd.splitOnLargest([U](const auto& in) {
-               return in.getDownState().at(U);
+            mdd.splitOnLargest([L](const auto& in) {
+               return -in.getDownState().at(L);
                                }, constraintPriority);
             break;
          case 6:
             mdd.splitOnLargest([U](const auto& in) {
-               return -in.getDownState().at(U);
+               return in.getDownState().at(U);
                                }, constraintPriority);
             break;
          case 7:
-            mdd.splitOnLargest([L,U](const auto& in) {
-               return in.getDownState().at(U) - in.getDownState().at(L);
+            mdd.splitOnLargest([U](const auto& in) {
+               return -in.getDownState().at(U);
                                }, constraintPriority);
             break;
          case 8:
             mdd.splitOnLargest([L,U](const auto& in) {
-               return in.getDownState().at(L) - in.getDownState().at(U);
+               return in.getDownState().at(U) - in.getDownState().at(L);
                                }, constraintPriority);
             break;
          case 9:
-            mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-               return -((double)std::max(lb - (in.getDownState().at(L) + in.getDownState().at(Lup)),0) +
-                        (double)std::max((in.getDownState().at(U) + in.getDownState().at(Uup)) - ub,0));
+            mdd.splitOnLargest([L,U](const auto& in) {
+               return in.getDownState().at(L) - in.getDownState().at(U);
                                }, constraintPriority);
             break;
          case 10:
             mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-               return (double)std::max(lb - (in.getDownState().at(L) + in.getDownState().at(Lup)),0) +
-                      (double)std::max((in.getDownState().at(U) + in.getDownState().at(Uup)) - ub,0);
+               return -((double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
+                        (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0));
+                               }, constraintPriority);
+            break;
+         case 11:
+            mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+               return (double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
+                      (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0);
                                }, constraintPriority);
          default:
             break;
@@ -382,54 +387,59 @@ namespace Factory {
             break;
          case 1:
             mdd.splitOnLargest([](const auto& in) {
-               return in.getNumParents();
+               return -in.getPosition();
                                }, constraintPriority);
             break;
          case 2:
             mdd.splitOnLargest([](const auto& in) {
-               return -in.getNumParents();
+               return in.getNumParents();
                                }, constraintPriority);
             break;
          case 3:
-            mdd.splitOnLargest([L](const auto& in) {
-               return in.getDownState().at(L);
+            mdd.splitOnLargest([](const auto& in) {
+               return -in.getNumParents();
                                }, constraintPriority);
             break;
          case 4:
             mdd.splitOnLargest([L](const auto& in) {
-               return -in.getDownState().at(L);
+               return in.getDownState().at(L);
                                }, constraintPriority);
             break;
          case 5:
-            mdd.splitOnLargest([U](const auto& in) {
-               return in.getDownState().at(U);
+            mdd.splitOnLargest([L](const auto& in) {
+               return -in.getDownState().at(L);
                                }, constraintPriority);
             break;
          case 6:
             mdd.splitOnLargest([U](const auto& in) {
-               return -in.getDownState().at(U);
+               return in.getDownState().at(U);
                                }, constraintPriority);
             break;
          case 7:
-            mdd.splitOnLargest([L,U](const auto& in) {
-               return in.getDownState().at(U) - in.getDownState().at(L);
+            mdd.splitOnLargest([U](const auto& in) {
+               return -in.getDownState().at(U);
                                }, constraintPriority);
             break;
          case 8:
             mdd.splitOnLargest([L,U](const auto& in) {
-               return in.getDownState().at(L) - in.getDownState().at(U);
+               return in.getDownState().at(U) - in.getDownState().at(L);
                                }, constraintPriority);
             break;
          case 9:
-            mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-               return -((double)std::max(lb - (in.getDownState().at(L) + in.getDownState().at(Lup)),0) +
-                        (double)std::max((in.getDownState().at(U) + in.getDownState().at(Uup)) - ub,0));
+            mdd.splitOnLargest([L,U](const auto& in) {
+               return in.getDownState().at(L) - in.getDownState().at(U);
                                }, constraintPriority);
             break;
          case 10:
             mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-               return (double)std::max(lb - (in.getDownState().at(L) + in.getDownState().at(Lup)),0) +
-                      (double)std::max((in.getDownState().at(U) + in.getDownState().at(Uup)) - ub,0);
+               return -((double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
+                        (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0));
+                               }, constraintPriority);
+            break;
+         case 11:
+            mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
+               return (double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
+                      (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0);
                                }, constraintPriority);
          default:
             break;

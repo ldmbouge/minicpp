@@ -41,7 +41,8 @@ namespace Factory {
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);
    void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 3, int constraintPriority = 0);
    void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 3, int constraintPriority = 0);
-   void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars);
+   void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars, int constraintPriority = 0);
+   void allDiffMDD2(MDDSpec& mdd, const Factory::Veci& vars, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 4, int constraintPriority = 0);
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
    void seqMDD2(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
    void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
