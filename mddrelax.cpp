@@ -181,8 +181,12 @@ void MDDRelax::trimLayer(unsigned int layer)
       for(int i = (int)children.size() - 1; i >= 0 ; i--){
          auto arc = children.get(i);
          if(!var->contains(arc->getValue())) {
+            //MDDNode* parent = arc->getParent();
+            //MDDNode* child = arc->getChild();
             removeArc(layer,layer+1,arc.get());
-            arc->remove(this);            
+            arc->remove(this);
+            //if (child->getNumParents()==0) delState(child,layer+1);
+            //if (parent->getNumChildren()==0) delState(parent,layer);
          }
       }   
    }
@@ -809,6 +813,11 @@ void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can
 struct MDDStateEqual {
    bool operator()(const MDDState* s1,const MDDState* s2) const { return *s1 == *s2;}
 };
+
+void MDDRelax::removeNode(MDDNode* node)
+{
+   delState(node, node->getLayer());
+}
 
 int MDDRelax::delState(MDDNode* node,int l)
 {

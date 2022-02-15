@@ -31,7 +31,7 @@ public:
    void addSupport(int layer, int value)     { supports[layer][value - oft[layer]] += 1;}
    void delSupport(int layer, int value)     { supports[layer][value - oft[layer]] -= 1;}
    void removeSupport(int layer, int value);
-   void removeNode(MDDNode* node);
+   virtual void removeNode(MDDNode* node);
    void propagate() override;
    virtual void refreshAll() {}
    std::size_t usage() const { return mem->usage();}

@@ -213,6 +213,7 @@ public:
    void buildNextLayer(unsigned int i) override;
    void propagate() override;
    void trimLayer(unsigned int layer) override;
+   void removeNode(MDDNode* node) override;
    void debugGraph() override;
    void printRefs() {
       for(auto i=0u;i < numVariables;i++)
