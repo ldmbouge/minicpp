@@ -117,12 +117,13 @@ public:
       _inQueue = (enum Direction)(_inQueue | d);
    }
    void leaveQueue(enum Direction d) const noexcept {
-      _inQueue = (enum Direction)(_inQueue & ~d);
-      switch(d) {
-         case Down: _fq = nullptr;break;
-         case Up:   _bq = nullptr;break;
-         default: break;
-      }
+     if (parents.size() > 0 && children.size() > 0) // hmmm. The node shouldn't be active
+       _inQueue = (enum Direction)(_inQueue & ~d);    // so avoid trailing by not resetting
+     switch(d) {
+       case Down: _fq = nullptr;break;
+       case Up:   _bq = nullptr;break;
+       default: break;
+     }
    }
    bool inQueue(enum Direction d) const noexcept    { return (_inQueue & d)==d;}
    enum Direction curQueue() const noexcept { return _inQueue;}

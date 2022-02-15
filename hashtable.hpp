@@ -54,12 +54,12 @@ public:
       _mgc = new (_pool) unsigned[_mxs];
       bzero(_tab,sizeof(HTNode*)*_mxs);
       bzero(_mgc,sizeof(unsigned)*_mxs);
-      _magic = 0;
+      _magic = 1;
       _nbp = 0;
    }
    void insert(const K& key,const T& val) noexcept {
       int at = _hash(key) % _mxs;
-      HTNode* head = _mgc[at]==_magic ? _tab[at] : nullptr;
+      HTNode* head = (_mgc[at]==_magic) ? _tab[at] : nullptr;
       HTNode* cur = head;
       while (cur != nullptr) {
          if (_equal(cur->_key,key)) {
@@ -74,7 +74,9 @@ public:
    }
    bool get(const K& key,T& val) const noexcept {
       int at = _hash(key) % _mxs;
-      HTNode* cur =  _mgc[at]==_magic ? _tab[at] : nullptr;
+      assert(at >= 0);
+      assert(at < _mxs);
+      HTNode* cur =  (_mgc[at]==_magic) ? _tab[at] : nullptr;
       while (cur != nullptr) {
          if (_equal(cur->_key,key)) {
             val = cur->_data;
