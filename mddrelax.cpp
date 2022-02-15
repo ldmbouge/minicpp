@@ -1037,7 +1037,7 @@ void MDDRelax::computeDown(int iter)
    //start = RuntimeMonitor::now();
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
-      //if (node==nullptr) break;            
+      if (node==nullptr) break;  // the queue could be "filled" with inactive nodes
       int l = node->getLayer();
       if (l > 0 && node->getNumParents() == 0) {
          if (l == (int)numVariables) failNow();
