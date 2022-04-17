@@ -58,9 +58,9 @@ class SearchStatistics
         int boolVariables;
         int propagators;
         unsigned long long propagations;
-        RuntimeMonitor::HRClock startTime;
-        RuntimeMonitor::HRClock initTime;
-        RuntimeMonitor::HRClock solveTime;
+        RuntimeMonitor::HRClock _startTime;
+        RuntimeMonitor::HRClock _initTime;
+        RuntimeMonitor::HRClock _solveTime;
         bool completed;
 
     public:
@@ -74,34 +74,37 @@ class SearchStatistics
         propagations(0),
         completed(true)
        {
-          startTime = RuntimeMonitor::now();
+          _initTime = _startTime = RuntimeMonitor::now();
        }
        void incrFailures()  noexcept {failures += 1; extern int __nbf; __nbf = failures; }
        void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
-       void incrSolutions() noexcept {solutions += 1;}
-       void setIntVars(int count) noexcept {intVariables = count;};
-       void setBoolVars(int count) noexcept {boolVariables = count;};
-       void setPropagators(int count) noexcept {propagators = count;};
-       void setInitTime() noexcept {initTime = RuntimeMonitor::now();}
-       void setSolveTime() noexcept {solveTime = RuntimeMonitor::now();};
-       void setPropagations(unsigned long long p) noexcept {propagations = p;};
-       void setNotCompleted() noexcept { completed = false;};
-       bool getCompleted() noexcept {return completed;};
-       int getSolutions() const noexcept {return solutions;};
-       RuntimeMonitor::HRClock getStartTime() const noexcept {return startTime;};
-       friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss)
-       {
-            return os
-                << std::fixed << std::setprecision(3)
-                << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss.startTime, ss.initTime) << std::endl
-                << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss.initTime, ss.solveTime) << std::endl
-                << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
-                << "%%%mzn-stat: variables=" << ss.intVariables + ss.boolVariables << std::endl
-                << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
-                << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
-                << "%%%mzn-stat: nodes=" << ss.nodes + ss.failures << std::endl
-                << "%%%mzn-stat: failures=" << ss.failures << std::endl
-                << "%%%mzn-stat-end" << std::endl;
+   void incrSolutions() noexcept {solutions += 1;}
+       void setIntVars(int count) noexcept {intVariables = count;}
+       void setBoolVars(int count) noexcept {boolVariables = count;}
+       void setPropagators(int count) noexcept {propagators = count;}
+       void setInitTime() noexcept { _initTime = RuntimeMonitor::now();}
+       void setSolveTime() noexcept { _solveTime = RuntimeMonitor::now();}
+       void setPropagations(unsigned long long p) noexcept {propagations = p;}
+       void setNotCompleted() noexcept { completed = false;}
+       bool getCompleted() noexcept {return completed;}
+       int getSolutions() const noexcept {return solutions;}
+       int numberOfSolutions() const noexcept {return solutions;}
+       int numberOfFailures() const noexcept { return failures;}
+       int numberOfNodes() const noexcept { return nodes;}
+       RuntimeMonitor::HRClock getStartTime() const noexcept {return _startTime;}
+       RuntimeMonitor::HRClock startTime() const noexcept {return _startTime;}
+       friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
+          return os
+             << std::fixed << std::setprecision(3)
+             << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss._startTime, ss._initTime) << std::endl
+             << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss._initTime, ss._solveTime) << std::endl
+             << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
+             << "%%%mzn-stat: variables=" << ss.intVariables + ss.boolVariables << std::endl
+             << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
+             << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
+             << "%%%mzn-stat: nodes=" << ss.nodes + ss.failures << std::endl
+             << "%%%mzn-stat: failures=" << ss.failures << std::endl
+             << "%%%mzn-stat-end" << std::endl;
        }
     };
 

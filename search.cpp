@@ -27,9 +27,10 @@ SearchStatistics DFSearch::solve(SearchStatistics& stats,Limit limit)
                                try {
                                   dfs(stats,limit);
                                } catch(StopException& sx) {
-                                   stats.setNotCompleted();
+                                  stats.setNotCompleted();
                                }
                             }));
+    stats.setSolveTime();
     return stats;
 }
 

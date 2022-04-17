@@ -60,6 +60,7 @@ int main(int argc,char* argv[])
                       });
 
     auto stat = search.optimize(obj);
+    stat.setPropagations(cp->getPropagations());
     cout << stat << endl;    
     cp.dealloc();
     return 0;
