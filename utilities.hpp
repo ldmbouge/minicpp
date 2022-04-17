@@ -10,7 +10,9 @@
 #include <set>
 #include <map>
 #include <string.h>
+#if defined(__x86_64__)
 #include <xmmintrin.h>
+#endif
 #include <cmath>
 #include <ostream>
 
