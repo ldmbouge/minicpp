@@ -148,7 +148,7 @@ public:
          return _buf[0];
       }
    }
-   class iterator: public std::iterator<std::input_iterator_tag,int,short> {
+   class iterator { //: public std::iterator<std::input_iterator_tag,int,short> {
       union {
          int*    _data;
          int     _val;
@@ -158,6 +158,11 @@ public:
       iterator(int* d,long num = 0) : _data(d),_num(num),_single(false) {}
       iterator(int v,long num = 0) : _val(v),_num(num),_single(true) {}
    public:
+      using iterator_category = std::forward_iterator_tag;
+      using value_type = int;
+      using difference_type = int;
+      using pointer = int*;
+      using reference = int&;
       iterator& operator++()   { _num = _num + 1; return *this;}
       iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
       iterator& operator--()   { _num = _num - 1; return *this;}
@@ -345,7 +350,7 @@ public:
          _buf[i] = ~_buf[i];
       return *this;
    }
-   class iterator : public std::iterator<std::input_iterator_tag,short,short> {
+   class iterator { // : public std::iterator<std::input_iterator_tag,short,short> {
       unsigned long long* _t;
       const short _nbw;
       short _cwi;    // current word index
@@ -357,6 +362,11 @@ public:
       }
       iterator(unsigned long long* t,short nbw) : _t(t),_nbw(nbw),_cwi(nbw),_cw(0) {} // end constructor
    public:
+      using iterator_category = std::forward_iterator_tag;
+      using value_type = short;
+      using difference_type = short;
+      using pointer = short*;
+      using reference = short&;
       iterator& operator++()  noexcept {
          unsigned long long test = _cw & -_cw;  // only leaves LSB at 1
          _cw ^= test;                  // clear LSB

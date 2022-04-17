@@ -51,7 +51,10 @@ Vec all(CPSolver::Ptr cp,const set<int>& over,const Vec& t)
    return res;
 }
 
-MDDRelax* newMDDRelax(CPSolver::Ptr cp, int relaxSize, int maxRebootDistance, int maxSplitIter, int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact, int maxPriority) {
+MDDRelax* newMDDRelax(CPSolver::Ptr cp, int relaxSize, int maxRebootDistance, int maxSplitIter,
+                      int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy,
+                      bool useApproxEquiv, bool approxThenExact, int maxPriority)
+{
   auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance, relaxSize * maxSplitIter, approxThenExact, maxPriority);
   if (useApproxEquiv) {
     mdd->getSpec().useApproximateEquivalence();
@@ -62,9 +65,15 @@ MDDRelax* newMDDRelax(CPSolver::Ptr cp, int relaxSize, int maxRebootDistance, in
 }
 
 template <typename F>
-void addMDDConstraint(CPSolver::Ptr cp, MDDRelax* mdd, int relaxSize, int maxRebootDistance, int maxSplitIter, int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact, int maxConstraintPriority, bool sameMDD, F&& constraint) {
+void addMDDConstraint(CPSolver::Ptr cp, MDDRelax* mdd, int relaxSize, int maxRebootDistance,
+                      int maxSplitIter, int nodePriorityAggregateStrategy,
+                      int candidatePriorityAggregateStrategy, bool useApproxEquiv,
+                      bool approxThenExact, int maxConstraintPriority, bool sameMDD, F&& constraint)
+{
   if (!sameMDD) {
-    mdd = newMDDRelax(cp, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, maxConstraintPriority);
+    mdd = newMDDRelax(cp, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy,
+                      candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact,
+                      maxConstraintPriority);
   }
   constraint(mdd);
   if (!sameMDD) {
@@ -72,17 +81,29 @@ void addMDDConstraint(CPSolver::Ptr cp, MDDRelax* mdd, int relaxSize, int maxReb
   }
 }
 
-void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance, int maxSplitIter, int numVariables, int maxDomainSize, int nodePriority, int nodePriorityAggregateStrategy, int candidatePriority, int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact, int approxEquivMode, int equivalenceThreshold, int constraintType1Priority, int constraintType2Priority, int constraintType3Priority, int constraintType4Priority, int constraintType5Priority, bool sameMDD, int randSeed)
+void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance,
+                int maxSplitIter, int numVariables, int maxDomainSize, int nodePriority,
+                int nodePriorityAggregateStrategy, int candidatePriority,
+                int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact,
+                int approxEquivMode, int equivalenceThreshold, int constraintType1Priority,
+                int constraintType2Priority, int constraintType3Priority, int constraintType4Priority,
+                int constraintType5Priority, bool sameMDD, int randSeed)
 {
-  int maxConstraintPriority = std::max(std::max(std::max(constraintType1Priority, constraintType2Priority), std::max(constraintType3Priority, constraintType4Priority)), constraintType5Priority);
+  int maxConstraintPriority = std::max(std::max(std::max(constraintType1Priority, constraintType2Priority),
+                                                std::max(constraintType3Priority, constraintType4Priority)),
+                                       constraintType5Priority);
 
   int sizes[5] =         {  3,   6, 10,  8, 20};
   int frequencies[5] =   {  1,   6,  1,  5,  7};
   int offsets[5] =       {  0,   0,  0,  0,  0};
   int inclusionProb[5] = {100, 100, 30, 60, 20};
-  int priorities[5] = {constraintType1Priority, constraintType2Priority, constraintType3Priority, constraintType4Priority, constraintType5Priority};
+  int priorities[5] = {constraintType1Priority, constraintType2Priority,
+                       constraintType3Priority, constraintType4Priority, constraintType5Priority};
 
-  srand(randSeed);
+  std::mt19937 rnG(randSeed);
+  std::uniform_real_distribution<double> sampler(0,100);
+
+  //srand(randSeed);
 
   std::vector< std::vector< set<int> > > cliquesByConstraint;
 
@@ -98,7 +119,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
         do {
           clique = set<int>();
           for (int varIndex = firstVar; varIndex <= lastVar; varIndex++) { 
-            if (rand()%100 < inclusionProb[constraintIndex]) clique.insert(varIndex);
+             if (sampler(rnG) < inclusionProb[constraintIndex]) clique.insert(varIndex);
           }
         } while (clique.size() <= 1 || (int)clique.size() > maxDomainSize);
         if ((int)clique.size() > largestCliqueSize) largestCliqueSize = clique.size();
@@ -230,16 +251,16 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
                          firstSolTime = RuntimeMonitor::cputime();
                          firstSolNumFail = stat.numberOfFailures();
                        }
-if (cnt % 10000 == 0)
-std::cout << cnt << "\n";
-    });
+                       if (cnt % 10000 == 0)
+                          std::cout << cnt << "\n";
+  });
 
 
   stat = search.solve([&stat](const SearchStatistics& stats) {
                               stat = stats;
                               //return stats.numberOfNodes() > 1;
-                              return stats.numberOfSolutions() > INT_MAX;
-                              //return stats.numberOfSolutions() > 0;
+                              //return stats.numberOfSolutions() > INT_MAX;
+                              return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   

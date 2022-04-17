@@ -12,8 +12,9 @@
 #include <set>
 #include <map>
 #include <string.h>
+#if defined(__x86_64__)
 #include <xmmintrin.h>
-
+#endif
 
 class ValueSet {
    char* _data;
@@ -156,7 +157,7 @@ public:
       for(short i=0;i < _mxw;i++)
          _t[i] &= ps._t[i];
    }
-   class iterator : public std::iterator<std::input_iterator_tag,short,short> {
+   class iterator { // : public std::iterator<std::input_iterator_tag,short,short> {
       long long* _t;
       const short _nbw;
       short _cwi;    // current word index
@@ -168,6 +169,11 @@ public:
       }
       iterator(long long* t,short nbw) : _t(t),_nbw(nbw),_cwi(nbw),_cw(0) {} // end constructor
    public:
+      using iterator_category = std::forward_iterator_tag;
+      using value_type = short;
+      using difference_type = short;
+      using pointer = short*;
+      using reference = short&;
       iterator& operator++()  noexcept {
          long long test = _cw & -_cw;  // only leaves LSB at 1
          _cw ^= test;                  // clear LSB

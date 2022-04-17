@@ -54,11 +54,16 @@ public:
       return *this;
    }
    int size() const noexcept { return _sz;}  
-   class iterator: public std::iterator<std::input_iterator_tag,MDDNode*,long> {
+   class iterator  { //: public std::iterator<std::input_iterator_tag,MDDNode*,long> {
       MDDNode** _data;
       long       _idx;
       iterator(MDDNode** d,long idx=0) : _data(d),_idx(idx) {}
    public:
+      using iterator_category = std::input_iterator_tag;
+      using value_type = MDDNode*;
+      using difference_type = long;
+      using pointer = MDDNode**;
+      using reference = MDDNode*&;
       iterator& operator++()   { _idx = _idx + 1; return *this;}
       iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
       iterator& operator--()   { _idx = _idx - 1; return *this;}
