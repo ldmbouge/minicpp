@@ -34,14 +34,15 @@ namespace Factory {
          r[p[i]] = clo(i,p[i]);
       return r;
    }
-   inline TransDesc tDesc(std::initializer_list<int> sp,lambdaTrans f) {
-      return std::make_pair<std::set<int>,lambdaTrans>(sp,std::move(f));
+   inline TransDesc tDesc(std::initializer_list<int> sp1,std::initializer_list<int> sp2,lambdaTrans f) {
+      return std::make_tuple<std::set<int>,std::set<int>,lambdaTrans>(sp1,sp2,std::move(f));
    }
    void amongMDD(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub,std::set<int> rawValues);
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);
-   void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);
-   void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues);
-   void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars);
+   void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 3, int constraintPriority = 0);
+   void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 3, int constraintPriority = 0);
+   void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars, int constraintPriority = 0);
+   void allDiffMDD2(MDDSpec& mdd, const Factory::Veci& vars, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 4, int constraintPriority = 0);
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
    void seqMDD2(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
    void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);

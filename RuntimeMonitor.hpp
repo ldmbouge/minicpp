@@ -19,6 +19,7 @@ namespace RuntimeMonitor {
    HRClock now();
    double elapsedSince(HRClock then);
    long milli(HRClock s,HRClock e);
+   unsigned long elapsedSinceMicro(HRClock then);
 }
 
 #endif /* RuntimeMonitor_hpp */

@@ -15,8 +15,9 @@
 
 #include "trail.hpp"
 #include <assert.h>
+#include <iostream>
 
-#define TSIZE (1 << 20)
+#define TSIZE (1 << 28)
 
 Trailer::Trailer()
     : _magic(-1)
@@ -35,6 +36,7 @@ Trailer::~Trailer()
 
 void Trailer::resize()
 {
+   std::cout  << "Trailer::resize to: " << (_bsz << 1) << "\n";
    char* nb = (char*)realloc(_block,_bsz << 1);
    if (nb != _block) {
       std::stack<Entry*> ns;
@@ -82,13 +84,14 @@ void Trailer::pop()
    long node;
    std::tie(to,mem,node) = _tops.top();
    _tops.pop();
-    while (_trail.size() != to) {
-       Entry* entry = _trail.top();
-       entry->restore();
-       _trail.pop();
-       entry->Entry::~Entry();
-    }
-    _btop = mem;
+   while (_trail.size() != to) {
+      assert(_trail.size() >= to);
+      Entry* entry = _trail.top();
+      entry->restore();
+      _trail.pop();
+      entry->Entry::~Entry();
+   }
+   _btop = mem;
 }
 
 void Trailer::clear()

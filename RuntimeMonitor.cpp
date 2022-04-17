@@ -32,5 +32,11 @@ namespace RuntimeMonitor {
       auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(e - s);
       return diff.count();
    }
+   unsigned long elapsedSinceMicro(HRClock then)
+   {
+      auto now  = std::chrono::high_resolution_clock::now();
+      auto diff = std::chrono::duration_cast<std::chrono::microseconds>(now - then);
+      return diff.count();
+   }
 }
 

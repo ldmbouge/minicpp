@@ -65,7 +65,7 @@ class MDDNode {
       TrailEntry(U* ptr) : _at(ptr),_old(*ptr) {}
       void restore() noexcept { *_at = _old;}
    };
-   MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& state,int dsz,unsigned layer, int id);
+   MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& down,const MDDState& up,const MDDState& combined,int dsz,unsigned layer, int id);
 public:
    const auto& getParents()  noexcept  { return parents;}
    const auto& getChildren() noexcept  { return children;}
@@ -83,17 +83,27 @@ public:
    void unhook(MDDEdge::Ptr arc);
    void unhookChild(MDDEdge::Ptr arc);
    void hookChild(MDDEdge::Ptr arc,Storage::Ptr mem);
-   MDDState* key()            { return &state;}
-   void setState(const MDDState& s,Storage::Ptr mem) {
+   MDDState* key()            { return &downState;}
+   void setDownState(const MDDState& s,Storage::Ptr mem) {
       auto t = children.getTrail();
-      state.assign(s,t,mem);
+      downState.assign(s,t,mem);
+   }
+   void setUpState(const MDDState& s,Storage::Ptr mem) {
+      auto t = children.getTrail();
+      upState.assign(s,t,mem);
+   }
+   void setCombinedState(const MDDState& s,Storage::Ptr mem) {
+      auto t = children.getTrail();
+      combinedState.assign(s,t,mem);
    }
    void setLayer(unsigned short l,Storage::Ptr mem) {
       auto t = children.getTrail();
       t->trail(new (t) TrailEntry<unsigned short>(&layer));
       layer = l;
    }
-   const MDDState& getState() const noexcept { return state;}
+   const MDDState& getDownState() const noexcept { return downState;}
+   const MDDState& getUpState() const noexcept { return upState;}
+   const MDDState& getCombinedState() const noexcept { return combinedState;}
    unsigned short getLayer() const noexcept  { return layer;}
    int getPosition() const noexcept          { return pos;}
    int getId() const noexcept                { return _nid;}
@@ -130,10 +140,13 @@ public:
       _fq = _bq = nullptr;
    }
    void print(std::ostream& os) {
-      os << "[" << layer << "," << pos <<  "] " << state;
+      os << "[" << layer << "," << pos <<  "] " << downState;
    }
-   bool parentsChanged() const noexcept { return parents.changed();}
+   bool parentsChanged() const noexcept { return _parentsChanged;}
+   void resetParentsChanged() { _parentsChanged = false; }
+   void setParentsChanged() { _parentsChanged = true; }
    bool childrenChanged() const noexcept { return children.changed();}
+   void resetChildrenChanged() { _childrenChanged = false; }
    mutable Location<MDDNode*> *_fq, *_bq;
 private:   
    int pos;
@@ -143,8 +156,12 @@ private:
    unsigned short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;
-   MDDState state;                     // Direct state embedding
+   MDDState downState;                     // Direct state embedding
+   MDDState upState;                     // Direct state embedding
+   MDDState combinedState;                     // Direct state embedding
    friend class MDDEdge;
+   trail<bool> _parentsChanged;
+   trail<bool> _childrenChanged;
 };
 
 
@@ -158,7 +175,7 @@ class MDDNodeFactory {
 public:
    MDDNodeFactory(Storage::Ptr mem,Trailer::Ptr trailer,int width);
    void setWidth(int w) noexcept { _width = w;}
-   MDDNode* makeNode(const MDDState& ms,int domSize,int layer,int layerSize);
+   MDDNode* makeNode(const MDDState& down,const MDDState& up,const MDDState& combined,int domSize,int layer,int layerSize);
    void returnNode(MDDNode* n);
    int nbNodes() const noexcept { return _lastID;}
    int peakNodes() const noexcept { return _peakID;}

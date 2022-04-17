@@ -213,10 +213,10 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int nbCon)
 
   auto end = RuntimeMonitor::cputime();
   extern int iterMDD;
-  extern int nbCS;
+  extern int nbCSDown;
   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
   std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
-  std::cout << "#CS  : " << nbCS << '\n';
+  std::cout << "#CS  : " << nbCSDown << '\n';
   std::cout << "#L   : " << mdd->nbLayers() << '\n'; 
 
   std::cout << "{ \"JSON\" :\n {";
@@ -226,7 +226,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int nbCon)
   std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
   std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
   std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
-  std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
+  std::cout << "\t\t\"nbCSDown\" : " << nbCSDown << ",\n";
   std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
   std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
   std::cout << "\t}\n";  
