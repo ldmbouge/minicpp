@@ -148,7 +148,7 @@ public:
          return _buf[0];
       }
    }
-   class iterator: public std::iterator<std::input_iterator_tag,int,short> {
+   class iterator { //: public std::iterator<std::input_iterator_tag,int,short> {
       union {
          int*    _data;
          int     _val;
@@ -158,6 +158,11 @@ public:
       iterator(int* d,long num = 0) : _data(d),_num(num),_single(false) {}
       iterator(int v,long num = 0) : _val(v),_num(num),_single(true) {}
    public:
+      using iterator_category = std::forward_iterator_tag;
+      using value_type = int;
+      using difference_type = int;
+      using pointer = int*;
+      using reference = int&;
       iterator& operator++()   { _num = _num + 1; return *this;}
       iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
       iterator& operator--()   { _num = _num - 1; return *this;}
@@ -185,16 +190,17 @@ enum RelaxWith { External, MinFun,MaxFun};
 
 class MDDState;
 class MDDNode;
-typedef std::function<bool(const MDDState&)> NodeFun;
-typedef std::function<bool(const MDDState&,const MDDState&,const var<int>::Ptr&,int,bool)> ArcFun;
-typedef std::function<void(const MDDState&)> FixFun;
-typedef std::function<void(MDDState&)> UpdateFun;
-typedef std::function<void(MDDState&,const MDDState&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
+typedef std::function<bool(const MDDState&,const MDDState&,const MDDState&)> NodeFun;
+typedef std::function<bool(const MDDState&,const MDDState&,const MDDState&,const MDDState&,const var<int>::Ptr&,int,bool)> ArcFun;
+typedef std::function<void(const MDDState&,const MDDState&,const MDDState&)> FixFun;
+typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> UpdateFun;
+typedef std::function<void(MDDState&,const MDDState&,const MDDState&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
-typedef std::function<int(const MDDState&,const MDDState&,const var<int>::Ptr&,int)> EquivalenceValueFun;
-typedef std::pair<std::set<int>,lambdaTrans> TransDesc;
+typedef std::function<double(const MDDState&, void*, int)> CandidateFun;
+typedef std::function<int(const MDDState&,const MDDState&)> EquivalenceValueFun;
+typedef std::tuple<std::set<int>,std::set<int>,lambdaTrans> TransDesc;
 typedef std::map<int,TransDesc> lambdaMap;
 class MDDStateSpec;
 
@@ -215,11 +221,15 @@ class MDDConstraintDescriptor {
    Factory::Veci          _vars;
    ValueSet               _vset;
    const char*            _name;
-   std::vector<int> _properties;
-   std::vector<int> _tid; // transition ids
-   std::vector<int> _rid; // relaxation ids
+   std::vector<int> _propertiesDown;
+   std::vector<int> _propertiesUp;
+   std::vector<int> _propertiesCombined;
+   std::vector<int> _downTId; // transition ids
+   std::vector<int> _upTId; // up transition ids
+   std::vector<int> _downRId; // relaxation ids
+   std::vector<int> _upRId; // relaxation ids
+   std::vector<int> _uid; // update ids
    std::vector<int> _sid; // similarity ids
-   std::vector<int> _utid; // up transition ids
 public:
    typedef handle_ptr<MDDConstraintDescriptor> Ptr;
    template <class Vec>
@@ -232,24 +242,43 @@ public:
          _vars[i] = vars[i];
    }
    MDDConstraintDescriptor(const MDDConstraintDescriptor&);
-   void addProperty(int p) {_properties.push_back(p);}
-   bool ownsProperty(int p) const {
-      auto at = std::find(_properties.begin(),_properties.end(),p);
-      return at != _properties.end();
+   void addDownProperty(int p) {_propertiesDown.push_back(p);}
+   void addUpProperty(int p) {_propertiesUp.push_back(p);}
+   void addCombinedProperty(int p) {_propertiesCombined.push_back(p);}
+   bool ownsDownProperty(int p) const {
+      auto at = std::find(_propertiesDown.begin(),_propertiesDown.end(),p);
+      return at != _propertiesDown.end();
    }
-   const std::vector<int>& transitions() const  { return _tid;}
-   const std::vector<int>& relaxations() const  { return _rid;}
+   bool ownsUpProperty(int p) const {
+      auto at = std::find(_propertiesUp.begin(),_propertiesUp.end(),p);
+      return at != _propertiesUp.end();
+   }
+   bool ownsCombinedProperty(int p) const {
+      auto at = std::find(_propertiesCombined.begin(),_propertiesCombined.end(),p);
+      return at != _propertiesCombined.end();
+   }
+   const std::vector<int>& downTransitions() const  { return _downTId;}
+   const std::vector<int>& upTransitions() const  { return _upTId;}
+   const std::vector<int>& downRelaxations() const  { return _downRId;}
+   const std::vector<int>& upRelaxations() const  { return _upRId;}
    const std::vector<int>& similarities() const { return _sid;}
-   const std::vector<int>& uptrans() const      { return _utid;}
-   void registerDown(int t)       { _tid.emplace_back(t);}
-   void registerUp(int t)         { _utid.emplace_back(t);}
-   void registerRelaxation(int t) { _rid.emplace_back(t);}
+   void registerDown(int t)       { _downTId.emplace_back(t);}
+   void registerUp(int t)         { _upTId.emplace_back(t);}
+   void registerDownRelaxation(int t) { _downRId.emplace_back(t);}
+   void registerUpRelaxation(int t) { _upRId.emplace_back(t);}
+   void registerUpdate(int t)       { _uid.emplace_back(t);}
    void registerSimilarity(int t) { _sid.emplace_back(t);}
    bool inScope(const var<int>::Ptr& x) const noexcept { return _vset.member(x->getId());}
    const Factory::Veci& vars() const { return _vars;}
-   std::vector<int>& properties() { return _properties;}
-   auto begin() { return _properties.begin();}
-   auto end()   { return _properties.end();}
+   std::vector<int>& propertiesDown() { return _propertiesDown;}
+   std::vector<int>& propertiesUp() { return _propertiesUp;}
+   std::vector<int>& propertiesCombined() { return _propertiesCombined;}
+   auto downBegin() { return _propertiesDown.begin();}
+   auto downEnd()   { return _propertiesDown.end();}
+   auto upBegin() { return _propertiesUp.begin();}
+   auto upEnd()   { return _propertiesUp.end();}
+   auto combinedBegin() { return _propertiesCombined.begin();}
+   auto combinedEnd()   { return _propertiesCombined.end();}
    void print (std::ostream& os) const { os << _name << "(" << _vars << ")\n";}
 };
 
@@ -321,7 +350,7 @@ public:
          _buf[i] = ~_buf[i];
       return *this;
    }
-   class iterator : public std::iterator<std::input_iterator_tag,short,short> {
+   class iterator { // : public std::iterator<std::input_iterator_tag,short,short> {
       unsigned long long* _t;
       const short _nbw;
       short _cwi;    // current word index
@@ -333,6 +362,11 @@ public:
       }
       iterator(unsigned long long* t,short nbw) : _t(t),_nbw(nbw),_cwi(nbw),_cw(0) {} // end constructor
    public:
+      using iterator_category = std::forward_iterator_tag;
+      using value_type = short;
+      using difference_type = short;
+      using pointer = short*;
+      using reference = short&;
       iterator& operator++()  noexcept {
          unsigned long long test = _cw & -_cw;  // only leaves LSB at 1
          _cw ^= test;                  // clear LSB
@@ -407,24 +441,23 @@ protected:
    unsigned short _bsz; // size in bytes.
    enum Direction _dir;
    enum RelaxWith _rw;
-   std::set<int>  _sp;
-   int            _downTId;
-   int            _upTId;
+   std::set<int>  _sp1; // if property is down or combined, sp1 is down antecedent.  if property is up, sp1 is up
+   std::set<int>  _sp2; // if property is down or up, sp2 is combined antecedent.  if property is combined, sp2 is up
+   int            _tid;
    int            _rid;
    virtual size_t storageSize() const = 0;  // given in _bits_
    virtual size_t setOffset(size_t bitOffset) = 0;
 public:
    typedef handle_ptr<MDDProperty> Ptr;
    MDDProperty(const MDDProperty& p)
-      : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw),_downTId(p._downTId),_upTId(p._upTId),_rid(p._rid) {}
+      : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw),_tid(p._tid),_rid(p._rid) {}
    MDDProperty(MDDProperty&& p)
-      : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw),_downTId(p._downTId),_upTId(p._upTId),_rid(p._rid) {}
+      : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw),_tid(p._tid),_rid(p._rid) {}
    MDDProperty(short id,unsigned short ofs,unsigned short bsz,enum RelaxWith rw = External)
-      : _id(id),_ofs(ofs),_bsz(bsz),_dir(None),_rw(rw) { _downTId = _upTId = -1;_rid = -1;}
+      : _id(id),_ofs(ofs),_bsz(bsz),_dir(None),_rw(rw) { _tid = -1;_rid = -1;}
    MDDProperty& operator=(const MDDProperty& p) {
       _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_dir = p._dir;_rw = p._rw;
-      _downTId = p._downTId;
-      _upTId = p._upTId;
+      _tid = p._tid;
       _rid = p._rid;
       return *this;
    }
@@ -432,15 +465,14 @@ public:
    unsigned short startOfs() const noexcept { return _ofs;}
    unsigned short endOfs() const noexcept   { return _ofs + _bsz;}
    size_t size() const noexcept { return storageSize() >> 3;}
-   void setDirection(enum Direction d) { _dir = (enum Direction)(_dir | d);}
-   void setAntecedents(const std::set<int>& sp) { _sp = sp;}
-   void setDown(int tid) noexcept  { _downTId = tid;}
-   void setUp(int tid) noexcept    { _upTId = tid;}
+   void setDirection(enum Direction d) { _dir = d;}
+   void setAntecedents(const std::set<int>& sp,const std::set<int>& sp2) { _sp1 = sp; _sp2 = sp2; }
+   void setTransition(int tid) noexcept { _tid = tid;}
    void setRelax(int rid) noexcept { _rid = rid;}
-   int getDown() const noexcept    { return _downTId;}
-   int getUp() const noexcept      { return _upTId;}
+   int getTransition() const noexcept    { return _tid;}
    int getRelax() const noexcept   { return _rid;}
-   const std::set<int>& antecedents() const { return _sp;}
+   const std::set<int>& antecedents() const { return _sp1;}
+   const std::set<int>& antecedentsSecondary() const { return _sp2;}
    bool isUp() const noexcept    { assert(_dir != None);return (_dir & Up) == Up;}
    bool isDown() const noexcept  { assert(_dir != None);return (_dir & Down) == Down;}
    virtual void init(char* buf) const noexcept              {}
@@ -448,7 +480,7 @@ public:
    virtual void minWith(char* buf,char* other) const noexcept {}
    virtual void maxWith(char* buf,char* other) const noexcept {}
    virtual bool diff(char* buf,char* other) const noexcept  { return false;}
-   int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
+   virtual int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
    int getByte(char* buf) const noexcept                    { return buf[_ofs];}
    MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
    template <class ET>
@@ -536,6 +568,7 @@ public:
       : MDDProperty(id,ofs,1,rw),_init(init),_max(max) {}
    void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
    int get(char* buf) const  noexcept override       { return buf[_ofs];}
+   int getInt(char* buf) const  noexcept override       { return buf[_ofs];}
    void set(char* buf,int v) noexcept override       { buf[_ofs] = (char)v;}
    void stream(char* buf,std::ostream& os) const override { int v = buf[_ofs];os << v;}
    void minWith(char* buf,char* other) const noexcept override {
@@ -683,31 +716,95 @@ public:
 
 class MDDStateSpec {
 protected:
-   MDDProperty** _attrs;
-   MDDPropSet*   _omap;
-   short _mxp;
-   short _nbp;
-   size_t _lsz;
+   MDDProperty** _attrsDown;
+   MDDProperty** _attrsUp;
+   MDDProperty** _attrsCombined;
+   MDDPropSet*   _omapDown;
+   MDDPropSet*   _omapUp;
+   MDDPropSet*   _omapDownToCombined;
+   MDDPropSet*   _omapUpToCombined;
+   MDDPropSet*   _omapCombinedToDown;
+   MDDPropSet*   _omapCombinedToUp;
+   short _mxpDown;
+   short _mxpUp;
+   short _mxpCombined;
+   short _nbpDown;
+   short _nbpUp;
+   short _nbpCombined;
+   size_t _lszDown;
+   size_t _lszUp;
+   size_t _lszCombined;
    enum RelaxWith _relax;
-   void addProperty(MDDProperty::Ptr p) noexcept;
+   void addDownProperty(MDDProperty::Ptr p) noexcept;
+   void addUpProperty(MDDProperty::Ptr p) noexcept;
+   void addCombinedProperty(MDDProperty::Ptr p) noexcept;
 public:
    MDDStateSpec();
-   const auto layoutSize() const noexcept { return _lsz;}
+   const auto layoutSizeDown() const noexcept { return _lszDown;}
+   const auto layoutSizeUp() const noexcept { return _lszUp;}
+   const auto layoutSizeCombined() const noexcept { return _lszCombined;}
+   const auto layoutSize(enum Direction dir) const noexcept {
+      switch (dir) {
+         case Down: return layoutSizeDown(); break;
+         case Up: return layoutSizeUp(); break;
+         case Bi: return layoutSizeCombined(); break;
+         default: return (size_t)-1; break;
+      }
+   }
    void layout();
    virtual void varOrder() {}
-   auto size() const noexcept { return _nbp;}
-   bool isUp(int p) const noexcept { return _attrs[p]->isUp();}
-   bool isDown(int p) const noexcept { return _attrs[p]->isDown();}
-   unsigned short startOfs(int p) const noexcept { return _attrs[p]->startOfs();}
-   unsigned short endOfs(int p) const noexcept { return _attrs[p]->endOfs();}
-   virtual int addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External);
-   virtual int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External);
-   virtual int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External);
-   std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
-   std::vector<int> addStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
-   void outputSet(MDDPropSet& out,const MDDPropSet& in) const noexcept {
-      for(auto p : in)
-         out.unionWith(_omap[p]);
+   auto sizeDown() const noexcept { return _nbpDown;}
+   auto sizeUp() const noexcept { return _nbpUp;}
+   auto sizeCombined() const noexcept { return _nbpCombined;}
+   auto size(enum Direction dir) const noexcept {
+      switch (dir) {
+         case Down: return sizeDown(); break;
+         case Up: return sizeUp(); break;
+         case Bi: return sizeCombined(); break;
+         default: return (short)-1; break;
+      }
+   }
+   unsigned short startOfsDown(int p) const noexcept { return _attrsDown[p]->startOfs();}
+   unsigned short startOfsUp(int p) const noexcept { return _attrsUp[p]->startOfs();}
+   unsigned short endOfsDown(int p) const noexcept { return _attrsDown[p]->endOfs();}
+   unsigned short endOfsUp(int p) const noexcept { return _attrsUp[p]->endOfs();}
+   virtual int addDownState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addUpState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addCombinedState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addDownBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addUpBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addCombinedBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addDownSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addUpSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addCombinedSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
+   std::vector<int> addDownStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
+   std::vector<int> addUpStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
+   std::vector<int> addCombinedStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
+   std::vector<int> addDownStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
+   std::vector<int> addUpStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
+   std::vector<int> addCombinedStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
+   void outputSetDown(MDDPropSet& out,const MDDPropSet& down,const MDDPropSet& combined) const noexcept {
+      for(auto p : down)
+         out.unionWith(_omapDown[p]);
+      if (_nbpCombined)
+         for(auto p : combined)
+            out.unionWith(_omapCombinedToDown[p]);
+   }
+   void outputSetUp(MDDPropSet& out,const MDDPropSet& up,const MDDPropSet& combined) const noexcept {
+      for(auto p : up)
+         out.unionWith(_omapUp[p]);
+      if (_nbpCombined)
+         for(auto p : combined) {
+            out.unionWith(_omapCombinedToUp[p]);
+      }
+   }
+   void outputSetCombinedFromDown(MDDPropSet& out,const MDDPropSet& down) const noexcept {
+      for(auto p : down)
+         out.unionWith(_omapDownToCombined[p]);
+   }
+   void outputSetCombinedFromUp(MDDPropSet& out,const MDDPropSet& up) const noexcept {
+      for(auto p : up)
+         out.unionWith(_omapUpToCombined[p]);
    }
    friend class MDDState;
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s);
@@ -728,9 +825,9 @@ class MDDState {  // An actual state of an MDDNode.
    char*              _mem;
    mutable int       _hash;
    mutable float      _rip;
+   enum Direction     _dir;
    struct Flags {
-      bool          _drelax:1;
-      bool          _urelax:1;
+      bool           _relax:1;
       mutable bool  _ripped:1;
       mutable bool  _hashed:1;
       bool          _unused:4;
@@ -755,40 +852,45 @@ class MDDState {  // An actual state of an MDDNode.
       }
    };
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_rip(0),_flags({false,false,false,false}) {}
-   MDDState(MDDStateSpec* s,char* b,bool relax=false) 
-      : _spec(s),_mem(b),_hash(0),_rip(0),_flags({relax,false,false,false}) {
+   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_rip(0),_dir(Down),_flags({false,false,false,false}) {}
+   MDDState(MDDStateSpec* s,char* b,enum Direction dir,bool relax=false) 
+      : _spec(s),_mem(b),_hash(0),_rip(0),_dir(dir),_flags({relax,false,false,false}) {
    }
-   MDDState(MDDStateSpec* s,char* b,int hash,float rip,const Flags& f) 
-      : _spec(s),_mem(b),_hash(hash),_rip(rip),_flags(f) {}
+   MDDState(MDDStateSpec* s,char* b,int hash,float rip,enum Direction dir,const Flags& f) 
+      : _spec(s),_mem(b),_hash(hash),_rip(rip),_dir(dir),_flags(f) {}
    MDDState(const MDDState& s) 
-      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_rip(s._rip),_flags(s._flags) {}
+      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_rip(s._rip),_dir(s._dir),_flags(s._flags) {}
    void initState(const MDDState& s) {
       _spec = s._spec;
       _mem = s._mem;
       _flags = s._flags;
       _rip  = s._rip;
       _hash = s._hash;
+      _dir = s._dir;
    }
    void copyState(const MDDState& s) {
-      auto sz = _spec->layoutSize();
+      auto sz = _spec->layoutSize(_dir);
       memcpy(_mem,s._mem,sz);
       _flags = s._flags;
       _rip = s._rip;
       _hash = s._hash;
+      _dir = s._dir;
    }
    MDDStateSpec* getSpec() const noexcept { return _spec;}
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
-      auto sz = _spec->layoutSize();
-      char* block = (char*)mem->allocate(sizeof(char)* sz);
-      t->trail(new (t) TrailState(this,block,(int)sz));
+      auto sz = _spec->layoutSize(_dir);
+      if (sz) {
+         char* block = (char*)mem->allocate(sizeof(char)* sz);
+         t->trail(new (t) TrailState(this,block,(int)sz));
+         assert(_mem != nullptr);
+         memcpy(_mem,s._mem,sz);
+      }
       assert(_spec == s._spec || _spec == nullptr);
-      assert(_mem != nullptr);
       _spec = s._spec;
-      memcpy(_mem,s._mem,sz);
       _flags = s._flags;
       _rip = s._rip;
       _hash = s._hash;
+      _dir = s._dir;
       return *this;
    }
    MDDState& operator=(MDDState&& s) {
@@ -798,37 +900,51 @@ public:
       _rip  = std::move(s._rip);
       _hash = std::move(s._hash);
       _flags = std::move(s._flags);
+      _dir = std::move(s._dir);
       return *this;
    }
    template <class Allocator>
    MDDState clone(Allocator pool) const {
-      char* block = _spec ? new (pool) char[_spec->layoutSize()] : nullptr;
-      if (_spec)  memcpy(block,_mem,_spec->layoutSize());
-      return MDDState(_spec,block,_hash,_rip,_flags);
+      char* block = (_spec && _spec->layoutSize(_dir)) ? new (pool) char[_spec->layoutSize(_dir)] : nullptr;
+      if (_spec && _spec->layoutSize(_dir))  memcpy(block,_mem,_spec->layoutSize(_dir));
+      return MDDState(_spec,block,_hash,_rip,_dir,_flags);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
-   auto layoutSize() const noexcept    { return _spec->layoutSize();}
-   void init(int i) const  noexcept    { _spec->_attrs[i]->init(_mem);}
-   int operator[](int i) const noexcept   { return _spec->_attrs[i]->getInt(_mem);}  // to _read_ a state property (fast)
-   int at(int i) const noexcept           { return _spec->_attrs[i]->get(_mem);}
-   int byte(int i) const noexcept         { return _spec->_attrs[i]->getByte(_mem);}
-   MDDBSValue getBS(int i) const noexcept { return _spec->_attrs[i]->getBS(_mem);}
-   MDDSWin<short> getSW(int i) const noexcept { return _spec->_attrs[i]->getSW<short>(_mem);}
-   void set(int i,int val) noexcept       { _spec->_attrs[i]->set(_mem,val);}  // to set a state property (slow)
-   void setInt(int i,int val) noexcept    { _spec->_attrs[i]->setInt(_mem,val);}  // to set a state property (fast)
-   void setByte(int i,int val) noexcept   { _spec->_attrs[i]->setByte(_mem,val);}  // to set a state property (fast)
-   MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return _spec->_attrs[i]->setBS(_mem,val);} // (fast)
-   void setProp(int i,const MDDState& from) noexcept { _spec->_attrs[i]->setProp(_mem,from._mem);} // (fast)
-   int byteSize(int i) const noexcept   { return (int)_spec->_attrs[i]->size();}
+   auto layoutSize() const noexcept    { return _spec->layoutSize(_dir);}
+   MDDProperty* propAt(int i) const noexcept {
+      switch (_dir) {
+         case Down: return _spec->_attrsDown[i]; break;
+         case Up: return _spec->_attrsUp[i]; break;
+         case Bi: return _spec->_attrsCombined[i]; break;
+         default: return nullptr; break;
+      }
+   }
+   int nbp() const noexcept {
+      switch (_dir) {
+         case Down: return _spec->_nbpDown; break;
+         case Up: return _spec->_nbpUp; break;
+         case Bi: return _spec->_nbpCombined; break;
+         default: return -1; break;
+      }
+   }
+   void init(int i) const  noexcept    { propAt(i)->init(_mem); }
+   int operator[](int i) const noexcept   { return propAt(i)->getInt(_mem); } // to _read_ a state property (fast)
+   int at(int i) const noexcept { return propAt(i)->get(_mem); }
+   int byte(int i) const noexcept { return propAt(i)->getByte(_mem); }
+   MDDBSValue getBS(int i) const noexcept { return propAt(i)->getBS(_mem); }
+   MDDSWin<short> getSW(int i) const noexcept { return propAt(i)->getSW<short>(_mem); }
+   void set(int i,int val) noexcept { propAt(i)->set(_mem,val); } // to set a state property (slow)
+   void setInt(int i,int val) noexcept { propAt(i)->setInt(_mem,val); } // to set a state property (fast)
+   void setByte(int i,int val) noexcept { propAt(i)->setByte(_mem,val); } // to set a state property (fast)
+   MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return propAt(i)->setBS(_mem,val); } // (fast)
+   void setProp(int i,const MDDState& from) noexcept { propAt(i)->setProp(_mem,from._mem); } // (fast)
+   int byteSize(int i) const noexcept { return propAt(i)->size(); }
    void copyZone(const Zone& z,const MDDState& in) noexcept { z.copy(_mem,in._mem);}
-   void clear() noexcept                { _flags._ripped = false;_flags._drelax = false;_flags._urelax = false;_flags._hashed=false;}
-   bool isRelaxed() const noexcept          { return _flags._drelax || _flags._urelax;}
-   bool isUpRelaxed() const noexcept        { return _flags._urelax;}
-   bool isDownRelaxed() const noexcept      { return _flags._drelax;}
-   void relaxDown(bool r = true) noexcept   { _flags._drelax = r;}
-   void relaxUp(bool r = true) noexcept     { _flags._urelax = r;}
-   void minWith(int i,const MDDState& s) const noexcept { _spec->_attrs[i]->minWith(_mem,s._mem);}
-   void maxWith(int i,const MDDState& s) const noexcept { _spec->_attrs[i]->maxWith(_mem,s._mem);}
+   void clear() noexcept                { _flags._ripped = false;_flags._relax = false;;_flags._hashed=false;}
+   bool isRelaxed() const noexcept          { return _flags._relax;}
+   void relax(bool r = true) noexcept   { _flags._relax = r;}
+   void minWith(int i,const MDDState& s) const noexcept { propAt(i)->minWith(_mem,s._mem);}
+   void maxWith(int i,const MDDState& s) const noexcept { propAt(i)->maxWith(_mem,s._mem);}
    float inner(const MDDState& s) const {
       if (_flags._ripped) 
          return _rip;
@@ -853,40 +969,45 @@ public:
       return computeHash();
    }
    int computeHash() const noexcept {
-      //xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize());
-      long long hv = XXH3_64bits(_mem,_spec->layoutSize());
+      //xxh::hash_t<64> hv = xxh::xxhash<64>(_mem,_spec->layoutSize(_dir));
+      long long hv = XXH3_64bits(_mem,_spec->layoutSize(_dir));
       _flags._hashed = true;
       return _hash = (int)hv;
    }
    bool stateEqual(const MDDState& b) const noexcept {
-      return memcmp(_mem,b._mem,_spec->layoutSize())==0;
+      return memcmp(_mem,b._mem,_spec->layoutSize(_dir))==0;
    }
    bool stateChange(const MDDState& b) const noexcept {
-      return memcmp(_mem,b._mem,_spec->layoutSize())!=0;
+      return memcmp(_mem,b._mem,_spec->layoutSize(_dir))!=0;
    }
    bool operator==(const MDDState& s) const {
       return (!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
-         _flags._drelax == s._flags._drelax &&
-         memcmp(_mem,s._mem,_spec->layoutSize())==0;
+         _flags._relax == s._flags._relax &&
+         memcmp(_mem,s._mem,_spec->layoutSize(_dir))==0;
    }
    bool operator!=(const MDDState& s) const {
       return ! this->operator==(s);
    }
    void diffWith(const MDDState& s,MDDPropSet& into) const {
-      for(int p=0;p < _spec->_nbp;++p)
-         if (s._spec->_attrs[p]->diff(_mem,s._mem))
+      for(int p=0;p < nbp();++p)
+         if (s.propAt(p)->diff(_mem,s._mem))
+            into.setProp(p);
+   }
+   void diffWith(const MDDPropSet& ps,const MDDState& s,MDDPropSet& into) const {
+      for(auto p : ps)
+         if (s.propAt(p)->diff(_mem,s._mem))
             into.setProp(p);
    }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
-      os << (s._flags._drelax ? 'T' : 'F')
-         << (s._flags._urelax ? 'T' : 'F') << '[';
-      for(int p=0;p < s._spec->_nbp;p++) {
-         auto atr = s._spec->_attrs[p];
+      os << (s._flags._relax ? 'T' : 'F') << '[';
+      for(int p=0;p < s.nbp();p++) {
+         auto atr = s.propAt(p);
          atr->stream(s._mem,os);
          os << ' ';
       }
       return os << ']';
    }
+   friend class MDDSpec;
 };
 
 class MDDSpec;
@@ -896,16 +1017,19 @@ class LayerDesc {
    std::vector<Zone> _dzones;
    std::vector<Zone> _uzones;
    MDDPropSet         _dprop;
+   MDDPropSet         _uprop;
 public:
-   LayerDesc(int nbp) : _dprop(nbp) {}
+   LayerDesc(int nbpDown, int nbpUp) : _dprop(nbpDown), _uprop(nbpUp) {}
    const std::vector<int>& downProps() const { return _dframe;}
    const std::vector<int>& upProps() const { return _uframe;}
-   bool hasProp(int p) const noexcept { return _dprop.hasProp(p);}
+   bool hasDownProp(int p) const noexcept { return _dprop.hasProp(p);}
+   bool hasUpProp(int p) const noexcept { return _uprop.hasProp(p);}
    void addDownProp(int p) { _dframe.emplace_back(p);}
    void addUpProp(int p)   { _uframe.emplace_back(p);}
    void zoningUp(const MDDSpec& spec);
    void zoningDown(const MDDSpec& spec);
    void zoning(const MDDSpec& spec);
+
    void frameDown(MDDState& out,const MDDState& in) {
       for(const auto& z : _dzones)
          out.copyZone(z,in);
@@ -924,74 +1048,125 @@ public:
    MDDConstraintDescriptor::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
       return constraints.emplace_back(new MDDConstraintDescriptor(v,n));
    }
-   int addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External) override;
-   int addState(MDDConstraintDescriptor::Ptr d,int init,size_t max,enum RelaxWith rw=External) {
-      return addState(d,init,(int)max,rw);
+   int addDownState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External, int constraintPriority = 0) override;
+   int addUpState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External, int constraintPriority = 0) override;
+   int addCombinedState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External, int constraintPriority = 0) override;
+   int addDownState(MDDConstraintDescriptor::Ptr d,int init,size_t max,enum RelaxWith rw=External, int constraintPriority = 0) {
+      return addDownState(d,init,(int)max,rw,constraintPriority);
    }
-   int addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External) override;
-   int addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External) override;
-   void nodeExist(const MDDConstraintDescriptor::Ptr d,NodeFun a);
+   int addDownBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0) override;
+   int addUpBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0) override;
+   int addCombinedBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0) override;
+   int addDownSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0) override;
+   int addUpSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0) override;
+   int addCombinedSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0) override;
+   void nodeExist(NodeFun a);
    void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
-   void updateNode(UpdateFun update);
-   void transitionDown(int,std::set<int> sp,lambdaTrans);
-   void transitionUp(int,std::set<int> sp,lambdaTrans);
-   template <typename LR> void addRelaxation(int p,LR r) {
-      _xRelax.insert(p);
-      int rid = (int)_relaxation.size();
+   void updateNode(int,std::set<int> spDown,std::set<int> spUp,UpdateFun update);
+   void transitionDown(int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
+   void transitionUp(int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
+   template <typename LR> void addRelaxationDown(int p,LR r) {
+      _xDownRelax.insert(p);
+      int rid = (int)_downRelaxation.size();
       for(auto& cd : constraints)
-         if (cd->ownsProperty(p)) {
-            cd->registerRelaxation(rid);
-            _attrs[p]->setRelax(rid);
+         if (cd->ownsDownProperty(p)) {
+            cd->registerDownRelaxation(rid);
+            _attrsDown[p]->setRelax(rid);
             break;
          }  
-      _relaxation.emplace_back(std::move(r));
+      _downRelaxation.emplace_back(std::move(r));
+   }
+   template <typename LR> void addRelaxationUp(int p,LR r) {
+      _xUpRelax.insert(p);
+      int rid = (int)_upRelaxation.size();
+      for(auto& cd : constraints)
+         if (cd->ownsUpProperty(p)) {
+            cd->registerUpRelaxation(rid);
+            _attrsUp[p]->setRelax(rid);
+            break;
+         }  
+      _upRelaxation.emplace_back(std::move(r));
    }
    void addSimilarity(int,lambdaSim);
    void transitionDown(const lambdaMap& map);
    void transitionUp(const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
-   void splitOnLargest(SplitFun onSplit);
-   void equivalenceClassValue(EquivalenceValueFun equivalenceValue);
+   void splitOnLargest(SplitFun onSplit, int constraintPriority = 0);
+   void candidateByLargest(CandidateFun candidateSplit, int constraintPriority = 0);
+   void equivalenceClassValue(EquivalenceValueFun equivalenceValue, int constraintPriority = 0);
    int numEquivalenceClasses();
    // Internal methods.
    void varOrder() override;
-   bool consistent(const MDDState& a,const var<int>::Ptr& x) const noexcept;
-   void updateNode(MDDState& a) const noexcept;
-   bool exist(const MDDState& a,const MDDState& c,const var<int>::Ptr& x,int v,bool up) const noexcept;
-   void copyStateUp(MDDState& result,const MDDState& source);
-   void createState(MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
-   void createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
-   void updateState(MDDState& target,const MDDState& source,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
-   void relaxation(MDDState& a,const MDDState& b) const noexcept;
-   void relaxationIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
+   bool consistent(const MDDState& down,const MDDState& up,const MDDState& combined) const noexcept;
+   void updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept;
+   bool exist(const MDDState& parentDown,const MDDState& parentCombined,const MDDState& childUp,const MDDState& childCombined,const var<int>::Ptr& x,int v,bool up) const noexcept;
+   void fullStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
+   void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
+   void fullStateUp(MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   void incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   void relaxationDown(MDDState& a,const MDDState& b) const noexcept;
+   void relaxationUp(MDDState& a,const MDDState& b) const noexcept;
+   void relaxationDownIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
+   void relaxationUpIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
    MDDState rootState(Storage::Ptr& mem);
-   bool usesUp() const { return _uptrans.size() > 0;}
+   MDDState sinkState(Storage::Ptr& mem);
+   bool usesUp() const { return _upTransition.size() > 0;}
+   bool usesCombined() const { return _updates.size() > 0;}
    void useApproximateEquivalence() { _approximateSplitting = true;}
    bool approxEquivalence() const { return _approximateSplitting;}
+   void setNodePriorityAggregateStrategy(int aggregateStrategy) { _nodePriorityAggregateStrategy = aggregateStrategy; }
+   void setCandidatePriorityAggregateStrategy(int aggregateStrategy) { _candidatePriorityAggregateStrategy = aggregateStrategy; }
+   int nodePriorityAggregateStrategy() const { return _nodePriorityAggregateStrategy; }
+   void setConstraintPrioritySize(int size) {
+      _onSplitByPriorities.reserve(size);
+      _equivalenceValueByPriorities.reserve(size);
+      _propertiesByPriorities.reserve(size);
+      for (int i = 0; i <= size; i++) {
+         _onSplitByPriorities.push_back(std::vector<SplitFun>());
+         _candidateSplitByPriorities.push_back(std::vector<CandidateFun>());
+         _equivalenceValueByPriorities.push_back(std::vector<EquivalenceValueFun>());
+         _propertiesByPriorities.push_back(std::vector<int>());
+      }
+   }
    template <class Container> void append(const Container& y) {
       for(auto e : y)
          if(std::find(x.cbegin(),x.cend(),e) == x.cend())
             x.push_back(e);
-      std::cout << "size of x: " << x.size() << std::endl;
+      //std::cout << "size of x: " << x.size() << std::endl;
    }
    template <class Container> void addGlobal(const Container& y) {
       for(auto e : y)
          if(std::find(z.cbegin(),z.cend(),e) == z.cend())
             z.push_back(e);
-      std::cout << "size of z: " << z.size() << std::endl;
+      //std::cout << "size of z: " << z.size() << std::endl;
    }
-   void reachedFixpoint(const MDDState& sink);
-   double splitPriority(const MDDNode& n) const;
-   int equivalenceValue(const MDDState& parent, const MDDState& child, const var<int>::Ptr& var, int value);
-   bool hasSplitRule() const noexcept { return _onSplit.size() > 0;}
+   void reachedFixpoint(const MDDState& sinkDown,const MDDState& sinkUp,const MDDState& sinkCombined);
+   double nodeSplitPriority(const MDDNode& n, int constraintPriority) const;
+   double candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int constraintPriority) const;
+   std::vector<int> equivalenceValue(const MDDState& downState, const MDDState& upState, int constraintPriority = 0);
+   bool hasNodeSplitRule() const noexcept { return _onSplit.size() > 0;}
+   bool hasCandidateSplitRule() const noexcept { return _candidateSplit.size() > 0;}
+   bool equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int constraintPriority) const;
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    std::vector<var<int>::Ptr>& getGlobals() { return z;}
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
-      os << "Spec(";
-      for(int p=0;p < s._nbp;p++) {
-         s._attrs[p]->print(os);
+      os << "Spec Down(";
+      for(int p=0;p < s._nbpDown;p++) {
+         s._attrsDown[p]->print(os);
+         os << ' ';
+      }
+      os << ')';
+      os << "\nSpec Up(";
+      for(int p=0;p < s._nbpUp;p++) {
+         s._attrsUp[p]->print(os);
+         os << ' ';
+      }
+      os << ')';
+      os << "\nSpec Combined(";
+      for(int p=0;p < s._nbpCombined;p++) {
+         s._attrsCombined[p]->print(os);
          os << ' ';
       }
       os << ')';
@@ -1003,24 +1178,32 @@ private:
    std::vector<var<int>::Ptr> x;
    std::vector<var<int>::Ptr> z;
    std::vector<std::pair<MDDConstraintDescriptor::Ptr,ArcFun>>  _exists;
-   std::vector<std::pair<MDDConstraintDescriptor::Ptr,NodeFun>> _nodeExists;
+   std::vector<NodeFun> _nodeExists;
    std::vector<UpdateFun>      _updates; // this is a list of function that applies to every node. 
-   std::vector<lambdaTrans> _transition;
-   std::vector<lambdaRelax> _relaxation;
+   std::vector<lambdaTrans> _downTransition;
+   std::vector<lambdaRelax> _downRelaxation;
+   std::vector<lambdaRelax> _upRelaxation;
    std::vector<lambdaSim>   _similarity;
-   std::vector<lambdaTrans> _uptrans;
+   std::vector<lambdaTrans> _upTransition;
    std::vector<FixFun>        _onFix;
    std::vector<SplitFun>      _onSplit;
+   std::vector<CandidateFun>      _candidateSplit;
    std::vector<EquivalenceValueFun> _equivalenceValue;
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;
    std::vector<LayerDesc> _frameLayer;
    std::vector<std::vector<ArcFun>> _scopedExists; // 1st dimension indexed by varId. 2nd dimension is a list.
-   std::vector<std::vector<NodeFun>> _scopedConsistent;
-   std::vector<Zone> _upZones;
-   std::set<int>      _xRelax;
-   std::vector<int>   _dRelax;
+   std::set<int>      _xDownRelax;
+   std::set<int>      _xUpRelax;
+   std::vector<int>   _defaultDownRelax;
+   std::vector<int>   _defaultUpRelax;
    bool _approximateSplitting;
+   int _nodePriorityAggregateStrategy;
+   int _candidatePriorityAggregateStrategy;
+   std::vector<std::vector<SplitFun>> _onSplitByPriorities;
+   std::vector<std::vector<CandidateFun>> _candidateSplitByPriorities;
+   std::vector<std::vector<EquivalenceValueFun>> _equivalenceValueByPriorities;
+   std::vector<std::vector<int>> _propertiesByPriorities;
 };
 
 inline int rotl(int n,const int d) {
@@ -1032,11 +1215,12 @@ class MDDStateFactory {
    struct MDDSKey {
       const MDDState*   _s0;
       const MDDState*   _s1;
-      const int         _v;
+      const int          _l;
+      const int          _v;
    };
    struct EQtoMDDSKey {
       bool operator()(const MDDSKey& a,const MDDSKey& b) const noexcept {
-         return a._v == b._v && a._s0->operator==(*b._s0) && a._s1->operator==(*b._s1);
+         return a._l == b._l && a._v == b._v && a._s0->operator==(*b._s0) && a._s1->operator==(*b._s1);
       }
    };
    struct HashMDDSKey {
@@ -1046,17 +1230,20 @@ class MDDStateFactory {
    };
    MDDSpec*      _mddspec;
    Pool::Ptr         _mem;
-   Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _hash;
+   Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _downHash;
+   Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _upHash;
    PoolMark         _mark;
    bool          _enabled;
 public:
    MDDStateFactory(MDDSpec* spec);
-   void createState(MDDState& result,const MDDState& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
-   bool splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val);
+   void createStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
+   void createStateUp(MDDState& result,const MDDState& childUp,const MDDState& childCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals);
+   void splitState(MDDState*& result,MDDNode* n,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,int val);
    void clear();
    void enable() noexcept { _enabled = true;}
    void disable() noexcept { _enabled = false;}
-   unsigned size() const noexcept { return _hash.size();}
+   unsigned sizeDown() const noexcept { return _downHash.size();}
+   unsigned sizeUp() const noexcept { return _upHash.size();}
 };
 
 

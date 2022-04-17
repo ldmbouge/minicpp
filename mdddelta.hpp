@@ -41,35 +41,45 @@ class MDDDelta {
    MDDStateDelta**   _t;
    int             _csz;
    MDDStateDelta _empty;
+   enum Direction  _dir;
    void adaptDelta();
 public:
-   MDDDelta(MDDNodeFactory* nf,int nb)
+   MDDDelta(MDDNodeFactory* nf,int nb,enum Direction dir)
       : _nf(nf),_pool(new Pool),
         _t(nullptr),_csz(0),
-        _empty(nullptr,new long long[propNbWords(nb)],nb)
+        _empty(nullptr,new long long[propNbWords(nb)],nb),
+        _dir(dir)
    {
    }
    void clear() {
       _pool->clear();
       memset(_t,'\0',sizeof(MDDStateDelta*)*_csz);
    }
+   const MDDState* stateFrom(MDDNode* n) {
+      switch (_dir) {
+         case Down: return &(n->getDownState()); break;
+         case Up: return &(n->getUpState()); break;
+         case Bi: return &(n->getCombinedState()); break;
+         default: return nullptr; break;
+      }
+   }
    MDDStateDelta* makeDelta(MDDNode* n) {
       if (_nf->peakNodes() > _csz) adaptDelta();
       auto& entry = _t[n->getId()];
       if (entry == nullptr) {
-         MDDStateSpec* spec =  n->getState().getSpec();
-         entry = new (_pool) MDDStateDelta(spec,new (_pool) long long[propNbWords(spec->size())],spec->size());
+         MDDStateSpec* spec =  stateFrom(n)->getSpec();
+         entry = new (_pool) MDDStateDelta(spec,new (_pool) long long[propNbWords(spec->size(_dir))],spec->size(_dir));
       } else
          entry->clear();
       return entry;
    }
    void setDelta(MDDNode* n,const MDDState& ns) {      
       auto entry = makeDelta(n);
-      n->getState().diffWith(ns,*entry);
+      stateFrom(n)->diffWith(ns,*entry);
    }
-   void setDelta(MDDNode* n,const MDDPropSet& ps) {
+   void setDelta(MDDNode* n,const MDDState& ns,const MDDPropSet& ps) {
       auto entry = makeDelta(n);
-      entry->add(ps);
+      stateFrom(n)->diffWith(ps,ns,*entry);
    }
    const MDDStateDelta& getDelta(MDDNode* n) {
       if (n->getId() >= _csz)

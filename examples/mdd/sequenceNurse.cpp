@@ -216,10 +216,10 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
   auto end = RuntimeMonitor::cputime();
   extern int iterMDD;
-  extern int nbCS;
+  extern int nbCSDown;
   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
   std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
-  std::cout << "#CS  : " << nbCS << '\n';
+  std::cout << "#CS  : " << nbCSDown << '\n';
   std::cout << "#L   : " << mdd->nbLayers() << '\n'; 
 }
 

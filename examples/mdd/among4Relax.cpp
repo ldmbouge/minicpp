@@ -99,7 +99,7 @@ int main(int argc,char* argv[])
       std::cout << stat << std::endl;
       auto end = RuntimeMonitor::now();
       extern int iterMDD;
-      extern int nbCS;
+      extern int nbCSDown;
       std::cout << "{ \"JSON\" :\n {";
       std::cout << "\n\t\"among4Relax\" :" << "{\n";
       std::cout << "\t\t\"m\" : " << 1 << ",\n";
@@ -107,7 +107,7 @@ int main(int argc,char* argv[])
       std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
       std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
       std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
-      std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
+      std::cout << "\t\t\"nbCSDown\" : " << nbCSDown << ",\n";
       std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
       std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
       std::cout << "\t}\n";  

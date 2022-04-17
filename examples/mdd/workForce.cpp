@@ -333,14 +333,14 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    cout << stat << endl;
 
    extern int iterMDD;
-   extern int nbCS;
+   extern int nbCSDown;
    extern int splitCS,pruneCS,potEXEC;
    extern int nbCONSCall,nbCONSFail;
    extern int nbAECall,nbAEFail;
-   extern int hitCS;
+   extern int hitCSDown;
 
    std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
-   std::cout << "#CS  : " << nbCS << '\n';
+   std::cout << "#CS  : " << nbCSDown << '\n';
    std::cout << "#L   : " << theOne->nbLayers() << '\n';
 
    extern int splitCS,pruneCS,potEXEC;
@@ -353,12 +353,12 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
    std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
    std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
-   std::cout << "\t\t\"nbCS\" : " << nbCS << ",\n";
+   std::cout << "\t\t\"nbCSDown\" : " << nbCSDown << ",\n";
    std::cout << "\t\t\"layers\" : " << theOne->nbLayers() << ",\n";
    std::cout << "\t\t\"splitCS\" : " << splitCS << ",\n";
    std::cout << "\t\t\"pruneCS\" : " << pruneCS << ",\n";
    std::cout << "\t\t\"pot\" : " << potEXEC << ",\n";  
-   std::cout << "\t\t\"hitCS\" : " << hitCS << ",\n";  
+   std::cout << "\t\t\"hitCS\" : " << hitCSDown << ",\n";  
    std::cout << "\t\t\"time\" : " << dur << "\n";
    std::cout << "\t}\n";  
    std::cout << "}\n}";

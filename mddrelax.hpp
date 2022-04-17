@@ -54,11 +54,16 @@ public:
       return *this;
    }
    int size() const noexcept { return _sz;}  
-   class iterator: public std::iterator<std::input_iterator_tag,MDDNode*,long> {
+   class iterator  { //: public std::iterator<std::input_iterator_tag,MDDNode*,long> {
       MDDNode** _data;
       long       _idx;
       iterator(MDDNode** d,long idx=0) : _data(d),_idx(idx) {}
    public:
+      using iterator_category = std::input_iterator_tag;
+      using value_type = MDDNode*;
+      using difference_type = long;
+      using pointer = MDDNode**;
+      using reference = MDDNode*&;
       iterator& operator++()   { _idx = _idx + 1; return *this;}
       iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
       iterator& operator--()   { _idx = _idx - 1; return *this;}
@@ -165,6 +170,8 @@ class MDDRelax : public MDD {
    const unsigned int _width;
    const int    _maxDistance;
    const int    _maxSplitIter;
+   const bool _approxThenExact;
+   const int _maxConstraintPriority;
    ::trail<unsigned> _lowest;
    std::mt19937 _rnG;
    std::uniform_real_distribution<double> _sampler;
@@ -174,20 +181,29 @@ class MDDRelax : public MDD {
    MDDFQueue*             _fwd;
    MDDBQueue*             _bwd;
    Pool::Ptr             _pool;
-   MDDDelta*            _delta;
+   MDDDelta*        _deltaDown;
+   MDDDelta*          _deltaUp;
+   MDDDelta*    _deltaCombined;
    int _domMin,_domMax;
    const MDDState& pickReference(int layer,int layerSize);
    void checkGraph();
-   bool fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l);
-   bool incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNode* n,int l);
+   void fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l);
+   void incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNode* n,int l);
+   void fullStateUp(MDDState& ms,MDDState& cs,MDDNode* n,int l);
+   void incrStateUp(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNode* n,int l);
+   void fullStateCombined(MDDState& state,MDDNode* n);
+   void incrStateCombined(const MDDPropSet& out,MDDState& state,MDDNode* n);
+   bool updateCombinedIncrDown(MDDNode* n);
+   bool updateCombinedIncrUp(MDDNode* n);
    void aggregateValueSet(MDDNode* n);
    bool refreshNodeIncr(MDDNode* n,int l);
-   bool refreshNodeFull(MDDNode* n,int l);
    bool trimVariable(int i);
    bool filterKids(MDDNode* n,int l);
+   bool filterParents(MDDNode* n,int l);
    int splitNode(MDDNode* n,int l,MDDSplitter& splitter);
-   int splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter);
-   void splitLayers(); // delta is essentially an out argument. 
+   int splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority);
+   int splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constraintPriority);
+   void splitLayers(bool approximate, int constraintPriority = 0); // delta is essentially an out argument. 
    int delState(MDDNode* state,int l); // return lowest layer where a deletion occurred.
    bool processNodeUp(MDDNode* n,int i); // i is the layer number
    void computeUp();
@@ -197,7 +213,7 @@ class MDDRelax : public MDD {
    void refreshAll() override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:
-   MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),int maxSplitIter = 5);
+   MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),int maxSplitIter = 5,bool approxThenExact = true, int maxConstraintPriority = 0);
    void buildDiagram() override;
    void buildNextLayer(unsigned int i) override;
    void propagate() override;

@@ -149,121 +149,122 @@ namespace Factory {
     mdd.append(vars);    
     auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
     
-    const int xMin = mdd.addState(d,0,-INT_MAX,MinFun);
-    const int xMax = mdd.addState(d,0,INT_MAX,MaxFun);
-    const int yMin = mdd.addState(d,0,-INT_MAX,MinFun);
-    const int yMax = mdd.addState(d,0,INT_MAX,MaxFun);
-    const int yMinUp = mdd.addState(d,0,-INT_MAX,MinFun);
-    const int yMaxUp = mdd.addState(d,0,INT_MAX,MaxFun);
-    const int zMinUp = mdd.addState(d,0,-INT_MAX,MinFun);
-    const int zMaxUp = mdd.addState(d,0,INT_MAX,MaxFun);
-    const int N = mdd.addState(d,0,2,MinFun); // layer index 
+    const int xMin = mdd.addDownState(d,0,-INT_MAX,MinFun);
+    const int xMax = mdd.addDownState(d,0,INT_MAX,MaxFun);
+    const int yMin = mdd.addDownState(d,0,-INT_MAX,MinFun);
+    const int yMax = mdd.addDownState(d,0,INT_MAX,MaxFun);
+    const int yMinUp = mdd.addUpState(d,0,-INT_MAX,MinFun);
+    const int yMaxUp = mdd.addUpState(d,0,INT_MAX,MaxFun);
+    const int zMinUp = mdd.addUpState(d,0,-INT_MAX,MinFun);
+    const int zMaxUp = mdd.addUpState(d,0,INT_MAX,MaxFun);
+    const int N = mdd.addDownState(d,0,2,MinFun); // layer index 
+    const int NUp = mdd.addUpState(d,0,2,MinFun); // layer index 
 
-    mdd.transitionDown(xMin,{xMin,N},[xMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==0) {	  
+    mdd.transitionDown(xMin,{xMin,N},{},[xMin,N] (auto& out,const auto& pDown,const auto& pCombined,auto x, const auto& val,bool up) {
+	if (pDown.at(N)==0) {	  
 	  int min=INT_MAX;
 	  for(int v : val)
 	    if (v<min) { min = v; }
 	  out.set(xMin,min);
 	}
 	else {
-	  out.set(xMin,p.at(xMin));
+	  out.set(xMin,pDown.at(xMin));
 	}	  
       });
-    mdd.transitionDown(xMax,{xMax,N},[xMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==0) {	    
+    mdd.transitionDown(xMax,{xMax,N},{},[xMax,N] (auto& out,const auto& pDown,const auto& pCombined,auto x, const auto& val,bool up) {
+	if (pDown.at(N)==0) {	    
 	  int max=-INT_MAX;
 	  for(int v : val)
 	    if (v>max) { max = v; }
 	  out.set(xMax,max);
 	}
 	else {
-	  out.set(xMax, p.at(xMax));
+	  out.set(xMax, pDown.at(xMax));
 	}
       });
-    mdd.transitionDown(yMin,{yMin,N},[yMin,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==1) {	  
+    mdd.transitionDown(yMin,{yMin,N},{},[yMin,N] (auto& out,const auto& pDown,const auto& pCombined,auto x, const auto& val,bool up) {
+	if (pDown.at(N)==1) {	  
 	  int min=INT_MAX;
 	  for(int v : val)
 	    if (v<min) { min = v; }
 	  out.set(yMin,min);
 	}
 	else {
-	  out.set(yMin, p.at(yMin));
+	  out.set(yMin, pDown.at(yMin));
 	}
       });
-    mdd.transitionDown(yMax,{yMax,N},[yMax,N] (auto& out,const auto& p,auto x, const auto& val,bool up) {
-	if (p.at(N)==1) {
+    mdd.transitionDown(yMax,{yMax,N},{},[yMax,N] (auto& out,const auto& pDown,const auto& pCombined,auto x, const auto& val,bool up) {
+	if (pDown.at(N)==1) {
 	  int max=-INT_MAX;
 	  for(int v : val)
 	    if (v>max) { max = v; }
 	  out.set(yMax,max);
 	}
 	else {
-	  out.set(yMax, p.at(yMax));
+	  out.set(yMax, pDown.at(yMax));
 	}
       });
 
-    mdd.transitionDown(N,{N},[N](auto& out,const auto& p,auto x,const auto& val,bool up) { out.set(N,p.at(N)+1); });
+    mdd.transitionDown(N,{N},{},[N](auto& out,const auto& pDown,const auto& pCombined,auto x,const auto& val,bool up) { out.set(N,pDown.at(N)+1); });
+    mdd.transitionUp(NUp,{NUp},{},[NUp](auto& out,const auto& cUp,const auto& cCombined,auto x,const auto& val,bool up) { out.set(NUp,cUp.at(NUp)+1); });
 
-    mdd.transitionDown(yMinUp,{yMinUp,N},[yMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-	if (c.at(N)==2) {
+    mdd.transitionUp(yMinUp,{yMinUp,NUp},{},[yMinUp,NUp] (auto& out,const auto& cUp,const auto& cCombined,auto x, const auto& val,bool up) {
+	if (cUp.at(NUp)==1) {
 	  int min=INT_MAX;
 	  for(int v : val)
 	    if (v<min) { min = v; }
 	  out.set(yMinUp,min);
 	}
 	else {
-	  out.set(yMinUp, c.at(yMinUp));
+	  out.set(yMinUp, cUp.at(yMinUp));
 	}
       });
-    mdd.transitionUp(yMaxUp,{yMaxUp,N},[yMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-	if (c.at(N)==2) {
+    mdd.transitionUp(yMaxUp,{yMaxUp,NUp},{},[yMaxUp,NUp] (auto& out,const auto& cUp,const auto& cCombined,auto x, const auto& val,bool up) {
+	if (cUp.at(NUp)==1) {
 	  int max=-INT_MAX;
 	  for(int v : val)
 	    if (v>max) { max = v; }
 	  out.set(yMaxUp,max);
 	}
 	else {
-	  out.set(yMaxUp, c.at(yMaxUp));
+	  out.set(yMaxUp, cUp.at(yMaxUp));
 	}
       });
-    mdd.transitionDown(zMinUp,{zMinUp,N},[zMinUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-	if (c.at(N)==3) {
+    mdd.transitionUp(zMinUp,{zMinUp,N},{},[zMinUp,N] (auto& out,const auto& cUp,const auto& cCombined,auto x, const auto& val,bool up) {
+	if (cUp.at(N)==0) {
 	  int min=INT_MAX;
 	  for(int v : val)
 	    if (v<min) { min = v; }
 	  out.set(zMinUp,min);
 	}
 	else {
-	  out.set(zMinUp, c.at(zMinUp));
+	  out.set(zMinUp, cUp.at(zMinUp));
 	}
       });
-    mdd.transitionUp(zMaxUp,{zMaxUp,N},[zMaxUp,N] (auto& out,const auto& c,auto x, const auto& val,bool up) {
-	if (c.at(N)==3) {
+    mdd.transitionUp(zMaxUp,{zMaxUp,N},{},[zMaxUp,N] (auto& out,const auto& cUp,const auto& cCombined,auto x, const auto& val,bool up) {
+	if (cUp.at(N)==0) {
 	  int max=-INT_MAX;
 	  for(int v : val)
 	    if (v>max) { max = v; }
 	  out.set(zMaxUp,max);
 	}
 	else {
-	  out.set(zMaxUp, c.at(zMaxUp));
+	  out.set(zMaxUp, cUp.at(zMaxUp));
 	}
       });
 
-    mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val, bool up) -> bool {
-	
-	if (p.at(N)==2) {
+    mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val, bool up) -> bool {
+	if (pDown.at(N)==2) {
 	  // filter z variable
 	  interval v1(0,INT_MAX);
 	  interval v3(0,INT_MAX);
-	  // interval X(p.at(xMin), p.at(xMax));
-	  // interval Y(p.at(yMin), p.at(yMax));
+	  // interval X(pDown.at(xMin), pDown.at(xMax));
+	  // interval Y(pDown.at(yMin), pDown.at(yMax));
 	  // interval Z(val, val);
 	  // return propagateExpression(&X, &Y, &Z, v1, v3);
 
-	  for (int x=p.at(xMin); x<=p.at(xMax); x++) {
-	    for (int y=p.at(yMin); y<=p.at(yMax); y++) {
+	  for (int x=pDown.at(xMin); x<=pDown.at(xMax); x++) {
+	    for (int y=pDown.at(yMin); y<=pDown.at(yMax); y++) {
 	      if ((x != y) && (val == std::abs(x-y)))
 		return true;
 	    }
@@ -272,32 +273,32 @@ namespace Factory {
 	}
 	else {
 	  if (up) {
-	    if (p.at(N) == 0) {
+	    if (pDown.at(N) == 0) {
 	      // filter x variable
 	      interval v1(0,INT_MAX);
 	      interval v3(0,INT_MAX);
 	      // interval X(val, val);
-	      // interval Y(p.at(yMinUp), p.at(yMaxUp));
-	      // interval Z(p.at(zMinUp), p.at(zMaxUp));
+	      // interval Y(cUp.at(yMinUp), cUp.at(yMaxUp));
+	      // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
 	      // return propagateExpression(&X, &Y, &Z, v1, v3);
-	      for (int y=p.at(yMinUp); y<=p.at(yMaxUp); y++) {
-		for (int z=p.at(zMinUp); z<=p.at(zMaxUp); z++) {
+	      for (int y=cUp.at(yMinUp); y<=cUp.at(yMaxUp); y++) {
+		for (int z=cUp.at(zMinUp); z<=cUp.at(zMaxUp); z++) {
 		  if ((y != val) && (z == std::abs(val-y)))
 		    return true;
 		}
 	      }
 	      return false;
 	    }
-	    else if (p.at(N) == 1) {
+	    else if (pDown.at(N) == 1) {
 	      // filter y variable
 	      interval v1(0,INT_MAX);
 	      interval v3(0,INT_MAX);
-	      // interval X(p.at(xMin), p.at(xMax));
+	      // interval X(pDown.at(xMin), pDown.at(xMax));
 	      // interval Y(val, val);
-	      // interval Z(p.at(zMinUp), p.at(zMaxUp));
+	      // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
 	      // return propagateExpression(&X, &Y, &Z, v1, v3);
-	      for (int x=p.at(xMin); x<=p.at(xMax); x++) {
-		for (int z=p.at(zMinUp); z<=p.at(zMaxUp); z++) {
+	      for (int x=pDown.at(xMin); x<=pDown.at(xMax); x++) {
+		for (int z=cUp.at(zMinUp); z<=cUp.at(zMaxUp); z++) {
 		  if ((x != val) && (z == std::abs(x-val)))
 		    return true;
 		}

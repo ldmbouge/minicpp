@@ -2,7 +2,7 @@
 //  mddstate.cpp
 //  minicpp
 //
-//  Created by Waldy on 10/28/19.
+//  Created by Waldy on 10/28/19.
 //  Copyright © 2019 Waldy. All rights reserved.
 //
 
@@ -42,16 +42,22 @@ namespace Factory {
 
 MDDConstraintDescriptor::MDDConstraintDescriptor(const MDDConstraintDescriptor& d)
    : _vars(d._vars), _vset(d._vset), _name(d._name),
-     _properties(d._properties),
-     _tid(d._tid),
-     _rid(d._rid),
-     _sid(d._sid),
-     _utid(d._utid)
+     _propertiesDown(d._propertiesDown),
+     _propertiesUp(d._propertiesUp),
+     _propertiesCombined(d._propertiesCombined),
+     _downTId(d._downTId),
+     _upTId(d._upTId),
+     _downRId(d._downRId),
+     _upRId(d._upRId),
+     _uid(d._uid),
+     _sid(d._sid)
 {}
 
 MDDSpec::MDDSpec()
 {
     _approximateSplitting = false;
+    _nodePriorityAggregateStrategy = 1;
+    _candidatePriorityAggregateStrategy = 1;
 }
 
 void MDDSpec::varOrder()
@@ -63,92 +69,265 @@ void MDDSpec::varOrder()
 
 MDDStateSpec::MDDStateSpec()
 {
-   _mxp = 4;
-   _nbp = 0;
-   _attrs = new MDDProperty*[_mxp];
-   _omap = nullptr;
+   _mxpDown = 4;
+   _mxpUp = 4;
+   _mxpCombined = 4;
+   _nbpDown = 0;
+   _nbpUp = 0;
+   _nbpCombined = 0;
+   _attrsDown = new MDDProperty*[_mxpDown];
+   _attrsUp = new MDDProperty*[_mxpUp];
+   _attrsCombined = new MDDProperty*[_mxpCombined];
+   _omapDown = nullptr;
+   _omapUp = nullptr;
+   _omapDownToCombined = nullptr;
+   _omapUpToCombined = nullptr;
+   _omapCombinedToDown = nullptr;
+   _omapCombinedToUp = nullptr;
 }
 
-void MDDStateSpec::addProperty(MDDProperty::Ptr p) noexcept
+void MDDStateSpec::addDownProperty(MDDProperty::Ptr p) noexcept
 {
-   if (_nbp == _mxp) {
-      MDDProperty** ns = new MDDProperty*[_mxp<<1];
-      for(short i =0;i < _nbp;i++)
-         ns[i] = _attrs[i];
-      delete[]_attrs;
-      _attrs = ns;
-      _mxp = _mxp << 1;
+   if (_nbpDown == _mxpDown) {
+      MDDProperty** ns = new MDDProperty*[_mxpDown<<1];
+      for(short i =0;i < _nbpDown;i++)
+         ns[i] = _attrsDown[i];
+      delete[]_attrsDown;
+      _attrsDown = ns;
+      _mxpDown = _mxpDown << 1;
    }
-   _attrs[_nbp++] = p.get();
+   _attrsDown[_nbpDown++] = p.get();
+   p->setDirection(Down);
+}
+void MDDStateSpec::addUpProperty(MDDProperty::Ptr p) noexcept
+{
+   if (_nbpUp == _mxpUp) {
+      MDDProperty** ns = new MDDProperty*[_mxpUp<<1];
+      for(short i =0;i < _nbpUp;i++)
+         ns[i] = _attrsUp[i];
+      delete[]_attrsUp;
+      _attrsUp = ns;
+      _mxpUp = _mxpUp << 1;
+   }
+   _attrsUp[_nbpUp++] = p.get();
+   p->setDirection(Up);
+}
+void MDDStateSpec::addCombinedProperty(MDDProperty::Ptr p) noexcept
+{
+   if (_nbpCombined == _mxpCombined) {
+      MDDProperty** ns = new MDDProperty*[_mxpCombined<<1];
+      for(short i =0;i < _nbpCombined;i++)
+         ns[i] = _attrsCombined[i];
+      delete[]_attrsCombined;
+      _attrsCombined = ns;
+      _mxpCombined = _mxpCombined << 1;
+   }
+   _attrsCombined[_nbpCombined++] = p.get();
+   p->setDirection(Bi);
 }
 
 void MDDStateSpec::layout()
 {
    size_t lszBit = 0;
-   for(int p = 0;p <_nbp;p++) {
-      auto a = _attrs[p];
+   for(int p = 0;p <_nbpDown;p++) {
+      auto a = _attrsDown[p];
       lszBit = a->setOffset(lszBit);
    }
    size_t boB = lszBit & 0x7;
    if (boB != 0)
       lszBit = (lszBit | 0x7) + 1;
-   _lsz = lszBit >> 3;
-   _lsz = (_lsz & 0x7) ? (_lsz | 0x7)+1 : _lsz;
-   assert(_lsz % 8 == 0); // # bytes is always a multiple of 8.
-   std::cout << "State requires:" << _lsz << " bytes" << std::endl;
+   _lszDown = lszBit >> 3;
+   _lszDown = (_lszDown & 0x7) ? (_lszDown | 0x7)+1 : _lszDown;
+   assert(_lszDown % 8 == 0); // # bytes is always a multiple of 8.
+   //std::cout << "Down State requires:" << _lszDown << " bytes" << std::endl;
+
+   lszBit = 0;
+   for(int p = 0;p <_nbpUp;p++) {
+      auto a = _attrsUp[p];
+      lszBit = a->setOffset(lszBit);
+   }
+   boB = lszBit & 0x7;
+   if (boB != 0)
+      lszBit = (lszBit | 0x7) + 1;
+   _lszUp = lszBit >> 3;
+   _lszUp = (_lszUp & 0x7) ? (_lszUp | 0x7)+1 : _lszUp;
+   assert(_lszUp % 8 == 0); // # bytes is always a multiple of 8.
+   //std::cout << "Up State requires:" << _lszUp << " bytes" << std::endl;
+
+   lszBit = 0;
+   for(int p = 0;p <_nbpCombined;p++) {
+      auto a = _attrsCombined[p];
+      lszBit = a->setOffset(lszBit);
+   }
+   boB = lszBit & 0x7;
+   if (boB != 0)
+      lszBit = (lszBit | 0x7) + 1;
+   _lszCombined = lszBit >> 3;
+   _lszCombined = (_lszCombined & 0x7) ? (_lszCombined | 0x7)+1 : _lszCombined;
+   assert(_lszCombined % 8 == 0); // # bytes is always a multiple of 8.
+   //std::cout << "Combined State requires:" << _lszCombined << " bytes" << std::endl;
 }
 
-int MDDStateSpec::addState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw)
+int MDDStateSpec::addDownState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw, int constraintPriority)
 {
-   int aid = (int)_nbp;
-   addProperty(Factory::makeProperty(aid, 0, init, max,rw));
-   d->addProperty(aid);
+   int aid = (int)_nbpDown;
+   addDownProperty(Factory::makeProperty(aid, 0, init, max,rw));
+   d->addDownProperty(aid);
    return aid;
 }
-int MDDStateSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw)
+int MDDStateSpec::addUpState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw, int constraintPriority)
 {
-   int aid = (int)_nbp;
-   addProperty(Factory::makeBSProperty(aid,0,nbb,init,rw));
-   d->addProperty(aid);
+   int aid = (int)_nbpUp;
+   addUpProperty(Factory::makeProperty(aid, 0, init, max,rw));
+   d->addUpProperty(aid);
    return aid;
 }
-int MDDStateSpec::addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw)
+int MDDStateSpec::addCombinedState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw, int constraintPriority)
 {
-   int aid = (int)_nbp;
-   addProperty(Factory::makeWinProperty(aid,0,len,init,finit,rw));
-   d->addProperty(aid);
+   int aid = (int)_nbpCombined;
+   addCombinedProperty(Factory::makeProperty(aid, 0, init, max,rw));
+   d->addCombinedProperty(aid);
+   return aid;
+}
+int MDDStateSpec::addDownBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpDown;
+   addDownProperty(Factory::makeBSProperty(aid,0,nbb,init,rw));
+   d->addDownProperty(aid);
+   return aid;
+}
+int MDDStateSpec::addUpBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpUp;
+   addUpProperty(Factory::makeBSProperty(aid,0,nbb,init,rw));
+   d->addUpProperty(aid);
+   return aid;
+}
+int MDDStateSpec::addCombinedBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpCombined;
+   addCombinedProperty(Factory::makeBSProperty(aid,0,nbb,init,rw));
+   d->addCombinedProperty(aid);
+   return aid;
+}
+int MDDStateSpec::addDownSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpDown;
+   addDownProperty(Factory::makeWinProperty(aid,0,len,init,finit,rw));
+   d->addDownProperty(aid);
+   return aid;
+}
+int MDDStateSpec::addUpSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpUp;
+   addUpProperty(Factory::makeWinProperty(aid,0,len,init,finit,rw));
+   d->addUpProperty(aid);
+   return aid;
+}
+int MDDStateSpec::addCombinedSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpCombined;
+   addCombinedProperty(Factory::makeWinProperty(aid,0,len,init,finit,rw));
+   d->addCombinedProperty(aid);
    return aid;
 }
 
 
-std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor::Ptr d,int from, int to,int max, std::function<int(int)> clo)
+std::vector<int> MDDStateSpec::addDownStates(MDDConstraintDescriptor::Ptr d,int from, int to,int max, std::function<int(int)> clo)
 {
    std::vector<int> res;
    for(int i = from; i <= to; i++)
-      res.push_back(addState(d,clo(i),max));
+      res.push_back(addDownState(d,clo(i),max));
    return res;
 }
-std::vector<int> MDDStateSpec::addStates(MDDConstraintDescriptor::Ptr d,int max, std::initializer_list<int> inputs)
+std::vector<int> MDDStateSpec::addUpStates(MDDConstraintDescriptor::Ptr d,int from, int to,int max, std::function<int(int)> clo)
+{
+   std::vector<int> res;
+   for(int i = from; i <= to; i++)
+      res.push_back(addUpState(d,clo(i),max));
+   return res;
+}
+std::vector<int> MDDStateSpec::addCombinedStates(MDDConstraintDescriptor::Ptr d,int from, int to,int max, std::function<int(int)> clo)
+{
+   std::vector<int> res;
+   for(int i = from; i <= to; i++)
+      res.push_back(addCombinedState(d,clo(i),max));
+   return res;
+}
+std::vector<int> MDDStateSpec::addDownStates(MDDConstraintDescriptor::Ptr d,int max, std::initializer_list<int> inputs)
 {
    std::vector<int> res;
    for(auto& v : inputs)
-      res.push_back(addState(d,v,max));
+      res.push_back(addDownState(d,v,max));
+   return res;
+}
+std::vector<int> MDDStateSpec::addUpStates(MDDConstraintDescriptor::Ptr d,int max, std::initializer_list<int> inputs)
+{
+   std::vector<int> res;
+   for(auto& v : inputs)
+      res.push_back(addUpState(d,v,max));
+   return res;
+}
+std::vector<int> MDDStateSpec::addCombinedStates(MDDConstraintDescriptor::Ptr d,int max, std::initializer_list<int> inputs)
+{
+   std::vector<int> res;
+   for(auto& v : inputs)
+      res.push_back(addCombinedState(d,v,max));
    return res;
 }
 
-int MDDSpec::addState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw)
+int MDDSpec::addDownState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
 {
-   auto rv = MDDStateSpec::addState(d,init,max,rw);
+   auto rv = MDDStateSpec::addDownState(d,init,max,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
    return rv;
 }
-int MDDSpec::addBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw)
+int MDDSpec::addUpState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
 {
-   auto rv = MDDStateSpec::addBSState(d,nbb,init,rw);
+   auto rv = MDDStateSpec::addUpState(d,init,max,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
    return rv;
 }
-int MDDSpec::addSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw)
+int MDDSpec::addCombinedState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
 {
-   auto rv = MDDStateSpec::addSWState(d,len,init,finit,rw);
+   auto rv = MDDStateSpec::addCombinedState(d,init,max,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
+   return rv;
+}
+int MDDSpec::addDownBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
+{
+   auto rv = MDDStateSpec::addDownBSState(d,nbb,init,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
+   return rv;
+}
+int MDDSpec::addUpBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
+{
+   auto rv = MDDStateSpec::addUpBSState(d,nbb,init,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
+   return rv;
+}
+int MDDSpec::addCombinedBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
+{
+   auto rv = MDDStateSpec::addCombinedBSState(d,nbb,init,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
+   return rv;
+}
+int MDDSpec::addDownSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   auto rv = MDDStateSpec::addDownSWState(d,len,init,finit,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
+   return rv;
+}
+int MDDSpec::addUpSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   auto rv = MDDStateSpec::addUpSWState(d,len,init,finit,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
+   return rv;
+}
+int MDDSpec::addCombinedSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   auto rv = MDDStateSpec::addCombinedSWState(d,len,init,finit,rw);
+   _propertiesByPriorities[constraintPriority].emplace_back(rv);
    return rv;
 }
 
@@ -156,35 +335,49 @@ void MDDSpec::onFixpoint(FixFun onFix)
 {
    _onFix.emplace_back(onFix);
 }
-void MDDSpec::splitOnLargest(SplitFun onSplit)
+void MDDSpec::splitOnLargest(SplitFun onSplit, int constraintPriority)
 {
    _onSplit.emplace_back(onSplit);
+   _onSplitByPriorities[constraintPriority].emplace_back(onSplit);
 }
-void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue)
+void MDDSpec::candidateByLargest(CandidateFun candidateSplit, int constraintPriority)
+{
+   _candidateSplit.emplace_back(candidateSplit);
+   _candidateSplitByPriorities[constraintPriority].emplace_back(candidateSplit);
+}
+void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue, int constraintPriority)
 {
    _equivalenceValue.emplace_back(equivalenceValue);
+   _equivalenceValueByPriorities[constraintPriority].emplace_back(equivalenceValue);
 }
 int MDDSpec::numEquivalenceClasses()
 {
    return (int)_equivalenceValue.size();
 }
+bool MDDSpec::equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int constraintPriority) const
+{
+   for (int p : _propertiesByPriorities[constraintPriority])
+      if (_attrsDown[p]->diff(left._mem, right._mem))
+         return false;
+   return true;
+}
 
-void MDDSpec::updateNode(MDDState& a) const noexcept
+void MDDSpec::updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept
 {
    for(auto& fun : _updates)
-      fun(a);
-   a.computeHash();
+      fun(result,down,up);
+   result.computeHash();
 }
 
 int nbAECall = 0;
 int nbAEFail = 0;
 
-bool MDDSpec::exist(const MDDState& a,const MDDState& c,const var<int>::Ptr& x,int v,bool up) const noexcept
+bool MDDSpec::exist(const MDDState& parentDown,const MDDState& parentCombined,const MDDState& childUp,const MDDState& childCombined,const var<int>::Ptr& x,int v,bool up) const noexcept
 {
    ++nbAECall;
    bool arcOk = true;
    for(const auto& exist : _scopedExists[x->getId()]) {
-      arcOk = exist(a,c,x,v,up);
+      arcOk = exist(parentDown,parentCombined,childUp,childCombined,x,v,up);
       if (!arcOk) {
          ++nbAEFail;
          break;
@@ -196,12 +389,12 @@ bool MDDSpec::exist(const MDDState& a,const MDDState& c,const var<int>::Ptr& x,i
 int nbCONSCall = 0;
 int nbCONSFail = 0;
 
-bool MDDSpec::consistent(const MDDState& a,const var<int>::Ptr& x) const noexcept
+bool MDDSpec::consistent(const MDDState& down,const MDDState& up,const MDDState& combined) const noexcept
 {
    ++nbCONSCall;
    bool cons = true;
-   for(auto& consFun : _scopedConsistent[x->getId()]) {
-      cons = consFun(a);
+   for(auto& consFun : _nodeExists) {
+      cons = consFun(down,up,combined);
       if (!cons) {
          ++nbCONSFail;
          break;
@@ -210,41 +403,48 @@ bool MDDSpec::consistent(const MDDState& a,const var<int>::Ptr& x) const noexcep
    return cons;
 }
 
-void MDDSpec::nodeExist(MDDConstraintDescriptor::Ptr d,NodeFun a)
+void MDDSpec::nodeExist(NodeFun a)
 {
-   _nodeExists.emplace_back(std::make_pair<MDDConstraintDescriptor::Ptr,NodeFun>(std::move(d),std::move(a)));
+   _nodeExists.emplace_back(std::move(a));
 }
 void MDDSpec::arcExist(MDDConstraintDescriptor::Ptr d,ArcFun a)
 {
    _exists.emplace_back(std::make_pair<MDDConstraintDescriptor::Ptr,ArcFun>(std::move(d),std::move(a)));
 }
-void MDDSpec::updateNode(UpdateFun nf)
+void MDDSpec::updateNode(int p,std::set<int> spDown,std::set<int> spUp,UpdateFun nf)
 {
-   _updates.emplace_back(std::move(nf));
+   for (auto& cd : constraints)
+      if (cd->ownsCombinedProperty(p)) {
+         int uid = (int)_updates.size();
+         cd->registerUpdate(uid);
+         _attrsCombined[p]->setAntecedents(spDown,spUp);
+         _attrsCombined[p]->setTransition(uid);
+         _updates.emplace_back(std::move(nf));
+         break;
+      }
 }
-void MDDSpec::transitionDown(int p,std::set<int> sp,lambdaTrans t)
+void MDDSpec::transitionDown(int p,std::set<int> spDown,std::set<int> spCombined,lambdaTrans t)
 {
    for(auto& cd : constraints)
-      if (cd->ownsProperty(p)) {
-         int tid = (int)_transition.size();
+      if (cd->ownsDownProperty(p)) {
+         int tid = (int)_downTransition.size();
          cd->registerDown(tid);
-         _attrs[p]->setDirection(Down);
-         _attrs[p]->setAntecedents(sp);
-         _attrs[p]->setDown(tid);
-         _transition.emplace_back(std::move(t));
+         _attrsDown[p]->setAntecedents(spDown,spCombined);
+         _attrsDown[p]->setTransition(tid);
+         _downTransition.emplace_back(std::move(t));
          break;
       }
 }
 
-void MDDSpec::transitionUp(int p,std::set<int> sp,lambdaTrans t)
+void MDDSpec::transitionUp(int p,std::set<int> spUp,std::set<int> spCombined,lambdaTrans t)
 {
    for(auto& cd : constraints)
-      if (cd->ownsProperty(p)) {
-         int tid = (int)_uptrans.size();
+      if (cd->ownsUpProperty(p)) {
+         int tid = (int)_upTransition.size();
          cd->registerUp(tid);
-         _attrs[p]->setDirection(Up);
-         _attrs[p]->setUp(tid);
-         _uptrans.emplace_back(std::move(t));
+         _attrsUp[p]->setAntecedents(spUp,spCombined);
+         _attrsUp[p]->setTransition(tid);
+         _upTransition.emplace_back(std::move(t));
          break;
       }
 }
@@ -252,35 +452,46 @@ void MDDSpec::transitionUp(int p,std::set<int> sp,lambdaTrans t)
 void MDDSpec::transitionDown(const lambdaMap& map)
 {
    for(auto& kv : map) {
-      const auto& sp = std::get<0>(kv.second);
-      const auto& f  = std::get<1>(kv.second);
-      transitionDown(kv.first,sp,f);
+      const auto& spDown = std::get<0>(kv.second);
+      const auto& spCombined = std::get<1>(kv.second);
+      const auto& f  = std::get<2>(kv.second);
+      transitionDown(kv.first,spDown,spCombined,f);
    }
 }
 
 void MDDSpec::transitionUp(const lambdaMap& map)
 {
    for(auto& kv : map) {
-      const auto& sp = std::get<0>(kv.second);
-      const auto& f  = std::get<1>(kv.second);
-      transitionUp(kv.first,sp,f);
+      const auto& spUp = std::get<0>(kv.second);
+      const auto& spCombined = std::get<1>(kv.second);
+      const auto& f  = std::get<2>(kv.second);
+      transitionUp(kv.first,spUp,spCombined,f);
    }
 }
 
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
 {
-   MDDState rootState(this,(char*)mem->allocate(layoutSize()));
-   for(auto k=0;k < size();k++)
+   MDDState rootState(this,(char*)mem->allocate(layoutSizeDown()),Down);
+   for(auto k=0;k < sizeDown();k++)
       rootState.init(k);
-   std::cout << "ROOT:" << rootState << std::endl;
+   //std::cout << "ROOT:" << rootState << std::endl;
    return rootState;
 }
 
+MDDState MDDSpec::sinkState(Storage::Ptr& mem)
+{
+   MDDState sinkState(this,(char*)mem->allocate(layoutSizeUp()),Up);
+   for(auto k=0;k < sizeUp();k++)
+      sinkState.init(k);
+   //std::cout << "SINK:" << sinkState << std::endl;
+   return sinkState;
+}
 
-void MDDSpec::reachedFixpoint(const MDDState& sink)
+
+void MDDSpec::reachedFixpoint(const MDDState& sinkDown,const MDDState& sinkUp,const MDDState& sinkCombined)
 {
    for(auto& fix : _onFix)
-      fix(sink);
+      fix(sinkDown,sinkUp,sinkCombined);
 }
 
 void LayerDesc::zoning(const MDDSpec& spec)
@@ -288,6 +499,7 @@ void LayerDesc::zoning(const MDDSpec& spec)
    zoningDown(spec);
    zoningUp(spec);
    for(auto p : _dframe) _dprop.setProp(p);
+   for(auto p : _uframe) _uprop.setProp(p);
 }
 
 void LayerDesc::zoningUp(const MDDSpec& spec)
@@ -305,8 +517,8 @@ void LayerDesc::zoningUp(const MDDSpec& spec)
          else if (p >= fstProp && p <= lstProp)
             zp.insert(p);
          else {
-            auto sOfs = spec.startOfs(fstProp);
-            auto eOfs = spec.endOfs(lstProp);
+            auto sOfs = spec.startOfsUp(fstProp);
+            auto eOfs = spec.endOfsUp(lstProp);
             _uzones.emplace_back(Zone(sOfs,eOfs,zp));
             zp.clear();
             zp.insert(fstProp = lstProp = p);
@@ -314,8 +526,8 @@ void LayerDesc::zoningUp(const MDDSpec& spec)
       }
    }
    if (fstProp != -1) {
-      auto sOfs = spec.startOfs(fstProp);
-      auto eOfs = spec.endOfs(lstProp);
+      auto sOfs = spec.startOfsUp(fstProp);
+      auto eOfs = spec.endOfsUp(lstProp);
       _uzones.emplace_back(Zone(sOfs,eOfs,zp));
    }
 }
@@ -335,8 +547,8 @@ void LayerDesc::zoningDown(const MDDSpec& spec)
          else if (p >= fstProp && p <= lstProp)
             zp.insert(p);
          else {
-            auto sOfs = spec.startOfs(fstProp);
-            auto eOfs = spec.endOfs(lstProp);
+            auto sOfs = spec.startOfsDown(fstProp);
+            auto eOfs = spec.endOfsDown(lstProp);
             _dzones.emplace_back(Zone(sOfs,eOfs,zp));
             zp.clear();
             zp.insert(fstProp = lstProp = p);
@@ -344,47 +556,109 @@ void LayerDesc::zoningDown(const MDDSpec& spec)
       }
    }
    if (fstProp != -1) {
-      auto sOfs = spec.startOfs(fstProp);
-      auto eOfs = spec.endOfs(lstProp);
+      auto sOfs = spec.startOfsDown(fstProp);
+      auto eOfs = spec.endOfsDown(lstProp);
       _dzones.emplace_back(Zone(sOfs,eOfs,zp));
    }
 }
 
 void MDDSpec::compile()
 {
-   _omap = new MDDPropSet[_nbp];
-   for(int i=0;i < _nbp;i++) _omap[i] = MDDPropSet(_nbp);
-   for(int p=0;p < _nbp;p++) {
-      auto& out = _omap[p];
-      for(int s=0;s < _nbp;s++) {
-         const auto& ants = _attrs[s]->antecedents();
+   _omapDown = new MDDPropSet[_nbpDown];
+   _omapUp = new MDDPropSet[_nbpUp];
+   _omapUpToCombined = new MDDPropSet[_nbpUp];
+   _omapDownToCombined = new MDDPropSet[_nbpDown];
+   _omapCombinedToDown = new MDDPropSet[_nbpCombined];
+   _omapCombinedToUp = new MDDPropSet[_nbpCombined];
+   for(int i=0;i < _nbpDown;i++) {
+      _omapDown[i] = MDDPropSet(_nbpDown);
+      _omapDownToCombined[i] = MDDPropSet(_nbpCombined);
+   }
+   for(int i=0;i < _nbpUp;i++) {
+      _omapUp[i] = MDDPropSet(_nbpUp);
+      _omapUpToCombined[i] = MDDPropSet(_nbpCombined);
+   }
+   for(int i=0;i < _nbpCombined;i++) {
+      _omapCombinedToDown[i] = MDDPropSet(_nbpDown);
+      _omapCombinedToUp[i] = MDDPropSet(_nbpUp);
+   }
+   for(int p=0;p < _nbpDown;p++) {
+      auto& outDown = _omapDown[p];
+      for(int s=0;s < _nbpDown;s++) {
+         const auto& ants = _attrsDown[s]->antecedents();
          if (ants.find(p)!= ants.end()) {
-            out.setProp(s);
+            outDown.setProp(s);
          }
       }
-      std::cout << "omap[" << p << "] = " << out << '\n';
+      //std::cout << "omapDown[" << p << "] = " << outDown << '\n';
+      if (_nbpCombined) {
+         auto& outDownToCombined = _omapDownToCombined[p];
+         for(int s=0;s < _nbpCombined;s++) {
+            const auto& ants = _attrsCombined[s]->antecedents();
+            if (ants.find(p)!= ants.end()) {
+               outDownToCombined.setProp(s);
+            }
+         }
+         //std::cout << "omapDownToCombined[" << p << "] = " << outDownToCombined << '\n';
+      }
+   }
+   for(int p=0;p < _nbpUp;p++) {
+      auto& outUp = _omapUp[p];
+      for(int s=0;s < _nbpUp;s++) {
+         const auto& ants = _attrsUp[s]->antecedents();
+         if (ants.find(p)!= ants.end()) {
+            outUp.setProp(s);
+         }
+      }
+      //std::cout << "omapUp[" << p << "] = " << outUp << '\n';
+      if (_nbpCombined) {
+         auto& outUpToCombined = _omapUpToCombined[p];
+         for(int s=0;s < _nbpCombined;s++) {
+            const auto& ants = _attrsCombined[s]->antecedentsSecondary();
+            if (ants.find(p)!= ants.end()) {
+               outUpToCombined.setProp(s);
+            }
+         }
+         //std::cout << "omapUpToCombined[" << p << "] = " << outUpToCombined << '\n';
+      }
+   }
+   for(int p=0;p < _nbpCombined;p++) {
+      auto& outCombinedToDown = _omapCombinedToDown[p];
+      auto& outCombinedToUp = _omapCombinedToUp[p];
+      for(int s=0;s < _nbpDown;s++) {
+         const auto& ants = _attrsDown[s]->antecedentsSecondary();
+         if (ants.find(p)!= ants.end()) {
+            outCombinedToDown.setProp(s);
+         }
+      }
+      for(int s=0;s < _nbpUp;s++) {
+         const auto& ants = _attrsUp[s]->antecedentsSecondary();
+         if (ants.find(p)!= ants.end()) {
+            outCombinedToUp.setProp(s);
+         }
+      }
+      //std::cout << "omapCombinedToDown[" << p << "] = " << outCombinedToDown << '\n';
+      //std::cout << "omapCombinedToUp[" << p << "] = " << outCombinedToUp << '\n';
    }
    const unsigned nbL = (unsigned)x.size();
    _transLayer.reserve(nbL);
-   _frameLayer.reserve(nbL);
    _uptransLayer.reserve(nbL);
+   _frameLayer.reserve(nbL);
    for(auto i = 0u;i < nbL;i++) {
       auto& layer   = _transLayer.emplace_back(std::vector<lambdaTrans>());
       auto& upLayer = _uptransLayer.emplace_back(std::vector<lambdaTrans>());
-      auto& frame   = _frameLayer.emplace_back(LayerDesc(_nbp));
+      auto& frame   = _frameLayer.emplace_back(LayerDesc(_nbpDown,_nbpUp));
       for(auto& c : constraints) {
          if (c->inScope(x[i]))  {
-            for(auto j : c->transitions())
-               layer.emplace_back(_transition[j]);
-            for(auto j : c->uptrans())
-               upLayer.emplace_back(_uptrans[j]);
+            for(auto j : c->downTransitions())
+               layer.emplace_back(_downTransition[j]);
+            for(auto j : c->upTransitions())
+               upLayer.emplace_back(_upTransition[j]);
          } else { // x[i] does not appear in constraint c. So the properties of c should be subject to frame axioms (copied)
-            for(auto j : c->properties()) {
-               if (isDown(j))
-                  frame.addDownProp(j);
-               if (isUp(j))
-                  frame.addUpProp(j);
-            }
+            for(auto j : c->propertiesDown())
+               frame.addDownProp(j);
+            for(auto j : c->propertiesUp())
+               frame.addUpProp(j);
          }
       }
       frame.zoning(*this);
@@ -393,7 +667,6 @@ void MDDSpec::compile()
    std::tie(lid,uid) = idRange(x);
    const int sz = uid + 1;
    _scopedExists.resize(sz);
-   _scopedConsistent.resize(sz);
    for(auto& exist : _exists) {
       auto& cd  = std::get<0>(exist);
       auto& fun = std::get<1>(exist);
@@ -401,165 +674,225 @@ void MDDSpec::compile()
       for(auto& v : vars)
          _scopedExists[v->getId()].emplace_back(fun);
    }
-   for(auto& nex : _nodeExists) {
-      auto& cd  = std::get<0>(nex);
-      auto& fun = std::get<1>(nex);
-      auto& vars = cd->vars();
-      for(auto& v : vars)
-         _scopedConsistent[v->getId()].emplace_back(fun);
-   }
-   std::set<int> upProps;
-   int fstUp = -1,lstUp = -1;
-   for(int i=0;i < _nbp;i++) {
-      if (!_attrs[i]->isUp()) continue;
-      if (fstUp == -1)
-         upProps.insert(fstUp = lstUp = i);
-      else {
-         if (i == fstUp - 1)
-            upProps.insert(fstUp = i);
-         else if (i == lstUp + 1)
-            upProps.insert(lstUp = i);
-         else if (i >= fstUp && i <= lstUp)
-            upProps.insert(i);
-         else {
-            _upZones.emplace_back(Zone(startOfs(fstUp),endOfs(lstUp),upProps));
-            upProps.clear();
-            upProps.insert(fstUp = lstUp = i);
-         }
+   for(int p = 0 ; p < _nbpDown;p++) {
+      if (_xDownRelax.find(p) == _xDownRelax.end()){
+         _defaultDownRelax.push_back(p);
       }
    }
-   if (fstUp != -1)
-      _upZones.emplace_back(Zone(startOfs(fstUp),endOfs(lstUp),upProps));
-   for(int p = 0 ; p < _nbp;p++) {
-      if (_xRelax.find(p) == _xRelax.end())
-         _dRelax.push_back(p);
+   for(int p = 0 ; p < _nbpUp;p++) {
+      if (_xUpRelax.find(p) == _xUpRelax.end())
+         _defaultUpRelax.push_back(p);
    }
 }
 
-void MDDSpec::copyStateUp(MDDState& result,const MDDState& source)
-{
-   if (usesUp()) {
-      for(const auto& z : _upZones)
-         result.copyZone(z,source);
-   }
-}
-
-void MDDSpec::createState(MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
+void MDDSpec::fullStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
 {
    result.clear();
    for(const auto& t : _transLayer[l])
-      t(result,parent,var,v,hasUp);
-   _frameLayer[l].frameDown(result,parent);
-   result.relaxDown(parent.isDownRelaxed() || v.size() > 1);
+      t(result,parentDown,parentCombined,var,v,hasUp);
+   _frameLayer[l].frameDown(result,parentDown);
+   result.relax(parentDown.isRelaxed() || v.size() > 1);
 }
 
-void MDDSpec::createStateIncr(const MDDPropSet& out,MDDState& result,const MDDState& parent,unsigned l,const var<int>::Ptr& var,
+void MDDSpec::incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,
                               const MDDIntSet& v,bool hasUp)
 {
    result.clear();
    for(auto p : out) {
-      int tid = _frameLayer[l].hasProp(p) ? -1 : _attrs[p]->getDown();
+      int tid = _frameLayer[l].hasDownProp(p) ? -1 : _attrsDown[p]->getTransition();
       if (tid != -1)
-         _transition[tid](result,parent,var,v,hasUp); // actual transition
+         _downTransition[tid](result,parentDown,parentCombined,var,v,hasUp); // actual transition
       else 
-         result.setProp(p,parent); // frame axiom
+         result.setProp(p,parentDown); // frame axiom
    }
-   result.relaxDown(parent.isDownRelaxed() || v.size() > 1);
+   result.relax(parentDown.isRelaxed() || v.size() > 1);
 }
 
-void MDDSpec::relaxation(MDDState& a,const MDDState& b) const noexcept
+void MDDSpec::relaxationDown(MDDState& a,const MDDState& b) const noexcept
 {
-   for(auto p : _dRelax) {
-      switch(_attrs[p]->relaxFun()) {
+   for(auto p : _defaultDownRelax) {
+      switch(_attrsDown[p]->relaxFun()) {
          case MinFun: a.minWith(p,b);break;
          case MaxFun: a.maxWith(p,b);break;
          case External: break;
       }
    }
-   for(const auto& relax : _relaxation)
+   for(const auto& relax : _downRelaxation)
       relax(a,a,b);
    a.computeHash();
 }
 
-void MDDSpec::relaxationIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept
+void MDDSpec::relaxationUp(MDDState& a,const MDDState& b) const noexcept
+{
+   for(auto p : _defaultUpRelax) {
+      switch(_attrsUp[p]->relaxFun()) {
+         case MinFun: a.minWith(p,b);break;
+         case MaxFun: a.maxWith(p,b);break;
+         case External: break;
+      }
+   }
+   for(const auto& relax : _upRelaxation)
+      relax(a,a,b);
+   a.computeHash();
+}
+
+void MDDSpec::relaxationDownIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept
 {
    for(auto p : out) {
-      switch(_attrs[p]->relaxFun()) {
+      switch(_attrsDown[p]->relaxFun()) {
          case MinFun: a.minWith(p,b);break;
          case MaxFun: a.maxWith(p,b);break;
          case External:
-            _relaxation[_attrs[p]->getRelax()](a,a,b);
+            _downRelaxation[_attrsDown[p]->getRelax()](a,a,b);
             break;
       }
    }
    a.computeHash();
 }
 
-void MDDSpec::updateState(MDDState& target,const MDDState& source,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
+void MDDSpec::relaxationUpIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept
 {
+   for(auto p : out) {
+      switch(_attrsUp[p]->relaxFun()) {
+         case MinFun: a.minWith(p,b);break;
+         case MaxFun: a.maxWith(p,b);break;
+         case External:
+            _upRelaxation[_attrsUp[p]->getRelax()](a,a,b);
+            break;
+      }
+   }
+   a.computeHash();
+}
+void MDDSpec::fullStateUp(MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
+{
+   target.clear();
    for(const auto& t : _uptransLayer[l])
-      t(target,source,var,v,true);
-   _frameLayer[l].frameUp(target,source);
-   target.relaxUp(source.isUpRelaxed() || v.size() > 1);
+      t(target,childUp,childCombined,var,v,true);
+   _frameLayer[l].frameUp(target,childUp);
+   target.relax(childUp.isRelaxed() || v.size() > 1);
+}
+void MDDSpec::incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
+{
+   target.clear();
+   for(auto p : out) {
+      int tid = _frameLayer[l].hasUpProp(p) ? -1 : _attrsUp[p]->getTransition();
+      if (tid != -1)
+         _upTransition[tid](target,childUp,childCombined,var,v,true); // actual transition
+      else 
+         target.setProp(p,childUp); // frame axiom
+   }
+   target.relax(childUp.isRelaxed() || v.size() > 1);
 }
 
 
-int nbCS  = 0;
-int hitCS = 0;
-int vs = 0;
+int nbCSDown  = 0;
+int hitCSDown = 0;
+int nbCSUp  = 0;
+int hitCSUp = 0;
 
 MDDStateFactory::MDDStateFactory(MDDSpec* spec)
    : _mddspec(spec),
      _mem(new Pool()),
-     _hash(_mem,300149),
+     _downHash(_mem,300149),
+     _upHash(_mem,300149),
      _mark(_mem->mark()),
      _enabled(false)
 {
 }
 
 
-void MDDStateFactory::createState(MDDState& result,const MDDState& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
+//void MDDStateFactory::createState(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
+//{
+//   nbCS++;
+//   _mddspec->createState(result,parentDown,parentCombined,layer,x,vals,up);
+//   result.computeHash();
+//}
+
+void MDDStateFactory::createStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
 {
-   nbCS++;
-   _mddspec->createState(result,parent,layer,x,vals,up);
-   result.computeHash();
+   //std::cout << "Start createStateDown\n";
+   if (vals.isSingleton()) {
+      //std::cout << "Singleton\n";
+      MDDSKey key { &parentDown, &parentCombined, layer, vals.singleton() };
+      //std::cout << "Made key\n";
+      MDDState* match = nullptr;
+      auto loc = _downHash.get(key,match);
+      //std::cout << "Made loc " << loc << "\n";
+      if (loc) {
+         ++hitCSDown;
+         result.copyState(*match);
+      } else {
+         nbCSDown++;
+         _mddspec->fullStateDown(result,parentDown,parentCombined,layer,x,MDDIntSet(vals.singleton()),up);
+         result.computeHash();
+         MDDState* pdc = new (_mem) MDDState(parentDown.clone(_mem));
+         MDDState* pcc = new (_mem) MDDState(parentCombined.clone(_mem));
+         MDDSKey ikey { pdc, pcc, layer, vals.singleton() };
+         _downHash.insert(ikey,new (_mem) MDDState(result.clone(_mem)));
+      }
+   } else {
+      nbCSDown++;
+      //std::cout << "Pre fullStateDown\n";
+      _mddspec->fullStateDown(result,parentDown,parentCombined,layer,x,vals,up);
+      //std::cout << "Post fullStateDown\n";
+      result.computeHash();
+   }
+   //std::cout << "End createStateDown\n";
+}
+void MDDStateFactory::createStateUp(MDDState& result,const MDDState& childUp,const MDDState& childCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals)
+{
+   if (vals.isSingleton()) {
+      MDDSKey key { &childUp, &childCombined, layer, vals.singleton() };
+      MDDState* match = nullptr;
+      auto loc = _upHash.get(key,match);
+      if (loc) {
+         ++hitCSUp;
+         result.copyState(*match);
+      } else {
+         nbCSUp++;
+         _mddspec->fullStateUp(result,childUp,childCombined,layer,x,MDDIntSet(vals.singleton()));
+         result.computeHash();
+         MDDState* cuc = new (_mem) MDDState(childUp.clone(_mem));
+         MDDState* ccc = new (_mem) MDDState(childCombined.clone(_mem));
+         MDDSKey ikey { cuc, ccc, layer, vals.singleton() };
+         _upHash.insert(ikey,new (_mem) MDDState(result.clone(_mem)));
+      }
+   } else {
+      nbCSUp++;
+      _mddspec->fullStateUp(result,childUp,childCombined,layer,x,vals);
+      result.computeHash();
+   }
 }
 
-bool MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parent,int layer,const var<int>::Ptr x,int val)
+void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,int val)
 {
-   auto mark = _mem->mark();
-   const int nbb = (int)_mddspec->layoutSize();
-   char* membuf = new (_mem) char[nbb];
-   memset(membuf, '\0', nbb);
-   MDDState* upState = new (_mem) MDDState(_mddspec,membuf);
-   _mddspec->copyStateUp(*upState,n->getState());
-
-   MDDSKey key { &parent, upState, val };
-   auto loc = _hash.get(key,result);
+//std::cout << "Start splitState\n";
+   MDDSKey key { &parentDown, &parentCombined, layer, val };
+//std::cout << "Pre loc\n";
+   auto loc = _downHash.get(key,result);
    if (loc) {
-      ++hitCS;
-      _mem->clear(mark);
-      return true;
+//std::cout << "loc\n";
+      ++hitCSDown;
+      result = new (_mem) MDDState(result->clone(_mem));
    } else {
-      nbCS++;
-      result = new (_mem) MDDState(_mddspec,new (_mem) char[nbb]);
-      _mddspec->copyStateUp(*result,n->getState());
-      _mddspec->createState(*result,parent,layer,x,MDDIntSet(val),true);
-      _mddspec->updateNode(*result);
-      bool isOk = _mddspec->consistent(*result,x);
-      if (isOk) {
-         result->computeHash();
-         MDDState* pc = new (_mem) MDDState(parent.clone(_mem));
-         MDDSKey ikey { pc, upState, val };
-         _hash.insert(ikey,result);
-      }
-      return isOk;
+//std::cout << "not loc\n";
+      nbCSDown++;
+      result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
+      //std::cout << "Pre fullState\n";
+      _mddspec->fullStateDown(*result,parentDown,parentCombined,layer,x,MDDIntSet(val),true);
+      //std::cout << "Post fullState\n";
+      result->computeHash();
+      MDDState* pdc = new (_mem) MDDState(parentDown.clone(_mem));
+      MDDState* pcc = new (_mem) MDDState(parentCombined.clone(_mem));
+      MDDSKey ikey { pdc, pcc, layer, val };
+      _downHash.insert(ikey,new (_mem) MDDState(result->clone(_mem)));
    }
 }
 
 void MDDStateFactory::clear()
 {
-   _hash.clear();
+   _downHash.clear();
+   _upHash.clear();
    _mem->clear(_mark);
    _enabled = true;
 }
