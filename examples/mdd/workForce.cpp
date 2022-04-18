@@ -206,7 +206,6 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    vector<bool> taken(cv.size()); // for each clique a boolean saying whether it was already picked up.
    vector<set<unsigned>> cid; // identifiers of cliques to bundle in the same MDD (identifiers refer to index within cv)
 
-   unsigned ss = 0;
    for(auto i=0u;i < cv.size();i++) {
       if (taken[i]) continue;
       set<int> acc = cv[i];
@@ -228,7 +227,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          }
       }      
       cid.push_back(chosen);
-      ss += chosen.size();
+      //ss += chosen.size();
    }
    
    // Test: add objective to each MDD
@@ -243,7 +242,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    cout << "zUB = " << zUB << endl;
    auto z = Factory::makeIntVar(cp, 0, zUB);
 
-   assert(ss == cv.size());
+   //assert(ss == cv.size());
    MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
       //auto mdd = new MDD(cp);

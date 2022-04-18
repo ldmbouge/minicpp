@@ -214,7 +214,6 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    vector<bool> taken(cv.size()); // for each clique a boolean saying whether it was already picked up.
    vector<set<unsigned>> cid; // identifiers of cliques to bundle in the same MDD (identifiers refer to index within cv)
 
-   unsigned ss = 0;
    for(auto i=0u;i < cv.size();i++) {
       if (taken[i]) continue;
       set<int> acc = cv[i];
@@ -236,11 +235,10 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          }
       }      
       cid.push_back(chosen);
-      ss += chosen.size();
+      //ss += chosen.size();
    }
    
-   assert(ss == cv.size());
-   //MDDRelax* theOne = nullptr;
+   //assert(ss == cv.size());
    for(auto& ctm : cid) {
       //auto mdd = new MDD(cp);
       auto mdd = new MDDRelax(cp,relaxSize);
@@ -249,8 +247,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          std::cout << "Clique: " << c << std::endl;
          auto adv = all(cp, c, [&emp](int i) {return emp[i];});
          Factory::allDiffMDD(mdd->getSpec(),adv);
-	 // WVH: uncommented the posting of normal alldiff
-	 cp->post(Factory::allDifferent(adv));
+         // WVH: uncommented the posting of normal alldiff
+         cp->post(Factory::allDifferent(adv));
       }
       cp->post(mdd);
       //theOne = mdd;
