@@ -30,7 +30,7 @@ message("Build: ${CMAKE_BUILD_TYPE}")
 
 include_directories(.)
 add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp
-	mddAlldiff.cpp mddAmong.cpp mddGcc.cpp mddSeq.cpp mddSum.cpp
+	mddAlldiff.cpp mddAmong.cpp mddGcc.cpp mddMaximumCutObjective.cpp mddSeq.cpp mddSum.cpp
 	store.cpp bitset.cpp table.cpp regular.cpp lex.cpp
 	acstr.cpp domain.cpp mddnode.cpp constraint.cpp     
 	intvar.cpp mddstate.cpp trail.cpp mallocWatch.cpp    

@@ -55,7 +55,7 @@ MDDRelax* newMDDRelax(CPSolver::Ptr cp, int relaxSize, int maxRebootDistance, in
                       int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy,
                       bool useApproxEquiv, bool approxThenExact, int maxPriority)
 {
-  auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance, relaxSize * maxSplitIter, approxThenExact, maxPriority);
+  auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance, maxSplitIter, approxThenExact, maxPriority);
   if (useApproxEquiv) {
     mdd->getSpec().useApproximateEquivalence();
   }
@@ -124,6 +124,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
         } while (clique.size() <= 1 || (int)clique.size() > maxDomainSize);
         if ((int)clique.size() > largestCliqueSize) largestCliqueSize = clique.size();
         cliques.push_back(clique);
+        for (int val : clique)
+          std::cout << val << " ";
+        std::cout << "\n";
       } else break;
     }
     cliquesByConstraint.push_back(cliques);
@@ -179,6 +182,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   extern int splitCS,pruneCS,potEXEC;
   extern int nbCONSCall,nbCONSFail;
   extern int nbAECall,nbAEFail;
+  extern int fullReboot, partialReboot;
+  std::cout << "Full Reboot: " << fullReboot << "\n";
+  std::cout << "Partial Reboot: " << partialReboot << "\n";
   std::cout << "{ \"JSON\" :\n {";
   std::cout << "\n\t\"alldiff\" :" << "{\n";
   std::cout << "\t\t\"m\" : " << mode << ",\n";
@@ -206,7 +212,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   std::cout << "\t\t\"fails\" : " << 0 << ",\n";
   std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
   std::cout << "\t\t\"nbCSDown\" : " << nbCSDown << ",\n";
-  std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
+  if (mdd) std::cout << "\t\t\"layers\" : " << mdd->nbLayers() << ",\n";
   std::cout << "\t\t\"splitCS\" : " << splitCS << ",\n";
   std::cout << "\t\t\"pruneCS\" : " << pruneCS << ",\n";
   std::cout << "\t\t\"pot\" : " << potEXEC << ",\n";  
@@ -259,8 +265,8 @@ std::cout << cnt << "\n";
   stat = search.solve([&stat](const SearchStatistics& stats) {
                               stat = stats;
                               //return stats.numberOfNodes() > 1;
-                              //return stats.numberOfSolutions() > INT_MAX;
-                              return stats.numberOfSolutions() > 0;
+                              return stats.numberOfSolutions() > INT_MAX;
+                              //return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   
@@ -271,6 +277,7 @@ std::cout << cnt << "\n";
   extern int nbCONSCall,nbCONSFail;
   extern int nbAECall,nbAEFail;
   extern int timeDoingUp, timeDoingDown, timeDoingSplit, timeDoingUpProcess, timeDoingUpFilter;
+  extern int fullReboot, partialReboot;
   
   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
   std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
@@ -288,6 +295,9 @@ std::cout << cnt << "\n";
   std::cout << "      Process: " << timeDoingUpProcess << "\n";
   std::cout << "       Filter: " << timeDoingUpFilter << "\n";
   std::cout << "Time Doing Split: " << timeDoingSplit << "\n";
+
+  std::cout << "Full Reboot: " << fullReboot << "\n";
+  std::cout << "Partial Reboot: " << partialReboot << "\n";
 
   std::cout << "{ \"JSON\" :\n {";
   std::cout << "\n\t\"alldiff\" :" << "{\n";

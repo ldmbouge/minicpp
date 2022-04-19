@@ -8,6 +8,10 @@
 #include "heap.hpp"
 
 int timeDoingDown = 0, timeDoingSplit = 0, timeDoingUp = 0, timeDoingUpProcess = 0, timeDoingUpFilter = 0;
+int fullReboot = 0, partialReboot = 0, fullRebootFirstIteration = 0, partialRebootFirstIteration = 0;
+bool firstIteration = true;
+
+bool autoRebootDistance = false;
 
 MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,bool approxThenExact, int maxConstraintPriority)
    : MDD(cp),
@@ -55,7 +59,7 @@ MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,
 
 void MDDRelax::buildDiagram()
 {
-   //std::cout << "MDDRelax::buildDiagram" << '\n';
+   std::cout << "MDDRelax::buildDiagram" << '\n';
    _mddspec.layout();
    _mddspec.compile();
    _deltaDown = new MDDDelta(_nf,_mddspec.sizeDown(),Down);
@@ -90,7 +94,7 @@ void MDDRelax::buildDiagram()
    layers[numVariables].push_back(sink,mem);
 
 
-   //auto start = RuntimeMonitor::now();
+   auto start = RuntimeMonitor::now();
    _refs.emplace_back(rootDownState);
    for(auto i = 0u; i < numVariables; i++) {
       buildNextLayer(i);
@@ -98,8 +102,8 @@ void MDDRelax::buildDiagram()
    }
    postUp();
    trimDomains();
-   //auto dur = RuntimeMonitor::elapsedSince(start);
-   //std::cout << "build/Relax:" << dur << '\n';
+   auto dur = RuntimeMonitor::elapsedSince(start);
+   std::cout << "build/Relax:" << dur << '\n';
    propagate();
    hookupPropagators();
 }
@@ -560,13 +564,13 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
                delSupport(l-1,v);
                removeArc(l-1,l,a.get());
                if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-               if (_maxDistance && lowest < l) return lowest;
             } else {
                splitter.addPotential(_pool,n,nbParents,p,a,ms,v,nbk,(bool*)keepArc,0);
             }
          }
       } //out-comment
    } // end of loop over parents.
+   if ((autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance) && lowest < l) return lowest;
 
    if (splitter.size() == 1 && !foundNonviableCandidate) {
       splitter.clear();
@@ -638,7 +642,6 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
             if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
          }
          foundNonviableClass = true;
-         if (_maxDistance && lowest < l) return lowest;
       } else {
          MDDEdge::Ptr arc = arcsPerCandidate[candidateIndex][0];
          auto p = arc->getParent();
@@ -651,6 +654,7 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
          reuseIndex++;
       }
    }
+   if ((autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance) && lowest < l) return lowest;
    if (splitter.size() == 1 && !foundNonviableClass) {
       splitter.clear();
    }
@@ -717,7 +721,6 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
             }
          }
          foundNonviableClass = true;
-         if (_maxDistance && lowest < l) return lowest;
       } else {
          int splitterStateIndex = -1;
          for (auto arcIt = arcsPerClass.begin(); arcIt != arcsPerClass.end(); ++arcIt) {
@@ -735,6 +738,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
          }
       }
    }
+   if ((autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance) && lowest < l) return lowest;
    if (splitter.size() == 1 && !foundNonviableClass) {
       splitter.clear();
    }
@@ -777,7 +781,7 @@ void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can
             if (n->getNumParents() == 0) {
                delState(n,l);
             }
-            if (_maxDistance && lowest < l) break;
+            if ((autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance) && lowest < l) break;
             splitter.process(layer,_width,trail,mem,
                              [this,l,&layer](MDDNode* n,MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
                                 potEXEC++;
@@ -804,7 +808,11 @@ void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can
          }
          ++nbSplits;
       } // end-if (there is room and variable is not bound)
-      auto jump = std::min(l - lowest,_maxDistance);
+      auto jump = std::min(l - lowest, autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance);
+      if (lowest != l) {
+        if (jump == l - lowest) fullReboot++;
+        else partialReboot++;
+      }
       if (jump) l -= jump;
       else l++;
    }
@@ -1030,6 +1038,7 @@ void MDDRelax::computeDown(int iter)
 {
    //auto start = RuntimeMonitor::now();
    if (iter <= _maxSplitIter) {
+      //std::cout << "Start refinement iteration" << iter << "\n";
       for (int i = 0; i <= _maxConstraintPriority; i++) {
          if (_mddspec.approxEquivalence()) {
             splitLayers(true, i);
@@ -1041,12 +1050,19 @@ void MDDRelax::computeDown(int iter)
          }
       }
    }
+   if (firstIteration) {
+     fullRebootFirstIteration = fullReboot;
+     partialRebootFirstIteration = partialReboot;
+     std::cout << "Full Reboot First Iteration: " << fullRebootFirstIteration << "\n";
+     std::cout << "Partial Reboot First Iteration: " << partialRebootFirstIteration << "\n";
+     firstIteration = false;
+   }
    //timeDoingSplit += RuntimeMonitor::elapsedSinceMicro(start);
    //_sf->disable();
    //start = RuntimeMonitor::now();
    while(!_fwd->empty()) {
       MDDNode* node = _fwd->deQueue();
-      if (node==nullptr) break;  // the queue could be "filled" with inactive nodes
+      //if (node==nullptr) break;  // the queue could be "filled" with inactive nodes
       int l = node->getLayer();
       if (l > 0 && node->getNumParents() == 0) {
          if (l == (int)numVariables) failNow();
@@ -1095,6 +1111,7 @@ int iterMDD = 0;
 
 void MDDRelax::propagate()
 {
+   //std::cout << "Begin propagate\n";
    try {
       setScheduled(true);
       bool change = false;

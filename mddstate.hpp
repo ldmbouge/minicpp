@@ -483,7 +483,7 @@ public:
       dest = v;
       return dest;
    }
-   void setProp(char* buf,char* from) noexcept   {
+   virtual void setProp(char* buf,char* from) noexcept   {
       switch(_bsz) {
          case 1: buf[_ofs] = from[_ofs];break;
          case 2: *reinterpret_cast<short*>(buf+_ofs) = *reinterpret_cast<short*>(from+_ofs);break;
@@ -541,6 +541,63 @@ public:
    friend class MDDStateSpec;
 };
 
+class MDDPBit :public MDDProperty {
+   bool _init;
+   char _bitmask;
+   size_t storageSize() const override { return 1;}
+   size_t setOffset(size_t bitOffset) override {
+      //size_t boW = bitOffset & 0x1F;
+      //if (boW != 0) 
+      //   bitOffset = (bitOffset | 0x1F) + 1;
+      //_ofs = bitOffset >> 3;
+      //_bitmask = 0x1;
+      //return (_ofs << 3) + storageSize();
+      size_t boW = bitOffset & 0x7;
+      _bitmask = 0x1 << boW;
+      _ofs = bitOffset >> 3;
+      return bitOffset + storageSize();
+   }
+public:
+   typedef handle_ptr<MDDPBit> Ptr;
+   MDDPBit(short id,unsigned short ofs,int init,enum RelaxWith rw)
+      : MDDProperty(id,ofs,1,rw),_init(init) {}
+   void init(char* buf) const  noexcept override     {
+      if (_init)
+         buf[_ofs] |= _bitmask;
+      else
+         buf[_ofs] &= ~_bitmask;
+   }
+   int get(char* buf) const  noexcept override       { return (buf[_ofs] & _bitmask) == _bitmask;}
+   int getInt(char* buf) const  noexcept override       { return (buf[_ofs] & _bitmask) == _bitmask;}
+   void set(char* buf,int v) noexcept override {
+      if (v)
+         buf[_ofs] |= _bitmask;
+      else
+         buf[_ofs] &= ~_bitmask;
+   }
+   void stream(char* buf,std::ostream& os) const override { bool v = buf[_ofs] & _bitmask;os << (int)v;}
+   void minWith(char* buf,char* other) const noexcept override {
+      if (!(buf[_ofs] & other[_ofs] &  _bitmask))
+        buf[_ofs] &= ~_bitmask;
+   }
+   void maxWith(char* buf,char* other) const noexcept override {
+      buf[_ofs] |= (other[_ofs] & _bitmask);
+   }
+   bool diff(char* buf,char* other) const noexcept  override {
+      return (buf[_ofs] & _bitmask) != (other[_ofs] & _bitmask);
+   }
+   void setProp(char* buf,char* from) noexcept  override {
+      if ((from[_ofs] & _bitmask) == _bitmask)
+         buf[_ofs] |= _bitmask;
+      else
+         buf[_ofs] &= ~_bitmask;
+   }
+   void print(std::ostream& os) const override  {
+      os << "PBit(" << _id << ',' << _ofs << ',' << (int)_bitmask << ',' << (int)_init << ')';
+   }
+   friend class MDDStateSpec;
+};
+
 class MDDPByte :public MDDProperty {
    char _init;
    char  _max;
@@ -587,6 +644,9 @@ class MDDPBitSequence : public MDDProperty {
       return up;
    }
    size_t setOffset(size_t bitOffset) override {
+      size_t boW = bitOffset & 0x1F;
+      if (boW != 0) 
+         bitOffset = (bitOffset | 0x1F) + 1;
       _ofs = bitOffset >> 3;
       _ofs = ((_ofs & 0xF) != 0)  ? (_ofs | 0xF)+1 : _ofs; // 16-byte align
       return (_ofs << 3) + storageSize();
@@ -715,12 +775,12 @@ protected:
    MDDPropSet*   _omapUpToCombined;
    MDDPropSet*   _omapCombinedToDown;
    MDDPropSet*   _omapCombinedToUp;
-   short _mxpDown;
-   short _mxpUp;
-   short _mxpCombined;
-   short _nbpDown;
-   short _nbpUp;
-   short _nbpCombined;
+   size_t _mxpDown;
+   size_t _mxpUp;
+   size_t _mxpCombined;
+   size_t _nbpDown;
+   size_t _nbpUp;
+   size_t _nbpCombined;
    size_t _lszDown;
    size_t _lszUp;
    size_t _lszCombined;
@@ -751,7 +811,7 @@ public:
          case Down: return sizeDown(); break;
          case Up: return sizeUp(); break;
          case Bi: return sizeCombined(); break;
-         default: return (short)-1; break;
+         default: return (size_t)-1; break;
       }
    }
    unsigned short startOfsDown(int p) const noexcept { return _attrsDown[p]->startOfs();}
@@ -1138,24 +1198,25 @@ public:
    bool hasNodeSplitRule() const noexcept { return _onSplit.size() > 0;}
    bool hasCandidateSplitRule() const noexcept { return _candidateSplit.size() > 0;}
    bool equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int constraintPriority) const;
+   int rebootFor(int l) const noexcept { return _rebootByLayer[l]; }
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    std::vector<var<int>::Ptr>& getGlobals() { return z;}
    friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
       os << "Spec Down(";
-      for(int p=0;p < s._nbpDown;p++) {
+      for(size_t p=0;p < s._nbpDown;p++) {
          s._attrsDown[p]->print(os);
          os << ' ';
       }
       os << ')';
       os << "\nSpec Up(";
-      for(int p=0;p < s._nbpUp;p++) {
+      for(size_t p=0;p < s._nbpUp;p++) {
          s._attrsUp[p]->print(os);
          os << ' ';
       }
       os << ')';
       os << "\nSpec Combined(";
-      for(int p=0;p < s._nbpCombined;p++) {
+      for(size_t p=0;p < s._nbpCombined;p++) {
          s._attrsCombined[p]->print(os);
          os << ' ';
       }
@@ -1194,6 +1255,7 @@ private:
    std::vector<std::vector<CandidateFun>> _candidateSplitByPriorities;
    std::vector<std::vector<EquivalenceValueFun>> _equivalenceValueByPriorities;
    std::vector<std::vector<int>> _propertiesByPriorities;
+   std::vector<int> _rebootByLayer;
 };
 
 inline int rotl(int n,const int d) {

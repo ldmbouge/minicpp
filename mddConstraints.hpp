@@ -41,6 +41,7 @@ namespace Factory {
    void amongMDD(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);
    void amongMDD2(MDDSpec& mdd, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 3, int constraintPriority = 0);
    void amongMDD2(MDDSpec& mdd, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 3, int constraintPriority = 0);
+   void upToOneMDD(MDDSpec& mdd, const Factory::Vecb& x, std::set<int> rawValues, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 3, int constraintPriority = 0);
    void allDiffMDD(MDDSpec& mdd, const Factory::Veci& vars, int constraintPriority = 0);
    void allDiffMDD2(MDDSpec& mdd, const Factory::Veci& vars, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 4, int constraintPriority = 0);
    void seqMDD(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
@@ -49,8 +50,11 @@ namespace Factory {
    void gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub);
    void gccMDD2(MDDSpec& spec,const Factory::Veci& vars, const std::map<int,int>& lb, const std::map<int,int>& ub);
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub);
+   void sumMDD(MDDSpec& mdd, const Factory::Vecb& vars, var<int>::Ptr z);
+   void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, var<int>::Ptr z);
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, var<int>::Ptr z);
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z);
+   void maximumCutObjectiveMDD(MDDSpec& mdd, const Factory::Vecb& vars, const std::vector<std::vector<int>>& weights, var<int>::Ptr z, int nodePriority = 0, int candidatePriority = 0, int approxEquivMode = 0, int equivalenceThreshold = 0, int constraintPriority = 0);
    inline void seqMDD2(MDDSpec& spec,const Factory::Vecb& vars, int len, int lb, int ub, std::set<int> rawValues) {
       Factory::Veci v2(vars.size(),Factory::alloci(vars[0]->getStore()));
       for(auto i=0u;i < vars.size();i++) v2[i] = vars[i];

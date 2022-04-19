@@ -117,7 +117,7 @@ public:
       _inQueue = (enum Direction)(_inQueue | d);
    }
    void leaveQueue(enum Direction d) const noexcept {
-     if (parents.size() > 0 && children.size() > 0) // hmmm. The node shouldn't be active
+     if (parents.size() > 0 || children.size() > 0) // hmmm. The node shouldn't be active
        _inQueue = (enum Direction)(_inQueue & ~d);    // so avoid trailing by not resetting
      switch(d) {
        case Down: _fq = nullptr;break;
