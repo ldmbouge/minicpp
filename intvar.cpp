@@ -13,6 +13,8 @@
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  */
 
+#include <utils.hpp>
+
 #include "intvar.hpp"
 #include "store.hpp"
 #include <algorithm>
@@ -62,24 +64,58 @@ TLCNode* IntVarImpl::whenDomainChange(std::function<void(void)>&& f)
 
 void IntVarImpl::assign(int v)
 {
+    TRACE
+    (
+        if(not (isBound() and contains(v)))
+        {
+            printf("[DEBUG] Setting %d to ", v);
+            printVar(this);
+        }
+    )
     _dom->assign(v,*_domListener);
 }
 void IntVarImpl::remove(int v)
 {
+    TRACE
+    (
+        if (contains(v))
+        {
+            printf("[DEBUG] Removing %d from ", v);
+            printVar(this);
+        }
+    )
     _dom->remove(v,*_domListener);
 }
 void IntVarImpl::removeBelow(int newMin)
 {
+    TRACE
+    (
+        if (newMin > min())
+        {
+            printf("[DEBUG] Increasing min to %d of ", newMin);
+            printVar(this);
+        }
+    )
     _dom->removeBelow(newMin,*_domListener);
 }
 void IntVarImpl::removeAbove(int newMax)
 {
+    TRACE
+    (
+        if (newMax < max())
+        {
+            printf("[DEBUG] Decreasing max to %d of ", newMax);
+            printVar(this);
+        }
+    )
     _dom->removeAbove(newMax,*_domListener);
 }
 void IntVarImpl::updateBounds(int newMin,int newMax)
 {
-    _dom->removeBelow(newMin,*_domListener);
-    _dom->removeAbove(newMax,*_domListener);
+    //_dom->removeBelow(newMin,*_domListener);
+    //_dom->removeAbove(newMax,*_domListener);
+    removeBelow(newMin);
+    removeAbove(newMax);
 }
 
 void IntVarImpl::DomainListener::empty() 
@@ -133,8 +169,38 @@ namespace Factory {
       return var;
    }
 
-    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps) {
+    var<int>::Ptr makeIntVar(CPSolver::Ptr cps, std::vector<int> const & values)
+    {
+        // Values are sorted
+        int minValue = values.front();
+        int maxValue = values.back();
+        auto var = makeIntVar(cps, minValue, maxValue);
+        int idx = 0;
+        for(int value = minValue; value <= maxValue; value += 1)
+        {
+            if (value == values[idx])
+            {
+                idx += 1;
+            }
+            else
+            {
+                var->remove(value);
+            }
+        }
+        return var;
+    }
+
+    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps)
+    {
         var<bool>::Ptr rv = new (cps) var<bool>(cps);
+        cps->registerVar(rv);
+        return rv;
+    }
+
+    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps, bool value)
+    {
+        var<bool>::Ptr rv = new (cps) var<bool>(cps);
+        rv->assign(value);
         cps->registerVar(rv);
         return rv;
     }

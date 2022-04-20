@@ -17,36 +17,93 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
 set(CMAKE_CXX_FLAGS "-Wall -Wsign-compare")
-if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
-else()
+#if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
+#   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
+#   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
+#else()
    set(CMAKE_CXX_FLAGS_DEBUG "-g")
    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
-endif()
+#endif()
 
 message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
 message("Build: ${CMAKE_BUILD_TYPE}")
 
 include_directories(.)
-add_library(copl RuntimeMonitor.cpp mdd.cpp mddrelax.cpp mdddelta.cpp
-	mddAlldiff.cpp mddAmong.cpp mddGcc.cpp mddMaximumCutObjective.cpp mddSeq.cpp mddSum.cpp
-	store.cpp bitset.cpp table.cpp regular.cpp lex.cpp
-	acstr.cpp domain.cpp mddnode.cpp constraint.cpp     
-	intvar.cpp mddstate.cpp trail.cpp mallocWatch.cpp    
-	search.cpp trailable.cpp matching.cpp solver.cpp)
+add_library(copl
+	RuntimeMonitor.cpp
+	fail.cpp
+	acstr.cpp
+	bitset.cpp
+	constraint.cpp
+	domain.cpp
+	fz_constraints/bool_array.cpp
+	fz_constraints/bool_bin.cpp
+	fz_constraints/bool_lin.cpp
+	fz_constraints/bool_misc.cpp
+	fz_constraints/flatzinc.cpp
+	fz_constraints/int_array.cpp
+	fz_constraints/int_bin.cpp
+	fz_constraints/int_lin.cpp
+	fz_constraints/int_tern.cpp
+	fz_parser/flatzinc.cpp
+	fz_parser/lexer.yy.cpp
+	fz_parser/parser.tab.cpp
+	fz_parser/registry.cpp
+	intvar.cpp
+	lex.cpp
+	mallocWatch.cpp
+	matching.cpp
+	mdd.cpp
+	mddAlldiff.cpp
+	mddAmong.cpp
+	mddGcc.cpp
+        mddMaximumCutObjective.cpp
+	mddSeq.cpp
+	mddSum.cpp
+	mdddelta.cpp
+	mddnode.cpp
+	mddrelax.cpp
+	mddstate.cpp
+	regular.cpp
+	search.cpp
+	solver.cpp
+	store.cpp
+	table.cpp
+	trail.cpp
+	trailable.cpp)
+
+add_library(fzl
+		fz_constraints/bool_array.cpp
+		fz_constraints/bool_bin.cpp
+		fz_constraints/bool_lin.cpp
+		fz_constraints/bool_misc.cpp
+		fz_constraints/flatzinc.cpp
+		fz_constraints/int_array.cpp
+		fz_constraints/int_bin.cpp
+		fz_constraints/int_lin.cpp
+		fz_constraints/int_tern.cpp
+		fz_parser/flatzinc.cpp
+		fz_parser/lexer.yy.cpp
+		fz_parser/parser.tab.cpp
+		fz_parser/registry.cpp
+		)
 
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
+list(FILTER files EXCLUDE REGEX ".*/examples/fz.cpp")
 message("${files}")
+
 foreach (file ${files})
 	get_filename_component(base ${file} NAME_WE)
 	get_filename_component(dir ${file} DIRECTORY)
-#	message("BASE IS: ${base}")
+	message("BASE IS: ${base}")
 	add_executable(${base} ${dir}/${base}.cpp)
 	target_link_libraries(${base} copl)
 	add_dependencies(${base} copl)
 endforeach()
+
+add_executable(fzn-minicpp examples/fz.cpp)
+target_link_libraries(fzn-minicpp copl fzl)
 
 file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 

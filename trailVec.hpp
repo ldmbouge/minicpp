@@ -121,11 +121,16 @@ public:
       _data[i] = nv;
    }
    bool changed() const noexcept { return _magic == _t->magic();}
-   class iterator: public std::iterator<std::input_iterator_tag,T,long> {
+   class iterator { // : public std::iterator<std::input_iterator_tag,T,long> {
       T*    _data;
       long   _num;
       iterator(T* d,long num = 0) : _data(d),_num(num) {}
    public:
+      using iterator_category = std::input_iterator_tag;
+      using value_type = T;
+      using difference_type = long;
+      using pointer = T*;
+      using reference = T&;
       iterator& operator++()   { _num = _num + 1; return *this;}
       iterator operator++(int) { iterator retval = *this; ++(*this); return retval;}
       iterator& operator--()   { _num = _num - 1; return *this;}
@@ -135,11 +140,16 @@ public:
       T& operator*() const {return _data[_num];}
       friend class TVec;
    };
-   class const_iterator: public std::iterator<std::input_iterator_tag,T,long> {
+   class const_iterator { // : public std::iterator<std::input_iterator_tag,T,long> {
       T*    _data;
       long   _num;
       const_iterator(T* d,long num = 0) : _data(d),_num(num) {}
    public:
+      using iterator_category = std::input_iterator_tag;
+      using value_type = T;
+      using difference_type = short;
+      using pointer = T*;
+      using reference = T&;
       const_iterator& operator++()   { _num = _num + 1; return *this;}
       const_iterator operator++(int) { const_iterator retval = *this; ++(*this); return retval;}
       const_iterator& operator--()   { _num = _num - 1; return *this;}

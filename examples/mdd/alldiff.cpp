@@ -103,8 +103,6 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   std::mt19937 rnG(randSeed);
   std::uniform_real_distribution<double> sampler(0,100);
 
-  //srand(randSeed);
-
   std::vector< std::vector< set<int> > > cliquesByConstraint;
 
   int largestCliqueSize = 0;
@@ -257,16 +255,16 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
                          firstSolTime = RuntimeMonitor::cputime();
                          firstSolNumFail = stat.numberOfFailures();
                        }
-if (cnt % 10000 == 0)
-std::cout << cnt << "\n";
-    });
+                       if (cnt % 10000 == 0)
+                          std::cout << cnt << "\n";
+  });
 
 
   stat = search.solve([&stat](const SearchStatistics& stats) {
                               stat = stats;
                               //return stats.numberOfNodes() > 1;
-                              return stats.numberOfSolutions() > INT_MAX;
-                              //return stats.numberOfSolutions() > 0;
+                              //return stats.numberOfSolutions() > INT_MAX;
+                              return stats.numberOfSolutions() > 0;
     }); 
   cout << stat << endl;
   

@@ -19,6 +19,8 @@ namespace RuntimeMonitor {
    HRClock now();
    double elapsedSince(HRClock then);
    long milli(HRClock s,HRClock e);
+   double elapsedSeconds(HRClock start, HRClock end);
+   double elapsedSeconds(HRClock start);
    unsigned long elapsedSinceMicro(HRClock then);
 }
 

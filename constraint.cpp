@@ -88,7 +88,7 @@ void EQTernBCbool::post()
       else if (_x->min() - _y->min() == 0) {
          _b->assign(false);
       } else {
-         throw Failure;
+         failNow();
       }
    }
    else if (_x->isBound() && _b->isTrue())
@@ -255,9 +255,9 @@ void Minimize::print(std::ostream& os) const
 
 void Minimize::tighten()
 {
-   assert(_obj->isBound());
+    //assert(_obj->isBound());
    _primal = _obj->max() - 1;
-   throw Failure;
+   failNow();
 }
 
 Maximize::Maximize(var<int>::Ptr& x)
@@ -278,7 +278,7 @@ void Maximize::tighten()
 {
    assert(_obj->isBound());
    _primal = _obj->min() + 1;
-   throw Failure;
+   failNow();
 }
 
 void IsEqual::post() 
@@ -418,7 +418,7 @@ void Sum::propagate()
    }
    _nUnBounds = nU;
    if (0 < sumMin ||  sumMax < 0)
-      throw Failure;
+      failNow();
    for(int i = nU - 1; i >= 0;i--) {
       auto idx = _unBounds[i];
       _x[idx]->removeAbove(-(sumMin - _x[idx]->min()));
@@ -434,7 +434,7 @@ void SumBool::post()
       nbPos  += !_x[i]->isBound();
    }
    if (nbTrue > _c)
-      throw Failure;
+      failNow();
    if (nbTrue == _c) {
       for(auto xi : _x)
          if (!xi->isBound())
@@ -442,7 +442,7 @@ void SumBool::post()
       return ;
    }
    if (nbTrue + nbPos < _c)
-      throw Failure;
+      failNow();
    if (nbTrue + nbPos == _c) {
       for(auto xi : _x)
          if (!xi->isBound())
@@ -470,7 +470,7 @@ void SumBool::propagateIdx(int k)
                _x[i]->assign(false);
          }
          if (nb1 != _c)
-            throw Failure;
+            failNow();
       } else
          _nbOne = _nbOne + 1;
    } else {
@@ -483,7 +483,7 @@ void SumBool::propagateIdx(int k)
             }
          }
          if (nb1 != _c)
-            throw Failure;
+            failNow();
       } else
          _nbZero = _nbZero + 1;
    }
@@ -518,7 +518,7 @@ void Clause::propagate()
       i -= 1;
    }
    _wR = i;
-   if (_wL > _wR) throw Failure;
+   if (_wL > _wR) failNow();
    else if (_wL == _wR) {
       _x[_wL]->assign(true);
       setActive(false);
@@ -644,7 +644,7 @@ void AllDifferentAC::propagate()
 {
    int size = _mm.compute(_match);
    if (size < _nVar)
-      throw Failure;
+      failNow();
    updateRange();
    updateGraph();
    int nc = 0;
@@ -754,11 +754,11 @@ void Element2D::propagate()
    int zMin = _z->min(),zMax = _z->max();
    while (_xyz[l].z < zMin || !_x->contains(_xyz[l].x) || !_y->contains(_xyz[l].y)) {
       updateSupport(l++);
-      if (l > u) throw Failure;
+      if (l > u) failNow();
    }
    while (_xyz[u].z > zMax || !_x->contains(_xyz[u].x) || !_y->contains(_xyz[u].y)) {
       updateSupport(u--);
-      if (l > u) throw Failure;
+      if (l > u) failNow();
    }
    _z->updateBounds(_xyz[l].z,_xyz[u].z);
    _low = l;
@@ -768,6 +768,85 @@ void Element2D::propagate()
 void Element2D::print(std::ostream& os) const
 {
    os << "element2D(" << _x << ',' << _y << ',' << _z << ')' << std::endl;
+}
+
+Element1DBasic::Element1DBasic(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z)
+   : Constraint(y->getSolver()),_t(array),_y(y),_z(z),
+     _from(_y->getSolver()->getStateManager(),-1),
+     _to(_y->getSolver()->getStateManager(),-1) // z == array[y]
+{
+   _kv = NULL;
+}
+
+void Element1DBasic::post() 
+{
+   if (_y->isBound()) {
+      _z->assign(_t[_y->min()]);
+   } else if (_z->isBound()) {
+      const int zv = _z->min();
+      for(int v = _y->min(); v <= _y->max();v++) { // loop on index
+         if (v < 0 || v >= (int)_t.size() || _t[v] != zv) // does not yield val in dom
+            _y->remove(v);
+      }
+   } else { // nobody bound.
+      _kv = new (_y->getSolver()) Pair[_t.size()];
+      for(int k = 0;k < (int)_t.size();k++) 
+         _kv[k] = (Pair){k,_t[k]};
+      qsort(_kv,_t.size(),sizeof(Pair),[](const void* a,const void* b) {
+         const Pair* ap = reinterpret_cast<const Pair*>(a);
+         const Pair* bp = reinterpret_cast<const Pair*>(b);
+         int d = ap->_v - bp->_v;
+         return d ? d : (ap->_k - bp->_k);
+      });
+      for(int k=0;k < (int)_t.size();k++) {
+         if (!_z->contains(_kv[k]._v))
+            _y->remove(_kv[k]._k);
+         else {
+            if (_from == -1)
+               _from = k;
+            _to = k;
+         }
+      }
+      if (_y->isBound())
+         _z->assign(_t[_y->min()]);
+      else {
+         _y->propagateOnDomainChange(this);
+         _z->propagateOnBoundChange(this);
+      }      
+   }
+}
+
+void Element1DBasic::propagate() 
+{
+   if (_y->isBound())
+      _z->assign(_t[_y->min()]);
+   else {
+      int k = _from;
+      while (k < (int)_t.size() && !_y->contains(_kv[k]._k)) ++k;
+      if (k < (int)_t.size()) {
+         _z->removeBelow(_kv[k]._v);
+         _from = k;
+      } else failNow();
+      k = _to;
+      while (k>=0 && !_y->contains(_kv[k]._k)) --k;
+      if (k >= 0) {
+         _z->removeAbove(_kv[k]._v);
+         _to = k;
+      } else failNow();
+      k = _from;
+      while (k < (int)_t.size() && _kv[k]._v < _z->min())
+         _y->remove(_kv[k++]._k);
+      _from = k;
+      k = _to;
+      while (k>=0 && _kv[k]._v > _z->max())
+         _y->remove(_kv[k--]._k);
+      _to = k;
+   }
+}
+
+void Element1DBasic::print(std::ostream& os) const 
+{
+   os << "element1DBasic(" << _t << ',' << _y << ',' << _z << ')' << std::endl;
 }
 
 Element1D::Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z)
@@ -787,9 +866,11 @@ void Element1D::post()
 
 void Element1DVar::post()
 {
-   _y->updateBounds(0,(int)_array.size() - 1);
-   for(auto t : _array)
-      t->propagateOnBoundChange(this);
+   _y->updateBounds(1,(int)_array.size());
+   for(size_t i = 1 ; i < _array.size(); i += 1)
+   {
+       _array[i]->propagateOnBoundChange(this);
+   }
    _y->propagateOnDomainChange(this);
    _z->propagateOnBoundChange(this);
    propagate();

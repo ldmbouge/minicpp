@@ -206,7 +206,6 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    vector<bool> taken(cv.size()); // for each clique a boolean saying whether it was already picked up.
    vector<set<unsigned>> cid; // identifiers of cliques to bundle in the same MDD (identifiers refer to index within cv)
 
-   unsigned ss = 0;
    for(auto i=0u;i < cv.size();i++) {
       if (taken[i]) continue;
       set<int> acc = cv[i];
@@ -228,7 +227,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          }
       }      
       cid.push_back(chosen);
-      ss += chosen.size();
+      //ss += chosen.size();
    }
    
    // Test: add objective to each MDD
@@ -243,7 +242,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    cout << "zUB = " << zUB << endl;
    auto z = Factory::makeIntVar(cp, 0, zUB);
 
-   assert(ss == cv.size());
+   //assert(ss == cv.size());
    MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
       //auto mdd = new MDD(cp);
@@ -306,14 +305,14 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             largest = std::max(largest,compat[i][v]);           
          }
          return  [=] {
-                    //cout << tab(depth) << "?x(" << i << ") == " << bv << " " <<  x << endl;
+                    //cout << tab(depth) << "?x(" << i << ") == " << bool_vars << " " <<  x << endl;
                     cp->post(x == bv);
-                    //cout << tab(depth) << "!x(" << i << ") == " << bv << endl;
+                    //cout << tab(depth) << "!x(" << i << ") == " << bool_vars << endl;
                  }
             | [=] {
-                 //cout << tab(depth) << "?x(" << i << ") != " << bv << " FAIL" << endl;
+                 //cout << tab(depth) << "?x(" << i << ") != " << bool_vars << " FAIL" << endl;
                  cp->post(x != bv);
-                 //cout << tab(depth) << "!x(" << i << ") != " << bv << endl;
+                 //cout << tab(depth) << "!x(" << i << ") != " << bool_vars << endl;
               };
       } else return Branches({});
    });

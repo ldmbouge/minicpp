@@ -14,7 +14,6 @@
  */
 
 #include "solver.hpp"
-#include "cont.hpp"
 #include "controller.hpp"
 #include <assert.h>
 #include <iostream>
@@ -26,6 +25,7 @@ CPSolver::CPSolver()
       _store(new Storage(_sm))
 {
     _varId  = 0;
+    _propagations = 0;
 }
 
 CPSolver::~CPSolver()
@@ -36,9 +36,10 @@ CPSolver::~CPSolver()
    std::cout << "CPSolver::~CPSolver(" << this << ")" << std::endl;
 }
 
-void CPSolver::post(Constraint::Ptr c,bool enforceFixPoint)
+void CPSolver::post(Constraint::Ptr c, bool enforceFixPoint)
 {
-    if (!c) return;
+    if (!c)
+        return;
     c->post();
     if (enforceFixPoint)
         fixpoint();
@@ -58,20 +59,23 @@ void CPSolver::notifyFixpoint()
 
 void CPSolver::fixpoint()
 {
-   try {
+   TRYFAIL
       notifyFixpoint();
       while (!_queue.empty()) {
          auto c = _queue.deQueue();
          c->setScheduled(false);
          if (c->isActive())
-            c->propagate();
+         {
+             c->propagate();
+             _propagations += 1;
+         }
       }
       assert(_queue.size() == 0);
-   } catch(Status x) {
+   ONFAIL
       while (!_queue.empty()) {
          _queue.deQueue()->setScheduled(false);
       }
       assert(_queue.size() == 0);
-      throw x;
-   }
+      failNow();
+   ENDFAIL
 }

@@ -136,6 +136,39 @@ void BitDomain::assign(int v,IntNotifier& x)  // removeAllBut(v,x)
 
 void BitDomain::remove(int v,IntNotifier& x)
 {
+    /*
+    if(member(v))
+    {
+        bool minChanged = v == _min;
+        bool maxChanged = v == _max;           
+
+        if (minChanged) 
+        {               
+            _min = findMin(_min + 1);
+            x.changeMin();
+        } 
+        else if (maxChanged) 
+        {
+            _max = findMax(_max - 1);
+            x.changeMax();
+        }
+
+        setZero(v);
+        x.change(); 
+
+        _sz -= 1;
+        if (_sz == 0)
+        {
+            x.empty();      
+        } 
+        else if (_sz == 1)
+        {
+            x.bind();
+        }           
+    }
+     */
+
+
     if (v < _min || v > _max)
         return;
     if (_min.value() == _max.value())
@@ -163,6 +196,7 @@ void BitDomain::remove(int v,IntNotifier& x)
         if (_sz == 0) x.empty();
         x.change();
     }
+
 }
 
 void BitDomain::removeBelow(int newMin,IntNotifier& x)

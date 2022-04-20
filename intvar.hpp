@@ -42,7 +42,7 @@ class IntVarImpl :public var<int> {
       void bind() override;
       void change()  override;
       void changeMin() override;
-      void changeMax() override;      
+      void changeMax() override;
    };
    DomainListener*       _domListener;
 public:
@@ -70,9 +70,9 @@ public:
    TLCNode* propagateOnDomainChange(Constraint::Ptr c ) override { return _onDomList.emplace_back(std::move(c));}
 
     std::ostream& print(std::ostream& os) const override {
-        if (size() == 1)
-            os << min();
-        else
+       // if (size() == 1)
+       //     os << min();
+       // else
             os << "x_" << getId() << '(' << *_dom << ')';
         return os;
     }
@@ -136,7 +136,7 @@ public:
    void assign(int v) override {
       if (v % _a == 0)
          _x->assign(v / _a);
-      else throw Failure;
+      else failNow();
    }
    void remove(int v) override {
       if (v % _a == 0)
@@ -160,7 +160,7 @@ public:
    }
 };
 
-class IntVarViewOffset :public var<int> {
+class IntVarViewOffset : public var<int> {
     var<int>::Ptr _x;
     int _o;
 public:
@@ -258,8 +258,10 @@ namespace Factory {
    using Veci   = EVec<var<int>::Ptr,alloci>;
    using Vecb   = EVec<var<bool>::Ptr,allocb>;
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
-   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);   
+   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);
+   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::vector<int> const & vals);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
+   var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps, bool value);
    inline var<int>::Ptr minus(var<int>::Ptr x)     { return new (x->getSolver()) IntVarViewOpposite(x);}
    inline var<int>::Ptr operator-(var<int>::Ptr x) { return minus(x);}
    inline var<int>::Ptr operator*(var<int>::Ptr x,int a) {

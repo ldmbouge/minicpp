@@ -1,0 +1,14 @@
+FEATURES:
+- Implement search sequence
+- Complete search statistics
+- Complete output printing (e.g. ==========, UNKNOW, ...)
+
+QUALITY:
+- Review FlatZinc propagators for correctness
+- Review FlatZinc propagators for refactoring
+- Rework FlatZinc class
+  + Integrate variables pointers in FlatZincModel
+  + Update Printer
+- Clean main
+- Update CMake to compile only fz-minicpp
+- Command line arguments validation

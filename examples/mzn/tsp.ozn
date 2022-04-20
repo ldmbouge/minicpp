@@ -1,0 +1,4 @@
+output ["solution = "++format(succ)++"\nobjective = "++format(obj)++"\n"];
+int: n = 17;
+array [1..n] of int: succ;
+int: obj;

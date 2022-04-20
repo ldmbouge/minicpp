@@ -1111,8 +1111,7 @@ int iterMDD = 0;
 
 void MDDRelax::propagate()
 {
-   //std::cout << "Begin propagate\n";
-   try {
+   TRYFAIL
       setScheduled(true);
       bool change = false;
       MDD::propagate();
@@ -1138,11 +1137,11 @@ void MDDRelax::propagate()
       assert(layers[numVariables].size() == 1);
       _mddspec.reachedFixpoint(sink->getDownState(),sink->getUpState(),sink->getCombinedState());
       setScheduled(false);
-  } catch(Status s) {
+  ONFAIL    
       queue.clear();
       setScheduled(false);
-      throw s;
-   }
+      failNow();
+  ENDFAIL
 }
 
 void MDDRelax::refreshAll()

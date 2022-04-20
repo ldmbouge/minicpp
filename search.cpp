@@ -26,8 +26,11 @@ SearchStatistics DFSearch::solve(SearchStatistics& stats,Limit limit)
     _sm->withNewState(VVFun([this,&stats,&limit]() {
                                try {
                                   dfs(stats,limit);
-                               } catch(StopException& sx) {}
+                               } catch(StopException& sx) {
+                                  stats.setNotCompleted();
+                               }
                             }));
+    stats.setSolveTime();
     return stats;
 }
 
@@ -93,30 +96,32 @@ SearchStatistics DFSearch::optimizeSubjectTo(Objective::Ptr obj,Limit limit,std:
 
 void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
 {
-    if (limit(stats))
-        throw StopException();
     Branches branches = _branching();
-    if (branches.size() == 0) {
+    if (branches.size() == 0)
+    {
         stats.incrSolutions();
         notifySolution();
-    } else {
+    }
+    else
+    {
        auto last = std::prev(branches.end()); // for proper counting of choices.
-       for(auto cur = branches.begin();cur != branches.end() && !limit(stats);cur++) {
+       for(auto cur = branches.begin(); cur != branches.end() and !limit(stats); cur++)
+       {
           const auto& alt = *cur;
           _sm->saveState();
-          try {
-             if (cur != last)
-                stats.incrNodes();
-             alt();
-             dfs(stats,limit);
-          } catch(Status e) {
+          TRYFAIL
+              if (cur != last)
+                  stats.incrNodes();
+              alt();
+              dfs(stats, limit);
+          ONFAIL
              stats.incrFailures();
              notifyFailure();
-          } catch(...) {
-             stats.incrFailures();
-             notifyFailure();
-          }
-          _sm->restoreState();
+          ENDFAIL
+             _sm->restoreState();
+       }
+       if (limit(stats)) {
+          throw StopException();
        }
     }
 }

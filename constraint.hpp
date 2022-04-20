@@ -26,6 +26,10 @@
 #include "acstr.hpp"
 #include "matching.hpp"
 
+
+
+
+
 class EQc : public Constraint { // x == c
    var<int>::Ptr _x;
    int           _c;
@@ -324,6 +328,26 @@ public:
    void post() override;
 };
 
+class Element1DBasic : public Constraint { // z == t[y]
+   std::vector<int> _t;
+   var<int>::Ptr _y;
+   var<int>::Ptr _z;
+   struct Pair {
+      int _k;
+      int _v;
+      Pair() : _k(0),_v(0) {}
+      Pair(int k,int v) : _k(k),_v(v) {}
+      Pair(const Pair& p) : _k(p._k),_v(p._k) {}
+   };
+   Pair* _kv;
+   trail<int> _from,_to;
+public:
+   Element1DBasic(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z);
+   void post() override;;
+   void propagate() override;
+   void print(std::ostream& os) const override;
+};
+
 class Element1DVar : public Constraint {  // _z = _array[y]
    Factory::Veci  _array;
    var<int>::Ptr   _y,_z;
@@ -347,7 +371,8 @@ public:
    void propagate() override;
 };
 
-namespace Factory {
+namespace Factory
+{
    inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
       return new (x->getSolver()) EQBinBC(x,y,c);
    }
@@ -366,7 +391,7 @@ namespace Factory {
       cp->fixpoint();
       return nullptr;
    }
-   inline Constraint::Ptr operator!=(var<int>::Ptr x,const int c) {
+   inline Constraint::Ptr operator!=(var<int>::Ptr x, const int c) {
       auto cp = x->getSolver();
       x->remove(c);
       cp->fixpoint();
@@ -422,15 +447,27 @@ namespace Factory {
       return new (x->getSolver()) LessOrEqual(y,x-1);
    }
    inline Constraint::Ptr operator<=(var<int>::Ptr x,const int c) {
+      auto cp = x->getSolver();
       x->removeAbove(c);
-      x->getSolver()->fixpoint();
+      cp->fixpoint();
       return nullptr;
    }
    inline Constraint::Ptr operator>=(var<int>::Ptr x,const int c) {
+      auto cp = x->getSolver();
       x->removeBelow(c);
-      x->getSolver()->fixpoint();
+      cp->fixpoint();
       return nullptr;
    }
+    inline Constraint::Ptr operator<=(var<bool>::Ptr x,const int c) {
+        x->removeAbove(c);
+        x->getSolver()->fixpoint();
+        return nullptr;
+    }
+    inline Constraint::Ptr operator>=(var<bool>::Ptr x,const int c) {
+        x->removeBelow(c);
+        x->getSolver()->fixpoint();
+        return nullptr;
+    }
    inline Objective::Ptr minimize(var<int>::Ptr x) {
       return new Minimize(x);
    }
@@ -463,9 +500,10 @@ namespace Factory {
    }
    inline var<bool>::Ptr isEqual(var<int>::Ptr x,const int c) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
-      try {
+      TRYFAIL
          x->getSolver()->post(new (x->getSolver()) IsEqual(b,x,c));
-      } catch(Status s) {}
+      ONFAIL
+      ENDFAIL
       return b;
    }
    inline Constraint::Ptr isMember(var<bool>::Ptr b, var<int>::Ptr x, const std::set<int> S) {
@@ -473,16 +511,18 @@ namespace Factory {
    }
    inline var<bool>::Ptr isMember(var<int>::Ptr x,const std::set<int> S) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
-      try {
+      TRYFAIL
          x->getSolver()->post(new (x->getSolver()) IsMember(b,x,S));
-      } catch(Status s) {}
+      ONFAIL
+      ENDFAIL
       return b;
    }
    inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x,const int c) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
-      try {
+      TRYFAIL
          x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b,x,c));
-      } catch(Status s) {}
+      ONFAIL
+      ENDFAIL
       return b;
    }
    inline var<bool>::Ptr isLess(var<int>::Ptr x,const int c) {
