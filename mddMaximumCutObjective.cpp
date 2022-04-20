@@ -17,7 +17,7 @@
 #include "mddnode.hpp"
 #include <limits.h>
 
-namespace factory {
+namespace Factory {
 
    void maximumCutObjectiveMDD(MDDSpec& mdd, const Factory::Vecb& vars, const std::vector<std::vector<int>>& weights, var<int>::Ptr z, int nodePriority, int candidatePriority, int approxEquivMode, int equivalenceThreshold, int constraintPriority) {
       mdd.append(vars);
