@@ -80,7 +80,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   //auto vars = Factory::intVarArray(cp, H, 0, 1); // vars[i]=1 means that the nurse works on day i
   auto vars = Factory::boolVarArray(cp, H); // vars[i]=1 means that the nurse works on day i
 
-  auto objective = Factory::makeIntVar(cp, 0, H);
+  auto objective = Factory::makeIntVar(cp, 0, H*H);
 
   auto start = RuntimeMonitor::cputime();
 
@@ -97,10 +97,32 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   for (int i = 0; i < H-1; i++) {
     for (int j = i + 1; j < H; j++) {
       weights[i][j] = (weights[j][i] = (sampler(rnG) < density ? (floor(sampler(rnG)/33.33) - 1) : 0));
+      std::cout << "Weight (" << i << "," << j << ") = " << weights[i][j] << "\n";
     }
   }
 
+//  cp->post(vars[0] == false);
+
   if (mode == 0) {
+    auto edgeCrosses = Factory::intVarArray(cp, H*H,[&](int x) {
+      return xOR(vars[x/H], vars[x%H]);
+    });
+    for (int i = 0; i < H; i++) {
+      for (int j = i + 1; j < H; j++) {
+        for (int k = 0; k < H; k++) {
+          if (k == i || k == j) continue;
+          cp->post(edgeCrosses[i*H + j] + edgeCrosses[i*H + k] + edgeCrosses[j*H + k] <= 2);
+          cp->post(edgeCrosses[i*H + j] + edgeCrosses[i*H + k] >= edgeCrosses[j*H + k]);
+        }
+      }
+    }
+    auto objSum = Factory::intVarArray(cp,H*H,[&](int x) { 
+      int i = x/H;
+      int j = x%H;
+      if (i < j) return edgeCrosses[x]*weights[i][j];
+      return edgeCrosses[x]*0;
+    });
+    cp->post(objective == Factory::sum(objSum));
   } else if (mode == 1) {
     if (sameMDD) mdd = newMDDRelax(cp, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact);
 
@@ -114,19 +136,15 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   }
 
   if (mdd && sameMDD) {
-    addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [vars, objective](MDDRelax* mdd) { 
-      Factory::sumMDD(mdd->getSpec(), vars, objective);
-    });
+//    addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [vars, objective](MDDRelax* mdd) { 
+//      Factory::sumMDD(mdd->getSpec(), vars, objective);
+//    });
     cp->post(mdd);
   }
-  
+
   Objective::Ptr obj = Factory::maximize(objective);
   
   DFSearch search(cp,[=]() {
-auto current = RuntimeMonitor::cputime();
-if (RuntimeMonitor::milli(start,current) >= 180000) {
-  std::cout << "Taken " << RuntimeMonitor::milli(start,current)/1000 << " seconds.  Lowerbound is " << objective->min() << ".  Upperbound is " << objective->max() << "\n";
-}
       unsigned i = 0u;
       for(i=0u;i < vars.size();i++)
 	if (vars[i]->size()> 1) break;
@@ -152,9 +170,18 @@ if (RuntimeMonitor::milli(start,current) >= 180000) {
 
   SearchStatistics stat;
   int firstSolNumFail = 0;
-  search.onSolution([&cnt,&vars,&obj,&firstSolTime,&firstSolNumFail,&stat]() {
+  int optimalSol = 0;
+  search.onSolution([&cnt,&vars,&obj,&optimalSol,&firstSolTime,&firstSolNumFail,&stat,&H]() {
                        std::cout << "obj : " << obj->value() << "\n";
-                       cout << "Assignment: " << vars << endl;
+                       optimalSol = obj->value();
+                       std::vector<int> inS, inT;
+                       for (int i = 0; i < H; i++) {
+                         if (vars[i]->isTrue()) inT.push_back(i);
+                         else inS.push_back(i);
+                       }
+                       std::cout << "In S: " << inS << "\n";
+                       std::cout << "In T: " << inT << "\n";
+
                        ++cnt;
                        if (cnt == 1) {
                          firstSolTime = RuntimeMonitor::cputime();
@@ -198,7 +225,7 @@ if (RuntimeMonitor::milli(start,current) >= 180000) {
   std::cout << "Time Doing Split: " << timeDoingSplit << "\n";
 
   std::cout << "{ \"JSON\" :\n {";
-  std::cout << "\n\t\"amongNurse\" :" << "{\n";
+  std::cout << "\n\t\"MCP\" :" << "{\n";
   std::cout << "\t\t\"m\" : " << mode << ",\n";
   std::cout << "\t\t\"w\" : " << relaxSize << ",\n";
   std::cout << "\t\t\"r\" : " << maxRebootDistance << ",\n";
@@ -226,7 +253,8 @@ if (RuntimeMonitor::milli(start,current) >= 180000) {
   std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << ",\n";
   std::cout << "\t\t\"timeToFirstSol\" : " << RuntimeMonitor::milli(start,firstSolTime) << ",\n";
   std::cout << "\t\t\"failsForFirstSol\" : " << firstSolNumFail << ",\n";
-  std::cout << "\t\t\"solns\" : " << stat.numberOfSolutions() << "\n";
+  std::cout << "\t\t\"solns\" : " << stat.numberOfSolutions() << ",\n";
+  std::cout << "\t\t\"optimal\" : " << optimalSol << "\n";
   std::cout << "\t}\n";  
   std::cout << "}\n}\n";
 }
@@ -239,7 +267,7 @@ int main(int argc,char* argv[])
    int maxSplitIter = (argc >= 5 && strncmp(argv[4],"-i",2)==0) ? atoi(argv[4]+2) : INT_MAX;
    int horizonSize = (argc >= 6 && strncmp(argv[5],"-h",2)==0) ? atoi(argv[5]+2) : 250;
    int density = (argc >= 7 && strncmp(argv[6],"-d",2)==0) ? atoi(argv[6]+2) : 10;
-   int randSeed = (argc >= 8 && strncmp(argv[7],"-r",2)==0) ? atoi(argv[7]+2) : 1;
+   int randSeed = (argc >= 8 && strncmp(argv[7],"-rand",5)==0) ? atoi(argv[7]+5) : 1;
    int nodePriority = (argc >= 9 && strncmp(argv[8],"-n",2)==0) ? atoi(argv[8]+2) : 0;
    int nodePriorityAggregateStrategy = (argc >= 10 && strncmp(argv[9],"-na",3)==0) ? atoi(argv[9]+3) : 1;
    int candidatePriority = (argc >= 11 && strncmp(argv[10],"-c",2)==0) ? atoi(argv[10]+2) : 0;

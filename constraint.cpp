@@ -307,6 +307,57 @@ void IsEqual::propagate()
    }
 }
 
+void XOR::post()
+{
+   propagate();
+   if (isActive()) {
+      _b->propagateOnBind(this);
+      _x->propagateOnBind(this);
+      _y->propagateOnBind(this);
+   }
+}
+
+void XOR::propagate()
+{
+   if (_b->isTrue()) {
+      if (_x->isTrue()) {
+         _y->assign(false);
+         setActive(false);
+      } else if (_x->isFalse()) {
+         _y->assign(true);
+         setActive(false);
+      } else if (_y->isTrue()) {
+         _x->assign(false);
+         setActive(false);
+      } else if (_y->isFalse()) {
+         _x->assign(true);
+         setActive(false);
+      }
+   } else if (_b->isFalse()) {
+      if (_x->isTrue()) {
+         _y->assign(true);
+         setActive(false);
+      } else if (_x->isFalse()) {
+         _y->assign(false);
+         setActive(false);
+      } else if (_y->isTrue()) {
+         _x->assign(true);
+         setActive(false);
+      } else if (_y->isFalse()) {
+         _x->assign(false);
+         setActive(false);
+      }
+   } else if (_x->isBound() && _y->isBound()) {
+      if (_x->isTrue() == _y->isTrue()) {
+         _b->assign(false);
+         setActive(false);
+      } else {
+         _b->assign(true);
+         setActive(false);
+      }
+   }
+}
+
 void IsMember::post() 
 {
    propagate();

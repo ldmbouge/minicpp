@@ -104,14 +104,14 @@ namespace Factory {
          out.setInt(len,pDown[len] + 1);
       });
 
-//      mdd.addRelaxationDown(downWeights,[downWeights,len](auto& out,const auto& l,const auto& r) noexcept    {
-//      });
+      mdd.addRelaxationDown(downWeights,[](auto& out,const auto& l,const auto& r) noexcept    {
+      });
       mdd.addRelaxationDown(maxDownValue,[downWeights,maxDownValue,len,nbVars](auto& out,const auto& l,const auto& r) noexcept    {
          MDDSWin<short> outWeights = out.getSW(downWeights);
          MDDSWin<short> lWeights = l.getSW(downWeights);
          MDDSWin<short> rWeights = r.getSW(downWeights);
          int lValue = l[maxDownValue];
-         int rValue = l[maxDownValue];
+         int rValue = r[maxDownValue];
          int k = l[len];
          int i;
          for (i = 0; i < k; i++) outWeights.set(i, 0);
@@ -132,5 +132,25 @@ namespace Factory {
       mdd.onFixpoint([z,maxDownValue](const auto& sinkDown,const auto& sinkUp,const auto& sinkCombined) {
          z->removeAbove(sinkDown[maxDownValue]);
       });
+
+      switch (candidatePriority) {
+        case 0:
+          mdd.candidateByLargest([maxDownValue](const auto& state, void* arcs, int numArcs) {
+               return state[maxDownValue];
+                               }, constraintPriority);
+          break;
+        case 1:
+          mdd.candidateByLargest([downWeights,maxDownValue,len,nbVars](const auto& state, void* arcs, int numArcs) {
+               int rank = state[maxDownValue];
+               MDDSWin<short> stateWeights = state.getSW(downWeights);
+               for (int i = state[len]; i < nbVars; i++) {
+                 rank += abs(stateWeights.get(i));
+               }
+               return rank;
+                               }, constraintPriority);
+          break;
+        default:
+          break;
+      }
    }
 }

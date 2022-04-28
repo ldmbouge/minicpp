@@ -133,6 +133,15 @@ public:
    void propagate() override;
 };
 
+class XOR : public Constraint { // b <=> x xor y
+   var<bool>::Ptr _b, _x, _y;
+public:
+   XOR(var<bool>::Ptr b,var<bool>::Ptr x,var<bool>::Ptr y)
+      : Constraint(x->getSolver()),_b(b),_x(x),_y(y) {}
+   void post() override;
+   void propagate() override;
+};
+
 class IsMember : public Constraint { // b <=> x in S
    var<bool>::Ptr _b;
    var<int>::Ptr _x;
@@ -422,6 +431,9 @@ namespace Factory
    inline Constraint::Ptr operator==(var<bool>::Ptr x,const int c) {
       return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
    }
+   inline Constraint::Ptr operator==(var<int>::Ptr x,var<int>::Ptr y) {
+      return new (x->getSolver()) EQBinBC(x,y,0);
+   }
    inline Constraint::Ptr operator==(var<bool>::Ptr x,var<int>::Ptr y) {
       return new (x->getSolver()) EQBinBC(x,y,0);
    }
@@ -432,6 +444,9 @@ namespace Factory
       return new (x->getSolver()) NEQc((var<int>::Ptr)x,c);
    }
    inline Constraint::Ptr operator!=(var<int>::Ptr x,var<int>::Ptr y) {
+      return Factory::notEqual(x,y,0);
+   }
+   inline Constraint::Ptr operator!=(var<bool>::Ptr x,var<bool>::Ptr y) {
       return Factory::notEqual(x,y,0);
    }
    inline Constraint::Ptr operator<=(var<int>::Ptr x,var<int>::Ptr y) {
@@ -505,6 +520,11 @@ namespace Factory
       ONFAIL
       ENDFAIL
       return b;
+   }
+   inline var<bool>::Ptr xOR(var<bool>::Ptr x,var<bool>::Ptr y) {
+      var<bool>::Ptr z = makeBoolVar(x->getSolver());
+      x->getSolver()->post(new (x->getSolver()) XOR(z, x, y));
+      return z;
    }
    inline Constraint::Ptr isMember(var<bool>::Ptr b, var<int>::Ptr x, const std::set<int> S) {
      return new (x->getSolver()) IsMember(b,x,S);

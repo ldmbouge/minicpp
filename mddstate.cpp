@@ -703,6 +703,7 @@ void MDDSpec::compile()
 void MDDSpec::fullStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
 {
    result.clear();
+   result.zero();
    _frameLayer[l].frameDown(result,parentDown);
    for(const auto& t : _transLayer[l])
       t(result,parentDown,parentCombined,var,v,hasUp);

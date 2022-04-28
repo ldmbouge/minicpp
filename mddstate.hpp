@@ -1001,6 +1001,7 @@ public:
    int byteSize(int i) const noexcept { return propAt(i)->size(); }
    void copyZone(const Zone& z,const MDDState& in) noexcept { z.copy(_mem,in._mem);}
    void clear() noexcept                { _flags._ripped = false;_flags._relax = false;;_flags._hashed=false;}
+   void zero() noexcept                { memset(_mem, 0, _spec->layoutSize(_dir)); }
    bool isRelaxed() const noexcept          { return _flags._relax;}
    void relax(bool r = true) noexcept   { _flags._relax = r;}
    void minWith(int i,const MDDState& s) const noexcept { propAt(i)->minWith(_mem,s._mem);}
