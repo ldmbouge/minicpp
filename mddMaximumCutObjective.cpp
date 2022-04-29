@@ -41,7 +41,7 @@ namespace Factory {
          return true;
       });
 
-      mdd.transitionDown(downWeights,{downWeights},{},[downWeights, len, weights, nbVars] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(downWeights,{downWeights,maxDownValue},{},[downWeights, len, weights, nbVars] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
          bool relaxed = val.size()==2;
          int k = pDown[len];
          MDDSWin<short> outWeights = out.getSW(downWeights);

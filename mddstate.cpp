@@ -482,10 +482,12 @@ MDDState MDDSpec::rootState(Storage::Ptr& mem)
 
 MDDState MDDSpec::sinkState(Storage::Ptr& mem)
 {
-   MDDState sinkState(this,(char*)mem->allocate(layoutSizeUp()),Up);
-   for(size_t k=0;k < sizeUp();k++)
-      sinkState.init(k);
-   //std::cout << "SINK:" << sinkState << std::endl;
+   MDDState sinkState;
+   if (layoutSizeUp()) {
+     sinkState = MDDState(this,(char*)mem->allocate(layoutSizeUp()),Up);
+     for(size_t k=0;k < sizeUp();k++)
+        sinkState.init(k);
+   } else sinkState = MDDState(this, nullptr, Up);
    return sinkState;
 }
 
