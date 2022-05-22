@@ -18,16 +18,30 @@
 
 #include <memory>
 #include "handle.hpp"
-
+/**
+ * Abstract variable for the solver. It provides a naming capability
+ * and an abstract pointer type.
+ */
 class AVar {
 protected:
+  /**
+   * Set the identifier of the variable to a new value
+   * @param id the new identifier
+   */
     virtual void setId(int id) = 0;
     friend class CPSolver;
 public:
+  /**
+   * Ptr is a smart pointer to a solver managed block of memory.
+   */
     typedef handle_ptr<AVar> Ptr;
 };
 
-
+/**
+ * `var<T>` is a templated type meant to represent variables with a domain `T`
+ * @param `T` the type of values held in the domain.
+ * @see var<int>, var<bool>
+ */ 
 template<typename T> class var {};
 
 #endif

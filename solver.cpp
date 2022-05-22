@@ -14,7 +14,6 @@
  */
 
 #include "solver.hpp"
-#include "controller.hpp"
 #include <assert.h>
 #include <iostream>
 #include <iomanip>

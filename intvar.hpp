@@ -120,10 +120,23 @@ static inline int ceilDiv(int a,int b) {
    return (a > 0 && q * b != a) ? q + 1 : q;
 }
 
+/**
+ * @brief The class is meant to represent a multiplicative (affine) view.
+ *
+ * Namely, this variable (\f$y\f$)
+ * stands for \f$y = a * x\f$ (where \f$a\f$ is a constant).
+ * The affine view can be used anywhere where a conventional variable is expected.
+ * Note that the variable registers Observers and callbacks with variable \f$x\f$.
+ */
 class IntVarViewMul :public var<int> {
     var<int>::Ptr _x;
     int _a;
 public:
+   /**
+    * Constructor that takes a variable and  a constant and creates the muliplicative view
+    * @param x the source variable to view
+    * @param a the scaling constant (multiplier)
+    */
    IntVarViewMul(const var<int>::Ptr& x,int a) : _x(x),_a(a) { assert(a> 0);}
    Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
@@ -160,10 +173,23 @@ public:
    }
 };
 
+/**
+ * @brief The class is meant to represent an additive (affine) view.
+ *
+ * Namely, this variable (\f$y\f$)
+ * stands for \f$y = x + o\f$ (where \f$o\f$ is a constant).
+ * The affine view can be used anywhere where a conventional variable is expected.
+ * Note that the variable registers Observers and callbacks with variable \f$x\f$.
+ */
 class IntVarViewOffset : public var<int> {
     var<int>::Ptr _x;
     int _o;
 public:
+   /**
+    * Constructor that takes a variable and  a constant and creates the additive views
+    * @param x the source variable to view
+    * @param o the additive shift   
+    */
    IntVarViewOffset(const var<int>::Ptr& x,int o) : _x(x),_o(o) {}
    Storage::Ptr getStore() override   { return _x->getStore();}
    CPSolver::Ptr getSolver() override { return _x->getSolver();}
@@ -198,17 +224,42 @@ public:
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
 #endif
 
+/**
+ * @brief Template specialization for boolean domains.
+ *
+ * This class is meant to represent variables whose domain is \f$\{0,1\}\f$.
+ * It offers an additional smart pointer type as well as convenience methods to
+ * set and query the underlying Boolean domain.
+ */
 template <>
 class var<bool> :public IntVarImpl {
 public:
-    typedef handle_ptr<var<bool>> Ptr;
-    var<bool>(CPSolver::Ptr& cps) : IntVarImpl(cps,0,1) {}
-    bool isTrue() const { return min()==1;}
-    bool isFalse() const { return max()==0;}
+   typedef handle_ptr<var<bool>> Ptr;
+   /**
+    * Constructor.
+    * It only takes the owning solver and creates a Boolean domain.
+    */
+   var<bool>(CPSolver::Ptr& cps) : IntVarImpl(cps,0,1) {}
+   /**
+    * Query the domain.
+    * @return true if and only if the Boolean variable is bound to 1
+    */
+   bool isTrue() const { return min()==1;}
+   /**
+    * Query the domain.
+    * @return true if and only if the Boolean variable is bound to 0
+    */
+   bool isFalse() const { return max()==0;}
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
 #endif
+   /**
+    * Updates the domain of the variable
+    * @param b is the value to be assigned to the variable. Note that this call
+    * can trigger a failure event since setting the variable to `b` might cause a
+    * domain wipe-out.
+    */
     void assign(bool b)  { IntVarImpl::assign(b);}
 #if defined(__clang__)
 #pragma clang diagnostic pop
@@ -225,6 +276,12 @@ inline std::ostream& operator<<(std::ostream& os,const var<bool>::Ptr& xp) {
     return xp->print(os);
 }
 
+/** 
+ * Convenience output operator<< to print a C++ vector (STL) of variables.
+ * @param os the stream to print to
+ * @param v the C++ vector of objects of type `T` on an allocator of type `A` that should be printed.
+ * @return the stream that we printed to
+ */ 
 template <class T,class A> inline std::ostream& operator<<(std::ostream& os,const std::vector<T,A>& v) {
    os << '[';
    for(typename std::vector<T,A>::size_type i = 0; i < v.size(); ++i) {
@@ -239,27 +296,95 @@ namespace Factory {
    template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y);
 };
 
+/**
+ * Templated derived class from `vector<T,A>` meant to provide one additional indexing bracket operator for _element_.
+ * Namely, the class has one operator that allows in index a vector of variables with a CP variable. It creates
+ * the necessary constraint and returns a fresh auxiliary variable.
+ * @see `elementVar(const Vec& xs,var<int>::Ptr y)`
+ */
 template <class T,class A = std::allocator<T>>
 class EVec : public std::vector<T,A> {
    typedef std::vector<T,A> BVec;
 public:
    using BVec::BVec;
    //EVec() = delete;
+   /**
+    * Convenience [] operator to support a natural syntax for the element constraint.
+    * The operator creates an auxiliary variable and imposes an element constraint to connect
+    * the vector and the indexing variable with the fresh auxiliary
+    * @param i the indexing variable
+    * @return an auxiliary variable constrained to be the i^th element of the vector (of variables).
+    * @see `elementVar(const Vec& xs,var<int>::Ptr y)`
+    */
    var<int>::Ptr operator[](var<int>::Ptr i) {
       return Factory::elementVar(*this,i);
    }
+   /**
+    * Classic indexing operator with a constant
+    * @param i is a constant
+    * @return the i^th entry of the vector
+    */
    T& operator[](typename BVec::size_type i)      { return BVec::operator[](i);}
+   /**
+    * Classic indexing operator with a constant (on a constant vector)
+    * @param i is a constant
+    * @return the i^th entry of the vector
+    */
    T operator[](typename BVec::size_type i) const { return BVec::operator[](i);}
 };
 
+/**
+ * @namespace Factory
+ * @brief An instance of the Factory design pattern to manage all object creations.
+ */
 namespace Factory {
+   /**
+    * @brief Allocator type for integer variables
+    */
    using alloci = stl::StackAdapter<var<int>::Ptr,Storage::Ptr>;
+   /**
+    * @brief Allocator type for boolean variables
+    */
    using allocb = stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>;
+   /**
+    * @brief Vector type (derived from the STL `vector<T>`) for integer variables
+    */
    using Veci   = EVec<var<int>::Ptr,alloci>;
+   /**
+    * @brief Vector type (derived from the STL `vector<T>`) for boolean variables
+    */
    using Vecb   = EVec<var<bool>::Ptr,allocb>;
+   /**
+    * Factory method to create an integer variable. Note that the variable is to be allocated
+    * on the memory manager associated to the given solver.
+    * @param cps the owning solver controlling the variable to be
+    * @param min the lower bound of the integer variable
+    * @param max the upper bound of the integer variable
+    * @return a smart pointer to a solver allocated integer variable.
+    */
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,int min,int max);
+   /**
+    * Factory method to create an integer variable. Note that the variable is to be allocated
+    * on the memory manager associated to the given solver.
+    * @param cps the owning solver controlling the variable to be
+    * @param vals the list of values to be included in the domain
+    * @return a smart pointer to a solver allocated integer variable.
+    */
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::initializer_list<int> vals);
+   /**
+    * Factory method to create an integer variable. Note that the variable is to be allocated
+    * on the memory manager associated to the given solver.
+    * @param cps the owning solver controlling the variable to be
+    * @param vals the list of values to be included in the domain
+    * @return a smart pointer to a solver allocated integer variable.
+    */
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::vector<int> const & vals);
+   /**
+    * Factory method to create a Boolean variable. Note that the variable is to be allocated
+    * on the memory manager associated to the given solver.
+    * @param cps the owning solver controlling the variable to be
+    * @return a smart pointer to a solver allocated Boolean variable.
+    */
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps, bool value);
    inline var<int>::Ptr minus(var<int>::Ptr x)     { return new (x->getSolver()) IntVarViewOpposite(x);}

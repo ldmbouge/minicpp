@@ -18,6 +18,29 @@
 
 #include <memory>
 
+/**
+ * @brief Templated smart pointer for Constraint Programming.
+ * This class is used for the vast majority of objects created on behalf of a CP
+ * solver instance. It is necessary for several reasons.
+ * - First, when creating an STL container (e.g., `vector<T>`) to hold, for instance,
+ *   integer variables (`var<int>`) one cannot use `T=var<int>`  directly. Indeed
+ *   the variable would be owned by the vector and destroyed when the vector went out
+ *   of scope leading to easy errors. Instead, one should use `T=var<int>*`, namely, one
+ *   should store pointers to the variables in the vector instead.
+ * - Second, once pointers to variables appear in STL containers, the question becomes: *who
+ *   is in charge of deallocation?* The natural C++ answer is to use a smart pointer
+ *   like `std::shared_ptr<T>` to resolve this problem. Unfortunately, this carries some
+ *   overhead as reference counters must increase/decrease all the time.
+ * 
+ * The `handle_ptr<T>` addresses this issue. It can be used like a `shared_ptr<T>`, yet there
+ * is no need to increase/decrease as the solver owns the object (the variable) for the entire
+ * lifetime of the solver. So a `handle_ptr<T>` behaves like a vanilla `T*`.
+ *
+ * The vast majority of user visible instances of classes with instances allocated on the
+ * solver heap define a public type `Ptr` that happens to be a `handle_ptr` to their own type,
+ * making it easy to use.
+ * The type provide the same abstraction as the STL for compatibility's sake.
+ */
 template <typename T>
 class handle_ptr {
    T* _ptr;
@@ -43,12 +66,22 @@ public:
    operator bool() const noexcept { return _ptr != nullptr;}
    void dealloc() { delete _ptr;_ptr = nullptr;}
    void free()    { delete _ptr;_ptr = nullptr;}
+   /**
+    * Equality operator necessary to compare handle to abstract and concrete (sub) types.
+    * @param p1  a smart pointer to a `T` instance to compare
+    * @param p2 a smart pointer to a `X` instance to compare.
+    * Typically \f$X <: T\f$
+    */
    template<class X> friend bool operator==(const handle_ptr<T>& p1,const handle_ptr<X>& p2)
    {
       return p1._ptr == p2.get();
    }
 };
 
+/**
+ * @brief Similar to the STL `make_shared`. It builds a handle on a heap allocated object and forwards the
+ *  arguments.
+ */
 template <class T,class... Args>
 inline handle_ptr<T> make_handle(Args&&... formals)
 {
