@@ -456,25 +456,36 @@ void Sum::propagate()
 {  
    int nU = _nUnBounds;
    int sumMin = _sumBounds,sumMax = _sumBounds;
+   var<int>::Ptr* x = _x.data();
    for(int i = nU - 1; i >= 0;i--) {
-      auto idx = _unBounds[i];
-      sumMin += _x[idx]->min();
-      sumMax += _x[idx]->max();
-      if (_x[idx]->isBound()) {
-         _sumBounds = _sumBounds + _x[idx]->min();
+      const auto idx = _unBounds[i];
+      const int vMin = x[idx]->min();
+      const int vMax = x[idx]->max();
+      sumMin += vMin;
+      sumMax += vMax;
+      if (vMin == vMax) {
+         _sumBounds = _sumBounds + vMin;
          _unBounds[i] = _unBounds[nU - 1];
          _unBounds[nU - 1] = idx;
          nU--;
       }
    }
-   _nUnBounds = nU;
+   //_nUnBounds = nU;
    if (0 < sumMin ||  sumMax < 0)
       failNow();
    for(int i = nU - 1; i >= 0;i--) {
       auto idx = _unBounds[i];
-      _x[idx]->removeAbove(-(sumMin - _x[idx]->min()));
-      _x[idx]->removeBelow(-(sumMax - _x[idx]->max()));
+      const auto xU = -(sumMin - x[idx]->min()),xL = -(sumMax - x[idx]->max());
+      x[idx]->removeAbove(xU);
+      x[idx]->removeBelow(xL);
+      if (xL == xU) {
+         _sumBounds += xL;
+         _unBounds[i] = _unBounds[--nU];
+         _unBounds[nU] = idx;
+      }
    }
+   _nUnBounds = nU;
+   if (nU == 0) setActive(false);
 }
 
 void SumBool::post() 
@@ -539,6 +550,7 @@ void SumBool::propagateIdx(int k)
          _nbZero = _nbZero + 1;
    }
 }
+
 
 Clause::Clause(const std::vector<var<bool>::Ptr>& x)
    : Constraint(x[0]->getSolver()),

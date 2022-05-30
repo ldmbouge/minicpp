@@ -576,7 +576,10 @@ namespace Factory
          cp->post(new (cp) Sum(xs,s));
       return s;
    }
-   template <class Vec> Constraint::Ptr sum(const Vec& xs,var<int>::Ptr s) {
+   inline Constraint::Ptr sum(const Factory::Veci& xs,var<int>::Ptr s) {
+      return new (xs[0]->getSolver()) Sum(xs,s);
+   }
+   inline Constraint::Ptr sum(const Factory::Vecb& xs,var<int>::Ptr s) {
       return new (xs[0]->getSolver()) Sum(xs,s);
    }
    inline Constraint::Ptr sum(const Factory::Veci& xs,int s) {

@@ -96,10 +96,15 @@ public:
     */
    T operator++(int); // post-increment
    /**
+    * Post-decrement by 1
+    * @return the value prior to the increment.
+    */   
+   T operator--(int); // post-decrement
+   /**
     * @brief Nested class to record the old value when a write occurs.
     * An instance of this class is to be written on the trail each time
     * the object modifies the value it represents.
-    */
+    */   
    class TrailEntry: public Entry {
       T*  _at;
       T  _old;
@@ -135,6 +140,16 @@ T trail<T>::operator++(int) { // post-increment
    if (_magic != cm)
       save(cm);
    ++_value;
+   return rv;
+}
+
+template <class T>
+T trail<T>::operator--(int) { // post-increment
+   T rv = _value;
+   int cm = _ctx->magic();
+   if (_magic != cm)
+      save(cm);
+   --_value;
    return rv;
 }
 

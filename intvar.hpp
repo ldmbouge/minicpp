@@ -415,6 +415,12 @@ namespace Factory {
          x[i] = body(i);
       return x;
    }
+   template<typename Fun> Vecb boolVarArray(CPSolver::Ptr cps,int sz,Fun body) {
+      auto x = boolVarArray(cps,sz,false);
+      for(auto i=0u;i < x.size();i++)
+         x[i] = body(i);
+      return x;
+   }
    template <class Vec>             size_t count(Vec& v) { return v.size();}
    template <class Vec,class ...Ts> size_t count(Vec& v,Ts... vecs) {
       return v.size() + count(vecs...);
