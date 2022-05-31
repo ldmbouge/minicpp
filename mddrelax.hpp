@@ -213,7 +213,10 @@ class MDDRelax : public MDD {
    void refreshAll() override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:
-   MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),int maxSplitIter = 5,bool approxThenExact = true, int maxConstraintPriority = 0);
+   MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),
+            int maxSplitIter = 5,
+            bool approxThenExact = true,
+            int maxConstraintPriority = 0);
    void buildDiagram() override;
    void buildNextLayer(unsigned int i) override;
    void propagate() override;

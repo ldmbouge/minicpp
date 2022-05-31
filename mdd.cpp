@@ -43,6 +43,7 @@ MDD::MDD(CPSolver::Ptr cp)
    _posting = true;
    _nf = new (mem) MDDNodeFactory(mem,trail,std::numeric_limits<int>::max());
    _sf = new (mem) MDDStateFactory(&_mddspec);
+   _mddspec.setConstraintPrioritySize(1);
 }
 
 /*

@@ -3,6 +3,7 @@
 *.o
 *.d*
 **/*.dSYM
+doc/**
 build
 minicpp.xcodeproj
 minicpp.sublime-workspace

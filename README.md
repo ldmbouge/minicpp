@@ -55,11 +55,12 @@ and one only needs to do the following to get the basics in place:
 cd <root>
 mkdir build
 cd build
-cmake ..
+cmake .. -DCMAKE_BUILD_TYPE=Release
 make -j4
 ```
 Where `root` is the folder where you have decompressed the library (or cloned the repository)
-You ought to be rewarded with a complete build. 
+You ought to be rewarded with a complete build. Feel free to omit the build type, or use `Debug` as the value
+of that environment variable to compile in Debug mode.
 
 ## Advanced compilation
 

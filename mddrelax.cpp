@@ -7,10 +7,10 @@
 #include "RuntimeMonitor.hpp"
 #include "heap.hpp"
 
+// [ldm] This should be only for instrumentation. There is no reason to have globals *ever*
 int timeDoingDown = 0, timeDoingSplit = 0, timeDoingUp = 0, timeDoingUpProcess = 0, timeDoingUpFilter = 0;
 int fullReboot = 0, partialReboot = 0, fullRebootFirstIteration = 0, partialRebootFirstIteration = 0;
 bool firstIteration = true;
-
 bool autoRebootDistance = false;
 
 MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,bool approxThenExact, int maxConstraintPriority)

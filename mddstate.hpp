@@ -34,7 +34,6 @@
 #define XXH_INLINE_ALL
 #include "xxhash.h"
 
-
 class MDDIntSet {
    short  _mxs,_sz;
    bool  _isSingle;
@@ -217,7 +216,7 @@ public:
 };
 
 
-class MDDConstraintDescriptor {
+class MDDCstrDesc {
    Factory::Veci          _vars;
    ValueSet               _vset;
    const char*            _name;
@@ -231,47 +230,37 @@ class MDDConstraintDescriptor {
    std::vector<int> _uid; // update ids
    std::vector<int> _sid; // similarity ids
 public:
-   typedef handle_ptr<MDDConstraintDescriptor> Ptr;
-   template <class Vec>
-   MDDConstraintDescriptor(const Vec& vars, const char* name)
-     : _vars(vars.size(),Factory::alloci(vars[0]->getStore())),
+   typedef handle_ptr<MDDCstrDesc> Ptr;
+   template <class Vec> MDDCstrDesc(const Vec& vars, const char* name)
+      : _vars(vars.size(),Factory::alloci(vars[0]->getStore())),
         _vset(vars),
         _name(name)
    {
       for(typename Vec::size_type i=0;i < vars.size();i++)
          _vars[i] = vars[i];
    }
-   MDDConstraintDescriptor(const MDDConstraintDescriptor&);
+   MDDCstrDesc(const MDDCstrDesc&);
    void addDownProperty(int p) {_propertiesDown.push_back(p);}
    void addUpProperty(int p) {_propertiesUp.push_back(p);}
    void addCombinedProperty(int p) {_propertiesCombined.push_back(p);}
-   bool ownsDownProperty(int p) const {
-      auto at = std::find(_propertiesDown.begin(),_propertiesDown.end(),p);
-      return at != _propertiesDown.end();
-   }
-   bool ownsUpProperty(int p) const {
-      auto at = std::find(_propertiesUp.begin(),_propertiesUp.end(),p);
-      return at != _propertiesUp.end();
-   }
-   bool ownsCombinedProperty(int p) const {
-      auto at = std::find(_propertiesCombined.begin(),_propertiesCombined.end(),p);
-      return at != _propertiesCombined.end();
-   }
+   bool ownsDownProperty(int p) const;
+   bool ownsUpProperty(int p) const;
+   bool ownsCombinedProperty(int p) const;
    const std::vector<int>& downTransitions() const  { return _downTId;}
-   const std::vector<int>& upTransitions() const  { return _upTId;}
+   const std::vector<int>& upTransitions() const    { return _upTId;}
    const std::vector<int>& downRelaxations() const  { return _downRId;}
-   const std::vector<int>& upRelaxations() const  { return _upRId;}
-   const std::vector<int>& similarities() const { return _sid;}
-   void registerDown(int t)       { _downTId.emplace_back(t);}
-   void registerUp(int t)         { _upTId.emplace_back(t);}
-   void registerDownRelaxation(int t) { _downRId.emplace_back(t);}
-   void registerUpRelaxation(int t) { _upRId.emplace_back(t);}
-   void registerUpdate(int t)       { _uid.emplace_back(t);}
-   void registerSimilarity(int t) { _sid.emplace_back(t);}
+   const std::vector<int>& upRelaxations() const    { return _upRId;}
+   const std::vector<int>& similarities() const     { return _sid;}
+   void registerDown(int t)                         { _downTId.emplace_back(t);}
+   void registerUp(int t)                           { _upTId.emplace_back(t);}
+   void registerDownRelaxation(int t)               { _downRId.emplace_back(t);}
+   void registerUpRelaxation(int t)                 { _upRId.emplace_back(t);}
+   void registerUpdate(int t)                       { _uid.emplace_back(t);}
+   void registerSimilarity(int t)                   { _sid.emplace_back(t);}
    bool inScope(const var<int>::Ptr& x) const noexcept { return _vset.member(x->getId());}
-   const Factory::Veci& vars() const { return _vars;}
-   std::vector<int>& propertiesDown() { return _propertiesDown;}
-   std::vector<int>& propertiesUp() { return _propertiesUp;}
+   const Factory::Veci& vars() const      { return _vars;}
+   std::vector<int>& propertiesDown()     { return _propertiesDown;}
+   std::vector<int>& propertiesUp()       { return _propertiesUp;}
    std::vector<int>& propertiesCombined() { return _propertiesCombined;}
    auto downBegin() { return _propertiesDown.begin();}
    auto downEnd()   { return _propertiesDown.end();}
@@ -556,12 +545,6 @@ class MDDPBit :public MDDProperty {
    char _bitmask;
    size_t storageSize() const override { return 1;}
    size_t setOffset(size_t bitOffset) override {
-      //size_t boW = bitOffset & 0x1F;
-      //if (boW != 0) 
-      //   bitOffset = (bitOffset | 0x1F) + 1;
-      //_ofs = bitOffset >> 3;
-      //_bitmask = 0x1;
-      //return (_ofs << 3) + storageSize();
       size_t boW = bitOffset & 0x7;
       _bitmask = 0x1 << boW;
       _ofs = bitOffset >> 3;
@@ -828,21 +811,21 @@ public:
    unsigned short startOfsUp(int p) const noexcept { return _attrsUp[p]->startOfs();}
    unsigned short endOfsDown(int p) const noexcept { return _attrsDown[p]->endOfs();}
    unsigned short endOfsUp(int p) const noexcept { return _attrsUp[p]->endOfs();}
-   virtual int addDownState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addUpState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addCombinedState(MDDConstraintDescriptor::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addDownBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addUpBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addCombinedBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addDownSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addUpSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addCombinedSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
-   std::vector<int> addDownStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
-   std::vector<int> addUpStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
-   std::vector<int> addCombinedStates(MDDConstraintDescriptor::Ptr d,int from, int to, int max,std::function<int(int)> clo);
-   std::vector<int> addDownStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
-   std::vector<int> addUpStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
-   std::vector<int> addCombinedStates(MDDConstraintDescriptor::Ptr d,int max,std::initializer_list<int> inputs);
+   virtual int addDownState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addUpState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addCombinedState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
+   std::vector<int> addDownStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
+   std::vector<int> addUpStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
+   std::vector<int> addCombinedStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
+   std::vector<int> addDownStates(MDDCstrDesc::Ptr d,int max,std::initializer_list<int> inputs);
+   std::vector<int> addUpStates(MDDCstrDesc::Ptr d,int max,std::initializer_list<int> inputs);
+   std::vector<int> addCombinedStates(MDDCstrDesc::Ptr d,int max,std::initializer_list<int> inputs);
    void outputSetDown(MDDPropSet& out,const MDDPropSet& down,const MDDPropSet& combined) const noexcept {
       for(auto p : down)
          out.unionWith(_omapDown[p]);
@@ -875,7 +858,7 @@ inline std::ostream& operator<<(std::ostream& os,MDDProperty::Ptr p)
    p->print(os);return os;
 }
 
-inline std::ostream& operator<<(std::ostream& os,MDDConstraintDescriptor& p)
+inline std::ostream& operator<<(std::ostream& os,MDDCstrDesc& p)
 {
    p.print(os);return os;
 }
@@ -1106,23 +1089,23 @@ public:
    MDDSpec();
    // End-user API to define an ADD
    template <class Container>
-   MDDConstraintDescriptor::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
-      return constraints.emplace_back(new MDDConstraintDescriptor(v,n));
+   MDDCstrDesc::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
+      return constraints.emplace_back(new MDDCstrDesc(v,n));
    }
-   int addDownState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External, int constraintPriority = 0) override;
-   int addUpState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External, int constraintPriority = 0) override;
-   int addCombinedState(MDDConstraintDescriptor::Ptr d,int init,int max,enum RelaxWith rw=External, int constraintPriority = 0) override;
-   int addDownState(MDDConstraintDescriptor::Ptr d,int init,size_t max,enum RelaxWith rw=External, int constraintPriority = 0) {
-      return addDownState(d,init,(int)max,rw,constraintPriority);
+   int addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0) override;
+   int addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0) override;
+   int addCombinedState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0) override;
+   int addDownState(MDDCstrDesc::Ptr d,int init,size_t max,enum RelaxWith rw=External, int cPriority = 0) {
+      return addDownState(d,init,(int)max,rw,cPriority);
    }
-   int addDownBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0) override;
-   int addUpBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0) override;
-   int addCombinedBSState(MDDConstraintDescriptor::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0) override;
-   int addDownSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0) override;
-   int addUpSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0) override;
-   int addCombinedSWState(MDDConstraintDescriptor::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0) override;
+   int addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
+   int addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
+   int addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
+   int addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0) override;
+   int addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0) override;
+   int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External,int cPriority = 0) override;
    void nodeExist(NodeFun a);
-   void arcExist(const MDDConstraintDescriptor::Ptr d,ArcFun a);
+   void arcExist(const MDDCstrDesc::Ptr d,ArcFun a);
    void updateNode(int,std::set<int> spDown,std::set<int> spUp,UpdateFun update);
    void transitionDown(int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
    void transitionUp(int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
@@ -1153,19 +1136,19 @@ public:
    void transitionUp(const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
-   void splitOnLargest(SplitFun onSplit, int constraintPriority = 0);
-   void candidateByLargest(CandidateFun candidateSplit, int constraintPriority = 0);
-   void equivalenceClassValue(EquivalenceValueFun equivalenceValue, int constraintPriority = 0);
+   void splitOnLargest(SplitFun onSplit, int cPriority = 0);
+   void candidateByLargest(CandidateFun candidateSplit, int cPriority = 0);
+   void equivalenceClassValue(EquivalenceValueFun equivalenceValue, int cPriority = 0);
    int numEquivalenceClasses();
    // Internal methods.
    void varOrder() override;
    bool consistent(const MDDState& down,const MDDState& up,const MDDState& combined) const noexcept;
    void updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept;
-   bool exist(const MDDState& parentDown,const MDDState& parentCombined,const MDDState& childUp,const MDDState& childCombined,const var<int>::Ptr& x,int v,bool up) const noexcept;
-   void fullStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
-   void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
-   void fullStateUp(MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
-   void incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState& childUp,const MDDState& childCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   bool exist(const MDDState& pDown,const MDDState& pCombined,const MDDState& cUp,const MDDState& cCombined,const var<int>::Ptr& x,int v,bool up) const noexcept;
+   void fullStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
+   void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
+   void fullStateUp(MDDState& target,const MDDState& cUp,const MDDState& cCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   void incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState& cUp,const MDDState& cCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
    void relaxationDown(MDDState& a,const MDDState& b) const noexcept;
    void relaxationUp(MDDState& a,const MDDState& b) const noexcept;
    void relaxationDownIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
@@ -1194,21 +1177,19 @@ public:
       for(auto e : y)
          if(std::find(x.cbegin(),x.cend(),e) == x.cend())
             x.push_back(e);
-      //std::cout << "size of x: " << x.size() << std::endl;
    }
    template <class Container> void addGlobal(const Container& y) {
       for(auto e : y)
          if(std::find(z.cbegin(),z.cend(),e) == z.cend())
             z.push_back(e);
-      //std::cout << "size of z: " << z.size() << std::endl;
    }
    void reachedFixpoint(const MDDState& sinkDown,const MDDState& sinkUp,const MDDState& sinkCombined);
-   double nodeSplitPriority(const MDDNode& n, int constraintPriority) const;
-   double candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int constraintPriority) const;
-   std::vector<int> equivalenceValue(const MDDState& downState, const MDDState& upState, int constraintPriority = 0);
+   double nodeSplitPriority(const MDDNode& n, int cPriority) const;
+   double candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int cPriority) const;
+   std::vector<int> equivalenceValue(const MDDState& downState, const MDDState& upState, int cPriority = 0);
    bool hasNodeSplitRule() const noexcept { return _onSplit.size() > 0;}
    bool hasCandidateSplitRule() const noexcept { return _candidateSplit.size() > 0;}
-   bool equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int constraintPriority) const;
+   bool equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int cPriority) const;
    int rebootFor(int l) const noexcept { return _rebootByLayer[l]; }
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
@@ -1236,10 +1217,10 @@ public:
    }
 private:
    void init();
-   std::vector<MDDConstraintDescriptor::Ptr> constraints;
+   std::vector<MDDCstrDesc::Ptr> constraints;
    std::vector<var<int>::Ptr> x;
    std::vector<var<int>::Ptr> z;
-   std::vector<std::pair<MDDConstraintDescriptor::Ptr,ArcFun>>  _exists;
+   std::vector<std::pair<MDDCstrDesc::Ptr,ArcFun>>  _exists;
    std::vector<NodeFun> _nodeExists;
    std::vector<UpdateFun>      _updates; // this is a list of function that applies to every node. 
    std::vector<lambdaTrans> _downTransition;
@@ -1299,9 +1280,9 @@ class MDDStateFactory {
    bool          _enabled;
 public:
    MDDStateFactory(MDDSpec* spec);
-   void createStateDown(MDDState& result,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
-   void createStateUp(MDDState& result,const MDDState& childUp,const MDDState& childCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals);
-   void splitState(MDDState*& result,MDDNode* n,const MDDState& parentDown,const MDDState& parentCombined,int layer,const var<int>::Ptr x,int val);
+   void createStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
+   void createStateUp(MDDState& result,const MDDState& cUp,const MDDState& cCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals);
+   void splitState(MDDState*& result,MDDNode* n,const MDDState& pDown,const MDDState& pCombined,int layer,const var<int>::Ptr x,int val);
    void clear();
    void enable() noexcept { _enabled = true;}
    void disable() noexcept { _enabled = false;}
