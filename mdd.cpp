@@ -20,6 +20,9 @@
 #include <unordered_map>
 #include <climits>
 
+/**
+ * Debugging support to print a node (pN)
+ */
 void pN(MDDNode* n)
 {
    std::cout << n->getDownState() << " [" << n->getNumChildren() << "]" << std::endl;
@@ -29,11 +32,16 @@ void pN(MDDNode* n)
    }
 }
 
+/**
+ * Debugging support to print a state (pS)
+ */
 void pS(const MDDState& s)
 {
    std::cout << s << std::endl;
 }
-
+/**
+ * Debugging support to print a property set (pP)
+ */
 void pP(const MDDPropSet& p)
 {
    std::cout << p << '\n';

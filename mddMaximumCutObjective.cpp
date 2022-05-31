@@ -37,7 +37,7 @@ namespace Factory {
       const int maxDownValue = mdd.addDownState(d, rootValue, INT_MAX, External, constraintPriority);
       const int len = mdd.addDownState(d, 0, nbVars, MaxFun, constraintPriority);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
+      mdd.arcExist(d,[=] (const auto&,const auto&,const auto&,const auto&,var<int>::Ptr, const auto&,bool) -> bool {
          return true;
       });
 
@@ -100,12 +100,11 @@ namespace Factory {
             out.setInt(maxDownValue, pDown[maxDownValue] + std::max(newValueForS, newValueForT));
          }
       });
-      mdd.transitionDown(len,{len},{},[len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var,const auto& val,bool up) {
+      mdd.transitionDown(len,{len},{},[len] (auto& out,const auto& pDown,const auto&,const auto&,const auto&,bool) {
          out.setInt(len,pDown[len] + 1);
       });
 
-      mdd.addRelaxationDown(downWeights,[](auto& out,const auto& l,const auto& r) noexcept    {
-      });
+      mdd.addRelaxationDown(downWeights,[](auto& out,const auto& l,const auto& r) noexcept {});
       mdd.addRelaxationDown(maxDownValue,[downWeights,maxDownValue,len,nbVars](auto& out,const auto& l,const auto& r) noexcept    {
          MDDSWin<short> outWeights = out.getSW(downWeights);
          MDDSWin<short> lWeights = l.getSW(downWeights);
@@ -136,8 +135,8 @@ namespace Factory {
       switch (candidatePriority) {
         case 0:
           mdd.candidateByLargest([maxDownValue](const auto& state, void* arcs, int numArcs) {
-               return state[maxDownValue];
-                               }, constraintPriority);
+             return state[maxDownValue];
+          }, constraintPriority);
           break;
         case 1:
           mdd.candidateByLargest([downWeights,maxDownValue,len,nbVars](const auto& state, void* arcs, int numArcs) {
@@ -147,7 +146,7 @@ namespace Factory {
                  rank += abs(stateWeights.get(i));
                }
                return rank;
-                               }, constraintPriority);
+          }, constraintPriority);
           break;
         default:
           break;

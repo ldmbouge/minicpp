@@ -1088,8 +1088,7 @@ class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
    // End-user API to define an ADD
-   template <class Container>
-   MDDCstrDesc::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
+   template <class Container> MDDCstrDesc::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
       return constraints.emplace_back(new MDDCstrDesc(v,n));
    }
    int addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0) override;
@@ -1162,17 +1161,7 @@ public:
    void setNodePriorityAggregateStrategy(int aggregateStrategy) { _nodePriorityAggregateStrategy = aggregateStrategy; }
    void setCandidatePriorityAggregateStrategy(int aggregateStrategy) { _candidatePriorityAggregateStrategy = aggregateStrategy; }
    int nodePriorityAggregateStrategy() const { return _nodePriorityAggregateStrategy; }
-   void setConstraintPrioritySize(int size) {
-      _onSplitByPriorities.reserve(size);
-      _equivalenceValueByPriorities.reserve(size);
-      _propertiesByPriorities.reserve(size);
-      for (int i = 0; i <= size; i++) {
-         _onSplitByPriorities.push_back(std::vector<SplitFun>());
-         _candidateSplitByPriorities.push_back(std::vector<CandidateFun>());
-         _equivalenceValueByPriorities.push_back(std::vector<EquivalenceValueFun>());
-         _propertiesByPriorities.push_back(std::vector<int>());
-      }
-   }
+   void setConstraintPrioritySize(int size);
    template <class Container> void append(const Container& y) {
       for(auto e : y)
          if(std::find(x.cbegin(),x.cend(),e) == x.cend())
@@ -1194,27 +1183,7 @@ public:
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
    std::vector<var<int>::Ptr>& getGlobals() { return z;}
-   friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s) {
-      os << "Spec Down(";
-      for(size_t p=0;p < s._nbpDown;p++) {
-         s._attrsDown[p]->print(os);
-         os << ' ';
-      }
-      os << ')';
-      os << "\nSpec Up(";
-      for(size_t p=0;p < s._nbpUp;p++) {
-         s._attrsUp[p]->print(os);
-         os << ' ';
-      }
-      os << ')';
-      os << "\nSpec Combined(";
-      for(size_t p=0;p < s._nbpCombined;p++) {
-         s._attrsCombined[p]->print(os);
-         os << ' ';
-      }
-      os << ')';
-      return os;
-   }
+   friend std::ostream& operator<<(std::ostream& os,const MDDSpec& s);
 private:
    void init();
    std::vector<MDDCstrDesc::Ptr> constraints;

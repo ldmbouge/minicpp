@@ -400,7 +400,11 @@ void MDDSpec::updateNode(MDDState& result,const MDDState& down,const MDDState& u
 int nbAECall = 0;
 int nbAEFail = 0;
 
-bool MDDSpec::exist(const MDDState& pDown,const MDDState& pCombined,const MDDState& cUp,const MDDState& cCombined,const var<int>::Ptr& x,int v,bool up) const noexcept
+bool MDDSpec::exist(const MDDState& pDown,
+                    const MDDState& pCombined,
+                    const MDDState& cUp,
+                    const MDDState& cCombined,
+                    const var<int>::Ptr& x,int v,bool up) const noexcept
 {
    ++nbAECall;
    bool arcOk = true;
@@ -827,6 +831,43 @@ void MDDSpec::incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState&
    }
    target.relax(cUp.isRelaxed() || v.size() > 1);
 }
+
+void MDDSpec::setConstraintPrioritySize(int size)
+{
+   _onSplitByPriorities.reserve(size);
+   _equivalenceValueByPriorities.reserve(size);
+   _propertiesByPriorities.reserve(size);
+   for (int i = 0; i <= size; i++) {
+      _onSplitByPriorities.push_back(std::vector<SplitFun>());
+      _candidateSplitByPriorities.push_back(std::vector<CandidateFun>());
+      _equivalenceValueByPriorities.push_back(std::vector<EquivalenceValueFun>());
+      _propertiesByPriorities.push_back(std::vector<int>());
+   }
+}
+
+std::ostream& operator<<(std::ostream& os,const MDDSpec& s)
+{
+   os << "Spec Down(";
+   for(size_t p=0;p < s._nbpDown;p++) {
+      s._attrsDown[p]->print(os);
+         os << ' ';
+   }
+   os << ')';
+   os << "\nSpec Up(";
+   for(size_t p=0;p < s._nbpUp;p++) {
+      s._attrsUp[p]->print(os);
+      os << ' ';
+   }
+   os << ')';
+   os << "\nSpec Combined(";
+   for(size_t p=0;p < s._nbpCombined;p++) {
+      s._attrsCombined[p]->print(os);
+      os << ' ';
+   }
+   os << ')';
+   return os;
+}
+
 
 
 int nbCSDown  = 0;
