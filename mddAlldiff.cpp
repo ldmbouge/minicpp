@@ -11,6 +11,8 @@
  * along with mini-cp. If not, see http://www.gnu.org/licenses/lgpl-3.0.en.html
  *
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
+ *
+ * Contributions by Waldemar Cruz, Rebecca Gentzel, Willem Jan Van Hoeve
  */
 
 #include "mddConstraints.hpp"
