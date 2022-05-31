@@ -20,7 +20,7 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
+#include "mddrelax.hpp"
 #include "mddConstraints.hpp"
 
 #include "RuntimeMonitor.hpp"
@@ -65,15 +65,16 @@ void solveModel(CPSolver::Ptr cp,Vec& vx)
 
 int main(int argc,char* argv[])
 {
+   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 16;   
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDD(cp);
+   auto mdd = new MDDRelax(cp,width);
    Factory::amongMDD(mdd->getSpec(),v,LB,UB,{2,4,5,6,8});
    cp->post(mdd);
    auto end = RuntimeMonitor::cputime();
    MDDStats stats(mdd);
-   std::cout << "MDD Usage:" << mdd->usage() << std::endl;
+   std::cout << "MDD Usage:" << mdd->usage() << "\t width=" << width << std::endl;
    std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
    std::cout << stats << std::endl;
    solveModel(cp,v);

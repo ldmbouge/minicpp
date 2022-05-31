@@ -140,7 +140,8 @@ int main(int argc,char* argv[])
           
       if (x) {
 	
-	int c = x->min();
+         //int c = x->min();
+         int c = bestValue(cstr,x);
 	
 	return  [=] {
                    if (cstr) cstr->saveGraph();
@@ -156,7 +157,7 @@ int main(int argc,char* argv[])
                        cout << "AFTER : x_" << x->getId() << " != " << c << '\n';                   
                     };
       } else return Branches({});
-                      });
+   });
       
      search.onSolution([&vars,vals1,vals2,vals3]() {
 	 std::cout << "Assignment:" << vars;

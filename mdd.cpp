@@ -70,6 +70,54 @@ void MDD::post()
    _posting = false;
 }
 
+unsigned long MDD::layerAbove(var<int>::Ptr theVar)
+{
+   for(auto i = 0u; i < numVariables+1; i++) 
+      if (x[i] == theVar)
+         return i;
+   return 0;
+}
+
+int minCostDown(MDD* m,MDDNode* from,int depth)
+{
+   if (depth == 0)
+      return 1;
+   else {
+      int bestCost = INT_MAX;
+      for(auto& edge : from->getChildren()) {
+         auto c = edge->getChild();
+         int cInDeg = c->getNumParents();
+         int recCost = minCostDown(m,c,depth-1);
+         int dCost = cInDeg * recCost;
+         if (dCost < bestCost)
+            bestCost = dCost;
+      }
+      return bestCost;
+   }
+}
+
+int bestValue(MDD* m,var<int>::Ptr theVar)
+{
+   auto& layers = m->getLayers();
+   auto& layer = layers[m->layerAbove(theVar)];
+   int bestFound;
+   int bestFun = INT_MAX;
+   for(auto& node : layer) {
+      for(auto& edge : node->getChildren()) {
+         int val = edge->getValue();
+         auto c  = edge->getChild();
+         int cInDeg = c->getNumParents();
+         int down = minCostDown(m,c,2);
+         int dCost = cInDeg * down;
+         if (dCost < bestFun) {
+            bestFun = dCost;
+            bestFound = val;
+         }
+      }
+   }
+   return bestFound;
+}
+
 void MDD::propagate()
 {
    while (!queue.empty()) {

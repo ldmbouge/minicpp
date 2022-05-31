@@ -39,6 +39,7 @@ public:
    std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
    unsigned long layerSize(const int layer) {return layers[layer].size();}
    virtual void removeArc(int outL,int inL,MDDEdge* arc) {}
+   unsigned long layerAbove(var<int>::Ptr theVar);
 protected:
    virtual bool trimDomains();
    void hookupPropagators();
@@ -65,6 +66,8 @@ protected:
    MDDNodeFactory* _nf;
    MDDStateFactory* _sf;
 };
+
+int bestValue(MDD* m,var<int>::Ptr theVar);
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
    MDD* _mdd;
