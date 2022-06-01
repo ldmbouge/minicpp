@@ -166,7 +166,7 @@ public:
       for(short i=0;i < _mxw;i++)
          _t[i] &= ps._t[i];
    }
-   class iterator { // : public std::iterator<std::input_iterator_tag,short,short> {
+   class iterator { 
       long long* _t;
       const short _nbw;
       short _cwi;    // current word index

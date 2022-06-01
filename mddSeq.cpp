@@ -140,15 +140,15 @@ namespace Factory {
 
       spec.transitionDown(N,{N},{},[N](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) { out.setInt(N,pDown[N]+1); });
       spec.transitionDown(Exact,{Exact},{},[Exact,values](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
-	  out.setInt(Exact, (pDown[Exact]==1) && (val.memberOutside(values) != val.memberInside(values)));
+         out.setInt(Exact, (pDown[Exact]==1) && (val.memberOutside(values) != val.memberInside(values)));
       });
 
       // up transitions
       spec.transitionUp(DminWin,{DminWin},{YminCombined},[DminWin,YminCombined](auto& out,const auto& cUp,const auto& cCombined,const auto& x,const auto& val,bool up) {
-                                                  MDDSWin<short> outWin = out.getSW(DminWin);
-                                                  outWin.assignSlideBy(cUp.getSW(DminWin),1);
-                                                  outWin.setFirst(cCombined[YminCombined]);
-                                               });
+         MDDSWin<short> outWin = out.getSW(DminWin);
+         outWin.assignSlideBy(cUp.getSW(DminWin),1);
+         outWin.setFirst(cCombined[YminCombined]);
+      });
       spec.transitionUp(DmaxWin,{DmaxWin},{YmaxCombined},[DmaxWin,YmaxCombined](auto& out,const auto& cUp,const auto& cCombined,const auto& x,const auto& val,bool up) {
                                                   MDDSWin<short> outWin = out.getSW(DmaxWin);
                                                   outWin.assignSlideBy(cUp.getSW(DmaxWin),1);

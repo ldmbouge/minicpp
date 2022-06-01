@@ -103,9 +103,9 @@ MDDStateSpec::MDDStateSpec()
    _nbpDown = 0;
    _nbpUp = 0;
    _nbpCombined = 0;
-   _attrsDown = new MDDProperty*[_mxpDown];
-   _attrsUp = new MDDProperty*[_mxpUp];
-   _attrsCombined = new MDDProperty*[_mxpCombined];
+   _attrsDown = new MDDProperty::Ptr[_mxpDown];
+   _attrsUp = new MDDProperty::Ptr[_mxpUp];
+   _attrsCombined = new MDDProperty::Ptr[_mxpCombined];
    _omapDown = nullptr;
    _omapUp = nullptr;
    _omapDownToCombined = nullptr;
@@ -117,40 +117,40 @@ MDDStateSpec::MDDStateSpec()
 void MDDStateSpec::addDownProperty(MDDProperty::Ptr p) noexcept
 {
    if (_nbpDown == _mxpDown) {
-      MDDProperty** ns = new MDDProperty*[_mxpDown<<1];
+      MDDProperty::Ptr* ns = new MDDProperty::Ptr[_mxpDown<<1];
       for(size_t i =0;i < _nbpDown;i++)
          ns[i] = _attrsDown[i];
       delete[]_attrsDown;
       _attrsDown = ns;
       _mxpDown = _mxpDown << 1;
    }
-   _attrsDown[_nbpDown++] = p.get();
+   _attrsDown[_nbpDown++] = p;
    p->setDirection(Down);
 }
 void MDDStateSpec::addUpProperty(MDDProperty::Ptr p) noexcept
 {
    if (_nbpUp == _mxpUp) {
-      MDDProperty** ns = new MDDProperty*[_mxpUp<<1];
+      MDDProperty::Ptr* ns = new MDDProperty::Ptr[_mxpUp<<1];
       for(size_t i =0;i < _nbpUp;i++)
          ns[i] = _attrsUp[i];
       delete[]_attrsUp;
       _attrsUp = ns;
       _mxpUp = _mxpUp << 1;
    }
-   _attrsUp[_nbpUp++] = p.get();
+   _attrsUp[_nbpUp++] = p;
    p->setDirection(Up);
 }
 void MDDStateSpec::addCombinedProperty(MDDProperty::Ptr p) noexcept
 {
    if (_nbpCombined == _mxpCombined) {
-      MDDProperty** ns = new MDDProperty*[_mxpCombined<<1];
+      MDDProperty::Ptr* ns = new MDDProperty::Ptr[_mxpCombined<<1];
       for(size_t i =0;i < _nbpCombined;i++)
          ns[i] = _attrsCombined[i];
       delete[]_attrsCombined;
       _attrsCombined = ns;
       _mxpCombined = _mxpCombined << 1;
    }
-   _attrsCombined[_nbpCombined++] = p.get();
+   _attrsCombined[_nbpCombined++] = p;
    p->setDirection(Bi);
 }
 
@@ -406,6 +406,8 @@ bool MDDSpec::exist(const MDDState& pDown,
                     const MDDState& cCombined,
                     const var<int>::Ptr& x,int v,bool up) const noexcept
 {
+   std::cout << "DOWN:" << pDown << "\n";
+   std::cout << "COMB:" << pCombined << "\n";
    ++nbAECall;
    bool arcOk = true;
    for(const auto& exist : _scopedExists[x->getId()]) {

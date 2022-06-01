@@ -759,9 +759,9 @@ public:
 
 class MDDStateSpec {
 protected:
-   MDDProperty** _attrsDown;
-   MDDProperty** _attrsUp;
-   MDDProperty** _attrsCombined;
+   MDDProperty::Ptr* _attrsDown;
+   MDDProperty::Ptr* _attrsUp;
+   MDDProperty::Ptr* _attrsCombined;
    MDDPropSet*   _omapDown;
    MDDPropSet*   _omapUp;
    MDDPropSet*   _omapDownToCombined;
@@ -868,7 +868,7 @@ class MDDState {  // An actual state of an MDDNode.
    char*              _mem;
    mutable int       _hash;
    mutable float      _rip;
-   enum Direction     _dir;
+   enum Direction     _dir;        // State knows whether up / down / combined
    struct Flags {
       bool           _relax:1;
       mutable bool  _ripped:1;
@@ -954,7 +954,7 @@ public:
    }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize(_dir);}
-   MDDProperty* propAt(int i) const noexcept {
+   MDDProperty::Ptr propAt(int i) const noexcept {
       switch (_dir) {
          case Down: return _spec->_attrsDown[i]; break;
          case Up: return _spec->_attrsUp[i]; break;

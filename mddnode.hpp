@@ -167,9 +167,9 @@ private:
    unsigned short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;
    TVec<MDDEdge::Ptr,unsigned int>    parents;
-   MDDState downState;                     // Direct state embedding
-   MDDState upState;                     // Direct state embedding
-   MDDState combinedState;                     // Direct state embedding
+   MDDState downState;                           // Direct state embedding
+   MDDState upState;                             // Direct state embedding
+   MDDState combinedState;                       // Direct state embedding
    friend class MDDEdge;
    trail<bool> _parentsChanged;
    trail<bool> _childrenChanged;

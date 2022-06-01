@@ -256,17 +256,17 @@ namespace Factory {
          case 0:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
-                            }, constraintPriority);
+            }, constraintPriority);
             break;
          case 1:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 2:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return -numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 3:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -275,7 +275,7 @@ namespace Factory {
                   minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return minParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 4:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -284,7 +284,7 @@ namespace Factory {
                   maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return maxParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 5:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -293,7 +293,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return sumParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 6:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -302,7 +302,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return sumParentIndex/numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 7:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -311,7 +311,7 @@ namespace Factory {
                   minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return -minParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 8:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -320,7 +320,7 @@ namespace Factory {
                   maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return -maxParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 9:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -329,7 +329,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return -sumParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 10:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -338,7 +338,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return -sumParentIndex/numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          default:
            break;
