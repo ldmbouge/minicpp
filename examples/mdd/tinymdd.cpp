@@ -20,7 +20,7 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
+#include "mddrelax.hpp"
 #include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 
@@ -34,7 +34,7 @@ int main(int argc,char* argv[])
    std::set<int> values_1 = {2};
    std::set<int> values_2 = {3};
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDD(cp);
+   auto mdd = Factory::makeMDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, values_1);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, values_2);
    cp->post(mdd);

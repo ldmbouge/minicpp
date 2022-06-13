@@ -187,6 +187,19 @@ typename Container::value_type selectMin(Container& c,Predicate test, Fun f)
       return *min;
 }
 
+template<class Container,typename Predicate>
+typename Container::value_type selectFirst(Container& c,Predicate test)
+{
+   auto from = c.begin();
+   auto to = c.end();
+   for(; from != to; from += 1) {
+      if (test(*from))
+         return *from;
+   }
+   return typename Container::value_type();
+}
+
+
 template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,Container& c) {
     using namespace Factory;
     return [=]() {

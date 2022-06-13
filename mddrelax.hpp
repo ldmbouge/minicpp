@@ -246,4 +246,15 @@ public:
    }
 };
 
+namespace Factory {
+  MDD* makeMDD(CPSolver::Ptr cp);
+  MDDRelax* makeMDDRelax(CPSolver::Ptr cp,
+                         int width = 32,
+                         int maxDistance = std::numeric_limits<int>::max(),
+                         int maxSplitIter = 5,
+                         bool approxThenExact = true,
+                         int maxConstraintPriority = 0);
+};
+
+
 #endif

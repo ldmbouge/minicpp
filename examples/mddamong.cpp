@@ -21,7 +21,7 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
+#include "mddrelax.hpp"
 #include "mddConstraints.hpp"
 
 
@@ -38,7 +38,7 @@ int main(int argc,char* argv[])
   std::set<int> values_2 = {2};
   std::set<int> values_rem = {1,3,4};
      
-  MDD* mdd = new MDD(cp);
+  MDD* mdd = Factory::makeMDD(cp);
   Factory::amongMDD(mdd->getSpec(), iv, 1, 2, values_5);
   Factory::amongMDD(mdd->getSpec(), iv, 1, 2, values_2);
   cp->post(mdd);

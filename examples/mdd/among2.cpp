@@ -20,7 +20,7 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
+#include "mddrelax.hpp"
 #include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 
@@ -34,7 +34,7 @@ int main(int argc,char* argv[])
 
     auto v = Factory::intVarArray(cp, 3, 1, 3);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDD(cp);
+   auto mdd = Factory::makeMDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 2, {2});
    Factory::amongMDD(mdd->getSpec(),v, 1, 1, {3});
    cp->post(mdd);

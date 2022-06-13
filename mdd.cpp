@@ -386,3 +386,4 @@ MDDStats::MDDStats(MDD* mdd) : _nbLayers((unsigned int)mdd->nbLayers()) {
       }
    }
 }
+

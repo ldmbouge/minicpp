@@ -18,7 +18,7 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
+#include "mddrelax.hpp"
 #include "RuntimeMonitor.hpp"
 #include "mddConstraints.hpp"
 
@@ -28,12 +28,13 @@
 int main(int argc,char* argv[])
 {
    int useSearch = 1;
-    using namespace Factory;
-    CPSolver::Ptr cp  = Factory::makeSolver();
+   using namespace Factory;
+   CPSolver::Ptr cp  = Factory::makeSolver();
 
-    auto v = Factory::intVarArray(cp, 200, 1, 9);
+   
+   auto v = Factory::intVarArray(cp, 200, 1, 9);
    auto start = RuntimeMonitor::now();
-   auto mdd = new MDD(cp);
+   auto mdd = Factory::makeMDD(cp);
    Factory::amongMDD(mdd->getSpec(),v, 2, 5, {2});
    Factory::amongMDD(mdd->getSpec(),v, 2, 5, {3});
    Factory::amongMDD(mdd->getSpec(),v, 3, 5, {4});

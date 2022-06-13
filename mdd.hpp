@@ -29,7 +29,6 @@ class MDDNodeFactory;
 
 class MDD  : public Constraint {
 public:
-   MDD(CPSolver::Ptr cp);
    void saveGraph();
    virtual void debugGraph() {}
    void post() override;
@@ -50,6 +49,7 @@ public:
    virtual void removeArc(int outL,int inL,MDDEdge* arc) {}
    unsigned long layerAbove(var<int>::Ptr theVar);
 protected:
+   MDD(CPSolver::Ptr cp);
    virtual bool trimDomains();
    void hookupPropagators();
    virtual void buildNextLayer(unsigned int i);
@@ -104,5 +104,6 @@ public :
       return os << std::endl;
    }
 };
+
 
 #endif /* mdd_hpp */

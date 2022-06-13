@@ -61,19 +61,6 @@ const MDDState& MDDRelax::pickReference(int layer,int layerSize)
    return layers[layer].get(dirIdx)->getDownState();
 }
 
-MDDNode* findMatch(const std::multimap<float,MDDNode*>& layer,const MDDState& s,const MDDState& refDir)
-{
-   float query = s.inner(refDir);
-   auto nlt = layer.lower_bound(query);
-   while (nlt != layer.end() && nlt->first == query) {
-      bool isEqual = nlt->second->getDownState() == s;
-      if (isEqual)
-         return nlt->second;
-      else nlt++;
-   }
-   return nullptr;
-}
-
 void MDDRelax::buildDiagram()
 {
    std::cout << "MDDRelax::buildDiagram" << '\n';
@@ -1199,5 +1186,25 @@ void MDDRelax::debugGraph()
       for(unsigned i=0u;i < layers[l].size();i++) {
          cout << i << ":   " << layers[l][i]->getDownState()  << '\n';
       }
+   }
+}
+
+
+
+namespace Factory {
+   MDD* makeMDD(CPSolver::Ptr cp)
+   {
+      return new MDDRelax(cp,256);
+      //return new MDD(cp);
+   }
+   
+   MDDRelax* makeMDDRelax(CPSolver::Ptr cp,
+                          int width,
+                          int maxDistance,
+                          int maxSplitIter,
+                          bool approxThenExact,
+                          int maxConstraintPriority)
+   {
+      return new MDDRelax(cp,width,maxDistance,maxSplitIter,approxThenExact,maxConstraintPriority);
    }
 }

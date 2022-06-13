@@ -20,7 +20,7 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
+#include "mddrelax.hpp"
 #include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 
@@ -41,7 +41,7 @@ int main(int argc,char* argv[])
    int min = 1; int max = 10; int nb = 30;
    auto v = Factory::intVarArray(cp, nb, min, max);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDD(cp);
+   auto mdd = Factory::makeMDD(cp);
    std::map<int,int> bounds;
    int n =  nb / (max - min + 1);
    for(int i = min; i <= 10; i++)

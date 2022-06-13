@@ -406,8 +406,8 @@ bool MDDSpec::exist(const MDDState& pDown,
                     const MDDState& cCombined,
                     const var<int>::Ptr& x,int v,bool up) const noexcept
 {
-   std::cout << "DOWN:" << pDown << "\n";
-   std::cout << "COMB:" << pCombined << "\n";
+   //std::cout << "DOWN:" << pDown << "\n";
+   //std::cout << "COMB:" << pCombined << "\n";
    ++nbAECall;
    bool arcOk = true;
    for(const auto& exist : _scopedExists[x->getId()]) {

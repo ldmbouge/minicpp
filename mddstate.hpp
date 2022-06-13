@@ -421,7 +421,7 @@ public:
    }
 };
 
-enum Direction { None=0,Down=1,Up=2,Bi=3 };
+enum Direction { Down=0,Up=1,Bi=2,None=3 };
 
 class MDDProperty {
 protected:
@@ -443,7 +443,7 @@ public:
    MDDProperty(MDDProperty&& p)
       : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw),_tid(p._tid),_rid(p._rid) {}
    MDDProperty(short id,unsigned short ofs,unsigned short bsz,enum RelaxWith rw = External)
-      : _id(id),_ofs(ofs),_bsz(bsz),_dir(None),_rw(rw) { _tid = -1;_rid = -1;}
+      : _id(id),_ofs(ofs),_bsz(bsz),_dir(Down),_rw(rw) { _tid = -1;_rid = -1;}
    MDDProperty& operator=(const MDDProperty& p) {
       _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_dir = p._dir;_rw = p._rw;
       _tid = p._tid;
@@ -462,21 +462,21 @@ public:
    int getRelax() const noexcept   { return _rid;}
    const std::set<int>& antecedents() const { return _sp1;}
    const std::set<int>& antecedentsSecondary() const { return _sp2;}
-   bool isUp() const noexcept    { assert(_dir != None);return (_dir & Up) == Up;}
-   bool isDown() const noexcept  { assert(_dir != None);return (_dir & Down) == Down;}
-   virtual void init(char* buf) const noexcept              {}
-   virtual int get(char* buf) const noexcept                { return 0;}
+   bool isUp() const noexcept                                 { return (_dir & Up) == Up;}
+   bool isDown() const noexcept                               { return (_dir & Down) == Down;}
+   virtual void init(char* buf) const noexcept                {}
+   virtual int get(char* buf) const noexcept                  { return 0;}
    virtual void minWith(char* buf,char* other) const noexcept {}
    virtual void maxWith(char* buf,char* other) const noexcept {}
-   virtual bool diff(char* buf,char* other) const noexcept  { return false;}
-   virtual int getInt(char* buf) const noexcept                     { return *reinterpret_cast<int*>(buf + _ofs);}
-   int getByte(char* buf) const noexcept                    { return buf[_ofs];}
-   MDDBSValue getBS(char* buf) const noexcept               { return MDDBSValue(buf + _ofs,_bsz >> 3);}
+   virtual bool diff(char* buf,char* other) const noexcept    { return false;}
+   virtual int getInt(char* buf) const noexcept               { return *reinterpret_cast<int*>(buf + _ofs);}
+   int getByte(char* buf) const noexcept                      { return buf[_ofs];}
+   MDDBSValue getBS(char* buf) const noexcept                 { return MDDBSValue(buf + _ofs,_bsz >> 3);}
    template <class ET>
-   MDDSWin<ET> getSW(char* buf) const noexcept              { return MDDSWin<ET>(reinterpret_cast<short*>(buf + _ofs),_bsz / sizeof(ET));}
-   virtual void set(char* buf,int v) noexcept               {}
-   void setInt(char* buf,int v) noexcept                    { *reinterpret_cast<int*>(buf+_ofs) = v;}
-   void setByte(char* buf,char v) noexcept         { buf[_ofs] = v;}
+   MDDSWin<ET> getSW(char* buf) const noexcept                { return MDDSWin<ET>(reinterpret_cast<short*>(buf + _ofs),_bsz / sizeof(ET));}
+   virtual void set(char* buf,int v) noexcept                 {}
+   void setInt(char* buf,int v) noexcept                      { *reinterpret_cast<int*>(buf+_ofs) = v;}
+   void setByte(char* buf,char v) noexcept                    { buf[_ofs] = v;}
    MDDBSValue setBS(char* buf,const MDDBSValue& v) noexcept {
       MDDBSValue dest(buf + _ofs,_bsz >> 3);
       dest = v;
@@ -867,11 +867,9 @@ class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
    mutable int       _hash;
-   mutable float      _rip;
    enum Direction     _dir;        // State knows whether up / down / combined
    struct Flags {
       bool           _relax:1;
-      mutable bool  _ripped:1;
       mutable bool  _hashed:1;
       bool          _unused:4;
    } _flags;
@@ -880,34 +878,30 @@ class MDDState {  // An actual state of an MDDNode.
       char*   _from;
       int       _sz;
       Flags  _f;
-      float _ip;
    public:
       TrailState(MDDState* at,char* from,int sz) : _at(at),_from(from),_sz(sz)
       {
          memcpy(_from,_at->_mem,_sz);
          _f = _at->_flags;
-         _ip = _at->_rip;
       }
       void restore() noexcept override {
          memcpy(_at->_mem,_from,_sz);
          _at->_flags = _f;
-         _at->_rip   = _ip;
       }
    };
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_rip(0),_dir(Down),_flags({false,false,false,false}) {}
+   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_dir(Down),_flags({false,false,false}) {}
    MDDState(MDDStateSpec* s,char* b,enum Direction dir,bool relax=false) 
-      : _spec(s),_mem(b),_hash(0),_rip(0),_dir(dir),_flags({relax,false,false,false}) {
+      : _spec(s),_mem(b),_hash(0),_dir(dir),_flags({relax,false,false}) {
    }
-   MDDState(MDDStateSpec* s,char* b,int hash,float rip,enum Direction dir,const Flags& f) 
-      : _spec(s),_mem(b),_hash(hash),_rip(rip),_dir(dir),_flags(f) {}
+   MDDState(MDDStateSpec* s,char* b,int hash,enum Direction dir,const Flags& f) 
+      : _spec(s),_mem(b),_hash(hash),_dir(dir),_flags(f) {}
    MDDState(const MDDState& s) 
-      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_rip(s._rip),_dir(s._dir),_flags(s._flags) {}
+      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_dir(s._dir),_flags(s._flags) {}
    void initState(const MDDState& s) {
       _spec = s._spec;
       _mem = s._mem;
       _flags = s._flags;
-      _rip  = s._rip;
       _hash = s._hash;
       _dir = s._dir;
    }
@@ -915,7 +909,6 @@ public:
       auto sz = _spec->layoutSize(_dir);
       memcpy(_mem,s._mem,sz);
       _flags = s._flags;
-      _rip = s._rip;
       _hash = s._hash;
       _dir = s._dir;
    }
@@ -931,7 +924,6 @@ public:
       assert(_spec == s._spec || _spec == nullptr);
       _spec = s._spec;
       _flags = s._flags;
-      _rip = s._rip;
       _hash = s._hash;
       _dir = s._dir;
       return *this;
@@ -940,7 +932,6 @@ public:
       assert(_spec == s._spec || _spec == nullptr);
       _spec = std::move(s._spec);
       _mem  = std::move(s._mem);
-      _rip  = std::move(s._rip);
       _hash = std::move(s._hash);
       _flags = std::move(s._flags);
       _dir = std::move(s._dir);
@@ -950,7 +941,7 @@ public:
    MDDState clone(Allocator pool) const {
       char* block = (_spec && _spec->layoutSize(_dir)) ? new (pool) char[_spec->layoutSize(_dir)] : nullptr;
       if (_spec && _spec->layoutSize(_dir))  memcpy(block,_mem,_spec->layoutSize(_dir));
-      return MDDState(_spec,block,_hash,_rip,_dir,_flags);
+      return MDDState(_spec,block,_hash,_dir,_flags);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize(_dir);}
@@ -983,30 +974,12 @@ public:
    void setProp(int i,const MDDState& from) noexcept { propAt(i)->setProp(_mem,from._mem); } // (fast)
    int byteSize(int i) const noexcept { return propAt(i)->size(); }
    void copyZone(const Zone& z,const MDDState& in) noexcept { z.copy(_mem,in._mem);}
-   void clear() noexcept                { _flags._ripped = false;_flags._relax = false;;_flags._hashed=false;}
-   void zero() noexcept                { memset(_mem, 0, _spec->layoutSize(_dir)); }
-   bool isRelaxed() const noexcept          { return _flags._relax;}
+   void clear() noexcept                { _flags._relax = false;;_flags._hashed=false;}
+   void zero() noexcept                 { memset(_mem, 0, _spec->layoutSize(_dir)); }
+   bool isRelaxed() const noexcept      { return _flags._relax;}
    void relax(bool r = true) noexcept   { _flags._relax = r;}
    void minWith(int i,const MDDState& s) const noexcept { propAt(i)->minWith(_mem,s._mem);}
    void maxWith(int i,const MDDState& s) const noexcept { propAt(i)->maxWith(_mem,s._mem);}
-   float inner(const MDDState& s) const {
-      if (_flags._ripped) 
-         return _rip;
-      _flags._ripped = true;
-
-      unsigned long long* m0 = reinterpret_cast<unsigned long long*>(_mem);
-      unsigned long long* m1 = reinterpret_cast<unsigned long long*>(s._mem);
-      if (_mem && s._mem) {
-         auto up = layoutSize() / 8;
-         unsigned long long asw = 0;
-         for(auto k=0u;k < up;k++) {
-            asw <<= 1;
-            asw += __builtin_popcountl(~(m0[k] ^ m1[k]));
-         }
-         _rip = asw;
-      } else _rip = 0;
-      return _rip;
-   }
    int hash() const noexcept {
       if (_flags._hashed)
          return _hash;
