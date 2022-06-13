@@ -190,7 +190,7 @@ enum RelaxWith { External, MinFun,MaxFun};
 class MDDState;
 class MDDNode;
 typedef std::function<bool(const MDDState&,const MDDState&,const MDDState&)> NodeFun;
-typedef std::function<bool(const MDDState&,const MDDState&,const MDDState&,const MDDState&,const var<int>::Ptr&,int,bool)> ArcFun;
+typedef std::function<bool(const MDDState&,const MDDState&,const MDDState&,const MDDState&,const var<int>::Ptr&,int)> ArcFun;
 typedef std::function<void(const MDDState&,const MDDState&,const MDDState&)> FixFun;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> UpdateFun;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
@@ -421,7 +421,7 @@ public:
    }
 };
 
-enum Direction { Down=0,Up=1,Bi=2,None=3 };
+enum Direction { None=0,Down=1,Up=2,Bi=3};
 
 class MDDProperty {
 protected:
@@ -1116,7 +1116,7 @@ public:
    void varOrder() override;
    bool consistent(const MDDState& down,const MDDState& up,const MDDState& combined) const noexcept;
    void updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept;
-   bool exist(const MDDState& pDown,const MDDState& pCombined,const MDDState& cUp,const MDDState& cCombined,const var<int>::Ptr& x,int v,bool up) const noexcept;
+   bool exist(const MDDState& pDown,const MDDState& pCombined,const MDDState& cUp,const MDDState& cCombined,const var<int>::Ptr& x,int v) const noexcept;
    void fullStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
    void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
    void fullStateUp(MDDState& target,const MDDState& cUp,const MDDState& cCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);

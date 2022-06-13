@@ -27,7 +27,7 @@ namespace Factory {
       int minWin = spec.addDownSWState(desc,len,-1,0,MinFun);
       int maxWin = spec.addDownSWState(desc,len,-1,0,MaxFun);
 
-      spec.arcExist(desc,[minWin,maxWin,lb,ub,values] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v,bool) -> bool {
+      spec.arcExist(desc,[minWin,maxWin,lb,ub,values] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v) -> bool {
                           bool inS = values.member(v);
                           auto min = pDown.getSW(minWin);
                           auto max = pDown.getSW(maxWin);
@@ -77,7 +77,7 @@ namespace Factory {
                                        out.setInt(pnb,pDown[pnb]+1);
                                     });
 
-      spec.arcExist(desc,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v,bool) -> bool {
+      spec.arcExist(desc,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v) -> bool {
                           bool inS = values.member(v);
                           MDDSWin<short> min = pDown.getSW(minWin);
                           MDDSWin<short> max = pDown.getSW(maxWin);
@@ -201,15 +201,13 @@ namespace Factory {
 	});
 
       // arc definitions
-      spec.arcExist(desc,[values,YminCombined,YmaxCombined](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v,bool up) -> bool {
-                            bool c0 = true,c1 = true,inS = values.member(v);
-                            if (up) { // during the initial post, I do test arc existence and up isn't there yet.
-                               c0 = (pCombined[YminCombined] + inS <= cCombined[YmaxCombined]);
-                               c1 = (pCombined[YmaxCombined] + inS >= cCombined[YminCombined]);
-                            }
-                            return c0 && c1;
-                         });
-
+      spec.arcExist(desc,[values,YminCombined,YmaxCombined](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v) -> bool {
+         bool c0 = true,c1 = true,inS = values.member(v);
+         c0 = (pCombined[YminCombined] + inS <= cCombined[YmaxCombined]);
+         c1 = (pCombined[YmaxCombined] + inS >= cCombined[YminCombined]);
+         return c0 && c1;
+      });
+      
       spec.splitOnLargest([Exact](const auto& n) {
                              return (double)(n.getDownState()[Exact]);
                           });

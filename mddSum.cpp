@@ -51,14 +51,9 @@ namespace Factory {
       const int lenUp  = mdd.addUpState(d, 0, vars.size());
 
       // The lower bound needs the bottom-up state information to be effective.
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
-         if (upPass==true) {
-            return ((pDown[minW] + val*array[pDown[len]] + cUp[minWup] <= ub) &&
-                    (pDown[maxW] + val*array[pDown[len]] + cUp[maxWup] >= lb));
-         } else {
-            return ((pDown[minW] + val*array[pDown[len]] + Lproxy[pDown[len]] <= ub) &&
-                    (pDown[maxW] + val*array[pDown[len]] + Uproxy[pDown[len]] >= lb));
-         }
+      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
+         return ((pDown[minW] + val*array[pDown[len]] + cUp[minWup] <= ub) &&
+                 (pDown[maxW] + val*array[pDown[len]] + cUp[maxWup] >= lb));
       });
 
       mdd.transitionDown(minW,{len,minW},{},[minW,array,len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
@@ -138,14 +133,9 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
-         if (upPass==true) {
-            return ((pDown[minW] + val + cUp[minWup] <= z->max()) &&
-                    (pDown[maxW] + val + cUp[maxWup] >= z->min()));
-         } else {
-            return ((pDown[minW] + val + Lproxy[pDown[len]] <= z->max()) &&
-                    (pDown[maxW] + val + Uproxy[pDown[len]] >= z->min()));
-         }
+      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
+         return ((pDown[minW] + val + cUp[minWup] <= z->max()) &&
+                 (pDown[maxW] + val + cUp[maxWup] >= z->min()));
       });
  
       mdd.nodeExist([=](const auto& down, const auto& up, const auto& combined) {
@@ -221,14 +211,9 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
-         if (upPass==true) {
-            return ((pDown[minW] + val + cUp[minWup] <= z->max()) &&
-                    (pDown[maxW] + val + cUp[maxWup] >= z->min()));
-         } else {
-            return ((pDown[minW] + val + Lproxy[pDown[len]] <= z->max()) &&
-                    (pDown[maxW] + val + Uproxy[pDown[len]] >= z->min()));
-         }
+      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
+         return ((pDown[minW] + val + cUp[minWup] <= z->max()) &&
+                 (pDown[maxW] + val + cUp[maxWup] >= z->min()));
       });
  
       mdd.nodeExist([=](const auto& down, const auto& up, const auto& combined) {
@@ -306,14 +291,9 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
-         if (upPass==true) {
-            return ((pDown[minW] + val*array[pDown[len]] + cUp[minWup] <= z->max()) &&
-                    (pDown[maxW] + val*array[pDown[len]] + cUp[maxWup] >= z->min()));
-         } else {
-            return ((pDown[minW] + val*array[pDown[len]] + Lproxy[pDown[len]] <= z->max()) &&
-                    (pDown[maxW] + val*array[pDown[len]] + Uproxy[pDown[len]] >= z->min()));
-         }
+      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
+         return ((pDown[minW] + val*array[pDown[len]] + cUp[minWup] <= z->max()) &&
+                 (pDown[maxW] + val*array[pDown[len]] + cUp[maxWup] >= z->min()));
       });
 
       mdd.transitionDown(minW,{len,minW},{},[minW,array,len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
@@ -399,15 +379,10 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val,bool upPass) -> bool {
+      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
          const int mlv = matrix[pDown[len]][val];
-         if (upPass==true) {
-            return ((pDown[minW] + mlv + cUp[minWup] <= z->max()) &&
-                    (pDown[maxW] + mlv + cUp[maxWup] >= z->min()));
-         } else {
-            return ((pDown[minW] + mlv + Lproxy[pDown[len]] <= z->max()) && 
-                    (pDown[maxW] + mlv + Uproxy[pDown[len]] >= z->min()));
-         }
+         return ((pDown[minW] + mlv + cUp[minWup] <= z->max()) &&
+                 (pDown[maxW] + mlv + cUp[maxWup] >= z->min()));
       });
 
       mdd.transitionDown(minW,{len,minW},{},[minW,matrix,len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {

@@ -253,7 +253,7 @@ namespace Factory {
 	}
       });
 
-    mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val, bool up) -> bool {
+    mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
 	if (pDown.at(N)==2) {
 	  // filter z variable
 	  interval v1(0,INT_MAX);
@@ -272,8 +272,7 @@ namespace Factory {
 	  return false;
 	}
 	else {
-	  if (up) {
-	    if (pDown.at(N) == 0) {
+       if (pDown.at(N) == 0) {
 	      // filter x variable
 	      interval v1(0,INT_MAX);
 	      interval v3(0,INT_MAX);
@@ -282,14 +281,14 @@ namespace Factory {
 	      // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
 	      // return propagateExpression(&X, &Y, &Z, v1, v3);
 	      for (int y=cUp.at(yMinUp); y<=cUp.at(yMaxUp); y++) {
-		for (int z=cUp.at(zMinUp); z<=cUp.at(zMaxUp); z++) {
-		  if ((y != val) && (z == std::abs(val-y)))
-		    return true;
-		}
+             for (int z=cUp.at(zMinUp); z<=cUp.at(zMaxUp); z++) {
+                if ((y != val) && (z == std::abs(val-y)))
+                   return true;
+             }
 	      }
 	      return false;
-	    }
-	    else if (pDown.at(N) == 1) {
+       }
+       else if (pDown.at(N) == 1) {
 	      // filter y variable
 	      interval v1(0,INT_MAX);
 	      interval v3(0,INT_MAX);
@@ -298,19 +297,17 @@ namespace Factory {
 	      // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
 	      // return propagateExpression(&X, &Y, &Z, v1, v3);
 	      for (int x=pDown.at(xMin); x<=pDown.at(xMax); x++) {
-		for (int z=cUp.at(zMinUp); z<=cUp.at(zMaxUp); z++) {
-		  if ((x != val) && (z == std::abs(x-val)))
-		    return true;
-		}
+             for (int z=cUp.at(zMinUp); z<=cUp.at(zMaxUp); z++) {
+                if ((x != val) && (z == std::abs(x-val)))
+                   return true;
+             }
 	      }
 	      return false;
-	    }
-	  }
+       }
 	}
 	return true;
-      });
+    });
   }
-
 }
 
 

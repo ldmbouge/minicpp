@@ -73,20 +73,18 @@ namespace Factory {
                                 out.getBS(someu).setBinOR(l.getBS(someu),r.getBS(someu));
                             });
 
-      mdd.arcExist(d,[minDom,some,all,len,someu,allu,n](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& var,const auto& val,bool up) noexcept -> bool  {
+      mdd.arcExist(d,[minDom,some,all,len,someu,allu,n](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& var,const auto& val) noexcept -> bool  {
                       MDDBSValue sbs = pDown.getBS(some);
                       const int ofs = val - minDom;
                       const bool notOk = pDown.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == pDown[len]);
                       if (notOk) return false;
                       bool upNotOk = false,mixNotOk = false;
-                      if (up) {
-                         MDDBSValue subs = cUp.getBS(someu);
-                         upNotOk = cUp.getBS(allu).getBit(ofs) || (subs.getBit(ofs) && subs.cardinality() == n - pDown[len] - 1);
-                         if (upNotOk) return false;
-                         MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords());
-                         both.setBinOR(subs,sbs).set(ofs);
-                         mixNotOk = both.cardinality() < n;
-                      }
+                      MDDBSValue subs = cUp.getBS(someu);
+                      upNotOk = cUp.getBS(allu).getBit(ofs) || (subs.getBit(ofs) && subs.cardinality() == n - pDown[len] - 1);
+                      if (upNotOk) return false;
+                      MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords());
+                      both.setBinOR(subs,sbs).set(ofs);
+                      mixNotOk = both.cardinality() < n;
                       return !mixNotOk;
                    });
       mdd.equivalenceClassValue([some,all,len](const auto& down, const auto& up) -> int {
@@ -168,22 +166,20 @@ namespace Factory {
       mdd.addRelaxationUp(numInSomeUp,[](auto& out,const auto& l,const auto& r)  noexcept   {
                             });
 
-      mdd.arcExist(d,[minDom,some,all,numInSome,len,someu,allu,numInSomeUp,n](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& var,const auto& val,bool up) noexcept -> bool  {
+      mdd.arcExist(d,[minDom,some,all,numInSome,len,someu,allu,numInSomeUp,n](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& var,const auto& val) noexcept -> bool  {
                       MDDBSValue sbs = pDown.getBS(some);
                       const int ofs = val - minDom;
                       const bool notOk = pDown.getBS(all).getBit(ofs) || (sbs.getBit(ofs) && pDown[numInSome] == pDown[len]);
                       if (notOk) return false;
                       bool upNotOk = false,mixNotOk = false;
-                      if (up) {
-                         MDDBSValue subs = cUp.getBS(someu);
-                         upNotOk = cUp.getBS(allu).getBit(ofs) || (subs.getBit(ofs) && cUp[numInSomeUp] == n - pDown[len] - 1);
-                         if (upNotOk) return false;
-                         MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords());
-                         both.setBinOR(subs,sbs).set(ofs);
-                         mixNotOk = both.cardinality() < n;
-                      }
+                      MDDBSValue subs = cUp.getBS(someu);
+                      upNotOk = cUp.getBS(allu).getBit(ofs) || (subs.getBit(ofs) && cUp[numInSomeUp] == n - pDown[len] - 1);
+                      if (upNotOk) return false;
+                      MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords());
+                      both.setBinOR(subs,sbs).set(ofs);
+                      mixNotOk = both.cardinality() < n;
                       return !mixNotOk;
-                   });
+      });
       int blockSize;
       int firstBlockMin, secondBlockMin, thirdBlockMin, fourthBlockMin;
       switch (approxEquivMode) {

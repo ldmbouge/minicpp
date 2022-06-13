@@ -404,14 +404,14 @@ bool MDDSpec::exist(const MDDState& pDown,
                     const MDDState& pCombined,
                     const MDDState& cUp,
                     const MDDState& cCombined,
-                    const var<int>::Ptr& x,int v,bool up) const noexcept
+                    const var<int>::Ptr& x,int v) const noexcept
 {
    //std::cout << "DOWN:" << pDown << "\n";
    //std::cout << "COMB:" << pCombined << "\n";
    ++nbAECall;
    bool arcOk = true;
    for(const auto& exist : _scopedExists[x->getId()]) {
-      arcOk = exist(pDown,pCombined,cUp,cCombined,x,v,up);
+      arcOk = exist(pDown,pCombined,cUp,cCombined,x,v);
       if (!arcOk) {
          ++nbAEFail;
          break;

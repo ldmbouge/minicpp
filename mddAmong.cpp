@@ -27,7 +27,7 @@ namespace Factory {
       const int minC = mdd.addDownState(d,0,INT_MAX,MinFun);
       const int maxC = mdd.addDownState(d,0,INT_MAX,MaxFun);
       const int rem  = mdd.addDownState(d,(int)x.size(),INT_MAX,MaxFun);
-      mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto var,const auto& val,bool) -> bool {
+      mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto var,const auto& val) -> bool {
                         bool vinS = tv == val;
                         return (pDown[minC] + vinS <= ub) &&
                            ((pDown[maxC] + vinS +  pDown[rem] - 1) >= lb);
@@ -57,13 +57,13 @@ namespace Factory {
       const int rem  = mdd.addDownState(d,(int)x.size(),INT_MAX,MaxFun);
       if (rawValues.size() == 1) {
          int tv = *rawValues.cbegin();
-         mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto var, const auto& val,bool) -> bool {
+         mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto var, const auto& val) -> bool {
                            bool vinS = tv == val;
                            return (pDown[minC] + vinS <= ub) &&
                               ((pDown[maxC] + vinS +  pDown[rem] - 1) >= lb);
                         });
       } else {
-         mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val,bool) -> bool {
+         mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
                            bool vinS = values.member(val);
                            return (pDown[minC] + vinS <= ub) &&
                               ((pDown[maxC] + vinS +  pDown[rem] - 1) >= lb);
@@ -134,13 +134,9 @@ namespace Factory {
                                 out.set(Uup,cUp.at(Uup) + oneMember);
                              });
 
-      mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val, bool up) -> bool {
-         if (up) {
-            return ((pDown.at(U) + values.member(val) + cUp.at(Uup) >= lb) &&
-                    (pDown.at(L) + values.member(val) + cUp.at(Lup) <= ub));
-         } else {
-            return (pDown.at(L) + values.member(val) <= ub);
-         }
+      mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
+         return ((pDown.at(U) + values.member(val) + cUp.at(Uup) >= lb) &&
+                 (pDown.at(L) + values.member(val) + cUp.at(Lup) <= ub));
       });
 
       switch (nodePriority) {
@@ -340,15 +336,12 @@ namespace Factory {
                                     out.setInt(Uup,cUp[Uup] + oneMember);
                                  });
 
-      mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val, bool up) -> bool {
-                        bool vinS = tv == val;
-                        if (up) {
-//std::cout << "  Arc Exist if:   " << pDown[U] << " + " << vinS << " + " << cUp[Uup] << " >= " << lb << "\n"
-//          << "                  " << pDown[L] << " + " << vinS << " + " << cUp[Lup] << " <= " << ub << "\n";
-                           return ((pDown[U] + vinS + cUp[Uup] >= lb) &&
-                                   (pDown[L] + vinS + cUp[Lup] <= ub));
-                        } else
-                           return (pDown[L] + vinS <= ub);
+      mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
+         bool vinS = tv == val;
+         //std::cout << "  Arc Exist if:   " << pDown[U] << " + " << vinS << " + " << cUp[Uup] << " >= " << lb << "\n"
+         //          << "                  " << pDown[L] << " + " << vinS << " + " << cUp[Lup] << " <= " << ub << "\n";
+         return ((pDown[U] + vinS + cUp[Uup] >= lb) &&
+                 (pDown[L] + vinS + cUp[Lup] <= ub));
       });
 
       switch (nodePriority) {
@@ -544,12 +537,8 @@ namespace Factory {
                                 out.set(Lup,cUp.at(Lup) + allMembers);
                              });
 
-      mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val, bool up) -> bool {
-         if (up) {
-            return (pDown.at(L) + values.member(val) + cUp.at(Lup) <= 1);
-         } else {
-            return (pDown.at(L) + values.member(val) <= 1);
-         }
+      mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
+         return (pDown.at(L) + values.member(val) + cUp.at(Lup) <= 1);
       });
 
       switch (nodePriority) {
