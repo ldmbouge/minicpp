@@ -37,7 +37,7 @@ namespace Factory {
       const int maxDownValue = mdd.addDownState(d, rootValue, INT_MAX, External, constraintPriority);
       const int len = mdd.addDownState(d, 0, nbVars, MaxFun, constraintPriority);
 
-      mdd.arcExist(d,[=] (const auto&,const auto&,const auto&,const auto&,var<int>::Ptr, const auto&) -> bool {
+      mdd.arcExist(d,[=](const auto&,const auto&,var<int>::Ptr, const auto&) -> bool {
          return true;
       });
 

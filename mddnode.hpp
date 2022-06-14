@@ -111,9 +111,13 @@ public:
       t->trail(new (t) TrailEntry<unsigned short>(&layer));
       layer = l;
    }
+   MDDPack pack() { return MDDPack(downState,upState,combinedState);}
    const MDDState& getDownState() const noexcept { return downState;}
    const MDDState& getUpState() const noexcept { return upState;}
    const MDDState& getCombinedState() const noexcept { return combinedState;}
+   MDDState& getDownState() noexcept { return downState;}
+   MDDState& getUpState()  noexcept { return upState;}
+   MDDState& getCombinedState() noexcept { return combinedState;}
    unsigned short getLayer() const noexcept  { return layer;}
    int getPosition() const noexcept          { return pos;}
    int getId() const noexcept                { return _nid;}

@@ -51,9 +51,9 @@ namespace Factory {
       const int lenUp  = mdd.addUpState(d, 0, vars.size());
 
       // The lower bound needs the bottom-up state information to be effective.
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
-         return ((pDown[minW] + val*array[pDown[len]] + cUp[minWup] <= ub) &&
-                 (pDown[maxW] + val*array[pDown[len]] + cUp[maxWup] >= lb));
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child, var<int>::Ptr var, const auto& val) -> bool {
+         return ((parent.down[minW] + val*array[parent.down[len]] + child.up[minWup] <= ub) &&
+                 (parent.down[maxW] + val*array[parent.down[len]] + child.up[maxWup] >= lb));
       });
 
       mdd.transitionDown(minW,{len,minW},{},[minW,array,len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
@@ -133,9 +133,9 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
-         return ((pDown[minW] + val + cUp[minWup] <= z->max()) &&
-                 (pDown[maxW] + val + cUp[maxWup] >= z->min()));
+      mdd.arcExist(d,[=] (const auto& parent, const auto& child, var<int>::Ptr var, const auto& val) -> bool {
+         return ((parent.down[minW] + val + child.up[minWup] <= z->max()) &&
+                 (parent.down[maxW] + val + child.up[maxWup] >= z->min()));
       });
  
       mdd.nodeExist([=](const auto& down, const auto& up, const auto& combined) {
@@ -211,9 +211,9 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
-         return ((pDown[minW] + val + cUp[minWup] <= z->max()) &&
-                 (pDown[maxW] + val + cUp[maxWup] >= z->min()));
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child, var<int>::Ptr var, const auto& val) {
+         return ((parent.down[minW] + val + child.up[minWup] <= z->max()) &&
+                 (parent.down[maxW] + val + child.up[maxWup] >= z->min()));
       });
  
       mdd.nodeExist([=](const auto& down, const auto& up, const auto& combined) {
@@ -291,9 +291,9 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
-         return ((pDown[minW] + val*array[pDown[len]] + cUp[minWup] <= z->max()) &&
-                 (pDown[maxW] + val*array[pDown[len]] + cUp[maxWup] >= z->min()));
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) {
+         return ((parent.down[minW] + val*array[parent.down[len]] + child.up[minWup] <= z->max()) &&
+                 (parent.down[maxW] + val*array[parent.down[len]] + child.up[maxWup] >= z->min()));
       });
 
       mdd.transitionDown(minW,{len,minW},{},[minW,array,len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
@@ -379,10 +379,10 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& pDown, const auto& pCombined, const auto& cUp, const auto& cCombined, var<int>::Ptr var, const auto& val) -> bool {
-         const int mlv = matrix[pDown[len]][val];
-         return ((pDown[minW] + mlv + cUp[minWup] <= z->max()) &&
-                 (pDown[maxW] + mlv + cUp[maxWup] >= z->min()));
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) {
+         const int mlv = matrix[parent.down[len]][val];
+         return ((parent.down[minW] + mlv + child.up[minWup] <= z->max()) &&
+                 (parent.down[maxW] + mlv + child.up[maxWup] >= z->min()));
       });
 
       mdd.transitionDown(minW,{len,minW},{},[minW,matrix,len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {

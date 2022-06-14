@@ -221,16 +221,12 @@ void MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l)
       auto p = _src[i];                           // this is the parent
       assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
       _sf->createStateDown(cs,p->getDownState(),p->getCombinedState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
-      //assert(cs.getBS(6) == cs.getBS(7));
       if (first) {
          ms.copyState(cs); // install the result into an accumulator
          first = false;
       } else {
          if (ms != cs) {
-            //assert(ms.getBS(6) == ms.getBS(7));
-            //assert(cs.getBS(6) == cs.getBS(7));
             _mddspec.relaxationDown(ms,cs);   // compute a full scale relaxation of cs with the accumulator (ms).
-            //assert(ms.getBS(6) == ms.getBS(7));
             ms.relax();               // indidcate this is a down relaxation.
          }
       }
@@ -326,7 +322,7 @@ bool MDDRelax::filterKids(MDDNode* n,int l)
          auto arc = *i;
          MDDNode* child = arc->getChild();
          int v = arc->getValue();
-         if (!_mddspec.exist(n->getDownState(),n->getCombinedState(),child->getUpState(),child->getCombinedState(),x[l],v)) {
+         if (!_mddspec.exist(n->pack(),child->pack(),x[l],v)) {
             n->unhook(arc);
             changed = true;
             delSupport(l,v);
@@ -353,7 +349,7 @@ bool MDDRelax::filterParents(MDDNode* n,int l)
          auto arc = *i;
          MDDNode* parent = arc->getParent();
          int v = arc->getValue();
-         if (!_mddspec.exist(parent->getDownState(),parent->getCombinedState(),n->getUpState(),n->getCombinedState(),x[l-1],v)) {
+         if (!_mddspec.exist(parent->pack(),n->pack(),x[l-1],v)) {
             parent->unhook(arc);
             changed = true;
             delSupport(l-1,v);
@@ -558,8 +554,10 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
             int nbk = (int)n->getNumChildren();
             bool keepArc[nbk];
             unsigned idx = 0,cnt = 0;
-            for(auto ca : n->getChildren()) 
-               cnt += keepArc[idx++] = _mddspec.exist(*ms,p->getCombinedState(),ca->getChild()->getUpState(),ca->getChild()->getCombinedState(),x[l],ca->getValue());
+            for(auto ca : n->getChildren()) {
+               MDDPack pack(*ms,p->getUpState(),p->getCombinedState());
+               cnt += keepArc[idx++] = _mddspec.exist(pack,ca->getChild()->pack(),x[l],ca->getValue());
+            }
             if (cnt == 0) {
                foundNonviableCandidate = true;
                pruneCS++;               
@@ -632,8 +630,10 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
       int nbk = (int)n->getNumChildren();
       bool keepArc[nbk];
       unsigned idx = 0,cnt = 0;
-      for(auto ca : n->getChildren())
-         cnt += keepArc[idx++] = _mddspec.exist(*newState,ca->getParent()->getCombinedState(),ca->getChild()->getUpState(),ca->getChild()->getCombinedState(),x[l],ca->getValue());
+      for(auto ca : n->getChildren()) {
+         MDDPack pack(*newState,ca->getParent()->getUpState(),ca->getParent()->getCombinedState());
+         cnt += keepArc[idx++] = _mddspec.exist(pack,ca->getChild()->pack(),x[l],ca->getValue());
+      }
       if (cnt == 0) {
          for (auto arc : arcsPerCandidate[candidateIndex]) {
             auto p = arc->getParent();      // p is the parent
@@ -708,8 +708,10 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
       int nbk = (int)n->getNumChildren();
       bool keepArc[nbk];
       unsigned idx = 0,cnt = 0;
-      for(auto ca : n->getChildren())
-         cnt += keepArc[idx++] = _mddspec.exist(*newState,ca->getParent()->getCombinedState(),ca->getChild()->getUpState(),ca->getChild()->getCombinedState(),x[l],ca->getValue());
+      for(auto ca : n->getChildren()) {
+         MDDPack pack(*newState,ca->getParent()->getUpState(),ca->getParent()->getCombinedState());
+         cnt += keepArc[idx++] = _mddspec.exist(pack,ca->getChild()->pack(),x[l],ca->getValue());
+      }
       if (cnt == 0) {
          for (auto arcIt = arcsPerClass.begin(); arcIt != arcsPerClass.end(); ++arcIt) {
             if (arcIt->first == equivalenceValue) {

@@ -33,9 +33,9 @@ namespace Factory {
 
       std::vector<int> ps = spec.addDownStates(desc,minFDom, maxLDom,sz,[] (int i) -> int { return 0; });
 
-      spec.arcExist(desc,[=](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto x,int v)->bool{
-                          return pDown.at(ps[v-min]) < values[v];
-                       });
+      spec.arcExist(desc,[=](const auto& parent,const auto& child,auto x,int v)->bool{
+         return parent.down.at(ps[v-min]) < values[v];
+      });
 
       lambdaMap d0 = toDict(minFDom,minLDom,ps,
                             [min,ps] (int i,int pi) -> auto {
@@ -81,7 +81,7 @@ namespace Factory {
       std::vector<int> downPs = spec.addDownStates(desc, minFDom, maxLDom, sz,[] (int i) -> int { return 0; });
       std::vector<int> upPs = spec.addUpStates(desc, minFDomUp, maxLDomUp, sz,[] (int i) -> int { return 0; });
 
-      spec.arcExist(desc,[=](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto x,int v)->bool{
+      spec.arcExist(desc,[=](const auto& parent,const auto& child,auto x,int v)->bool{
         bool cond = true;
 
         int minIdx = v - min;
@@ -90,18 +90,18 @@ namespace Factory {
         int maxIdxUp = maxFDomUp + v - min;
 
         // check LB and UB thresholds when value v is assigned:
-        cond = cond && (pDown.at(downPs[minIdx]) + 1 + cUp.at(upPs[minIdxUp]) <= valuesUB[v])
-           && (pDown.at(downPs[maxIdx]) + 1 + cUp.at(upPs[maxIdxUp]) >= valuesLB[v]);
+        cond = cond && (parent.down.at(downPs[minIdx]) + 1 + child.up.at(upPs[minIdxUp]) <= valuesUB[v])
+           && (parent.down.at(downPs[maxIdx]) + 1 + child.up.at(upPs[maxIdxUp]) >= valuesLB[v]);
         // check LB and UB thresholds for other values, when they are not assigned:
         for (int i=min; i<v; i++) {
            if (!cond) break;
-           cond = cond && (pDown.at(downPs[i-min]) + cUp.at(upPs[i-min]) <= valuesUB[i])
-              && (pDown.at(downPs[maxFDom+i-min]) + cUp.at(upPs[i-min]) >= valuesLB[i]);
+           cond = cond && (parent.down.at(downPs[i-min]) + child.up.at(upPs[i-min]) <= valuesUB[i])
+              && (parent.down.at(downPs[maxFDom+i-min]) + child.up.at(upPs[i-min]) >= valuesLB[i]);
         }
         for (int i=v+1; i<=minLDom+min; i++) {
            if (!cond) break;
-           cond = cond && (pDown.at(downPs[i-min]) + cUp.at(upPs[i-min]) <= valuesUB[i])
-              && (pDown.at(downPs[maxFDom+i-min]) + cUp.at(upPs[i-min]) >= valuesLB[i]);
+           cond = cond && (parent.down.at(downPs[i-min]) + child.up.at(upPs[i-min]) <= valuesUB[i])
+              && (parent.down.at(downPs[maxFDom+i-min]) + child.up.at(upPs[i-min]) >= valuesLB[i]);
         }
         return cond;
       });

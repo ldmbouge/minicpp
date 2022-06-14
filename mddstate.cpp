@@ -400,10 +400,8 @@ void MDDSpec::updateNode(MDDState& result,const MDDState& down,const MDDState& u
 int nbAECall = 0;
 int nbAEFail = 0;
 
-bool MDDSpec::exist(const MDDState& pDown,
-                    const MDDState& pCombined,
-                    const MDDState& cUp,
-                    const MDDState& cCombined,
+bool MDDSpec::exist(const MDDPack& parent,
+                    const MDDPack& child,
                     const var<int>::Ptr& x,int v) const noexcept
 {
    //std::cout << "DOWN:" << pDown << "\n";
@@ -411,7 +409,7 @@ bool MDDSpec::exist(const MDDState& pDown,
    ++nbAECall;
    bool arcOk = true;
    for(const auto& exist : _scopedExists[x->getId()]) {
-      arcOk = exist(pDown,pCombined,cUp,cCombined,x,v);
+      arcOk = exist(parent,child,x,v);
       if (!arcOk) {
          ++nbAEFail;
          break;

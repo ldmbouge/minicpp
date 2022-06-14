@@ -27,24 +27,23 @@ namespace Factory {
       const int minC = mdd.addDownState(d,0,INT_MAX,MinFun);
       const int maxC = mdd.addDownState(d,0,INT_MAX,MaxFun);
       const int rem  = mdd.addDownState(d,(int)x.size(),INT_MAX,MaxFun);
-      mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto var,const auto& val) -> bool {
-                        bool vinS = tv == val;
-                        return (pDown[minC] + vinS <= ub) &&
-                           ((pDown[maxC] + vinS +  pDown[rem] - 1) >= lb);
-                     });
+      mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& parent,const auto& child,auto var,const auto& val) -> bool {
+         bool vinS = tv == val;
+         return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
+      });
 
       mdd.transitionDown(minC,{minC},{},[minC,tv] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
-                                         bool allMembers = val.size()==1 && val.singleton() == tv;
-                                         out.setInt(minC,pDown[minC] + allMembers);
-                                      });
+         bool allMembers = val.size()==1 && val.singleton() == tv;
+         out.setInt(minC,pDown[minC] + allMembers);
+      });
       mdd.transitionDown(maxC,{maxC},{},[maxC,tv] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
-                                        bool oneMember = val.contains(tv);
-                                        out.setInt(maxC,pDown[maxC] + oneMember);
-                                     });
-       mdd.transitionDown(rem,{rem},{},[rem] (auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
-                                       out.setInt(rem,pDown[rem] - 1);
-                                    });
-
+         bool oneMember = val.contains(tv);
+         out.setInt(maxC,pDown[maxC] + oneMember);
+      });
+      mdd.transitionDown(rem,{rem},{},[rem] (auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+         out.setInt(rem,pDown[rem] - 1);
+      });
+      
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
@@ -57,35 +56,33 @@ namespace Factory {
       const int rem  = mdd.addDownState(d,(int)x.size(),INT_MAX,MaxFun);
       if (rawValues.size() == 1) {
          int tv = *rawValues.cbegin();
-         mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,auto var, const auto& val) -> bool {
-                           bool vinS = tv == val;
-                           return (pDown[minC] + vinS <= ub) &&
-                              ((pDown[maxC] + vinS +  pDown[rem] - 1) >= lb);
-                        });
+         mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& parent,const auto& child,auto var, const auto& val) -> bool {
+            bool vinS = tv == val;
+            return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
+         });
       } else {
-         mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
-                           bool vinS = values.member(val);
-                           return (pDown[minC] + vinS <= ub) &&
-                              ((pDown[maxC] + vinS +  pDown[rem] - 1) >= lb);
-                        });
+         mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
+            bool vinS = values.member(val);
+            return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
+         });
       }
 
       mdd.transitionDown(minC,{minC},{},[minC,values] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
-                                bool allMembers = true;
-                                for(int v : val) {
-                                   allMembers &= values.member(v);
-                                   if (!allMembers) break;
-                                }
-                                out.setInt(minC,pDown[minC] + allMembers);
-                             });
+         bool allMembers = true;
+         for(int v : val) {
+            allMembers &= values.member(v);
+            if (!allMembers) break;
+         }
+         out.setInt(minC,pDown[minC] + allMembers);
+      });
       mdd.transitionDown(maxC,{maxC},{},[maxC,values] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
-                                bool oneMember = false;
-                                for(int v : val) {
-                                   oneMember = values.member(v);
-                                   if (oneMember) break;
-                                }
-                                out.setInt(maxC,pDown[maxC] + oneMember);
-                             });
+         bool oneMember = false;
+         for(int v : val) {
+            oneMember = values.member(v);
+            if (oneMember) break;
+         }
+         out.setInt(maxC,pDown[maxC] + oneMember);
+      });
       mdd.transitionDown(rem,{rem},{},[rem] (auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) { out.setInt(rem,pDown[rem] - 1);});
 
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
@@ -134,9 +131,9 @@ namespace Factory {
                                 out.set(Uup,cUp.at(Uup) + oneMember);
                              });
 
-      mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
-         return ((pDown.at(U) + values.member(val) + cUp.at(Uup) >= lb) &&
-                 (pDown.at(L) + values.member(val) + cUp.at(Lup) <= ub));
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
+         return ((parent.down.at(U) + values.member(val) + child.up.at(Uup) >= lb) &&
+                 (parent.down.at(L) + values.member(val) + child.up.at(Lup) <= ub));
       });
 
       switch (nodePriority) {
@@ -336,76 +333,76 @@ namespace Factory {
                                     out.setInt(Uup,cUp[Uup] + oneMember);
                                  });
 
-      mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
-         bool vinS = tv == val;
+      mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
+         const bool vinS = tv == val;
          //std::cout << "  Arc Exist if:   " << pDown[U] << " + " << vinS << " + " << cUp[Uup] << " >= " << lb << "\n"
          //          << "                  " << pDown[L] << " + " << vinS << " + " << cUp[Lup] << " <= " << ub << "\n";
-         return ((pDown[U] + vinS + cUp[Uup] >= lb) &&
-                 (pDown[L] + vinS + cUp[Lup] <= ub));
+         return ((parent.down[U] + vinS + child.up[Uup] >= lb) &&
+                 (parent.down[L] + vinS + child.up[Lup] <= ub));
       });
 
       switch (nodePriority) {
          case 0:
             mdd.splitOnLargest([](const auto& in) {
                return in.getPosition();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 1:
             mdd.splitOnLargest([](const auto& in) {
                return -in.getPosition();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 2:
             mdd.splitOnLargest([](const auto& in) {
                return in.getNumParents();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 3:
             mdd.splitOnLargest([](const auto& in) {
                return -in.getNumParents();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 4:
             mdd.splitOnLargest([L](const auto& in) {
                return in.getDownState().at(L);
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 5:
             mdd.splitOnLargest([L](const auto& in) {
                return -in.getDownState().at(L);
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 6:
             mdd.splitOnLargest([U](const auto& in) {
                return in.getDownState().at(U);
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 7:
             mdd.splitOnLargest([U](const auto& in) {
                return -in.getDownState().at(U);
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 8:
             mdd.splitOnLargest([L,U](const auto& in) {
                return in.getDownState().at(U) - in.getDownState().at(L);
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 9:
             mdd.splitOnLargest([L,U](const auto& in) {
                return in.getDownState().at(L) - in.getDownState().at(U);
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 10:
             mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
                return -((double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
                         (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0));
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 11:
             mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
                return (double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
-                      (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0);
-                               }, constraintPriority);
+                  (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0);
+            }, constraintPriority);
          default:
             break;
       }
@@ -413,17 +410,17 @@ namespace Factory {
          case 0:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 1:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 2:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return -numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 3:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -432,7 +429,7 @@ namespace Factory {
                   minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return minParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 4:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -441,7 +438,7 @@ namespace Factory {
                   maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return maxParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 5:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -450,7 +447,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return sumParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 6:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -459,7 +456,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return sumParentIndex/numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 7:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -468,7 +465,7 @@ namespace Factory {
                   minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return -minParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 8:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -477,7 +474,7 @@ namespace Factory {
                   maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return -maxParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 9:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -486,7 +483,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return -sumParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 10:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -495,7 +492,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return -sumParentIndex/numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          default:
             break;
@@ -520,57 +517,57 @@ namespace Factory {
       const int Lup = mdd.addUpState(d,0,1,MinFun, constraintPriority);
 
       mdd.transitionDown(L,{L},{},[L,values] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
-                                bool allMembers = true;
-                                for(int v : val) {
-                                   allMembers &= values.member(v);
-                                   if (!allMembers) break;
-                                }
-                                out.set(L,pDown.at(L) + allMembers);
-                             });
-
+         bool allMembers = true;
+         for(int v : val) {
+            allMembers &= values.member(v);
+            if (!allMembers) break;
+         }
+         out.set(L,pDown.at(L) + allMembers);
+      });
+      
       mdd.transitionUp(Lup,{Lup},{},[Lup,values] (auto& out,const auto& cUp,const auto& cCombined,const auto& x, const auto& val,bool up) {
-                                bool allMembers = true;
-                                for(int v : val) {
-                                   allMembers &= values.member(v);
-                                   if (!allMembers) break;
-                                }
-                                out.set(Lup,cUp.at(Lup) + allMembers);
-                             });
-
-      mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
-         return (pDown.at(L) + values.member(val) + cUp.at(Lup) <= 1);
+         bool allMembers = true;
+         for(int v : val) {
+            allMembers &= values.member(v);
+            if (!allMembers) break;
+         }
+         out.set(Lup,cUp.at(Lup) + allMembers);
+      });
+      
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
+         return (parent.down.at(L) + values.member(val) + child.up.at(Lup) <= 1);
       });
 
       switch (nodePriority) {
          case 0:
             mdd.splitOnLargest([](const auto& in) {
                return in.getPosition();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 1:
             mdd.splitOnLargest([](const auto& in) {
                return -in.getPosition();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 2:
             mdd.splitOnLargest([](const auto& in) {
                return in.getNumParents();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 3:
             mdd.splitOnLargest([](const auto& in) {
                return -in.getNumParents();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 4:
             mdd.splitOnLargest([L](const auto& in) {
                return in.getDownState().at(L);
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 5:
             mdd.splitOnLargest([L](const auto& in) {
                return -in.getDownState().at(L);
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          default:
             break;
@@ -579,17 +576,17 @@ namespace Factory {
          case 0:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 1:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 2:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
                return -numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 3:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -598,7 +595,7 @@ namespace Factory {
                   minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return minParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 4:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -607,7 +604,7 @@ namespace Factory {
                   maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return maxParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 5:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -616,7 +613,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return sumParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 6:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -625,7 +622,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return sumParentIndex/numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 7:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -634,7 +631,7 @@ namespace Factory {
                   minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return -minParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 8:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -643,7 +640,7 @@ namespace Factory {
                   maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
                }
                return -maxParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 9:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -652,7 +649,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return -sumParentIndex;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          case 10:
             mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
@@ -661,7 +658,7 @@ namespace Factory {
                   sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
                }
                return -sumParentIndex/numArcs;
-                               }, constraintPriority);
+            }, constraintPriority);
             break;
          default:
             break;

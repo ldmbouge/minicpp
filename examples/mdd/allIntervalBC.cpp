@@ -253,59 +253,59 @@ namespace Factory {
 	}
       });
 
-    mdd.arcExist(d,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,var<int>::Ptr var, const auto& val) -> bool {
-	if (pDown.at(N)==2) {
-	  // filter z variable
-	  interval v1(0,INT_MAX);
-	  interval v3(0,INT_MAX);
-	  // interval X(pDown.at(xMin), pDown.at(xMax));
-	  // interval Y(pDown.at(yMin), pDown.at(yMax));
-	  // interval Z(val, val);
-	  // return propagateExpression(&X, &Y, &Z, v1, v3);
-
-	  for (int x=pDown.at(xMin); x<=pDown.at(xMax); x++) {
-	    for (int y=pDown.at(yMin); y<=pDown.at(yMax); y++) {
-	      if ((x != y) && (val == std::abs(x-y)))
-		return true;
-	    }
-	  }
-	  return false;
-	}
-	else {
-       if (pDown.at(N) == 0) {
-	      // filter x variable
-	      interval v1(0,INT_MAX);
-	      interval v3(0,INT_MAX);
-	      // interval X(val, val);
-	      // interval Y(cUp.at(yMinUp), cUp.at(yMaxUp));
-	      // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
-	      // return propagateExpression(&X, &Y, &Z, v1, v3);
-	      for (int y=cUp.at(yMinUp); y<=cUp.at(yMaxUp); y++) {
-             for (int z=cUp.at(zMinUp); z<=cUp.at(zMaxUp); z++) {
-                if ((y != val) && (z == std::abs(val-y)))
+    mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) {
+       if (parent.down.at(N)==2) {
+          // filter z variable
+          interval v1(0,INT_MAX);
+          interval v3(0,INT_MAX);
+          // interval X(pDown.at(xMin), pDown.at(xMax));
+          // interval Y(pDown.at(yMin), pDown.at(yMax));
+          // interval Z(val, val);
+          // return propagateExpression(&X, &Y, &Z, v1, v3);
+          
+          for (int x=parent.down.at(xMin); x<=parent.down.at(xMax); x++) {
+             for (int y=parent.down.at(yMin); y<=parent.down.at(yMax); y++) {
+                if ((x != y) && (val == std::abs(x-y)))
                    return true;
              }
-	      }
-	      return false;
+          }
+          return false;
        }
-       else if (pDown.at(N) == 1) {
-	      // filter y variable
-	      interval v1(0,INT_MAX);
-	      interval v3(0,INT_MAX);
-	      // interval X(pDown.at(xMin), pDown.at(xMax));
-	      // interval Y(val, val);
-	      // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
-	      // return propagateExpression(&X, &Y, &Z, v1, v3);
-	      for (int x=pDown.at(xMin); x<=pDown.at(xMax); x++) {
-             for (int z=cUp.at(zMinUp); z<=cUp.at(zMaxUp); z++) {
-                if ((x != val) && (z == std::abs(x-val)))
-                   return true;
+       else {
+          if (parent.down.at(N) == 0) {
+             // filter x variable
+             interval v1(0,INT_MAX);
+             interval v3(0,INT_MAX);
+             // interval X(val, val);
+             // interval Y(cUp.at(yMinUp), cUp.at(yMaxUp));
+             // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
+             // return propagateExpression(&X, &Y, &Z, v1, v3);
+             for (int y=child.up.at(yMinUp); y<=child.up.at(yMaxUp); y++) {
+                for (int z=child.up.at(zMinUp); z<=child.up.at(zMaxUp); z++) {
+                   if ((y != val) && (z == std::abs(val-y)))
+                      return true;
+                }
              }
-	      }
-	      return false;
+             return false;
+          }
+          else if (parent.down.at(N) == 1) {
+             // filter y variable
+             interval v1(0,INT_MAX);
+             interval v3(0,INT_MAX);
+             // interval X(pDown.at(xMin), pDown.at(xMax));
+             // interval Y(val, val);
+             // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
+             // return propagateExpression(&X, &Y, &Z, v1, v3);
+             for (int x=parent.down.at(xMin); x<=parent.down.at(xMax); x++) {
+                for (int z=child.up.at(zMinUp); z<=child.up.at(zMaxUp); z++) {
+                   if ((x != val) && (z == std::abs(x-val)))
+                      return true;
+                }
+             }
+             return false;
+          }
        }
-	}
-	return true;
+       return true;
     });
   }
 }

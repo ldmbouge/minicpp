@@ -27,14 +27,15 @@ namespace Factory {
       int minWin = spec.addDownSWState(desc,len,-1,0,MinFun);
       int maxWin = spec.addDownSWState(desc,len,-1,0,MaxFun);
 
-      spec.arcExist(desc,[minWin,maxWin,lb,ub,values] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v) -> bool {
-                          bool inS = values.member(v);
-                          auto min = pDown.getSW(minWin);
-                          auto max = pDown.getSW(maxWin);
-                          int minv = max.first() - min.last() + inS;
-                          return (min.last() < 0 &&  minv >= lb && min.first() + inS              <= ub)
-                             ||  (min.last() >= 0 && minv >= lb && min.first() - max.last() + inS <= ub);
-                       });
+      spec.arcExist(desc,
+                    [minWin,maxWin,lb,ub,values] (const auto& parent,const auto& child,const auto& x,int v) {
+                       bool inS = values.member(v);
+                       auto min = parent.down.getSW(minWin);
+                       auto max = parent.down.getSW(maxWin);
+                       int minv = max.first() - min.last() + inS;
+                       return (min.last() < 0 &&  minv >= lb && min.first() + inS              <= ub)
+                          ||  (min.last() >= 0 && minv >= lb && min.first() - max.last() + inS <= ub);
+                    });
       spec.transitionDown(minWin,{minWin},{},
                           [values,minWin](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
                              bool allMembers = val.allInside(values);
@@ -77,21 +78,22 @@ namespace Factory {
                                        out.setInt(pnb,pDown[pnb]+1);
                                     });
 
-      spec.arcExist(desc,[=] (const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v) -> bool {
-                          bool inS = values.member(v);
-                          MDDSWin<short> min = pDown.getSW(minWin);
-                          MDDSWin<short> max = pDown.getSW(maxWin);
-                          if (pDown[pnb] >= len - 1) {
-                             bool c0 = max.first() + inS - min.last() >= lb;
-                             bool c1 = min.first() + inS - max.last() <= ub;
-                             return c0 && c1;
-                          } else {
-                             bool c0 = len - (pDown[pnb]+1) + max.first() + inS >= lb;
-                             bool c1 =                        min.first() + inS <= ub;
-                             return c0 && c1;
-                          }
-                       });
-
+      spec.arcExist(desc,
+                    [=](const auto& parent,const auto& child,const auto& x,int v) -> bool {
+                       bool inS = values.member(v);
+                       MDDSWin<short> min = parent.down.getSW(minWin);
+                       MDDSWin<short> max = parent.down.getSW(maxWin);
+                       if (parent.down[pnb] >= len - 1) {
+                          bool c0 = max.first() + inS - min.last() >= lb;
+                          bool c1 = min.first() + inS - max.last() <= ub;
+                          return c0 && c1;
+                       } else {
+                          bool c0 = len - (parent.down[pnb]+1) + max.first() + inS >= lb;
+                          bool c1 =                              min.first() + inS <= ub;
+                          return c0 && c1;
+                       }
+                    });
+      
    }
 
    void seqMDD3(MDDSpec& spec,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues)
@@ -201,10 +203,10 @@ namespace Factory {
 	});
 
       // arc definitions
-      spec.arcExist(desc,[values,YminCombined,YmaxCombined](const auto& pDown,const auto& pCombined,const auto& cUp,const auto& cCombined,const auto& x,int v) -> bool {
+      spec.arcExist(desc,[values,YminCombined,YmaxCombined](const auto& parent,const auto& child,const auto& x,int v) -> bool {
          bool c0 = true,c1 = true,inS = values.member(v);
-         c0 = (pCombined[YminCombined] + inS <= cCombined[YmaxCombined]);
-         c1 = (pCombined[YmaxCombined] + inS >= cCombined[YminCombined]);
+         c0 = (parent.comb[YminCombined] + inS <= child.comb[YmaxCombined]);
+         c1 = (parent.comb[YmaxCombined] + inS >= child.comb[YminCombined]);
          return c0 && c1;
       });
       

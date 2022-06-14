@@ -187,10 +187,11 @@ void printSet(const MDDIntSet& s);
 
 enum RelaxWith { External, MinFun,MaxFun};
 
+struct MDDPack;
 class MDDState;
 class MDDNode;
 typedef std::function<bool(const MDDState&,const MDDState&,const MDDState&)> NodeFun;
-typedef std::function<bool(const MDDState&,const MDDState&,const MDDState&,const MDDState&,const var<int>::Ptr&,int)> ArcFun;
+typedef std::function<bool(const MDDPack&,const MDDPack&,const var<int>::Ptr&,int)> ArcFun;
 typedef std::function<void(const MDDState&,const MDDState&,const MDDState&)> FixFun;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> UpdateFun;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
@@ -1027,6 +1028,14 @@ public:
    friend class MDDSpec;
 };
 
+struct MDDPack {
+   MDDState& down;
+   MDDState& up;
+   MDDState& comb;
+   MDDPack(MDDState& d,MDDState& u,MDDState& c) : down(d),up(u),comb(c) {}
+};
+
+
 class MDDSpec;
 class LayerDesc {
    std::vector<int> _dframe;
@@ -1116,7 +1125,7 @@ public:
    void varOrder() override;
    bool consistent(const MDDState& down,const MDDState& up,const MDDState& combined) const noexcept;
    void updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept;
-   bool exist(const MDDState& pDown,const MDDState& pCombined,const MDDState& cUp,const MDDState& cCombined,const var<int>::Ptr& x,int v) const noexcept;
+   bool exist(const MDDPack& parent,const MDDPack& child,const var<int>::Ptr& x,int v) const noexcept;
    void fullStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
    void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
    void fullStateUp(MDDState& target,const MDDState& cUp,const MDDState& cCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
@@ -1191,10 +1200,6 @@ private:
    std::vector<std::vector<int>> _propertiesByPriorities;
    std::vector<int> _rebootByLayer;
 };
-
-inline int rotl(int n,const int d) {
-   return (n << d) | (n >> (32 -d));
-}
 
 class MDDSpec;
 class MDDStateFactory {
