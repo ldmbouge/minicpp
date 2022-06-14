@@ -160,7 +160,7 @@ void MDDRelax::postUp()
             bool upDirty = processNodeUp(n,i);
             if (upDirty) {
                bool combinedDirty = updateCombinedIncrUp(n);
-               if (!_mddspec.consistent(n->getDownState(), n->getUpState(), n->getCombinedState())) {
+               if (!_mddspec.consistent(n->pack())) {
                   if (i == 0) failNow();
                   delState(n,i);
                }
@@ -273,7 +273,7 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
 {
    if (l == 0) {
       assert(n->getNumParents() == 0);
-      bool isOk = _mddspec.consistent(n->getDownState(), n->getUpState(), n->getCombinedState());
+      bool isOk = _mddspec.consistent(n->pack());
       if (!isOk) failNow();
       return false;
    }
@@ -937,7 +937,7 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
 {
    if (i == (int)numVariables) {
       assert(n->getNumChildren() == 0);
-      bool isOk = _mddspec.consistent(n->getDownState(),n->getUpState(),n->getCombinedState());
+      bool isOk = _mddspec.consistent(n->pack());
       if (!isOk) failNow();
       return false;
    }
@@ -1083,7 +1083,7 @@ void MDDRelax::computeDown(int iter)
       bool downDirty = refreshNodeIncr(node,l);
       if (downDirty) {
          bool combinedDirty = updateCombinedIncrDown(node);
-         if (!_mddspec.consistent(node->getDownState(), node->getUpState(), node->getCombinedState())) {
+         if (!_mddspec.consistent(node->pack())) {
             if (l == (int)numVariables) failNow();
             delState(node,l);
          }
@@ -1102,7 +1102,7 @@ void MDDRelax::computeUp()
          bool upDirty = processNodeUp(n,n->getLayer());
          if (upDirty) {
             bool combinedDirty = updateCombinedIncrUp(n);
-            if (!_mddspec.consistent(n->getDownState(), n->getUpState(), n->getCombinedState())) {
+            if (!_mddspec.consistent(n->pack())) {
                if (n->getLayer() == 0) failNow();
                delState(n,n->getLayer());
             }

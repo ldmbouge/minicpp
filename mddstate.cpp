@@ -421,12 +421,12 @@ bool MDDSpec::exist(const MDDPack& parent,
 int nbCONSCall = 0;
 int nbCONSFail = 0;
 
-bool MDDSpec::consistent(const MDDState& down,const MDDState& up,const MDDState& combined) const noexcept
+bool MDDSpec::consistent(const MDDPack& pack) const noexcept
 {
    ++nbCONSCall;
    bool cons = true;
    for(auto& consFun : _nodeExists) {
-      cons = consFun(down,up,combined);
+      cons = consFun(pack);
       if (!cons) {
          ++nbCONSFail;
          break;

@@ -194,13 +194,13 @@ namespace Factory {
                          combined.setInt(YmaxCombined,maxVal);
                       });
 
-      spec.nodeExist([=](const auto& down, const auto& up, const auto& combined) {
-	  return ( (combined[YminCombined] <= combined[YmaxCombined]) &&
-		   (combined[YmaxCombined] >= 0) &&
-		   (combined[YmaxCombined] <= down[N]) &&
-		   (combined[YminCombined] >= 0) &&
-		   (combined[YminCombined] <= down[N]) );
-	});
+      spec.nodeExist([=](const auto& n) {
+         return ( (n.comb[YminCombined] <= n.comb[YmaxCombined]) &&
+                  (n.comb[YmaxCombined] >= 0) &&
+                  (n.comb[YmaxCombined] <= n.down[N]) &&
+                  (n.comb[YminCombined] >= 0) &&
+                  (n.comb[YminCombined] <= n.down[N]) );
+      });
 
       // arc definitions
       spec.arcExist(desc,[values,YminCombined,YmaxCombined](const auto& parent,const auto& child,const auto& x,int v) -> bool {

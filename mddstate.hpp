@@ -190,7 +190,7 @@ enum RelaxWith { External, MinFun,MaxFun};
 struct MDDPack;
 class MDDState;
 class MDDNode;
-typedef std::function<bool(const MDDState&,const MDDState&,const MDDState&)> NodeFun;
+typedef std::function<bool(const MDDPack&)> NodeFun;
 typedef std::function<bool(const MDDPack&,const MDDPack&,const var<int>::Ptr&,int)> ArcFun;
 typedef std::function<void(const MDDState&,const MDDState&,const MDDState&)> FixFun;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> UpdateFun;
@@ -1123,7 +1123,7 @@ public:
    int numEquivalenceClasses();
    // Internal methods.
    void varOrder() override;
-   bool consistent(const MDDState& down,const MDDState& up,const MDDState& combined) const noexcept;
+   bool consistent(const MDDPack& pack) const noexcept;
    void updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept;
    bool exist(const MDDPack& parent,const MDDPack& child,const var<int>::Ptr& x,int v) const noexcept;
    void fullStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);

@@ -106,16 +106,16 @@ namespace Factory {
         return cond;
       });
 
-      spec.nodeExist([=](const auto& down,const auto& up,const auto& combined) {
+      spec.nodeExist([=](const auto& n) {
       	  // check global validity: can we still satisfy all lower bounds?
       	  int remainingLB=0;
       	  int fixedValues=0;
       	  for (int i=0; i<=minLDom; i++) {
-      	    remainingLB += std::max(0, valuesLB[i+min] - (down.at(downPs[i]) + up.at(upPs[i])));
-	    fixedValues += down.at(downPs[i]) + up.at(upPs[i]);
-	  }
+      	    remainingLB += std::max(0, valuesLB[i+min] - (n.down.at(downPs[i]) + n.up.at(upPs[i])));
+            fixedValues += n.down.at(downPs[i]) + n.up.at(upPs[i]);
+          }
       	  return (fixedValues+remainingLB<=sz);
-      	});
+      });
       spec.transitionDown(toDict(minFDom,minLDom,
                                  [min,downPs] (int i) {
                                     return tDesc({downPs[i]},{},[=](auto& out,const auto& pDown,const auto& pCombined,auto x,const auto& val,bool up) {

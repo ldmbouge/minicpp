@@ -16,6 +16,7 @@
 #include "mddConstraints.hpp"
 #include "mddnode.hpp"
 #include <limits.h>
+#include <algorithm>
 
 namespace Factory {
 
@@ -58,14 +59,14 @@ namespace Factory {
 
       mdd.transitionDown(minW,{len,minW},{},[minW,array,len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
          int delta = std::numeric_limits<int>::max();
-         auto coef = array[pDown[len]];
+         const auto coef = array[pDown[len]];
          for(int v : val)
             delta = std::min(delta,coef*v);
          out.setInt(minW, pDown[minW] + delta);
       });
       mdd.transitionDown(maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
          int delta = std::numeric_limits<int>::min();
-         auto coef = array[pDown[len]];
+         const auto coef = array[pDown[len]];
          for(int v : val)
             delta = std::max(delta,coef*v);
          out.setInt(maxW, pDown[maxW] + delta);
@@ -74,7 +75,7 @@ namespace Factory {
       mdd.transitionUp(minWup,{lenUp,minWup},{},[nbVars,minWup,array,lenUp] (auto& out,const auto& cUp,const auto& cCombined,const auto& var, const auto& val,bool up) {
          if (cUp[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::max();
-            auto coef = array[nbVars - cUp[lenUp]-1];
+            const auto coef = array[nbVars - cUp[lenUp]-1];
             for(int v : val)
                delta = std::min(delta,coef*v);
             out.setInt(minWup, cUp[minWup] + delta);
@@ -83,7 +84,7 @@ namespace Factory {
       mdd.transitionUp(maxWup,{lenUp,maxWup},{},[nbVars,maxWup,array,lenUp] (auto& out,const auto& cUp,const auto& cCombined,const auto& var, const auto& val,bool up) {
          if (cUp[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::min();
-            auto coef = array[nbVars - cUp[lenUp]-1];
+            const auto coef = array[nbVars - cUp[lenUp]-1];
             for(int v : val)
                delta = std::max(delta,coef*v);
             out.setInt(maxWup, cUp[maxWup] + delta);
@@ -133,14 +134,13 @@ namespace Factory {
       const int len  = mdd.addDownState(d, 0, vars.size(),MaxFun);
       const int lenUp  = mdd.addUpState(d, 0, vars.size(),MaxFun);
 
-      mdd.arcExist(d,[=] (const auto& parent, const auto& child, var<int>::Ptr var, const auto& val) -> bool {
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child, var<int>::Ptr var, const auto& val) -> bool {
          return ((parent.down[minW] + val + child.up[minWup] <= z->max()) &&
                  (parent.down[maxW] + val + child.up[maxWup] >= z->min()));
       });
  
-      mdd.nodeExist([=](const auto& down, const auto& up, const auto& combined) {
-        return (down[minW] + up[minWup] <= z->max()) &&
-               (down[maxW] + up[maxWup] >= z->min());
+      mdd.nodeExist([=](const auto& n) {
+        return (n.down[minW] + n.up[minWup] <= z->max()) && (n.down[maxW] + n.up[maxWup] >= z->min());
       });
 
       mdd.transitionDown(minW,{minW},{},[minW] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
@@ -216,9 +216,8 @@ namespace Factory {
                  (parent.down[maxW] + val + child.up[maxWup] >= z->min()));
       });
  
-      mdd.nodeExist([=](const auto& down, const auto& up, const auto& combined) {
-        return (down[minW] + up[minWup] <= z->max()) &&
-               (down[maxW] + up[maxWup] >= z->min());
+      mdd.nodeExist([=](const auto& n) {
+        return (n.down[minW] + n.up[minWup] <= z->max()) && (n.down[maxW] + n.up[maxWup] >= z->min());
       });
 
       mdd.transitionDown(minW,{minW},{},[minW] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
