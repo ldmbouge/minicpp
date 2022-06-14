@@ -194,7 +194,7 @@ typedef std::function<bool(const MDDPack&)> NodeFun;
 typedef std::function<bool(const MDDPack&,const MDDPack&,const var<int>::Ptr&,int)> ArcFun;
 typedef std::function<void(const MDDState&,const MDDState&,const MDDState&)> FixFun;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> UpdateFun;
-typedef std::function<void(MDDState&,const MDDState&,const MDDState&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
+typedef std::function<void(MDDState&,const MDDPack&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
@@ -1126,10 +1126,10 @@ public:
    bool consistent(const MDDPack& pack) const noexcept;
    void updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept;
    bool exist(const MDDPack& parent,const MDDPack& child,const var<int>::Ptr& x,int v) const noexcept;
-   void fullStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
-   void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
-   void fullStateUp(MDDState& target,const MDDState& cUp,const MDDState& cCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
-   void incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState& cUp,const MDDState& cCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   void fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
+   void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
+   void fullStateUp(MDDState& target,const MDDPack& child,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   void incrStateUp(const MDDPropSet& out,MDDState& target,const MDDPack& child,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
    void relaxationDown(MDDState& a,const MDDState& b) const noexcept;
    void relaxationUp(MDDState& a,const MDDState& b) const noexcept;
    void relaxationDownIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
@@ -1227,9 +1227,9 @@ class MDDStateFactory {
    bool          _enabled;
 public:
    MDDStateFactory(MDDSpec* spec);
-   void createStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
-   void createStateUp(MDDState& result,const MDDState& cUp,const MDDState& cCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals);
-   void splitState(MDDState*& result,MDDNode* n,const MDDState& pDown,const MDDState& pCombined,int layer,const var<int>::Ptr x,int val);
+   void createStateDown(MDDState& result,const MDDPack& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
+   void createStateUp(MDDState& result,const MDDPack& child,int layer,const var<int>::Ptr x,const MDDIntSet& vals);
+   void splitState(MDDState*& result,MDDNode* n,const MDDPack& parent,int layer,const var<int>::Ptr x,int val);
    void clear();
    void enable() noexcept { _enabled = true;}
    void disable() noexcept { _enabled = false;}

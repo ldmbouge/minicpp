@@ -126,7 +126,7 @@ void MDDRelax::buildNextLayer(unsigned int i)
       MDDState downState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
       MDDState upState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
       MDDState combinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
-      _sf->createStateDown(downState,parent->getDownState(),parent->getCombinedState(),i,x[i],xv,false);
+      _sf->createStateDown(downState,parent->pack(),i,x[i],xv,false);
       MDDNode* child = _nf->makeNode(downState,upState,combinedState,x[i]->size(),i+1,(int)layers[i+1].size());
       _mddspec.updateNode(combinedState,downState,upState);
       layers[i+1].push_back(child,mem);
@@ -137,7 +137,7 @@ void MDDRelax::buildNextLayer(unsigned int i)
    } else {
       MDDState sinkDownState(sink->getDownState());
       MDDState sinkCombinedState(sink->getCombinedState());
-      _sf->createStateDown(sinkDownState, parent->getDownState(), parent->getCombinedState(), i, x[i],xv,false);
+      _sf->createStateDown(sinkDownState,parent->pack(),i,x[i],xv,false);
       _mddspec.updateNode(sinkCombinedState,sink->getDownState(),sink->getUpState());
       assert(sink->getNumParents() == 0);
       for(auto v : xv) {
@@ -220,7 +220,7 @@ void MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l)
       if (_src[i]==nullptr) continue;
       auto p = _src[i];                           // this is the parent
       assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
-      _sf->createStateDown(cs,p->getDownState(),p->getCombinedState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      _sf->createStateDown(cs,p->pack(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
       if (first) {
          ms.copyState(cs); // install the result into an accumulator
          first = false;
@@ -241,7 +241,7 @@ void MDDRelax::incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDD
       auto p = _src[i];                           // this is the parent
       assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
       cs.copyState(n->getDownState());       // grab the down information from other properties
-      _mddspec.incrStateDown(out,cs,p->getDownState(),p->getCombinedState(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      _mddspec.incrStateDown(out,cs,p->pack(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
       if (first) {
          ms.copyState(cs); // install the result into an accumulator
          first = false;
@@ -539,7 +539,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();       // value on arc from parent
-      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v);
+      _sf->splitState(ms,n,p->pack(),l-1,x[l-1],v);
       splitCS++;         
       MDDNode* bj = findMatchInLayer(layers[l],*ms);
       if (bj && bj != n) {
@@ -595,7 +595,7 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();       // value on arc from parent
-      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v);
+      _sf->splitState(ms,n,p->pack(),l-1,x[l-1],v);
       splitCS++;         
       MDDNode* bj = findMatchInLayer(layers[l],*ms);
       if (bj && bj != n) {
@@ -678,7 +678,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
       auto v = a->getValue();       // value on arc from parent
-      _sf->splitState(ms,n,p->getDownState(),p->getCombinedState(),l-1,x[l-1],v);
+      _sf->splitState(ms,n,p->pack(),l-1,x[l-1],v);
       splitCS++;         
       MDDNode* bj = findMatchInLayer(layers[l],*ms);
       if (bj && bj != n) {
@@ -897,7 +897,7 @@ void MDDRelax::fullStateUp(MDDState& ms,MDDState& cs,MDDNode* n,int l)
    for(auto k=0u;k < wub;k++) {
       if (_afp[k].size() > 0) {
          auto c = layers[l+1][k];
-         _sf->createStateUp(cs,c->getUpState(),c->getCombinedState(),l,x[l],_afp[k]); // compute a full scale transitions (all props).
+         _sf->createStateUp(cs,c->pack(),l,x[l],_afp[k]); // compute a full scale transitions (all props).
          if (first) {
             ms.copyState(cs);
             first = false;
@@ -919,7 +919,7 @@ void MDDRelax::incrStateUp(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNo
       if (_afp[k].size() > 0) {
          cs.copyState(n->getUpState());
          auto c = layers[l+1][k];
-         _mddspec.incrStateUp(out,cs,c->getUpState(),c->getCombinedState(),l,x[l],_afp[k]);
+         _mddspec.incrStateUp(out,cs,c->pack(),l,x[l],_afp[k]);
          if (first) {
             ms.copyState(cs);
             first = false;

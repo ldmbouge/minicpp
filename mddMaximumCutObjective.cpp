@@ -41,11 +41,11 @@ namespace Factory {
          return true;
       });
 
-      mdd.transitionDown(downWeights,{downWeights,maxDownValue},{},[downWeights, len, weights, nbVars] (auto& out,const auto& pDown,const auto& pCombined,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(downWeights,{downWeights,maxDownValue},{},[downWeights, len, weights, nbVars] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
          bool relaxed = val.size()==2;
-         int k = pDown[len];
+         int k = parent.down[len];
          MDDSWin<short> outWeights = out.getSW(downWeights);
-         MDDSWin<short> parentWeights = pDown.getSW(downWeights);
+         MDDSWin<short> parentWeights = parent.down.getSW(downWeights);
          for (int i = 0; i <= k; i++) outWeights.set(i, 0);
 
          if (!relaxed) {
@@ -64,10 +64,10 @@ namespace Factory {
             }
          }
       });
-      mdd.transitionDown(maxDownValue,{downWeights,maxDownValue},{},[maxDownValue, downWeights, len, nbVars, weights] (auto& out,const auto& pDown,const auto& pCombined,const auto& var,const auto& val,bool up) {
+      mdd.transitionDown(maxDownValue,{downWeights,maxDownValue},{},[maxDownValue, downWeights, len, nbVars, weights] (auto& out,const auto& parent,const auto& var,const auto& val,bool up) {
          bool relaxed = val.size()==2;
-         int k = pDown[len];
-         MDDSWin<short> parentWeights = pDown.getSW(downWeights);
+         int k = parent.down[len];
+         MDDSWin<short> parentWeights = parent.down.getSW(downWeights);
 
          if (!relaxed) {
             bool inS = val.contains(false);
@@ -78,7 +78,7 @@ namespace Factory {
                   newValue += std::min(abs(parentWeights.get(i)), abs(weights[i][k]));
                }
             }
-            out.setInt(maxDownValue, pDown[maxDownValue] + newValue);
+            out.setInt(maxDownValue, parent.down[maxDownValue] + newValue);
          } else {
             int newValueForS = std::max(0, -parentWeights.get(k));
             int newValueForT = std::max(0, (int)parentWeights.get(k));
@@ -97,11 +97,11 @@ namespace Factory {
                newValueForT += abs(inTWeight) - abs(relaxedWeight);
             }
 
-            out.setInt(maxDownValue, pDown[maxDownValue] + std::max(newValueForS, newValueForT));
+            out.setInt(maxDownValue, parent.down[maxDownValue] + std::max(newValueForS, newValueForT));
          }
       });
-      mdd.transitionDown(len,{len},{},[len] (auto& out,const auto& pDown,const auto&,const auto&,const auto&,bool) {
-         out.setInt(len,pDown[len] + 1);
+      mdd.transitionDown(len,{len},{},[len] (auto& out,const auto& parent,const auto&,const auto&,bool) {
+         out.setInt(len,parent.down[len] + 1);
       });
 
       mdd.addRelaxationDown(downWeights,[](auto& out,const auto& l,const auto& r) noexcept {});

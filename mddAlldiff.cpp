@@ -34,27 +34,27 @@ namespace Factory {
       const int allu = mdd.addUpBSState(d,udom.second - udom.first + 1,0,External,constraintPriority);
       const int someu = mdd.addUpBSState(d,udom.second - udom.first + 1,0,External,constraintPriority);
 
-      mdd.transitionDown(all,{all},{},[minDom,all](auto& out,const auto& inDown,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                               out.setProp(all,inDown);
+      mdd.transitionDown(all,{all},{},[minDom,all](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                               out.setProp(all,in.down);
                                if (val.size()==1)
                                   out.getBS(all).set(val.singleton() - minDom);
                             });
-      mdd.transitionDown(some,{some},{},[minDom,some](auto& out,const auto& inDown,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                                out.setProp(some,inDown);
+      mdd.transitionDown(some,{some},{},[minDom,some](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                                out.setProp(some,in.down);
                                 MDDBSValue sv(out.getBS(some));
                                 for(auto v : val)
                                    sv.set(v - minDom);
                             });
-      mdd.transitionDown(len,{len},{},[len](auto& out,const auto& inDown,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                                      out.set(len,inDown[len] + 1);
+      mdd.transitionDown(len,{len},{},[len](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                                      out.set(len,in.down[len] + 1);
                                    });
-      mdd.transitionUp(allu,{allu},{},[minDom,allu](auto& out,const auto& inUp,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                               out.setProp(allu,inUp);
+      mdd.transitionUp(allu,{allu},{},[minDom,allu](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                               out.setProp(allu,in.up);
                                if (val.size()==1)
                                   out.getBS(allu).set(val.singleton() - minDom);
                             });
-      mdd.transitionUp(someu,{someu},{},[minDom,someu](auto& out,const auto& inUp,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                                out.setProp(someu,inUp);
+      mdd.transitionUp(someu,{someu},{},[minDom,someu](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                                out.setProp(someu,in.up);
                                 MDDBSValue sv(out.getBS(someu));
                                 for(auto v : val)
                                    sv.set(v - minDom);
@@ -107,43 +107,43 @@ namespace Factory {
       const int someu = mdd.addUpBSState(d,udom.second - udom.first + 1,0,External,constraintPriority);
       const int numInSomeUp = mdd.addUpState(d,0,vars.size(),External,constraintPriority);
 
-      mdd.transitionDown(all,{all},{},[minDom,all](auto& out,const auto& inDown,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                               out.setProp(all,inDown);
+      mdd.transitionDown(all,{all},{},[minDom,all](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                               out.setProp(all,in.down);
                                if (val.size()==1)
                                   out.getBS(all).set(val.singleton() - minDom);
                             });
-      mdd.transitionDown(some,{some},{},[minDom,some](auto& out,const auto& inDown,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                                out.setProp(some,inDown);
+      mdd.transitionDown(some,{some},{},[minDom,some](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                                out.setProp(some,in.down);
                                 MDDBSValue sv(out.getBS(some));
                                 for(auto v : val)
-                                   sv.set(v - minDom);
-                            });
-      mdd.transitionDown(numInSome,{numInSome},{},[minDom,numInSome,some](auto& out,const auto& inDown,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                                      int num = inDown[numInSome];
-                                      MDDBSValue sv(inDown.getBS(some));
+                                  sv.set(v - minDom);
+      });
+      mdd.transitionDown(numInSome,{numInSome},{},[minDom,numInSome,some](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                                      int num = in.down[numInSome];
+                                      MDDBSValue sv(in.down.getBS(some));
                                       for(auto v : val)
-                                          if (!sv.getBit(v - minDom)) num++;
+                                        if (!sv.getBit(v - minDom)) num++;
                                       out.set(numInSome,num);
                                    });
-      mdd.transitionDown(len,{len},{},[len](auto& out,const auto& inDown,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                                      out.set(len,inDown[len] + 1);
+      mdd.transitionDown(len,{len},{},[len](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                                      out.set(len,in.down[len] + 1);
                                    });
-      mdd.transitionUp(allu,{allu},{},[minDom,allu](auto& out,const auto& inUp,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                               out.setProp(allu,inUp);
+      mdd.transitionUp(allu,{allu},{},[minDom,allu](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                               out.setProp(allu,in.up);
                                if (val.size()==1)
                                   out.getBS(allu).set(val.singleton() - minDom);
                             });
-      mdd.transitionUp(someu,{someu},{},[minDom,someu](auto& out,const auto& inUp,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                                out.setProp(someu,inUp);
+      mdd.transitionUp(someu,{someu},{},[minDom,someu](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                                out.setProp(someu,in.up);
                                 MDDBSValue sv(out.getBS(someu));
                                 for(auto v : val)
                                    sv.set(v - minDom);
                              });
-      mdd.transitionUp(numInSomeUp,{numInSomeUp},{},[minDom,numInSomeUp,someu](auto& out,const auto& inUp,const auto& inCombined,const auto& var,const auto& val,bool up) noexcept {
-                                      int num = inUp[numInSomeUp];
-                                      MDDBSValue sv(inUp.getBS(someu));
+      mdd.transitionUp(numInSomeUp,{numInSomeUp},{},[minDom,numInSomeUp,someu](auto& out,const auto& in,const auto& var,const auto& val,bool up) noexcept {
+                                      int num = in.up[numInSomeUp];
+                                      MDDBSValue sv(in.up.getBS(someu));
                                       for(auto v : val)
-                                          if (!sv.getBit(v - minDom)) num++;
+                                        if (!sv.getBit(v - minDom)) num++;
                                       out.set(numInSomeUp,num);
                                    });
 

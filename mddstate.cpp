@@ -732,28 +732,28 @@ void MDDSpec::compile()
    }
 }
 
-void MDDSpec::fullStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
+void MDDSpec::fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
 {
    result.clear();
    result.zero();
-   _frameLayer[l].frameDown(result,pDown);
+   _frameLayer[l].frameDown(result,parent.down);
    for(const auto& t : _transLayer[l])
-      t(result,pDown,pCombined,var,v,hasUp);
-   result.relax(pDown.isRelaxed() || v.size() > 1);
+      t(result,parent,var,v,hasUp);
+   result.relax(parent.down.isRelaxed() || v.size() > 1);
 }
 
-void MDDSpec::incrStateDown(const MDDPropSet& out,MDDState& result,const MDDState& pDown,const MDDState& pCombined,unsigned l,const var<int>::Ptr& var,
+void MDDSpec::incrStateDown(const MDDPropSet& out,MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,
                               const MDDIntSet& v,bool hasUp)
 {
    result.clear();
    for(auto p : out) {
       int tid = _frameLayer[l].hasDownProp(p) ? -1 : _attrsDown[p]->getTransition();
       if (tid != -1)
-         _downTransition[tid](result,pDown,pCombined,var,v,hasUp); // actual transition
+         _downTransition[tid](result,parent,var,v,hasUp); // actual transition
       else 
-         result.setProp(p,pDown); // frame axiom
+         result.setProp(p,parent.down); // frame axiom
    }
-   result.relax(pDown.isRelaxed() || v.size() > 1);
+   result.relax(parent.down.isRelaxed() || v.size() > 1);
 }
 
 void MDDSpec::relaxationDown(MDDState& a,const MDDState& b) const noexcept
@@ -811,25 +811,27 @@ void MDDSpec::relaxationUpIncr(const MDDPropSet& out,MDDState& a,const MDDState&
    }
    a.computeHash();
 }
-void MDDSpec::fullStateUp(MDDState& target,const MDDState& cUp,const MDDState& cCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
+
+void MDDSpec::fullStateUp(MDDState& target,const MDDPack& child,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
    target.clear();
-   _frameLayer[l].frameUp(target,cUp);
+   _frameLayer[l].frameUp(target,child.up);
    for(const auto& t : _uptransLayer[l])
-      t(target,cUp,cCombined,var,v,true);
-   target.relax(cUp.isRelaxed() || v.size() > 1);
+      t(target,child,var,v,true);
+   target.relax(child.up.isRelaxed() || v.size() > 1);
 }
-void MDDSpec::incrStateUp(const MDDPropSet& out,MDDState& target,const MDDState& cUp,const MDDState& cCombined,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
+
+void MDDSpec::incrStateUp(const MDDPropSet& out,MDDState& target,const MDDPack& child,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
    target.clear();
    for(auto p : out) {
       int tid = _frameLayer[l].hasUpProp(p) ? -1 : _attrsUp[p]->getTransition();
       if (tid != -1)
-         _upTransition[tid](target,cUp,cCombined,var,v,true); // actual transition
+         _upTransition[tid](target,child,var,v,true); // actual transition
       else 
-         target.setProp(p,cUp); // frame axiom
+         target.setProp(p,child.up); // frame axiom
    }
-   target.relax(cUp.isRelaxed() || v.size() > 1);
+   target.relax(child.up.isRelaxed() || v.size() > 1);
 }
 
 void MDDSpec::setConstraintPrioritySize(int size)
@@ -893,10 +895,10 @@ MDDStateFactory::MDDStateFactory(MDDSpec* spec)
 //   result.computeHash();
 //}
 
-void MDDStateFactory::createStateDown(MDDState& result,const MDDState& pDown,const MDDState& pCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
+void MDDStateFactory::createStateDown(MDDState& result,const MDDPack& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
 {
    if (vals.isSingleton()) {
-      MDDSKey key { &pDown, &pCombined, layer, vals.singleton() };
+      MDDSKey key { &parent.down, &parent.comb, layer, vals.singleton() };
       MDDState* match = nullptr;
       auto loc = _downHash.get(key,match);
       if (loc) {
@@ -904,23 +906,23 @@ void MDDStateFactory::createStateDown(MDDState& result,const MDDState& pDown,con
          result.copyState(*match);
       } else {
          nbCSDown++;
-         _mddspec->fullStateDown(result,pDown,pCombined,layer,x,MDDIntSet(vals.singleton()),up);
+         _mddspec->fullStateDown(result,parent,layer,x,MDDIntSet(vals.singleton()),up);
          result.computeHash();
-         MDDState* pdc = new (_mem) MDDState(pDown.clone(_mem));
-         MDDState* pcc = new (_mem) MDDState(pCombined.clone(_mem));
+         MDDState* pdc = new (_mem) MDDState(parent.down.clone(_mem));
+         MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_mem));
          MDDSKey ikey { pdc, pcc, layer, vals.singleton() };
          _downHash.insert(ikey,new (_mem) MDDState(result.clone(_mem)));
       }
    } else {
       nbCSDown++;
-      _mddspec->fullStateDown(result,pDown,pCombined,layer,x,vals,up);
+      _mddspec->fullStateDown(result,parent,layer,x,vals,up);
       result.computeHash();
    }
 }
-void MDDStateFactory::createStateUp(MDDState& result,const MDDState& cUp,const MDDState& cCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals)
+void MDDStateFactory::createStateUp(MDDState& result,const MDDPack& child,int layer,const var<int>::Ptr x,const MDDIntSet& vals)
 {
    if (vals.isSingleton()) {
-      MDDSKey key { &cUp, &cCombined, layer, vals.singleton() };
+      MDDSKey key { &child.up, &child.comb, layer, vals.singleton() };
       MDDState* match = nullptr;
       auto loc = _upHash.get(key,match);
       if (loc) {
@@ -928,23 +930,23 @@ void MDDStateFactory::createStateUp(MDDState& result,const MDDState& cUp,const M
          result.copyState(*match);
       } else {
          nbCSUp++;
-         _mddspec->fullStateUp(result,cUp,cCombined,layer,x,MDDIntSet(vals.singleton()));
+         _mddspec->fullStateUp(result,child,layer,x,MDDIntSet(vals.singleton()));
          result.computeHash();
-         MDDState* cuc = new (_mem) MDDState(cUp.clone(_mem));
-         MDDState* ccc = new (_mem) MDDState(cCombined.clone(_mem));
+         MDDState* cuc = new (_mem) MDDState(child.up.clone(_mem));
+         MDDState* ccc = new (_mem) MDDState(child.comb.clone(_mem));
          MDDSKey ikey { cuc, ccc, layer, vals.singleton() };
          _upHash.insert(ikey,new (_mem) MDDState(result.clone(_mem)));
       }
    } else {
       nbCSUp++;
-      _mddspec->fullStateUp(result,cUp,cCombined,layer,x,vals);
+      _mddspec->fullStateUp(result,child,layer,x,vals);
       result.computeHash();
    }
 }
 
-void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pDown,const MDDState& pCombined,int layer,const var<int>::Ptr x,int val)
+void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDPack& parent,int layer,const var<int>::Ptr x,int val)
 {
-   MDDSKey key { &pDown, &pCombined, layer, val };
+   MDDSKey key { &parent.down, &parent.comb, layer, val };
    auto loc = _downHash.get(key,result);
    if (loc) {
       ++hitCSDown;
@@ -952,10 +954,10 @@ void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDState& pD
    } else {
       nbCSDown++;
       result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
-      _mddspec->fullStateDown(*result,pDown,pCombined,layer,x,MDDIntSet(val),true);
+      _mddspec->fullStateDown(*result,parent,layer,x,MDDIntSet(val),true);
       result->computeHash();
-      MDDState* pdc = new (_mem) MDDState(pDown.clone(_mem));
-      MDDState* pcc = new (_mem) MDDState(pCombined.clone(_mem));
+      MDDState* pdc = new (_mem) MDDState(parent.down.clone(_mem));
+      MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_mem));
       MDDSKey ikey { pdc, pcc, layer, val };
       _downHash.insert(ikey,new (_mem) MDDState(result->clone(_mem)));
    }

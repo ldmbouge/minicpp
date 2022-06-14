@@ -37,18 +37,18 @@ namespace Factory {
                           ||  (min.last() >= 0 && minv >= lb && min.first() - max.last() + inS <= ub);
                     });
       spec.transitionDown(minWin,{minWin},{},
-                          [values,minWin](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+                          [values,minWin](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
                              bool allMembers = val.allInside(values);
                              MDDSWin<short> outWin = out.getSW(minWin);
-                             outWin.assignSlideBy(pDown.getSW(minWin),1);
-                             outWin.setFirst(pDown.getSW(minWin).first() + allMembers);
+                             outWin.assignSlideBy(parent.down.getSW(minWin),1);
+                             outWin.setFirst(parent.down.getSW(minWin).first() + allMembers);
                           });
       spec.transitionDown(maxWin,{maxWin},{},
-                          [values,maxWin](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+                          [values,maxWin](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
                              bool oneMember = val.memberInside(values);
                              MDDSWin<short> outWin = out.getSW(maxWin);
-                             outWin.assignSlideBy(pDown.getSW(maxWin),1);
-                             outWin.setFirst(pDown.getSW(maxWin).first() + oneMember);
+                             outWin.assignSlideBy(parent.down.getSW(maxWin),1);
+                             outWin.setFirst(parent.down.getSW(maxWin).first() + oneMember);
                           });
    }
 
@@ -62,20 +62,20 @@ namespace Factory {
       int maxWin = spec.addDownSWState(desc,len,-1,0,MaxFun);
       int pnb    = spec.addDownState(desc,0,INT_MAX,MinFun); // init @ 0, largest value is number of variables. 
 
-      spec.transitionDown(minWin,{minWin},{},[values,minWin](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(minWin,{minWin},{},[values,minWin](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
                                              bool allMembers = val.allInside(values);
                                              MDDSWin<short> outWin = out.getSW(minWin);
-                                             outWin.assignSlideBy(pDown.getSW(minWin),1);
-                                             outWin.setFirst(pDown.getSW(minWin).first() + allMembers);
+                                             outWin.assignSlideBy(parent.down.getSW(minWin),1);
+                                             outWin.setFirst(parent.down.getSW(minWin).first() + allMembers);
                                           });
-      spec.transitionDown(maxWin,{maxWin},{},[values,maxWin](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(maxWin,{maxWin},{},[values,maxWin](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
                                              bool oneMember = val.memberInside(values);
                                              MDDSWin<short> outWin = out.getSW(maxWin);
-                                             outWin.assignSlideBy(pDown.getSW(maxWin),1);
-                                             outWin.setFirst(pDown.getSW(maxWin).first() + oneMember);
+                                             outWin.assignSlideBy(parent.down.getSW(maxWin),1);
+                                             outWin.setFirst(parent.down.getSW(maxWin).first() + oneMember);
                                           });
-      spec.transitionDown(pnb,{pnb},{},[pnb](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
-                                       out.setInt(pnb,pDown[pnb]+1);
+      spec.transitionDown(pnb,{pnb},{},[pnb](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+                                       out.setInt(pnb,parent.down[pnb]+1);
                                     });
 
       spec.arcExist(desc,
@@ -117,57 +117,57 @@ namespace Factory {
       const int Exact   = spec.addDownState(desc, 1, INT_MAX,MinFun);
 
       // down transitions
-      spec.transitionDown(AminWin,{AminWin},{YminCombined},[AminWin,YminCombined](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(AminWin,{AminWin},{YminCombined},[AminWin,YminCombined](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
                                                     MDDSWin<short> outWin = out.getSW(AminWin);
-                                                    outWin.assignSlideBy(pDown.getSW(AminWin),1);
-                                                    outWin.setFirst(pCombined[YminCombined]);
+                                                    outWin.assignSlideBy(parent.down.getSW(AminWin),1);
+                                                    outWin.setFirst(parent.comb[YminCombined]);
                                                  });
-      spec.transitionDown(AmaxWin,{AmaxWin},{YmaxCombined},[AmaxWin,YmaxCombined](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(AmaxWin,{AmaxWin},{YmaxCombined},[AmaxWin,YmaxCombined](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
                                                     MDDSWin<short> outWin = out.getSW(AmaxWin);
-                                                    outWin.assignSlideBy(pDown.getSW(AmaxWin),1);
-                                                    outWin.setFirst(pCombined[YmaxCombined]);
+                                                    outWin.assignSlideBy(parent.down.getSW(AmaxWin),1);
+                                                    outWin.setFirst(parent.comb[YmaxCombined]);
                                                  });
 
-      spec.transitionDown(YminDown,{},{YminCombined},[values,YminDown,YminCombined](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(YminDown,{},{YminCombined},[values,YminDown,YminCombined](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
                                          bool hasMemberOutS = val.memberOutside(values);
-                                         int minVal = pCombined[YminCombined] + !hasMemberOutS;
+                                         int minVal = parent.comb[YminCombined] + !hasMemberOutS;
                                          out.setInt(YminDown,minVal);
                                       });
 
-      spec.transitionDown(YmaxDown,{},{YmaxCombined},[values,YmaxDown,YmaxCombined](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(YmaxDown,{},{YmaxCombined},[values,YmaxDown,YmaxCombined](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
                                          bool hasMemberInS = val.memberInside(values);
-                                         int maxVal = pCombined[YmaxCombined] + hasMemberInS;
+                                         int maxVal = parent.comb[YmaxCombined] + hasMemberInS;
                                          out.setInt(YmaxDown,maxVal);
                                       });
 
-      spec.transitionDown(N,{N},{},[N](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) { out.setInt(N,pDown[N]+1); });
-      spec.transitionDown(Exact,{Exact},{},[Exact,values](auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
-         out.setInt(Exact, (pDown[Exact]==1) && (val.memberOutside(values) != val.memberInside(values)));
+      spec.transitionDown(N,{N},{},[N](auto& out,const auto& parent,const auto& x,const auto& val,bool up) { out.setInt(N,parent.down[N]+1); });
+      spec.transitionDown(Exact,{Exact},{},[Exact,values](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+         out.setInt(Exact, (parent.down[Exact]==1) && (val.memberOutside(values) != val.memberInside(values)));
       });
 
       // up transitions
-      spec.transitionUp(DminWin,{DminWin},{YminCombined},[DminWin,YminCombined](auto& out,const auto& cUp,const auto& cCombined,const auto& x,const auto& val,bool up) {
+      spec.transitionUp(DminWin,{DminWin},{YminCombined},[DminWin,YminCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
          MDDSWin<short> outWin = out.getSW(DminWin);
-         outWin.assignSlideBy(cUp.getSW(DminWin),1);
-         outWin.setFirst(cCombined[YminCombined]);
+         outWin.assignSlideBy(child.up.getSW(DminWin),1);
+         outWin.setFirst(child.comb[YminCombined]);
       });
-      spec.transitionUp(DmaxWin,{DmaxWin},{YmaxCombined},[DmaxWin,YmaxCombined](auto& out,const auto& cUp,const auto& cCombined,const auto& x,const auto& val,bool up) {
-                                                  MDDSWin<short> outWin = out.getSW(DmaxWin);
-                                                  outWin.assignSlideBy(cUp.getSW(DmaxWin),1);
-                                                  outWin.setFirst(cCombined[YmaxCombined]);
-                                               });
+      spec.transitionUp(DmaxWin,{DmaxWin},{YmaxCombined},[DmaxWin,YmaxCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
+         MDDSWin<short> outWin = out.getSW(DmaxWin);
+         outWin.assignSlideBy(child.up.getSW(DmaxWin),1);
+         outWin.setFirst(child.comb[YmaxCombined]);
+      });
+      
+      spec.transitionUp(YminUp,{},{YminCombined},[YminUp,YminCombined,values](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
+         bool hasMemberInS = val.memberInside(values);
+         int minVal = child.comb[YminCombined] - hasMemberInS;
+         out.setInt(YminUp,minVal);
+      });
 
-      spec.transitionUp(YminUp,{},{YminCombined},[YminUp,YminCombined,values](auto& out,const auto& cUp,const auto& cCombined,const auto& x,const auto& val,bool up) {
-                                       bool hasMemberInS = val.memberInside(values);
-                                       int minVal = cCombined[YminCombined] - hasMemberInS;
-                                       out.setInt(YminUp,minVal);
-                                    });
-
-      spec.transitionUp(YmaxUp,{},{YmaxCombined},[YmaxUp,YmaxCombined,values](auto& out,const auto& cUp,const auto& cCombined,const auto& x,const auto& val,bool up) {
-                                       bool hasMemberOutS = val.memberOutside(values);
-                                       int maxVal = cCombined[YmaxCombined] - !hasMemberOutS;
-                                       out.setInt(YmaxUp,maxVal);
-                                    });
+      spec.transitionUp(YmaxUp,{},{YmaxCombined},[YmaxUp,YmaxCombined,values](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
+         bool hasMemberOutS = val.memberOutside(values);
+         int maxVal = child.comb[YmaxCombined] - !hasMemberOutS;
+         out.setInt(YmaxUp,maxVal);
+      });
 
       spec.updateNode(YminCombined,{AminWin,YminDown,N},{DminWin,YminUp},[=](auto& combined,const auto& down,const auto& up) {
                          int minVal = down[YminDown];

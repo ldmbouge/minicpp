@@ -39,27 +39,25 @@ namespace Factory {
 
       lambdaMap d0 = toDict(minFDom,minLDom,ps,
                             [min,ps] (int i,int pi) -> auto {
-                               return tDesc({pi},{},[=] (auto& out,const auto& pDown,const auto& pCombined,auto x, const auto& val,bool up) {
-                                                    out.set(pi,pDown.at(pi) + ((val.singleton() - min) == i));
-                                                 });
+                               return tDesc({pi},{},[=] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
+                                  out.set(pi,parent.down.at(pi) + ((val.singleton() - min) == i));
+                               });
                             });
       spec.transitionDown(d0);
       lambdaMap d1 = toDict(maxFDom,maxLDom,ps,
                             [dz,min,ps] (int i,int pi) -> auto {
-                               return tDesc({pi},{},[=] (auto& out,const auto& pDown,const auto& pCombined,auto x, const auto& val,bool up) {
-                                                    out.set(pi,pDown.at(pi) + ((val.singleton() - min) == (i - dz)));
-                                                 });
+                               return tDesc({pi},{},[=] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
+                                  out.set(pi,parent.down.at(pi) + ((val.singleton() - min) == (i - dz)));
+                               });
                             });
       spec.transitionDown(d1);
 
       for(int i = minFDom; i <= minLDom; i++){
-         int p = ps[i];
-         spec.addRelaxationDown(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addRelaxationDown(ps[i],[p = ps[i]](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
       }
 
       for(int i = maxFDom; i <= maxLDom; i++){
-         int p = ps[i];
-         spec.addRelaxationDown(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         spec.addRelaxationDown(ps[i],[p = ps[i]](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
    }
 
@@ -118,29 +116,29 @@ namespace Factory {
       });
       spec.transitionDown(toDict(minFDom,minLDom,
                                  [min,downPs] (int i) {
-                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& pDown,const auto& pCombined,auto x,const auto& val,bool up) {
-                                                            int tmp = pDown.at(downPs[i]);
-                                                            if (val.isSingleton() && (val.singleton() - min) == i) tmp++;
-                                                            out.set(downPs[i], tmp);
-                                                         });
+                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val,bool up) {
+                                       int tmp = parent.down.at(downPs[i]);
+                                       if (val.isSingleton() && (val.singleton() - min) == i) tmp++;
+                                       out.set(downPs[i], tmp);
+                                    });
                                  }));
       spec.transitionDown(toDict(maxFDom,maxLDom,
                                  [min,downPs,maxFDom](int i) {
-                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& pDown,const auto& pCombined,auto x,const auto& val,bool up) {
-                                                            out.set(downPs[i], pDown.at(downPs[i])+val.contains(i-maxFDom+min));
-                                                         });
+                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val,bool up) {
+                                       out.set(downPs[i], parent.down.at(downPs[i])+val.contains(i-maxFDom+min));
+                                    });
                                  }));
-
+      
       spec.transitionUp(toDict(minFDomUp,minLDomUp,
                                [min,upPs,minFDomUp] (int i) {
-                                  return tDesc({upPs[i]},{},[=](auto& out,const auto& cUp,const auto& cCombined,auto x,const auto& val,bool up) {
-                                    out.set(upPs[i], cUp.at(upPs[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
+                                  return tDesc({upPs[i]},{},[=](auto& out,const auto& child,auto x,const auto& val,bool up) {
+                                    out.set(upPs[i], child.up.at(upPs[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
                                   });
                                }));
       spec.transitionUp(toDict(maxFDomUp,maxLDomUp,
                                [min,upPs,maxFDomUp](int i) {
-                                 return tDesc({upPs[i]},{},[=](auto& out,const auto& cUp,const auto& cCombined,auto x,const auto& val,bool up) {
-                                   out.set(upPs[i], cUp.at(upPs[i])+val.contains(i-maxFDomUp+min));
+                                 return tDesc({upPs[i]},{},[=](auto& out,const auto& child,auto x,const auto& val,bool up) {
+                                    out.set(upPs[i], child.up.at(upPs[i])+val.contains(i-maxFDomUp+min));
                                  });
                                }));
 

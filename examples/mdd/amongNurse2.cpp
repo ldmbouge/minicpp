@@ -352,13 +352,20 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 int main(int argc,char* argv[])
 {
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
-   int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
+   int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 0;
 
-   // mode: 0 (Cumulative sums),  1 (Among MDD), 2 (Sequence MDD)
-   // mode: 3 (Cumulative Sums with isMember constraint)
+   // mode: 0 (Cumulative sums),
+   // mode: 1 (Among MDD)
+   // mode: 2 (Sequence MDD)
+   // mode: 3 (Sequence 3 + among 2)
+   // mode: 4 (Cumulative Sums with isMember constraint)
    
    std::cout << "width = " << width << std::endl;
    std::cout << "mode = " << mode << std::endl;
+   if (mode < 0 || mode > 4) {
+      std::cerr << "mode must be in 0..4\n";
+      exit(1);
+   }   
    try {
       CPSolver::Ptr cp  = Factory::makeSolver();
       buildModel(cp, width, mode);

@@ -32,18 +32,17 @@ namespace Factory {
          return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
       });
 
-      mdd.transitionDown(minC,{minC},{},[minC,tv] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(minC,{minC},{},[minC,tv] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
          bool allMembers = val.size()==1 && val.singleton() == tv;
-         out.setInt(minC,pDown[minC] + allMembers);
+         out.setInt(minC,parent.down[minC] + allMembers);
       });
-      mdd.transitionDown(maxC,{maxC},{},[maxC,tv] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(maxC,{maxC},{},[maxC,tv] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
          bool oneMember = val.contains(tv);
-         out.setInt(maxC,pDown[maxC] + oneMember);
+         out.setInt(maxC,parent.down[maxC] + oneMember);
       });
-      mdd.transitionDown(rem,{rem},{},[rem] (auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) {
-         out.setInt(rem,pDown[rem] - 1);
-      });
-      
+      mdd.transitionDown(rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+         out.setInt(rem,parent.down[rem] - 1);
+      });      
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
@@ -67,24 +66,24 @@ namespace Factory {
          });
       }
 
-      mdd.transitionDown(minC,{minC},{},[minC,values] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(minC,{minC},{},[minC,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
          bool allMembers = true;
          for(int v : val) {
             allMembers &= values.member(v);
             if (!allMembers) break;
          }
-         out.setInt(minC,pDown[minC] + allMembers);
+         out.setInt(minC,parent.down[minC] + allMembers);
       });
-      mdd.transitionDown(maxC,{maxC},{},[maxC,values] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(maxC,{maxC},{},[maxC,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
          bool oneMember = false;
          for(int v : val) {
             oneMember = values.member(v);
             if (oneMember) break;
          }
-         out.setInt(maxC,pDown[maxC] + oneMember);
+         out.setInt(maxC,parent.down[maxC] + oneMember);
       });
-      mdd.transitionDown(rem,{rem},{},[rem] (auto& out,const auto& pDown,const auto& pCombined,const auto& x,const auto& val,bool up) { out.setInt(rem,pDown[rem] - 1);});
-
+      mdd.transitionDown(rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val,bool up) { out.setInt(rem,parent.down[rem] - 1);});
+      
       mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
    }
 
@@ -97,38 +96,38 @@ namespace Factory {
       const int Lup = mdd.addUpState(d,0,INT_MAX,MinFun, constraintPriority);
       const int Uup = mdd.addUpState(d,0,INT_MAX,MaxFun, constraintPriority);
 
-      mdd.transitionDown(L,{L},{},[L,values] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(L,{L},{},[L,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
                                 bool allMembers = true;
                                 for(int v : val) {
                                    allMembers &= values.member(v);
                                    if (!allMembers) break;
                                 }
-                                out.set(L,pDown.at(L) + allMembers);
+                                out.set(L,parent.down.at(L) + allMembers);
                              });
-      mdd.transitionDown(U,{U},{},[U,values] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(U,{U},{},[U,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
                                 bool oneMember = false;
                                 for(int v : val) {
                                    oneMember = values.member(v);
                                    if (oneMember) break;
                                 }
-                                out.set(U,pDown.at(U) + oneMember);
+                                out.set(U,parent.down.at(U) + oneMember);
                              });
 
-      mdd.transitionUp(Lup,{Lup},{},[Lup,values] (auto& out,const auto& cUp,const auto& cCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionUp(Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
                                 bool allMembers = true;
                                 for(int v : val) {
                                    allMembers &= values.member(v);
                                    if (!allMembers) break;
                                 }
-                                out.set(Lup,cUp.at(Lup) + allMembers);
+                                out.set(Lup,child.up.at(Lup) + allMembers);
                              });
-      mdd.transitionUp(Uup,{Uup},{},[Uup,values] (auto& out,const auto& cUp,const auto cCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionUp(Uup,{Uup},{},[Uup,values] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
                                 bool oneMember = false;
                                 for(int v : val) {
                                    oneMember = values.member(v);
                                    if (oneMember) break;
                                 }
-                                out.set(Uup,cUp.at(Uup) + oneMember);
+                                out.set(Uup,child.up.at(Uup) + oneMember);
                              });
 
       mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
@@ -315,28 +314,26 @@ namespace Factory {
       const int Lup = mdd.addUpState(d,0,INT_MAX,MinFun, constraintPriority);
       const int Uup = mdd.addUpState(d,0,INT_MAX,MaxFun, constraintPriority);
 
-      mdd.transitionDown(L,{L},{},[L,tv] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(L,{L},{},[L,tv] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
                                   bool allMembers = val.size() == 1 && val.singleton() == tv;
-                                  out.setInt(L,pDown[L] + allMembers);
+                                  out.setInt(L,parent.down[L] + allMembers);
                                });
-      mdd.transitionDown(U,{U},{},[U,tv] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(U,{U},{},[U,tv] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
                                   bool oneMember = val.contains(tv);
-                                  out.setInt(U,pDown[U] + oneMember);
+                                  out.setInt(U,parent.down[U] + oneMember);
                                });
 
-      mdd.transitionUp(Lup,{Lup},{},[Lup,tv] (auto& out,const auto& cUp,const auto& cCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionUp(Lup,{Lup},{},[Lup,tv] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
                                     bool allMembers = val.size() == 1 && val.singleton() == tv;
-                                    out.setInt(Lup,cUp[Lup] + allMembers);
+                                    out.setInt(Lup,child.up[Lup] + allMembers);
                                  });
-      mdd.transitionUp(Uup,{Uup},{},[Uup,tv] (auto& out,const auto& cUp,const auto& cCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionUp(Uup,{Uup},{},[Uup,tv] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
                                     bool oneMember = val.contains(tv);
-                                    out.setInt(Uup,cUp[Uup] + oneMember);
+                                    out.setInt(Uup,child.up[Uup] + oneMember);
                                  });
 
       mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
          const bool vinS = tv == val;
-         //std::cout << "  Arc Exist if:   " << pDown[U] << " + " << vinS << " + " << cUp[Uup] << " >= " << lb << "\n"
-         //          << "                  " << pDown[L] << " + " << vinS << " + " << cUp[Lup] << " <= " << ub << "\n";
          return ((parent.down[U] + vinS + child.up[Uup] >= lb) &&
                  (parent.down[L] + vinS + child.up[Lup] <= ub));
       });
@@ -516,22 +513,22 @@ namespace Factory {
       const int L = mdd.addDownState(d,0,1,MinFun, constraintPriority);
       const int Lup = mdd.addUpState(d,0,1,MinFun, constraintPriority);
 
-      mdd.transitionDown(L,{L},{},[L,values] (auto& out,const auto& pDown,const auto& pCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionDown(L,{L},{},[L,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
          bool allMembers = true;
          for(int v : val) {
             allMembers &= values.member(v);
             if (!allMembers) break;
          }
-         out.set(L,pDown.at(L) + allMembers);
+         out.set(L,parent.down.at(L) + allMembers);
       });
       
-      mdd.transitionUp(Lup,{Lup},{},[Lup,values] (auto& out,const auto& cUp,const auto& cCombined,const auto& x, const auto& val,bool up) {
+      mdd.transitionUp(Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
          bool allMembers = true;
          for(int v : val) {
             allMembers &= values.member(v);
             if (!allMembers) break;
          }
-         out.set(Lup,cUp.at(Lup) + allMembers);
+         out.set(Lup,child.up.at(Lup) + allMembers);
       });
       
       mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
