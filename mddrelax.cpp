@@ -86,7 +86,7 @@ void MDDRelax::buildDiagram()
    MDDState rootCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    rootDownState.computeHash();
    root = _nf->makeNode(rootDownState,rootUpState,rootCombinedState,x[0]->size(),0,0);
-   _mddspec.updateNode(rootCombinedState,rootDownState,rootUpState);
+   _mddspec.updateNode(rootCombinedState,MDDPack(rootDownState,rootUpState,rootCombinedState));
    layers[0].push_back(root,mem);
 
 
@@ -128,7 +128,7 @@ void MDDRelax::buildNextLayer(unsigned int i)
       MDDState combinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
       _sf->createStateDown(downState,parent->pack(),i,x[i],xv,false);
       MDDNode* child = _nf->makeNode(downState,upState,combinedState,x[i]->size(),i+1,(int)layers[i+1].size());
-      _mddspec.updateNode(combinedState,downState,upState);
+      _mddspec.updateNode(combinedState,MDDPack(downState,upState,combinedState));
       layers[i+1].push_back(child,mem);
       for(auto v : xv) {
          parent->addArc(mem,child,v);
@@ -138,7 +138,7 @@ void MDDRelax::buildNextLayer(unsigned int i)
       MDDState sinkDownState(sink->getDownState());
       MDDState sinkCombinedState(sink->getCombinedState());
       _sf->createStateDown(sinkDownState,parent->pack(),i,x[i],xv,false);
-      _mddspec.updateNode(sinkCombinedState,sink->getDownState(),sink->getUpState());
+      _mddspec.updateNode(sinkCombinedState,sink->pack());
       assert(sink->getNumParents() == 0);
       for(auto v : xv) {
          parent->addArc(mem,sink,v);
@@ -154,7 +154,7 @@ void MDDRelax::postUp()
 {
    if (_mddspec.usesUp()) {
       MDDState sinkCombinedState(sink->getCombinedState());
-      _mddspec.updateNode(sinkCombinedState,sink->getDownState(),sink->getUpState());
+      _mddspec.updateNode(sinkCombinedState,sink->pack());
       for(int i = (int)numVariables - 1;i >= 0;i--) 
          for(auto& n : layers[i]) {
             bool upDirty = processNodeUp(n,i);
@@ -984,14 +984,14 @@ void MDDRelax::fullStateCombined(MDDState& state,MDDNode* n)
 {
    if (!_mddspec.usesCombined()) return;
    state.copyState(n->getCombinedState());
-   _mddspec.updateNode(state,n->getDownState(),n->getUpState());
+   _mddspec.updateNode(state,n->pack());
 }
 
 void MDDRelax::incrStateCombined(const MDDPropSet& out,MDDState& state,MDDNode* n)
 {
    if (!_mddspec.usesCombined()) return;
    state.copyState(n->getCombinedState());
-   _mddspec.updateNode(state,n->getDownState(),n->getUpState());
+   _mddspec.updateNode(state,n->pack());
 }
 
 bool MDDRelax::updateCombinedIncrDown(MDDNode* n)

@@ -248,7 +248,7 @@ void MDD::buildDiagram()
    MDDState rootCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    root = _nf->makeNode(rootDownState,rootUpState,rootCombinedState,x[0]->size(),0,0);
    layers[0].push_back(root,mem);
-   _mddspec.updateNode(rootDownState,rootUpState,rootCombinedState);
+   _mddspec.updateNode(rootCombinedState,MDDPack(rootDownState,rootUpState,rootCombinedState));
 
    MDDState sinkDownState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Up);
    auto sinkUpState = _mddspec.sinkState(mem);

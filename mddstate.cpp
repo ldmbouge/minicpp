@@ -390,10 +390,10 @@ bool MDDSpec::equivalentForConstraintPriority(const MDDState& left, const MDDSta
    return true;
 }
 
-void MDDSpec::updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept
+void MDDSpec::updateNode(MDDState& result,const MDDPack& n) const noexcept
 {
    for(auto& fun : _updates)
-      fun(result,down,up);
+      fun(result,n);
    result.computeHash();
 }
 

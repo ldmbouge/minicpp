@@ -169,31 +169,31 @@ namespace Factory {
          out.setInt(YmaxUp,maxVal);
       });
 
-      spec.updateNode(YminCombined,{AminWin,YminDown,N},{DminWin,YminUp},[=](auto& combined,const auto& down,const auto& up) {
-                         int minVal = down[YminDown];
-                         if (down[N] >= len) {
-                            auto Amin = down.getSW(AminWin);
-                            minVal = std::max(lb + Amin.last(),minVal);
-                         }
-                         if (down[N] <= nbVars - len) {
-                            auto Dmin = up.getSW(DminWin);
-                            minVal = std::max(Dmin.last() - ub,minVal);
-                         }
-                         combined.setInt(YminCombined,minVal);
-                      });
-      spec.updateNode(YmaxCombined,{AmaxWin,YmaxDown,N},{DmaxWin,YmaxUp},[=](auto& combined,const auto& down,const auto& up) {
-                         int maxVal = down[YmaxDown];
-                         if (down[N] >= len) {
-                            auto Amax = down.getSW(AmaxWin);
-                            maxVal = std::min(ub + Amax.last(),maxVal);
-                         }
-                         if (down[N] <= nbVars - len) {
-                            auto Dmax = up.getSW(DmaxWin);
-                            maxVal = std::min(Dmax.last() - lb,maxVal);
-                         }
-                         combined.setInt(YmaxCombined,maxVal);
-                      });
-
+      spec.updateNode(YminCombined,{AminWin,YminDown,N},{DminWin,YminUp},[=](auto& combined,const auto& n) {
+         int minVal = std::max(n.down[YminDown],n.up[YminUp]); // [ldm] fix attempt. But not enough.
+         if (n.down[N] >= len) {
+            auto Amin = n.down.getSW(AminWin);
+            minVal = std::max(lb + Amin.last(),minVal);
+         }
+         if (n.down[N] <= nbVars - len) {
+            auto Dmin = n.up.getSW(DminWin);
+            minVal = std::max(Dmin.last() - ub,minVal);
+         }
+         combined.setInt(YminCombined,minVal);
+      });
+      spec.updateNode(YmaxCombined,{AmaxWin,YmaxDown,N},{DmaxWin,YmaxUp},[=](auto& combined,const auto& n) {
+         int maxVal = std::min(n.down[YmaxDown],n.up[YmaxUp]); // fix attempt. But not enough. 
+         if (n.down[N] >= len) {
+            auto Amax = n.down.getSW(AmaxWin);
+            maxVal = std::min(ub + Amax.last(),maxVal);
+         }
+         if (n.down[N] <= nbVars - len) {
+            auto Dmax = n.up.getSW(DmaxWin);
+            maxVal = std::min(Dmax.last() - lb,maxVal);
+         }
+         combined.setInt(YmaxCombined,maxVal);
+      });
+      
       spec.nodeExist([=](const auto& n) {
          return ( (n.comb[YminCombined] <= n.comb[YmaxCombined]) &&
                   (n.comb[YmaxCombined] >= 0) &&

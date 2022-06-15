@@ -193,7 +193,7 @@ class MDDNode;
 typedef std::function<bool(const MDDPack&)> NodeFun;
 typedef std::function<bool(const MDDPack&,const MDDPack&,const var<int>::Ptr&,int)> ArcFun;
 typedef std::function<void(const MDDState&,const MDDState&,const MDDState&)> FixFun;
-typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> UpdateFun;
+typedef std::function<void(MDDState&,const MDDPack&)> UpdateFun;
 typedef std::function<void(MDDState&,const MDDPack&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
@@ -1124,7 +1124,7 @@ public:
    // Internal methods.
    void varOrder() override;
    bool consistent(const MDDPack& pack) const noexcept;
-   void updateNode(MDDState& result,const MDDState& down,const MDDState& up) const noexcept;
+   void updateNode(MDDState& result,const MDDPack& n) const noexcept;
    bool exist(const MDDPack& parent,const MDDPack& child,const var<int>::Ptr& x,int v) const noexcept;
    void fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
    void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
