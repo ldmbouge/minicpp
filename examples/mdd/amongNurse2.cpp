@@ -366,14 +366,11 @@ int main(int argc,char* argv[])
       std::cerr << "mode must be in 0..4\n";
       exit(1);
    }   
-   try {
+   TRYFAIL
       CPSolver::Ptr cp  = Factory::makeSolver();
       buildModel(cp, width, mode);
-   } catch(Status s) {
+   ONFAIL
       std::cout << "model infeasible during post" << std::endl;
-   } catch (std::exception& e) {
-      std::cerr << "Unable to find the file" << std::endl;
-   }
-
+   ENDFAIL
    return 0;   
 }
