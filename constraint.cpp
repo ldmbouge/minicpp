@@ -256,7 +256,7 @@ void Minimize::print(std::ostream& os) const
 void Minimize::tighten()
 {
     //assert(_obj->isBound());
-   _primal = _obj->max() - 1;
+   _primal = _obj->min() - 1;
    failNow();
 }
 
@@ -276,8 +276,8 @@ void Maximize::print(std::ostream& os) const
 
 void Maximize::tighten()
 {
-   assert(_obj->isBound());
-   _primal = _obj->min() + 1;
+   //assert(_obj->isBound());
+   _primal = _obj->max() + 1;
    failNow();
 }
 
