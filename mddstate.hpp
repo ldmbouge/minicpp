@@ -893,10 +893,17 @@ class MDDState {  // An actual state of an MDDNode.
 public:
    MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_dir(Down),_flags({false,false,false}) {}
    MDDState(MDDStateSpec* s,char* b,enum Direction dir,bool relax=false) 
-      : _spec(s),_mem(b),_hash(0),_dir(dir),_flags({relax,false,false}) {
+      : _spec(s),_mem(b),_hash(0),_dir(dir),_flags({relax,false,false})
+   {
+      auto sz = _spec->layoutSize(_dir);
+      memset(b,0,sz);
    }
    MDDState(MDDStateSpec* s,char* b,int hash,enum Direction dir,const Flags& f) 
-      : _spec(s),_mem(b),_hash(hash),_dir(dir),_flags(f) {}
+      : _spec(s),_mem(b),_hash(hash),_dir(dir),_flags(f)
+   {
+      //auto sz = _spec->layoutSize(_dir);
+      //memset(b,0,sz);
+   }
    MDDState(const MDDState& s) 
       : _spec(s._spec),_mem(s._mem),_hash(s._hash),_dir(s._dir),_flags(s._flags) {}
    void initState(const MDDState& s) {
