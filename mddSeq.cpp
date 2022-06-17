@@ -114,6 +114,7 @@ namespace Factory {
       const int DminWin = spec.addUpSWState(desc,len,-1,0,MinFun);
       const int DmaxWin = spec.addUpSWState(desc,len,-1,0,MaxFun);
       const int N       = spec.addDownState(desc, 0, INT_MAX,MinFun);
+      const int Nup     = spec.addUpState(desc, 0, INT_MAX,MinFun);
       const int Exact   = spec.addDownState(desc, 1, INT_MAX,MinFun);
 
       // down transitions
@@ -180,27 +181,37 @@ namespace Factory {
          out.setInt(YmaxUp,maxVal);
       });
 
-      spec.updateNode(YminCombined,{AminWin,YminDown,N},{DminWin,YminUp},[=](auto& combined,const auto& n) {
-         int minVal = std::max(n.down[YminDown],n.up[YminUp]); // [ldm] fix attempt. But not enough.
+      spec.transitionUp(Nup,{Nup},{},[Nup](auto& out,const auto& child,const auto& x,const auto& val,bool) {
+         out.setInt(Nup,child.up[Nup]+1);
+      });
+
+      spec.updateNode(YminCombined,{AminWin,YminDown,N},{DminWin,YminUp,Nup},[=](auto& combined,const auto& n) {
+         int minVal = n.down[YminDown]; // [ldm] fix attempt. But not enough.
          if (n.down[N] >= len) {
             auto Amin = n.down.getSW(AminWin);
             minVal = std::max(lb + Amin.last(),minVal);
          }
-         if (n.down[N] <= nbVars - len) {
-            auto Dmin = n.up.getSW(DminWin);
-            minVal = std::max(Dmin.last() - ub,minVal);
+         if (n.up[Nup]) {
+           minVal = std::max(minVal, n.up[YminUp]);
+           if (n.down[N] <= nbVars - len) {
+             auto Dmin = n.up.getSW(DminWin);
+             minVal = std::max(Dmin.last() - ub,minVal);
+           }
          }
          combined.setInt(YminCombined,minVal);
       });
-      spec.updateNode(YmaxCombined,{AmaxWin,YmaxDown,N},{DmaxWin,YmaxUp},[=](auto& combined,const auto& n) {
-         int maxVal = std::min(n.down[YmaxDown],n.up[YmaxUp]); // fix attempt. But not enough. 
+      spec.updateNode(YmaxCombined,{AmaxWin,YmaxDown,N},{DmaxWin,YmaxUp,Nup},[=](auto& combined,const auto& n) {
+         int maxVal = n.down[YmaxDown]; // fix attempt. But not enough. 
          if (n.down[N] >= len) {
             auto Amax = n.down.getSW(AmaxWin);
             maxVal = std::min(ub + Amax.last(),maxVal);
          }
-         if (n.down[N] <= nbVars - len) {
-            auto Dmax = n.up.getSW(DmaxWin);
-            maxVal = std::min(Dmax.last() - lb,maxVal);
+         if (n.up[Nup]) {
+           maxVal = std::min(maxVal, n.up[YmaxUp]);
+           if (n.down[N] <= nbVars - len) {
+             auto Dmax = n.up.getSW(DmaxWin);
+             maxVal = std::min(Dmax.last() - lb,maxVal);
+           }
          }
          combined.setInt(YmaxCombined,maxVal);
       });
