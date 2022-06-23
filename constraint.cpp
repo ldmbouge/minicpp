@@ -1066,11 +1066,9 @@ void Element1D::post()
 
 void Element1DVar::post()
 {
-   _y->updateBounds(1,(int)_array.size());
-   for(size_t i = 1 ; i < _array.size(); i += 1)
-   {
-       _array[i]->propagateOnBoundChange(this);
-   }
+   _y->updateBounds(0,(int)_array.size() - 1);
+   for(auto t : _array) 
+       t->propagateOnBoundChange(this);
    _y->propagateOnDomainChange(this);
    _z->propagateOnBoundChange(this);
    propagate();
