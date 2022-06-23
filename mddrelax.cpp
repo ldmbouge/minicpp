@@ -128,7 +128,7 @@ void MDDRelax::buildNextLayer(unsigned int i)
       MDDState combinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
       _sf->createStateDown(downState,parent->pack(),i,x[i],xv,false);
       MDDNode* child = _nf->makeNode(downState,upState,combinedState,x[i]->size(),i+1,(int)layers[i+1].size());
-      _mddspec.updateNode(combinedState,MDDPack(downState,upState,combinedState));
+      _mddspec.updateNode(child->getCombinedState(),MDDPack(downState,upState,combinedState));
       layers[i+1].push_back(child,mem);
       for(auto v : xv) {
          parent->addArc(mem,child,v);
@@ -795,7 +795,7 @@ void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can
                                 up.copyState(n->getUpState());
                                 MDDState combined(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
                                 MDDNode* nc = _nf->makeNode(ms,up,combined,x[l-1]->size(),l,(int)layer.size());
-                                fullStateCombined(combined,nc);
+                                fullStateCombined(nc->getCombinedState(),nc);
                                 layer.push_back(nc,mem);
                                 unsigned int idx = 0;
                                 for(auto ca : n->getChildren()) {
