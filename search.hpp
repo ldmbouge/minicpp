@@ -48,74 +48,75 @@ public:
 };
 */
 
-class SearchStatistics
-{
-    protected:
-        int nodes;
-        int solutions;
-        int failures;
-        int intVariables;
-        int boolVariables;
-        int propagators;
-        unsigned long long propagations;
-        RuntimeMonitor::HRClock _startTime;
-        RuntimeMonitor::HRClock _initTime;
-        RuntimeMonitor::HRClock _solveTime;
-        bool completed;
+class SearchStatistics {
+protected:
+   int nodes;
+   int solutions;
+   int failures;
+   int intVariables;
+   int boolVariables;
+   int propagators;
+   unsigned long long propagations;
+   RuntimeMonitor::HRClock _startTime;
+   RuntimeMonitor::HRClock _initTime;
+   RuntimeMonitor::HRClock _solveTime;
+   bool completed;
 
-    public:
-       SearchStatistics() :
-        nodes(0),
-        solutions(0),
-        failures(0),
-        intVariables(0),
-        boolVariables(0),
-        propagators(0),
-        propagations(0),
-        completed(true)
-       {
-          _initTime = _startTime = RuntimeMonitor::now();
-       }
-       void incrFailures()  noexcept {failures += 1; extern int __nbf; __nbf = failures; }
-       void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
+public:
+   SearchStatistics() :
+      nodes(0),
+      solutions(0),
+      failures(0),
+      intVariables(0),
+      boolVariables(0),
+      propagators(0),
+      propagations(0),
+      completed(true)
+   {
+      _initTime = _startTime = RuntimeMonitor::now();
+   }
+   void incrFailures()  noexcept {failures += 1; extern int __nbf; __nbf = failures; }
+   void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
    void incrSolutions() noexcept {solutions += 1;}
-       void setIntVars(int count) noexcept {intVariables = count;}
-       void setBoolVars(int count) noexcept {boolVariables = count;}
-       void setPropagators(int count) noexcept {propagators = count;}
-       void setInitTime() noexcept { _initTime = RuntimeMonitor::now();}
-       void setSolveTime() noexcept { _solveTime = RuntimeMonitor::now();}
-       void setPropagations(unsigned long long p) noexcept {propagations = p;}
-       void setNotCompleted() noexcept { completed = false;}
-       bool getCompleted() noexcept {return completed;}
-       int getSolutions() const noexcept {return solutions;}
-       int numberOfSolutions() const noexcept {return solutions;}
-       int numberOfFailures() const noexcept { return failures;}
-       int numberOfNodes() const noexcept { return nodes;}
-       RuntimeMonitor::HRClock getStartTime() const noexcept {return _startTime;}
-       RuntimeMonitor::HRClock startTime() const noexcept {return _startTime;}
-       friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
-          return os
-             << std::fixed << std::setprecision(3)
-             << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss._startTime, ss._initTime) << std::endl
-             << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss._initTime, ss._solveTime) << std::endl
-             << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
-             << "%%%mzn-stat: variables=" << ss.intVariables + ss.boolVariables << std::endl
-             << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
-             << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
-             << "%%%mzn-stat: nodes=" << ss.nodes + ss.failures << std::endl
-             << "%%%mzn-stat: failures=" << ss.failures << std::endl
-             << "%%%mzn-stat-end" << std::endl;
-       }
-    };
+   void setIntVars(int count) noexcept {intVariables = count;}
+   void setBoolVars(int count) noexcept {boolVariables = count;}
+   void setPropagators(int count) noexcept {propagators = count;}
+   void setInitTime() noexcept { _initTime = RuntimeMonitor::now();}
+   void setSolveTime() noexcept { _solveTime = RuntimeMonitor::now();}
+   void setPropagations(unsigned long long p) noexcept {propagations = p;}
+   void setNotCompleted() noexcept { completed = false;}
+   bool getCompleted() noexcept {return completed;}
+   int getSolutions() const noexcept {return solutions;}
+   int numberOfSolutions() const noexcept {return solutions;}
+   int numberOfFailures() const noexcept { return failures;}
+   int numberOfNodes() const noexcept { return nodes;}
+   RuntimeMonitor::HRClock getStartTime() const noexcept {return _startTime;}
+   RuntimeMonitor::HRClock startTime() const noexcept {return _startTime;}
+   friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
+      extern int NBT;
+      return os
+         << std::fixed << std::setprecision(3)
+         << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss._startTime, ss._initTime) << std::endl
+         << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss._initTime, ss._solveTime) << std::endl
+         << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
+         << "%%%mzn-stat: variables=" << ss.intVariables + ss.boolVariables << std::endl
+         << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
+         << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
+         << "%%%mzn-stat: nodes=" << ss.nodes << std::endl
+         << "%%%mzn-stat: failures=" << ss.failures << std::endl
+         << "@@@NBT = " << NBT << "\n"
+         << "%%%mzn-stat-end" << std::endl;          
+   }
+};
 
 typedef std::function<bool(const SearchStatistics&)> Limit;
 
 class DFSearch {
-    StateManager::Ptr                      _sm;
-    std::function<Branches(void)>   _branching;
-    std::vector<std::function<void(void)>>    _solutionListeners;
-    std::vector<std::function<void(void)>>    _failureListeners;
-    void dfs(SearchStatistics& stats,const Limit& limit);
+   StateManager::Ptr                      _sm;
+   std::function<Branches(void)>   _branching;
+   std::vector<std::function<void(void)>>    _solutionListeners;
+   std::vector<std::function<void(void)>>    _failureListeners;
+   void dfs(SearchStatistics& stats,const Limit& limit);
 public:
    DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b)
       : _sm(cp->getStateManager()),_branching(std::move(b)) {
@@ -149,20 +150,20 @@ std::function<Branches(void)> land(std::initializer_list<B> allB) {
 template<class B>
 std::function<Branches(void)> land(std::vector<B> vec)
 {
-    return [vec]()
-    {
-        for(size_t i = 0; i < vec.size(); i += 1)
-        {
+   return [vec]()
+   {
+      for(size_t i = 0; i < vec.size(); i += 1)
+         {
             auto br = vec[i]();
             if (br.size() != 0)
-                return br;
-        }
-        return Branches({});
-    };
+               return br;
+         }
+      return Branches({});
+   };
 }
 
 inline Branches operator|(std::function<void(void)> b0, std::function<void(void)> b1) {
-    return Branches({ b0,b1 });
+   return Branches({ b0,b1 });
 }
 
 
@@ -173,14 +174,14 @@ typename Container::value_type selectMin(Container& c,Predicate test, Fun f)
    auto to = c.end();
    auto min = to;
    for(; from != to; from += 1)
-   {
-       if (test(*from))
-       {
-           auto fv = f(*from);
-           if (min == to || fv < f(*min))
-               min = from;
-       }
-   }
+      {
+         if (test(*from))
+            {
+               auto fv = f(*from);
+               if (min == to || fv < f(*min))
+                  min = from;
+            }
+      }
    if (min == to)
       return typename Container::value_type();
    else 
@@ -201,136 +202,131 @@ typename Container::value_type selectFirst(Container& c,Predicate test)
 
 
 template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,Container& c) {
-    using namespace Factory;
-    return [=]() {
-        auto sx = selectMin(c,
-                            [](const auto& x) { return x->size() > 1;},
-                            [](const auto& x) { return x->size();});
-        if (sx) {
-            int v = sx->min();
-            return [cp,sx,v] { return cp->post(sx == v);}
-                   |  [cp,sx,v] { return cp->post(sx != v);};
-        } else return Branches({});
-    };
+   using namespace Factory;
+   return [=]() {
+      auto sx = selectMin(c,
+                          [](const auto& x) { return x->size() > 1;},
+                          [](const auto& x) { return x->size();});
+      if (sx) {
+         int v = sx->min();
+         return [cp,sx,v] { return cp->post(sx == v);}
+            |  [cp,sx,v] { return cp->post(sx != v);};
+      } else return Branches({});
+   };
 }
 
 template<class Container,typename Predicate, typename Fun>
 typename Container::value_type selectMax(Container& c,Predicate test, Fun f)
 {
-    auto from = c.begin();
-    auto to = c.end();
-    auto max = to;
-    for(; from != to; from += 1)
-    {
-        if (test(*from))
-        {
-            auto fv = f(*from);
-            if (max == to || fv > f(*max))
-                max = from;
-        }
-    }
-    if (max == to)
-        return typename Container::value_type();
-    else
-        return *max;
-}
-
-
-template<class Vars, class Var>
-Var first_fail(Vars const & vars)
-{
-    return selectMin(
-                vars,
-                [](const auto& x) { return x->size() > 1;},
-                [](const auto& x) { return x->size();}
-            );
-}
-
-template<class Vars, class Var>
-Var input_order(Vars const & vars)
-{
-    return selectMin(
-            vars,
-            [](const auto& x) { return x->size() > 1;},
-            [&](const auto& x)
+   auto from = c.begin();
+   auto to = c.end();
+   auto max = to;
+   for(; from != to; from += 1)
+      {
+         if (test(*from))
             {
-                auto it = std::find(vars.begin(), vars.end(), x);
-                return std::distance(vars.begin(), it);
+               auto fv = f(*from);
+               if (max == to || fv > f(*max))
+                  max = from;
             }
-    );
+      }
+   if (max == to)
+      return typename Container::value_type();
+   else
+      return *max;
+}
+
+
+template<class Vars, class Var>
+Var first_fail(Vars const & vars) {
+   return selectMin(
+                    vars,
+                    [](const auto& x) { return x->size() > 1;},
+                    [](const auto& x) { return x->size();}
+                    );
 }
 
 template<class Vars, class Var>
-Var smallest(Vars const & vars)
-{
-    return selectMin(
-            vars,
-            [](const auto& x) { return x->size() > 1;},
-            [](const auto& x) { return x->min();}
-    );
+Var input_order(Vars const & vars) {
+   return selectMin(
+                    vars,
+                    [](const auto& x) { return x->size() > 1;},
+                    [&](const auto& x)
+                    {
+                       auto it = std::find(vars.begin(), vars.end(), x);
+                       return std::distance(vars.begin(), it);
+                    }
+                    );
 }
 
 template<class Vars, class Var>
-Var largest(Vars const & vars)
-{
-    return selectMax(
-            vars,
-            [](const auto& x) { return x->size() > 1;},
-            [](const auto& x) { return x->max();}
-    );
+Var smallest(Vars const & vars) {
+   return selectMin(
+                    vars,
+                    [](const auto& x) { return x->size() > 1;},
+                    [](const auto& x) { return x->min();}
+                    );
+}
+
+template<class Vars, class Var>
+Var largest(Vars const & vars) {
+   return selectMax(
+                    vars,
+                    [](const auto& x) { return x->size() > 1;},
+                    [](const auto& x) { return x->max();}
+                    );
 }
 
 
 // Values selections
-template<class Var>
-Branches indomain_min(CPSolver::Ptr cp, Var var)
-{
-    using namespace Factory;
-
-    if (var)
-    {
-        auto val = var->min();
-        return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " == "<< val << std::endl;) return cp->post(var == val);} |
-               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " != "<< val << std::endl;) return cp->post(var != val);};
-    }
-    else
-    {
-        return Branches({});
-    }
+template<class Var> Branches indomain_min(CPSolver::Ptr cp, Var var) {
+   using namespace Factory;
+   if (var) {
+      auto val = var->min();
+      return [cp,var,val] {
+         TRACE(std::cout << "Choosing x" << var->getId() << " == "<< val << std::endl;);
+         return cp->post(var == val);
+      } |
+         [cp,var,val] {
+            TRACE(std::cout << "Choosing x" << var->getId() << " != "<< val << std::endl;);
+            return cp->post(var != val);
+         };
+   } else
+      return Branches({});
 }
 
-template <class Var>
-Branches indomain_max(CPSolver::Ptr cp, Var var)
-{
-    using namespace Factory;
+template <class Var> Branches indomain_max(CPSolver::Ptr cp, Var var) {
+   using namespace Factory;
 
-    if (var)
-    {
-        auto val = var->max();
-        return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " == "<< val << std::endl;) return cp->post(var == val);} |
-               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " != "<< val << std::endl;) return cp->post(var != val);};
-    }
-    else
-    {
-        return Branches({});
-    }
+   if (var) {
+      auto val = var->max();
+      return [cp,var,val] {
+         TRACE(std::cout << "Choosing x" << var->getId() << " == "<< val << std::endl;);
+         return cp->post(var == val);
+      } |
+         [cp,var,val] {
+            TRACE(std::cout << "Choosing x" << var->getId() << " != "<< val << std::endl;);
+            return cp->post(var != val);
+         };
+   } else
+      return Branches({});
 }
 
-template <class Var>
-Branches indomain_split(CPSolver::Ptr cp, Var var)
-{
-    using namespace Factory;
+template <class Var> Branches indomain_split(CPSolver::Ptr cp, Var var) {
+   using namespace Factory;
 
-    if (var)
-    {
-        auto val = (var->max() + var->min()) / 2;
-        return [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " <= "<< val << std::endl;) return cp->post(var <= val);} |
-               [cp,var,val] { TRACE(std::cout << "Choosing x" << var->getId() << " > "<< val << std::endl;) return cp->post(var >= val + 1);};
-    }
-    else
-    {
-        return Branches({});
-    }
+   if (var) {
+      auto val = (var->max() + var->min()) / 2;
+      return [cp,var,val] {
+         TRACE(std::cout << "Choosing x" << var->getId() << " <= "<< val << std::endl;);
+         return cp->post(var <= val);
+      } |
+         [cp,var,val] {
+            TRACE(std::cout << "Choosing x" << var->getId() << " > "<< val << std::endl;);
+            return cp->post(var >= val + 1);
+         };
+   } else
+      return Branches({});
 }
 
 

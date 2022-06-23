@@ -104,14 +104,16 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
     }
     else
     {
+       // if (branches.size() > 1)
+       //    stats.incrNodes();
        auto last = std::prev(branches.end()); // for proper counting of choices.
        for(auto cur = branches.begin(); cur != branches.end() and !limit(stats); cur++)
        {
           const auto& alt = *cur;
           _sm->saveState();
           TRYFAIL
-              if (cur != last)
-                  stats.incrNodes();
+             if (cur != last)
+                stats.incrNodes();
               alt();
               dfs(stats, limit);
           ONFAIL

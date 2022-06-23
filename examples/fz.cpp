@@ -94,7 +94,10 @@ int main(int argc,char* argv[])
         Limit search_limit = makeLimit(options.count("a") ? 1000000000 : options["n"].as<int>(), options["t"].as<int>());
 
         //Output printing
-        search.onSolution([&](){fzModel->print(std::cout, int_vars, bool_vars); std::cout << "----------" << std::endl;});
+        search.onSolution([&](){
+           fzModel->print(std::cout, int_vars, bool_vars);
+           std::cout << "----------\n";
+        });
 
         //Start search
         search_statistics.setInitTime();
@@ -118,11 +121,11 @@ int main(int argc,char* argv[])
         {
             if(search_statistics.getSolutions() > 0)
             {
-                std::cout <<  "==========" << std::endl;
+               std::cout <<  "==========" << std::endl;
             }
             else
             {
-                std::cout << "=====UNSATISFIABLE=====" << std::endl;
+               std::cout << "=====UNSATISFIABLE=====" << std::endl;
             }
         }
 

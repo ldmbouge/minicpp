@@ -260,11 +260,18 @@ void Minimize::tighten()
    failNow();
 }
 
+int NBT = 0;
+
 Maximize::Maximize(var<int>::Ptr& x)
    : _obj(x),_primal(0x80000001)
 {
    auto todo = std::function<void(void)>([this]() {
-      _obj->removeBelow(_primal);
+      TRYFAIL
+         _obj->removeBelow(_primal);
+      ONFAIL
+         NBT += 1;
+         failNow();
+      ENDFAIL
    });
    _obj->getSolver()->onFixpoint(todo);
 }
@@ -278,6 +285,7 @@ void Maximize::tighten()
 {
    assert(_obj->isBound());
    _primal = _obj->min() + 1;
+   NBT += 1;
    failNow();
 }
 
@@ -676,9 +684,10 @@ int AllDifferentAC::updateRange()
 {
    _minVal = INT32_MAX;
    _maxVal = INT32_MIN;
+   Factory::Veci::pointer x = _x.data();
    for(int i=0;i < _nVar;i++) {
-      _minVal = std::min(_minVal,_x[i]->min());
-      _maxVal = std::max(_maxVal,_x[i]->max());
+      _minVal = std::min(_minVal,x[i]->min());
+      _maxVal = std::max(_maxVal,x[i]->max());
    }
    return _maxVal - _minVal + 1;
 }
@@ -692,10 +701,13 @@ void AllDifferentAC::updateGraph()
       _rg.addEdge(valNode(_match[i]),i);
       _matched[_match[i] - _minVal] = true;
    }
-   for(int i = 0; i < _nVar;i++)
-      for(int v = _x[i]->min();v <= _x[i]->max();v++)
-         if (_x[i]->contains(v) && _match[i] != v)
+   Factory::Veci::pointer x = _x.data();
+   for(int i = 0; i < _nVar;i++) {
+      const int max = x[i]->max();
+      for(int v = x[i]->min();v <= max;v++)
+         if (x[i]->containsBase(v) && _match[i] != v)
             _rg.addEdge(i,valNode(v));
+   }
    for(int v = _minVal;v <= _maxVal;v++) {
       if (!_matched[v - _minVal])
          _rg.addEdge(valNode(v),sink);
@@ -717,10 +729,11 @@ void AllDifferentAC::propagate()
          scc[nd[i]] = nc;
       ++nc;
    });
+   Factory::Veci::pointer x = _x.data();
    for(int i=0;i < _nVar;i++)
       for(int v = _minVal; v <= _maxVal;v++)
          if (_match[i] != v && scc[i] != scc[valNode(v)])
-            _x[i]->remove(v);
+            x[i]->remove(v);
 }
 
 void Circuit::setup(CPSolver::Ptr cp)
@@ -952,6 +965,7 @@ void Element1DDC::post()
       sorted.push_back(_t[k]);    
   std::sort(sorted.begin(),sorted.end());
   _nbv = 0;
+  _values = new (cps) DCIndex[sorted.size()];
   int previous = sorted[0]-1; // so that the test below is false on first iteration
   for(auto v : sorted) {
     if (v!=previous) {
@@ -973,6 +987,7 @@ void Element1DDC::post()
       _z->remove(zk);
   }
   // build all the linked lists in _list (header in _values._k set at EOL marker at start)
+  _list = new (cps) int[yMax - yMin + 1];
   for(int yk=_y->min();yk <= _y->max();yk++) 
     if (_y->contains(yk)) {
       int idx = findIndex(_t[yk]);  // locate the list that carries the value reachable by yk in _t

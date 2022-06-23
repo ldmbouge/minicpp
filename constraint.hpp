@@ -644,7 +644,7 @@ namespace Factory
       std::vector<int> flat(array.size());
       for(int i=0;i < (int)array.size();i++)
          flat[i] = array[i];
-      return new (y->getSolver()) Element1DBasic(flat,y,z);
+      return new (y->getSolver()) Element1DDC(flat,y,z);
    }
    template <class Vec> Constraint::Ptr elementVar(const Vec& xs,var<int>::Ptr y,var<int>::Ptr z) {
        std::vector<var<int>::Ptr> flat(xs.size());
@@ -667,7 +667,7 @@ namespace Factory
       std::vector<int> flat(array.size());
       for(int i=0;i < array.size();i++)
          flat[i] = array[i];
-      return new (y->getSolver()) Element1D(flat,y,z);
+      return new (y->getSolver()) Element1DDC(flat,y,z);
    }
    template <class Vec> inline var<int>::Ptr element(const Vec& array,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
@@ -678,7 +678,7 @@ namespace Factory
          max = max > v ? max : v;
       }
       auto z = makeIntVar(y->getSolver(),min,max);
-      y->getSolver()->post(new (y->getSolver()) Element1D(flat,y,z));
+      y->getSolver()->post(new (y->getSolver()) Element1DDC(flat,y,z));
       return z;
    }
    template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y) {

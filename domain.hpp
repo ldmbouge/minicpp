@@ -46,7 +46,8 @@ public:
     int max() const { return _max;}
     int size() const { return _sz;}
     bool isBound() const { return _sz == 1;}
-    bool member(int v) const { return _min <= v && v <= _max && GETBIT(v);}
+    bool member(int v) const noexcept { return _min <= v && v <= _max && GETBIT(v);}
+    bool memberBase(int v) const noexcept { return GETBIT(v);}
 
     void assign(int v,IntNotifier& x);
     void remove(int v,IntNotifier& x);
