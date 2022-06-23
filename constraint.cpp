@@ -912,6 +912,143 @@ void Element1DBasic::print(std::ostream& os) const
    os << "element1DBasic(" << _t << ',' << _y << ',' << _z << ')' << std::endl;
 }
 
+Element1DDC::Element1DDC(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z)
+   : Constraint(y->getSolver()),_t(array),_y(y),_z(z)
+{}
+
+int Element1DDC::findIndex(int target) const
+{
+  int l = 0,u = _nbv-1;
+  while (l <= u) {
+    int m = (l+u)/2;
+    if (_values[m]._v == target)
+      return m;
+    else if (_values[m]._v > target)
+      u = m - 1;
+    else l = m + 1;
+  }
+  return _endOfList;
+}
+
+struct NoNotify : IntNotifier {
+  void empty() {}
+  void bind()  {}
+  void change() {}
+  void changeMin() {}
+  void changeMax() {}
+};
+
+void Element1DDC::post()
+{
+  auto cps = _z->getSolver();
+  _zOld = new (cps) BitDomain(cps->getStateManager(),cps->getStore(),_z->min(),_z->max());
+  _yOld = new (cps) BitDomain(cps->getStateManager(),cps->getStore(),_y->min(),_y->max());
+  _y->updateBounds(0,_t.size()-1);
+  int yMin = _y->min(),yMax = _y->max();
+  _endOfList = _y->min() - 1;
+  std::vector<int> sorted;
+  for(int k = yMin; k <= yMax;k++) 
+    if (_y->contains(k)) 
+      sorted.push_back(_t[k]);    
+  std::sort(sorted.begin(),sorted.end());
+  _nbv = 0;
+  int previous = sorted[0]-1; // so that the test below is false on first iteration
+  for(auto v : sorted) {
+    if (v!=previous) {
+      _values[_nbv]._v = v;
+      _values[_nbv]._k = _endOfList; // end-of-list marker. _list is built after
+      _values[_nbv]._s = trail<int>(cps->getStateManager(),1);
+      _nbv++;
+    } else _values[_nbv-1]._s++; // one more index reaches that same previous value.
+    previous = v;
+  }
+  int tMin = std::max(sorted[0],_z->min());         // use z.min and smallest in sorted
+  int tMax = std::min(*(sorted.end()-1),_z->max()); // use z.max and largest in sorted
+  _z->updateBounds(tMin,tMax);
+  int last = 0;
+  // prune _z based on the values that do appear in _values (i.e., in _t)
+  for(int zk = tMin;zk <= tMax;zk++) {
+    while (_values[last]._v < zk) last++; // skip until we are >= zk
+    if (_values[last]._v > zk) // then zk is not in _values, delete it from _z. otherwise do nothing.
+      _z->remove(zk);
+  }
+  // build all the linked lists in _list (header in _values._k set at EOL marker at start)
+  for(int yk=_y->min();yk <= _y->max();yk++) 
+    if (_y->contains(yk)) {
+      int idx = findIndex(_t[yk]);  // locate the list that carries the value reachable by yk in _t
+      _list[yk] = _values[idx]._k;  // set the list entry to that list
+      _values[idx]._k = yk;         // and insert yk in front of that list (supports of _v) 
+    }
+  // prune _y based on the values NOT in D(_z) that have supports.
+  for(int k=0;k < _nbv;k++)
+    if (!_z->contains(_values[k]._v)) {
+      int link = _values[k]._k;
+      while(link != _endOfList) {
+        _y->remove(link);
+        link = _list[link];
+      }
+    }
+  // setup a copy of the domains of z,y to be able to identify which values were lost.
+  // This is a quick reuse of BitDomain, which is why a Notifier is needed
+  NoNotify nn;
+  _zOld->removeBelow(_z->min(),nn);
+  _zOld->removeAbove(_z->max(),nn);
+  for(int k = _z->min(); k <= _z->max();k++)
+    if (!_z->contains(k))
+      _zOld->remove(k,nn);
+
+  _yOld->removeBelow(_y->min(),nn);
+  _yOld->removeAbove(_y->max(),nn);
+  for(int k = _y->min(); k <= _y->max();k++)
+    if (!_y->contains(k))
+      _yOld->remove(k,nn);
+
+  // Hook up listeners
+  _y->propagateOnDomainChange(this);
+  _z->propagateOnDomainChange(this);
+}
+
+void Element1DDC::zLostValue(int v)
+{
+  int k = findIndex(v);
+  int link = _values[k]._k;
+  while (link != _endOfList) {
+    _y->remove(link);
+    link = _list[link];
+  }
+}
+
+void Element1DDC::yLostValue(int v)
+{
+  int k = findIndex(_t[v]);
+  _values[k]._s--;
+  if (_values[k]._s == 0)
+    _z->remove(_values[k]._v);
+}
+
+void Element1DDC::propagate() 
+{
+  NoNotify nn;
+  for(int i=_zOld->min(); i <= _zOld->max();i++) {
+    if (_zOld->member(i) && !_z->contains(i)) { // i was lost from D(z) but we didn't know that -> value Lost Event
+      zLostValue(i);
+      _zOld->remove(i,nn);
+    }
+  }
+  for(int i=_yOld->min();i <= _yOld->max();i++) {
+    if (_yOld->member(i) && !_y->contains(i)) {
+      yLostValue(i);
+      _yOld->remove(i,nn);
+    }
+  }
+}
+
+void Element1DDC::print(std::ostream& os) const 
+{
+   os << "element1DDC(" << _t << ',' << _y << ',' << _z << ')' << std::endl;
+}
+
+
 Element1D::Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z)
    : Constraint(y->getSolver()),_t(array),_y(y),_z(z)
 {}
