@@ -32,13 +32,17 @@ struct IntNotifier   {
 };
 
 class BitDomain {
-    trail<int>*               _dom;
-    trail<int>       _min,_max,_sz;
-    const int        _imin;
-    int count(int from,int to) const;
-    int findMin(int from) const;
-    int findMax(int from) const;
-    void setZero(int at);
+   trail<int>*               _dom;
+   trail<int>       _min,_max,_sz;
+   const int        _imin;
+   int count(int from,int to) const;
+   int findMin(int from) const;
+   int findMax(int from) const;
+   void setZero(int at) const noexcept {
+      at -= _imin;
+      const int mw = at >> 5,  mb = at & 0x1f;
+      _dom[mw] = _dom[mw] & ~(0x1 << mb);
+   }
 public:
     typedef handle_ptr<BitDomain>  Ptr;
     BitDomain(Trailer::Ptr eng,Storage::Ptr store,int min,int max);

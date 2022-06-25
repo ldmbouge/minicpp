@@ -24,16 +24,34 @@
 
 class Graph {
    int V;
-   std::vector<std::vector<int>> adj;
+   struct AdjList {
+      int* _t;
+      int  _n;
+      AdjList():_t(nullptr),_n(0) {}
+      AdjList(int n)              { _t = new int[n];_n = 0;}
+      ~AdjList()                  { delete []_t;}
+      void clear() noexcept       { _n = 0;}
+      void append(int v) noexcept { _t[_n++] = v;}
+   };
+   AdjList* adj;
    template <typename B>
-   void SCCUtil(B body,int& time,int u, int disc[], int low[],std::stack<int>& st, bool inStack[]);
+   void SCCUtil(B body,int& time,int u, int disc[], int low[],
+                int st[],int& top,bool inStack[]);
 public:
-   Graph(int nbV) : V(nbV),adj(nbV) {}
-   Graph() : V(0) {}
-   Graph(Graph&& g) : V(g.V),adj(std::move(g.adj)) {}
-   Graph& operator=(Graph&& g) { V = std::move(g.V); adj = std::move(g.adj);return *this;}
-   void clear()                { for(auto& al : adj) al.clear();}
-   void addEdge(int v, int w)  { adj[v].push_back(w);}
+   Graph(int nbV) : V(nbV) {
+      adj = new AdjList[V];
+      for(int i=0;i<V;i++) new (adj+i) AdjList(V);      
+   }
+   Graph() : V(0),adj(nullptr) {}
+   ~Graph() { delete []adj;}
+   Graph& operator=(Graph&& g)  {
+      V = g.V;
+      adj = std::move(g.adj);
+      g.adj = nullptr;
+      return *this;
+   }
+   void clear() noexcept               { for(int i=0;i<V;i++) adj[i].clear();}
+   void addEdge(int v, int w) noexcept { adj[v].append(w);}
    template <typename B> void SCC(B body); // apply body to each SCC
 };
 
@@ -59,14 +77,16 @@ public:
 };
 
 template <typename B>
-void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],std::stack<int>& st,bool inStack[])
+void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],
+                    int st[],int& top,bool inStack[])
 {
    disc[u] = low[u] = ++time;
-   st.push(u);
+   st[top++] = u;
    inStack[u] = true;
-   for(const auto v : adj[u]) { // v is current adjacent of 'u'
+   for(int k=0;k < adj[u]._n;k++) {
+      const auto v = adj[u]._t[k];  // v is current adjacent of 'u'
       if (disc[v] == -1)  {
-         SCCUtil(body,time,v, disc, low, st, inStack);
+         SCCUtil(body,time,v, disc, low, st,top,inStack);
          low[u] = std::min(low[u], low[v]);
       }
       else if (inStack[v])
@@ -74,14 +94,12 @@ void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],std::stack<int>
    }
    if (low[u] == disc[u])  {
       int* scc = (int*)alloca(sizeof(int)*V),k=0;
-      while (st.top() != u)  {
-         scc[k++] = st.top();
+      while (st[top-1] != u)  {
+         scc[k++] = st[--top];
          inStack[scc[k-1]] = false;
-         st.pop();
       }
-      scc[k++] = st.top();
+      scc[k++] = st[--top];
       inStack[scc[k-1]] = false;
-      st.pop();
       body(k,scc);
    }
 }
@@ -89,8 +107,9 @@ void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],std::stack<int>
 template <typename B> void Graph::SCC(B body) {
    int* disc = (int*)alloca(sizeof(int)*V);
    int* low  = (int*)alloca(sizeof(int)*V);
+   int* st   = (int*)alloca(sizeof(int)*V);
    bool* inStack = (bool*)alloca(sizeof(bool)*V);
-   std::stack<int> st;
+   int top = 0;
    int time = 0;
    for (int i = 0; i < V; i++)  {
       disc[i] = low[i] = -1;
@@ -98,7 +117,7 @@ template <typename B> void Graph::SCC(B body) {
    }
    for (int i = 0; i < V; i++)
       if (disc[i] == -1)
-         SCCUtil(body,time,i, disc, low, st,inStack);
+         SCCUtil(body,time,i, disc, low, st,top,inStack);
 }
 
 #endif

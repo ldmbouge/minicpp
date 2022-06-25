@@ -732,7 +732,7 @@ void AllDifferentAC::propagate()
    Factory::Veci::pointer x = _x.data();
    for(int i=0;i < _nVar;i++)
       for(int v = _minVal; v <= _maxVal;v++)
-         if (_match[i] != v && scc[i] != scc[valNode(v)])
+        if (_match[i] != v && scc[i] != scc[valNode(v)] && x[i]->containsBase(v))
             x[i]->remove(v);
 }
 

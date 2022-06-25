@@ -254,7 +254,7 @@ class AllDifferentAC : public Constraint {
    int _nVar,_nVal,_nNodes;
    int updateRange();
    void updateGraph();
-   int valNode(int vid) const { return vid - _minVal + _nVar;}
+   int valNode(int vid) const noexcept { return vid - _minVal + _nVar;}
 public:
    template <class Vec> AllDifferentAC(const Vec& x)
       : Constraint(x[0]->getSolver()),

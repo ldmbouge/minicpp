@@ -74,8 +74,8 @@ public:
        // if (size() == 1)
        //     os << min();
        // else
-            os << "x_" << getId() << '(' << *_dom << ')';
-        return os;
+       os << "x_" << getId() << '(' << *_dom << ')';
+       return os;
     }
 };
 

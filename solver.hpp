@@ -81,11 +81,8 @@ public:
     }
     void onFixpoint(std::function<void(void)>& cb) { _onFix.emplace_back(cb);}
     void notifyFixpoint();
-   //void tighten();
     void fixpoint();
-   //void fixpointNT();
     void post(Constraint::Ptr c,bool enforceFixPoint=true);
-   //void fail();
     friend void* operator new(std::size_t sz,CPSolver::Ptr e);
     friend void* operator new[](std::size_t sz,CPSolver::Ptr e);
     friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {

@@ -107,12 +107,6 @@ int BitDomain::findMax(int from) const
     }
     return _imin + ((mw << 5) + mb);
 }
-void BitDomain::setZero(int at)
-{
-    at -= _imin;
-    const int mw = at >> 5,  mb = at & 0x1f;
-    _dom[mw] = _dom[mw] & ~(0x1 << mb);
-}
 
 void BitDomain::assign(int v,IntNotifier& x)  // removeAllBut(v,x)
 {
@@ -136,67 +130,32 @@ void BitDomain::assign(int v,IntNotifier& x)  // removeAllBut(v,x)
 
 void BitDomain::remove(int v,IntNotifier& x)
 {
-    /*
-    if(member(v))
-    {
-        bool minChanged = v == _min;
-        bool maxChanged = v == _max;           
-
-        if (minChanged) 
-        {               
-            _min = findMin(_min + 1);
-            x.changeMin();
-        } 
-        else if (maxChanged) 
-        {
-            _max = findMax(_max - 1);
-            x.changeMax();
-        }
-
-        setZero(v);
-        x.change(); 
-
-        _sz -= 1;
-        if (_sz == 0)
-        {
-            x.empty();      
-        } 
-        else if (_sz == 1)
-        {
-            x.bind();
-        }           
-    }
-     */
-
-
-    if (v < _min || v > _max)
+   const int theMin = _min,theMax = _max;
+    if (v < theMin || v > theMax)
         return;
-    if (_min.value() == _max.value())
-        x.empty();
-    bool minChanged = v == _min;
-    bool maxChanged = v == _max;
+    const bool minChanged = v == theMin;
+    const bool maxChanged = v == theMax;
     if (minChanged) {
-        _sz = _sz - 1;
-       _min = findMin(_min + 1);
+        const int sz = _sz -= 1;
+       _min = findMin(theMin + 1);
         x.changeMin();
-        if (_sz == 1) x.bind();
-        if (_sz == 0) x.empty();
+        if (sz == 1) x.bind();
+        if (sz == 0) x.empty();
         x.change();
     } else if (maxChanged) {
-        _sz = _sz - 1;
-        _max = findMax(_max - 1);
+        const int sz = _sz -= 1;
+        _max = findMax(theMax - 1);
         x.changeMax();
-        if (_sz == 1) x.bind();
-        if (_sz == 0) x.empty();
+        if (sz == 1) x.bind();
+        if (sz == 0) x.empty();
         x.change();
     } else if (member(v)) {
         setZero(v);
-        _sz = _sz - 1;
-        if (_sz == 1) x.bind();
-        if (_sz == 0) x.empty();
+        const int sz = _sz -= 1;
+        if (sz == 1) x.bind();
+        if (sz == 0) x.empty();
         x.change();
     }
-
 }
 
 void BitDomain::removeBelow(int newMin,IntNotifier& x)

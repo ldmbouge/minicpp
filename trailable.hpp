@@ -51,22 +51,22 @@ public:
     * Reports whether the value held in the object was changed since the last choice
     * @return true if the magic number is *stale* (the trailable was not written to yet in this choice point).
     */
-   bool fresh() const { return _magic != _ctx->magic();}
+   bool fresh() const noexcept { return _magic != _ctx->magic();}
    /**
     * Reports the Trailer::Ptr object used by this value
     * @return a pointer to the trailer
     */
-   Trailer::Ptr ctx() const { return _ctx;}
+   Trailer::Ptr ctx() const noexcept  { return _ctx;}
    /**
     * @brief Casting operator that returns the current value of the object.
     * @return Current value of the object.
     */
-   operator T() const { return _value;}
+   operator T() const noexcept { return _value;}
    /**
     * @brief Value method that returns the current value of the object.
     * @return Current value of the object. 
     */
-   T value() const { return _value;}
+   T value() const noexcept { return _value;}
    /**
     * Assignment operator
     * @param v the new value to record
