@@ -65,7 +65,7 @@ int MaximumMatching::findMaximalMatching() {
 bool MaximumMatching::findAlternatingPathFromVar(int i) {
    if (_varSeen[i] != _magic) {
       _varSeen[i] = _magic;
-      int xMin = _x[i]->min(),xMax = _x[i]->max();
+      const int xMin = _x[i]->min(),xMax = _x[i]->max();
       for(int v=xMin;v <= xMax;v++) {
          if (_match[i] != v) {
             if (_x[i]->contains(v)) {

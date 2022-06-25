@@ -52,7 +52,7 @@ public:
     bool isBound() const { return _sz == 1;}
     bool member(int v) const noexcept { return _min <= v && v <= _max && GETBIT(v);}
     bool memberBase(int v) const noexcept { return GETBIT(v);}
-
+    bool changed() const noexcept { return !_sz.fresh();}
     void assign(int v,IntNotifier& x);
     void remove(int v,IntNotifier& x);
     void removeBelow(int newMin,IntNotifier& x);
@@ -86,6 +86,7 @@ public:
         if (val < 0 || val >= _n) return false;
         return _indexes[val] < _size;
     }
+    bool changed() const noexcept { return _size.fresh();}
     bool remove(int val);
     void removeAllBut(int v);
     void removeAll() { _size = 0;}
@@ -104,6 +105,7 @@ public:
     int size() const { return _dom.size();}
     bool member(int v) const { return _dom.contains(v);}
     bool isBound() const { return _dom.size() == 1;}
+    bool changed() const noexcept { return _dom.changed();}
 
     void assign(int v,IntNotifier& x);
     void remove(int v,IntNotifier& x);

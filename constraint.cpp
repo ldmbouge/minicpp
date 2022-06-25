@@ -674,9 +674,9 @@ void AllDifferentAC::post()
    for(int i=0;i < _nVar;i++)
       _x[i]->propagateOnDomainChange(this);
    _match   = new (cp) int[_nVar];
-   _matched = new (cp) bool[_nVal];
+   _varFor  = new (cp) int[_nVal];
    _nNodes  = _nVar + _nVal + 1;
-   _rg = Graph(_nNodes);
+   _rg = new (cp) PGraph(_nVar,_minVal,_maxVal,_match,_varFor,_x.data());
    propagate();
 }
 
@@ -692,39 +692,22 @@ int AllDifferentAC::updateRange()
    return _maxVal - _minVal + 1;
 }
 
-void AllDifferentAC::updateGraph()
-{
-   const int sink = _nNodes - 1;
-   _rg.clear();
-   memset(_matched,0,_nVal);
-   for(int i=0;i < _nVar;i++) {
-      _rg.addEdge(valNode(_match[i]),i);
-      _matched[_match[i] - _minVal] = true;
-   }
-   Factory::Veci::pointer x = _x.data();
-   for(int i = 0; i < _nVar;i++) {
-      const int max = x[i]->max();
-      for(int v = x[i]->min();v <= max;v++)
-         if (x[i]->containsBase(v) && _match[i] != v)
-            _rg.addEdge(i,valNode(v));
-   }
-   for(int v = _minVal;v <= _maxVal;v++) {
-      if (!_matched[v - _minVal])
-         _rg.addEdge(valNode(v),sink);
-      else _rg.addEdge(sink,valNode(v));
-   }  
-}
-
 void AllDifferentAC::propagate()
 {
    int size = _mm.compute(_match);
-   if (size < _nVar)
+   if (size < _nVar) 
       failNow();
    updateRange();
-   updateGraph();
+   _rg->setLiveValues(_minVal,_maxVal);
+   
+   for(int i=0;i < _nVal;++i) _varFor[i] = -1;
+   for(int i=0;i < _nVar;++i) _varFor[_match[i] - _minVal] = i; 
+
+   //std::cout << "DD:" << _nbd << "    " << _nbmd << "   " << _nVar << "/" << (_maxVal - _minVal + 1) << "\n";
+   
    int nc = 0;
    int* scc = (int*)alloca(sizeof(int)*_nNodes);
-   _rg.SCC([&scc,&nc](int n,int nd[]) {
+   _rg->SCC([&scc,&nc](int n,int nd[]) {
       for(int i=0;i < n;i++)
          scc[nd[i]] = nc;
       ++nc;

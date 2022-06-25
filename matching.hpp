@@ -22,37 +22,34 @@
 #include <stdint.h>
 #include "intvar.hpp"
 
-class Graph {
-   int V;
-   struct AdjList {
-      int* _t;
-      int  _n;
-      AdjList():_t(nullptr),_n(0) {}
-      AdjList(int n)              { _t = new int[n];_n = 0;}
-      ~AdjList()                  { delete []_t;}
-      void clear() noexcept       { _n = 0;}
-      void append(int v) noexcept { _t[_n++] = v;}
+class PGraph {
+   struct VTag {
+      int disc;
+      int low;
+      bool held;
    };
-   AdjList* adj;
+   const int _nbVar,_nbVal,_V,_sink;
+   int _minVal,_maxVal;
+   int* _match; 
+   int* _varFor;
+   Factory::Veci::pointer _x;
    template <typename B>
-   void SCCUtil(B body,int& time,int u, int disc[], int low[],
-                int st[],int& top,bool inStack[]);
+   void SCCFromVertex(const int v,B body,int& time,int u,VTag tags[],int st[],int& top);
+   template <typename B>
+   void SCCUtil(B body,int& time,int u,VTag tags[],int st[],int& top);
 public:
-   Graph(int nbV) : V(nbV) {
-      adj = new AdjList[V];
-      for(int i=0;i<V;i++) new (adj+i) AdjList(V);      
-   }
-   Graph() : V(0),adj(nullptr) {}
-   ~Graph() { delete []adj;}
-   Graph& operator=(Graph&& g)  {
-      V = g.V;
-      adj = std::move(g.adj);
-      g.adj = nullptr;
-      return *this;
-   }
-   void clear() noexcept               { for(int i=0;i<V;i++) adj[i].clear();}
-   void addEdge(int v, int w) noexcept { adj[v].append(w);}
-   template <typename B> void SCC(B body); // apply body to each SCC
+   PGraph(int nbVar,int minVal,int maxVal,int match[],int varFor[],Factory::Veci::pointer x)
+      : _nbVar(nbVar),
+        _nbVal(maxVal - minVal + 1),
+        _V(nbVar + _nbVal + 1),
+        _sink(nbVar + _nbVal),
+        _minVal(minVal),
+        _maxVal(maxVal),
+        _match(match),
+        _varFor(varFor),
+        _x(x) {}
+   void setLiveValues(int min,int max) { _minVal = min;_maxVal = max;}
+   template <typename B> void SCC(B body); // apply body to each SCC   
 };
 
 class MaximumMatching {
@@ -75,49 +72,66 @@ public:
    void setup();
    int compute(int result[]);
 };
-
+   
 template <typename B>
-void Graph::SCCUtil(B body,int& time,int u,int disc[], int low[],
-                    int st[],int& top,bool inStack[])
+void PGraph::SCCFromVertex(const int v,B body,int& time,int u, VTag tags[],
+                           int st[],int& top)
 {
-   disc[u] = low[u] = ++time;
-   st[top++] = u;
-   inStack[u] = true;
-   for(int k=0;k < adj[u]._n;k++) {
-      const auto v = adj[u]._t[k];  // v is current adjacent of 'u'
-      if (disc[v] == -1)  {
-         SCCUtil(body,time,v, disc, low, st,top,inStack);
-         low[u] = std::min(low[u], low[v]);
-      }
-      else if (inStack[v])
-          low[u] = std::min(low[u], disc[v]);
+   if (tags[v].disc == -1)  {
+      SCCUtil(body,time,v,tags,st,top);
+      tags[u].low = std::min(tags[u].low, tags[v].low);
    }
-   if (low[u] == disc[u])  {
-      int* scc = (int*)alloca(sizeof(int)*V),k=0;
-      while (st[top-1] != u)  {
-         scc[k++] = st[--top];
-         inStack[scc[k-1]] = false;
-      }
-      scc[k++] = st[--top];
-      inStack[scc[k-1]] = false;
-      body(k,scc);
-   }
+   else if (tags[v].held)
+      tags[u].low = std::min(tags[u].low, tags[v].disc);
 }
 
-template <typename B> void Graph::SCC(B body) {
-   int* disc = (int*)alloca(sizeof(int)*V);
-   int* low  = (int*)alloca(sizeof(int)*V);
-   int* st   = (int*)alloca(sizeof(int)*V);
-   bool* inStack = (bool*)alloca(sizeof(bool)*V);
-   int top = 0;
-   int time = 0;
-   for (int i = 0; i < V; i++)  {
-      disc[i] = low[i] = -1;
-      inStack[i] = false;
+
+template <typename B>
+void PGraph::SCCUtil(B body,int& time,int u, VTag tags[],int st[],int& top)
+{
+   ++time;
+   tags[u] = {time,time,true};
+   st[top++] = u;
+   if (u < _nbVar) { // u is a variable [0.._nbVar)
+      const int xuMin = _x[u]->min(),xuMax = _x[u]->max(),mu = _match[u];
+      for(int k = xuMin ; k <= xuMax ; ++k) {
+         if (mu != k && _x[u]->containsBase(k)) {
+            const int v = k - _minVal + _nbVar;
+            SCCFromVertex(v,body,time,u,tags,st,top); // v is a value node in the pseudo-graph
+         }
+      }
+   } else if (u < _nbVar + _nbVal) { // u is a value. Exactly one edge out (to sink or var when matched)
+      const int v = (_varFor[u - _nbVar] == -1) ? _sink : _varFor[u - _nbVar];
+      SCCFromVertex(v,body,time,u,tags,st,top);
+   } else { // u == sink: edge set going to matched values
+      const int lastShiftedVal = _maxVal - _minVal;
+      for(int k = 0; k <= lastShiftedVal;++k) {
+         if (_varFor[k] != -1) {
+            const int v = _nbVar + k;  // this is the *value* node
+            SCCFromVertex(v,body,time,u,tags,st,top);
+         }
+      }
    }
-   for (int i = 0; i < V; i++)
-      if (disc[i] == -1)
-         SCCUtil(body,time,i, disc, low, st,top,inStack);
+   if (tags[u].low == tags[u].disc)  {
+      int oldTop = top;
+      while (st[top-1] != u)  
+         tags[st[--top]].held = false;      
+      tags[st[--top]].held = false;
+      body(oldTop - top,st+top);
+   }   
+}
+
+template <typename B> void PGraph::SCC(B body)
+{
+   VTag tags[_V];
+   int st[_V];
+   int top = 0,time = 0;
+   for (int i = 0; i < _V; i++) 
+      tags[i] = {-1,-1,false};
+
+   for (int i = 0; i < _V; i++)
+      if (tags[i].disc == -1)
+         SCCUtil(body,time,i,tags,st,top);
 }
 
 #endif

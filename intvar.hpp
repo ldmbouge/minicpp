@@ -56,6 +56,7 @@ public:
    bool isBound() const override { return _dom->isBound();}
    bool contains(int v) const override { return _dom->member(v);}
    bool containsBase(int v) const override { return _dom->memberBase(v);}
+   bool changed() const noexcept override  { return _dom->changed();}
 
    void assign(int v) override;
    void remove(int v) override;
@@ -90,6 +91,7 @@ public:
    int size() const override { return _x->size();}
    bool isBound() const override { return _x->isBound();}
    bool contains(int v) const override { return _x->contains(-v);}
+   bool changed() const noexcept override  { return _x->changed();}
    
    void assign(int v) override { _x->assign(-v);}
    void remove(int v) override { _x->remove(-v);}
@@ -146,6 +148,7 @@ public:
    int size() const override { return _x->size();}
    bool isBound() const override { return _x->isBound();}
    bool contains(int v) const override { return (v % _a != 0) ? false : _x->contains(v / _a);}
+   bool changed() const noexcept override  { return _x->changed();}
    
    void assign(int v) override {
       if (v % _a == 0)
@@ -199,6 +202,7 @@ public:
    int size() const override { return _x->size();}
    bool isBound() const override { return _x->isBound();}
    bool contains(int v) const override { return _x->contains(v - _o);}
+   bool changed() const noexcept override  { return _x->changed();}
    
    void assign(int v) override { _x->assign(v - _o);}
    void remove(int v) override { _x->remove(v - _o);}

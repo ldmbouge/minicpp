@@ -247,13 +247,11 @@ public:
 class AllDifferentAC : public Constraint {
    Factory::Veci    _x;
    MaximumMatching _mm;
-   Graph           _rg;
-   int* _match;
-   bool* _matched;
+   PGraph*         _rg;
+   int* _match,*_varFor;
    int _minVal,_maxVal;
    int _nVar,_nVal,_nNodes;
    int updateRange();
-   void updateGraph();
    int valNode(int vid) const noexcept { return vid - _minVal + _nVar;}
 public:
    template <class Vec> AllDifferentAC(const Vec& x)

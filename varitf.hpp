@@ -85,13 +85,25 @@ n    * variables must be solver allocated via the Factory.)
     */
    virtual bool isBound() const = 0;
    /**
-    * Reports whether a variable still appears in the domain.
+    * Reports whether a value still appears in the domain.
     * @param v the value to test
     * @return true if and only if v is in the domain
     * @see size()
     */
    virtual bool contains(int v) const = 0;
+   /**
+    * Reports whether a value still appears in the domain (assumption: min <= v <= max).
+    * @param v the value to test
+    * @return true if and only if v is in the domain (assumption: min <= v <= max).
+    * @see size()
+    */
    virtual bool containsBase(int v) const { return contains(v);}
+   /**
+    * Reports whether the variable was modified (lost at least 1 value) in the current node
+    * @return true if and only if the variable lost at least 1 value
+    * @see size()
+    */
+   virtual bool changed() const noexcept = 0;
    /**
     * Binds the variable to the given value. Namely, the domain
     * changes to contain only the specified value. All others are
