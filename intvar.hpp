@@ -55,6 +55,7 @@ public:
    int size() const override { return _dom->size();}
    bool isBound() const override { return _dom->isBound();}
    bool contains(int v) const override { return _dom->member(v);}
+   bool containsBase(int v) const override { return _dom->memberBase(v);}
 
    void assign(int v) override;
    void remove(int v) override;

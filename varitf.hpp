@@ -50,7 +50,7 @@ public:
    /**
     * Ptr is the type for smart pointers to solver allocated variables.
     * This is the only type one should use to manipulate variabes (all
-    * variables must be solver allocated via the Factory.)
+n    * variables must be solver allocated via the Factory.)
     */
    typedef handle_ptr<var<int>> Ptr;
    /**
@@ -91,6 +91,7 @@ public:
     * @see size()
     */
    virtual bool contains(int v) const = 0;
+   virtual bool containsBase(int v) const { return contains(v);}
    /**
     * Binds the variable to the given value. Namely, the domain
     * changes to contain only the specified value. All others are

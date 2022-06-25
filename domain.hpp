@@ -46,7 +46,8 @@ public:
     int max() const { return _max;}
     int size() const { return _sz;}
     bool isBound() const { return _sz == 1;}
-    bool member(int v) const { return _min <= v && v <= _max && GETBIT(v);}
+    bool member(int v) const noexcept { return _min <= v && v <= _max && GETBIT(v);}
+    bool memberBase(int v) const noexcept { return GETBIT(v);}
 
     void assign(int v,IntNotifier& x);
     void remove(int v,IntNotifier& x);
@@ -61,7 +62,7 @@ class SparseSet {
     trail<int>       _size,_min,_max;
     int              _ofs,_n;
     void exchangePositions(int val1,int val2);
-  bool checkVal(int val) const { assert(val <= (int)_values.size()-1);return true;}
+    bool checkVal(int val) const { assert(val <= (int)_values.size()-1);return true;}
     bool internalContains(int val) const {
         if (val < 0 || val >= _n)
             return false;

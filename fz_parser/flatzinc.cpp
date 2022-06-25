@@ -273,7 +273,7 @@ namespace FlatZinc
 
     void FlatZincModel::maximize(int var, AST::Array* ann) 
     {
-        method.type = Method::Minimization;
+        method.type = Method::Maximization;
         objective_variable = var;
         parseSolveAnnotation(ann);
     }

@@ -352,7 +352,32 @@ class Element1DBasic : public Constraint { // z == t[y]
    trail<int> _from,_to;
 public:
    Element1DBasic(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z);
-   void post() override;;
+   void post() override;
+   void propagate() override;
+   void print(std::ostream& os) const override;
+};
+
+class Element1DDC : public Constraint { // z =DC= t[y] (Domain consistent version)
+   std::vector<int> _t;
+   var<int>::Ptr    _y;
+   var<int>::Ptr    _z;
+   // Internal state
+   struct DCIndex {    // for each value v in D(z) we maintain the support and the head of a list
+      int        _v;   // the actual value from D(z)
+      int        _k;   // the first index in t s.t. t[k]==v. The next index is in _list[k] (i.e., t[list[k]]==v)
+      trail<int> _s;   // |{j in D(y) : t[j] == v }|
+   }; 
+   int      _endOfList; // endoflist marker
+   DCIndex*    _values; // an array that holds, for each value in D(z), the support structure
+   int*          _list; // holds _all_ the list indices (one list per index value) |_list| = range(t)
+   int            _nbv; // number of values in _values
+   BitDomain::Ptr _zOld,_yOld;
+   int findIndex(int target) const;
+   void zLostValue(int v);
+   void yLostValue(int v);
+public:
+   Element1DDC(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z);
+   void post() override;
    void propagate() override;
    void print(std::ostream& os) const override;
 };
@@ -619,7 +644,7 @@ namespace Factory
       std::vector<int> flat(array.size());
       for(int i=0;i < (int)array.size();i++)
          flat[i] = array[i];
-      return new (y->getSolver()) Element1D(flat,y,z);
+      return new (y->getSolver()) Element1DDC(flat,y,z);
    }
    template <class Vec> Constraint::Ptr elementVar(const Vec& xs,var<int>::Ptr y,var<int>::Ptr z) {
        std::vector<var<int>::Ptr> flat(xs.size());
@@ -642,7 +667,7 @@ namespace Factory
       std::vector<int> flat(array.size());
       for(int i=0;i < array.size();i++)
          flat[i] = array[i];
-      return new (y->getSolver()) Element1D(flat,y,z);
+      return new (y->getSolver()) Element1DDC(flat,y,z);
    }
    template <class Vec> inline var<int>::Ptr element(const Vec& array,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
@@ -653,7 +678,7 @@ namespace Factory
          max = max > v ? max : v;
       }
       auto z = makeIntVar(y->getSolver(),min,max);
-      y->getSolver()->post(new (y->getSolver()) Element1D(flat,y,z));
+      y->getSolver()->post(new (y->getSolver()) Element1DDC(flat,y,z));
       return z;
    }
    template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y) {
