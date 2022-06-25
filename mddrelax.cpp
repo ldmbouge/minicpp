@@ -47,7 +47,8 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,b
    _pool = new Pool;
    _deltaDown = nullptr;
    _deltaUp = nullptr;
-   _deltaCombined = nullptr;
+   _deltaCombinedDown = nullptr;
+   _deltaCombinedUp = nullptr;
    _nf->setWidth(width);
    _mddspec.setConstraintPrioritySize(maxConstraintPriority + 1);
 }
@@ -68,7 +69,8 @@ void MDDRelax::buildDiagram()
    _mddspec.compile();
    _deltaDown = new MDDDelta(_nf,_mddspec.sizeDown(),Down);
    _deltaUp = new MDDDelta(_nf,_mddspec.sizeUp(),Up);
-   _deltaCombined = new MDDDelta(_nf,_mddspec.sizeCombined(),Bi);
+   _deltaCombinedDown = new MDDDelta(_nf,_mddspec.sizeCombined(),Bi);
+   _deltaCombinedUp = new MDDDelta(_nf,_mddspec.sizeCombined(),Bi);
 
    _fwd = new (mem) MDDFQueue(numVariables+1);
    _bwd = new (mem) MDDBQueue(numVariables+1);
@@ -86,7 +88,7 @@ void MDDRelax::buildDiagram()
    MDDState rootCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    rootDownState.computeHash();
    root = _nf->makeNode(rootDownState,rootUpState,rootCombinedState,x[0]->size(),0,0);
-   _mddspec.updateNode(rootCombinedState,MDDPack(rootDownState,rootUpState,rootCombinedState));
+   _mddspec.updateNode(root->getCombinedState(),MDDPack(rootDownState,rootUpState,rootCombinedState));
    layers[0].push_back(root,mem);
 
 
@@ -153,8 +155,7 @@ void MDDRelax::buildNextLayer(unsigned int i)
 void MDDRelax::postUp()
 {
    if (_mddspec.usesUp()) {
-      MDDState sinkCombinedState(sink->getCombinedState());
-      _mddspec.updateNode(sinkCombinedState,sink->pack());
+      fullStateCombined(sink);
       for(int i = (int)numVariables - 1;i >= 0;i--) 
          for(auto& n : layers[i]) {
             bool upDirty = processNodeUp(n,i);
@@ -213,7 +214,7 @@ void MDDRelax::removeArc(int outL,int inL,MDDEdge* arc) // notified when arc is 
       _fwd->enQueue(c);
 }
 
-void MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,MDDNode* n,int l)
+void MDDRelax::fullStateDown(MDDState& ms,MDDState& cs,int l)
 {
    bool first = true;
    for(auto i = 0u;i < _width;i++) {
@@ -290,14 +291,16 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    MDDPropSet out;
 
    if (parentsChanged) {
-      fullStateDown(ms,cs,n,l);
+      fullStateDown(ms,cs,l);
       n->resetParentsChanged();
    } else  {
       MDDPropSet changesDown((long long*)alloca(sizeof(long long)*propNbWords(_mddspec.sizeDown())),_mddspec.sizeDown());
       MDDPropSet changesCombined((long long*)alloca(sizeof(long long)*propNbWords(_mddspec.sizeCombined())),_mddspec.sizeCombined());
-      for(auto& a : n->getParents()) 
+      for(auto& a : n->getParents()) {
          changesDown.unionWith(_deltaDown->getDelta(a->getParent()));
-      changesCombined.unionWith(_deltaCombined->getDelta(n));
+         changesCombined.unionWith(_deltaCombinedDown->getDelta(a->getParent()));
+         changesCombined.unionWith(_deltaCombinedUp->getDelta(a->getParent()));
+      }
       out = MDDPropSet((long long*)alloca(sizeof(long long)*changesDown.nbWords()),changesDown.nbProps());
       _mddspec.outputSetDown(out,changesDown,changesCombined);
       incrStateDown(out,ms,cs,n,l);
@@ -555,7 +558,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
             bool keepArc[nbk];
             unsigned idx = 0,cnt = 0;
             for(auto ca : n->getChildren()) {
-               MDDPack pack(*ms,p->getUpState(),p->getCombinedState());
+               MDDPack pack(*ms,n->getUpState(),n->getCombinedState());
                cnt += keepArc[idx++] = _mddspec.exist(pack,ca->getChild()->pack(),x[l],ca->getValue());
             }
             if (cnt == 0) {
@@ -795,7 +798,7 @@ void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can
                                 up.copyState(n->getUpState());
                                 MDDState combined(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
                                 MDDNode* nc = _nf->makeNode(ms,up,combined,x[l-1]->size(),l,(int)layer.size());
-                                fullStateCombined(nc->getCombinedState(),nc);
+                                fullStateCombined(nc);
                                 layer.push_back(nc,mem);
                                 unsigned int idx = 0;
                                 for(auto ca : n->getChildren()) {
@@ -890,7 +893,7 @@ bool MDDRelax::trimVariable(int i)
    return trim;
 }
 
-void MDDRelax::fullStateUp(MDDState& ms,MDDState& cs,MDDNode* n,int l)
+void MDDRelax::fullStateUp(MDDState& ms,MDDState& cs,int l)
 {
    bool first = true;
    auto wub = std::min(_width,(unsigned)layers[l+1].size());
@@ -956,14 +959,16 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    MDDPropSet out;
 
    if (childrenChanged) {
-      fullStateUp(ms,cs,n,i);
+      fullStateUp(ms,cs,i);
       n->resetChildrenChanged();
    } else {
       MDDPropSet changesUp((long long*)alloca(sizeof(long long)*propNbWords(_mddspec.sizeUp())),_mddspec.sizeUp());
       MDDPropSet changesCombined((long long*)alloca(sizeof(long long)*propNbWords(_mddspec.sizeCombined())),_mddspec.sizeCombined());
-      for(auto& a : n->getChildren())
+      for(auto& a : n->getChildren()) {
          changesUp.unionWith(_deltaUp->getDelta(a->getChild()));
-      changesCombined.unionWith(_deltaCombined->getDelta(n));
+         changesCombined.unionWith(_deltaCombinedDown->getDelta(a->getChild()));
+         changesCombined.unionWith(_deltaCombinedUp->getDelta(a->getChild()));
+      }
       out = MDDPropSet((long long*)alloca(sizeof(long long)*changesUp.nbWords()),changesUp.nbProps());
       _mddspec.outputSetUp(out,changesUp,changesCombined);
       incrStateUp(out,ms,cs,n,i);
@@ -980,11 +985,19 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    return changed;
 }
 
-void MDDRelax::fullStateCombined(MDDState& state,MDDNode* n)
+bool MDDRelax::fullStateCombined(MDDNode* n)
 {
-   if (!_mddspec.usesCombined()) return;
+   if (!_mddspec.usesCombined()) return false;
+   MDDState state(&_mddspec,(char*)alloca(_mddspec.layoutSizeCombined()),Bi);
    state.copyState(n->getCombinedState());
    _mddspec.updateNode(state,n->pack());
+
+   bool changed = n->getCombinedState() != state;
+   if (changed) {
+     _deltaCombinedDown->setDelta(n,state);
+     n->setCombinedState(state,mem);
+   }
+   return changed;
 }
 
 void MDDRelax::incrStateCombined(const MDDPropSet& out,MDDState& state,MDDNode* n)
@@ -1010,7 +1023,7 @@ bool MDDRelax::updateCombinedIncrDown(MDDNode* n)
 
    bool changed = n->getCombinedState() != state;
    if (changed) {
-      _deltaCombined->setDelta(n,state,out);
+      _deltaCombinedDown->setDelta(n,state,out);
       n->setCombinedState(state,mem);
    }
    return changed;
@@ -1032,7 +1045,7 @@ bool MDDRelax::updateCombinedIncrUp(MDDNode* n)
 
    bool changed = n->getCombinedState() != state;
    if (changed) {
-      _deltaCombined->setDelta(n,state,out);
+      _deltaCombinedUp->setDelta(n,state,out);
       n->setCombinedState(state,mem);
    }
    return changed;
@@ -1128,11 +1141,12 @@ void MDDRelax::propagate()
          ++iterMDD;++iter;
          _deltaDown->clear();
          _deltaUp->clear();
-         _deltaCombined->clear();
+         _deltaCombinedUp->clear();
          //auto start = RuntimeMonitor::now();
          computeUp();
          //timeDoingUp += RuntimeMonitor::elapsedSinceMicro(start);
          _sf->clear();
+         _deltaCombinedDown->clear();
          computeDown(iter);
          assert(layers[numVariables].size() == 1);
          if (!_mddspec.usesUp()) _bwd->clear();
