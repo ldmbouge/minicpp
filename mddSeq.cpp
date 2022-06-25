@@ -106,7 +106,7 @@ namespace Factory {
       const int YminDown = spec.addDownState(desc, 0, INT_MAX,MinFun);
       const int YmaxDown = spec.addDownState(desc, 0, INT_MAX,MaxFun);
       const int YminUp = spec.addUpState(desc, 0, INT_MAX,MinFun);
-      const int YmaxUp = spec.addUpState(desc, vars.size(), INT_MAX,MaxFun);
+      const int YmaxUp = spec.addUpState(desc, nbVars, INT_MAX,MaxFun);
       const int YminCombined = spec.addCombinedState(desc, 0, INT_MAX,MinFun);
       const int YmaxCombined = spec.addCombinedState(desc, 0, INT_MAX,MaxFun);
       const int AminWin = spec.addDownSWState(desc,len,-1,0,MinFun);
@@ -118,30 +118,30 @@ namespace Factory {
       const int Exact   = spec.addDownState(desc, 1, INT_MAX,MinFun);
 
       // down transitions
-      spec.transitionDown(AminWin,{YminDown,AminWin},{YminCombined},[=](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(AminWin,{AminWin},{YminCombined},[=](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
          MDDSWin<short> outWin = out.getSW(AminWin);
          outWin.assignSlideBy(parent.down.getSW(AminWin),1);        
-         auto pYmin = !up ? parent.down[YminDown] : std::max(parent.down[YminDown],parent.comb[YminCombined]);
+         auto pYmin = parent.comb[YminCombined];
          outWin.setFirst(pYmin);
       });
-      spec.transitionDown(AmaxWin,{YmaxDown,AmaxWin},{YmaxCombined},[=](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(AmaxWin,{AmaxWin},{YmaxCombined},[=](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
          MDDSWin<short> outWin = out.getSW(AmaxWin);
          outWin.assignSlideBy(parent.down.getSW(AmaxWin),1);
-         auto pYmax = !up ? parent.down[YmaxDown] : std::min(parent.down[YmaxDown],parent.comb[YmaxCombined]);
+         auto pYmax = parent.comb[YmaxCombined];
          outWin.setFirst(pYmax);
-      });      
-      spec.transitionDown(YminDown,{YminDown},{YminCombined},[=](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+      });
+      spec.transitionDown(YminDown,{},{YminCombined},[=](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
          assert(parent.down[YminDown] <= parent.down[YmaxDown]);
          bool hasMemberOutS = val.memberOutside(values);
-         auto pYmin = !up ? parent.down[YminDown] : std::max(parent.down[YminDown],parent.comb[YminCombined]);
+         auto pYmin = parent.comb[YminCombined];
          int minVal = pYmin + !hasMemberOutS;
          out.setInt(YminDown,minVal);
       });
 
-      spec.transitionDown(YmaxDown,{YmaxDown},{YmaxCombined},[=](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+      spec.transitionDown(YmaxDown,{},{YmaxCombined},[=](auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
          assert(parent.down[YminDown] <= parent.down[YmaxDown]);
          bool hasMemberInS = val.memberInside(values);
-         auto pYmax = !up ? parent.down[YmaxDown] : std::min(parent.down[YmaxDown],parent.comb[YmaxCombined]);
+         auto pYmax = parent.comb[YmaxCombined];
          int maxVal = pYmax + hasMemberInS;
          out.setInt(YmaxDown,maxVal);
       });
@@ -154,30 +154,32 @@ namespace Factory {
       });
 
       // up transitions
-      spec.transitionUp(DminWin,{YminUp,DminWin},{YminCombined},[DminWin,YminUp,YminCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
+      spec.transitionUp(DminWin,{DminWin},{YminCombined},[DminWin,YminCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
          MDDSWin<short> outWin = out.getSW(DminWin);
          outWin.assignSlideBy(child.up.getSW(DminWin),1);
-         auto cYmin = std::max(child.up[YminUp],child.comb[YminCombined]);
+         auto cYmin = child.comb[YminCombined];
          outWin.setFirst(cYmin);
       });
-      spec.transitionUp(DmaxWin,{YmaxUp,DmaxWin},{YmaxCombined},[DmaxWin,YmaxUp,YmaxCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
+      spec.transitionUp(DmaxWin,{DmaxWin},{YmaxCombined},[DmaxWin,YmaxCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
          MDDSWin<short> outWin = out.getSW(DmaxWin);
          outWin.assignSlideBy(child.up.getSW(DmaxWin),1);
-         auto cYmax = std::min(child.up[YmaxUp],child.comb[YmaxCombined]);
+         auto cYmax = child.comb[YmaxCombined];
          outWin.setFirst(cYmax);
       });
       
-      spec.transitionUp(YminUp,{YminUp},{YminCombined},[YminUp,values,YminCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
+      spec.transitionUp(YminUp,{},{YminCombined},[YminUp,values,YminCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
          bool hasMemberInS = val.memberInside(values);
-         auto cYmin = std::max(child.up[YminUp],child.comb[YminCombined]);
+         auto cYmin = child.comb[YminCombined];
          int minVal = cYmin - hasMemberInS;
+         minVal = std::max(minVal, 0);
          out.setInt(YminUp,minVal);
       });
 
-      spec.transitionUp(YmaxUp,{YmaxUp},{YmaxCombined},[YmaxUp,values,YmaxCombined](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
+      spec.transitionUp(YmaxUp,{},{YmaxCombined},[YmaxUp,values,YmaxCombined,Nup,nbVars](auto& out,const auto& child,const auto& x,const auto& val,bool up) {
          bool hasMemberOutS = val.memberOutside(values);
-         auto cYmax = std::min(child.up[YmaxUp],child.comb[YmaxCombined]);
+         auto cYmax = child.comb[YmaxCombined];
          int maxVal = cYmax - !hasMemberOutS;
+         maxVal = std::min(maxVal, nbVars - child.up[Nup] - 1);
          out.setInt(YmaxUp,maxVal);
       });
 
@@ -193,7 +195,7 @@ namespace Factory {
          }
          if (n.up[Nup]) {
            minVal = std::max(minVal, n.up[YminUp]);
-           if (n.down[N] <= nbVars - len) {
+           if (n.up[Nup] >= len) {
              auto Dmin = n.up.getSW(DminWin);
              minVal = std::max(Dmin.last() - ub,minVal);
            }
@@ -208,7 +210,7 @@ namespace Factory {
          }
          if (n.up[Nup]) {
            maxVal = std::min(maxVal, n.up[YmaxUp]);
-           if (n.down[N] <= nbVars - len) {
+           if (n.up[Nup] >= len) {
              auto Dmax = n.up.getSW(DmaxWin);
              maxVal = std::min(Dmax.last() - lb,maxVal);
            }
@@ -222,9 +224,6 @@ namespace Factory {
                      (n.comb[YmaxCombined] <= n.down[N]) &&
                      (n.comb[YminCombined] >= 0) &&
                      (n.comb[YminCombined] <= n.down[N]) );
-         if (rv==false) {
-            std::cout << "About to kill node\n";
-         }
          return rv;
       });
 
