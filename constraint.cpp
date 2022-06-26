@@ -712,11 +712,13 @@ void AllDifferentAC::propagate()
          scc[nd[i]] = nc;
       ++nc;
    });
-   Factory::Veci::pointer x = _x.data();
-   for(int i=0;i < _nVar;i++)
-      for(int v = _minVal; v <= _maxVal;v++)
-        if (_match[i] != v && scc[i] != scc[valNode(v)] && x[i]->containsBase(v))
-            x[i]->remove(v);
+   if (nc > 1) {
+      Factory::Veci::pointer x = _x.data();
+      for(int i=0;i < _nVar;i++)
+         for(int v = _minVal; v <= _maxVal;v++)
+            if (_match[i] != v && scc[i] != scc[valNode(v)] && x[i]->containsBase(v))
+               x[i]->remove(v);
+   }
 }
 
 void Circuit::setup(CPSolver::Ptr cp)
