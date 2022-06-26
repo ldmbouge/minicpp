@@ -690,7 +690,6 @@ int AllDifferentAC::updateRange()
       _minVal = std::min(_minVal,x[i]->min());
       _maxVal = std::max(_maxVal,x[i]->max());
    }
-   _rg->setLiveValues(_minVal,_maxVal);
    return _maxVal - _minVal + 1;
 }
 
@@ -700,6 +699,7 @@ void AllDifferentAC::propagate()
    if (size < _nVar) 
       failNow();
    updateRange();
+   _rg->setLiveValues(_minVal,_maxVal);
    
    _rg->SCC([this](const Partition& varsSCC,const Partition& valsSCC) {     
      Factory::Veci::pointer x = _x.data();
