@@ -245,19 +245,18 @@ public:
 };
 
 class AllDifferentAC : public Constraint {
-   Factory::Veci    _x;
-   MaximumMatching _mm;
-   PGraph*         _rg;
+   Factory::Veci     _x;
+   MaximumMatching* _mm;
+   PGraph*          _rg;
    int* _match,*_varFor;
-   int _minVal,_maxVal;
+   int  _imin,_minVal,_maxVal;
    int _nVar,_nVal,_nNodes;
    int updateRange();
-   int valNode(int vid) const noexcept { return vid - _minVal + _nVar;}
 public:
    template <class Vec> AllDifferentAC(const Vec& x)
       : Constraint(x[0]->getSolver()),
-        _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore())),
-        _mm(_x,x[0]->getStore()) {}
+        _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore()))
+   {}
    ~AllDifferentAC() {}
    void post() override;
    void propagate() override;

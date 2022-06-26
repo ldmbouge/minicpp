@@ -670,13 +670,14 @@ void AllDifferentAC::post()
    CPSolver::Ptr cp = _x[0]->getSolver();
    _nVar    = (int)_x.size();
    _nVal    = updateRange();
-   _mm.setup();
-   for(int i=0;i < _nVar;i++)
-      _x[i]->propagateOnDomainChange(this);
+   _imin    = _minVal;
    _match   = new (cp) int[_nVar];
    _varFor  = new (cp) int[_nVal];
+   _mm = new (cp) MaximumMatching(_x,_x[0]->getStore(),_match,_varFor);
+   _rg = new (cp) PGraph(_x[0]->getStore(),_nVar,_minVal,_maxVal,_match,_varFor,_x.data());
+   for(int i=0;i < _nVar;i++)
+      _x[i]->propagateOnDomainChange(this);
    _nNodes  = _nVar + _nVal + 1;
-   _rg = new (cp) PGraph(_nVar,_minVal,_maxVal,_match,_varFor,_x.data());
    propagate();
 }
 
@@ -689,34 +690,32 @@ int AllDifferentAC::updateRange()
       _minVal = std::min(_minVal,x[i]->min());
       _maxVal = std::max(_maxVal,x[i]->max());
    }
+   _rg->setLiveValues(_minVal,_maxVal);
    return _maxVal - _minVal + 1;
 }
 
 void AllDifferentAC::propagate()
 {
-   int size = _mm.compute(_match);
+   int size = _mm->compute();
    if (size < _nVar) 
       failNow();
    updateRange();
-   _rg->setLiveValues(_minVal,_maxVal);
    
-   for(int i=0;i < _nVal;++i) _varFor[i] = -1;
-   for(int i=0;i < _nVar;++i) _varFor[_match[i] - _minVal] = i; 
-
-   //std::cout << "DD:" << _nbd << "    " << _nbmd << "   " << _nVar << "/" << (_maxVal - _minVal + 1) << "\n";
-   
-   int nc = 0;
-   int* scc = (int*)alloca(sizeof(int)*_nNodes);
-   _rg->SCC([&scc,&nc](int n,int nd[]) {
-      for(int i=0;i < n;i++)
-         scc[nd[i]] = nc;
-      ++nc;
+   _rg->SCC([this](const Partition& varsSCC,const Partition& valsSCC) {     
+     Factory::Veci::pointer x = _x.data();
+     auto valsIn = valsSCC.in();   // we will loop on values *INSIDE* the SCC
+     auto varOut = varsSCC.out();  // we will loop on vars *NOT* in the SCC
+     const int outSZ  = varsSCC.sizeOut();
+     const int valsSZ = valsSCC.sizeIn();
+     for(int k = 0; k < valsSZ;++k) {
+       const int v = valsIn[k] + _imin;
+       for(int k=0;k < outSZ;++k) {
+         const int i = varOut[k];
+         if (_match[i] != v && x[i]->containsBase(v))
+           x[i]->remove(v);
+       }         
+     }
    });
-   Factory::Veci::pointer x = _x.data();
-   for(int i=0;i < _nVar;i++)
-      for(int v = _minVal; v <= _maxVal;v++)
-        if (_match[i] != v && scc[i] != scc[valNode(v)] && x[i]->containsBase(v))
-            x[i]->remove(v);
 }
 
 void Circuit::setup(CPSolver::Ptr cp)

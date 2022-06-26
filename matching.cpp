@@ -15,25 +15,40 @@
 
 #include "matching.hpp"
 
-void MaximumMatching::setup() {
-   _min = INT32_MAX;
-   _max = INT32_MIN;
-   for(auto& xi : _x) {
-      _min = std::min(_min,xi->min());
-      _max = std::max(_max,xi->max());
-   }
-   _valSize = _max - _min + 1;
-   _valMatch = new (_store) int[_valSize];
+int minValue(Factory::Veci& x)
+{
+   int min = INT32_MAX;
+   for(auto& xi : x) 
+      min = std::min(min,xi->min());
+   return min;   
+}
+
+int maxValue(Factory::Veci& x)
+{
+   int max = INT32_MIN;
+   for(auto& xi : x) 
+      max = std::max(max,xi->max());
+   return max;
+}
+
+MaximumMatching::MaximumMatching(Factory::Veci& x,Storage::Ptr store,int* match,int* valMatch)
+   : _store(store),_x(x),
+     _min(minValue(x)),
+     _max(maxValue(x)),
+     _valSize(_max - _min + 1),
+     _match(match),
+     _valMatch(valMatch)
+{
    for(int k=0;k < _valSize;k++) _valMatch[k] = -1;
    _magic = 0;
-   _match = new (_store) int[_x.size()];
    for(auto k=0u;k < _x.size();k++) _match[k] = INT32_MIN;
    _varSeen = new (_store) int[_x.size()];
    _valSeen = new (_store) int[_valSize];
    findInitialMatching();
 }
 
-void MaximumMatching::findInitialMatching() {
+void MaximumMatching::findInitialMatching()
+{
    _szMatching = 0;
    for(auto k=0u;k < _x.size();k++) {
       const int minv = _x[k]->min(),maxv = _x[k]->max();
@@ -49,7 +64,8 @@ void MaximumMatching::findInitialMatching() {
    }
 }
 
-int MaximumMatching::findMaximalMatching() {
+int MaximumMatching::findMaximalMatching()
+{
    if (_szMatching < (int)_x.size()) {
       for(auto k=0u;k < _x.size();k++) {
          if (_match[k] == INT32_MIN) { // not matched
@@ -81,7 +97,8 @@ bool MaximumMatching::findAlternatingPathFromVar(int i) {
    return false;
 }
 
-bool MaximumMatching::findAlternatingPathFromVal(int v) {
+bool MaximumMatching::findAlternatingPathFromVal(int v)
+{
    if (_valSeen[v - _min]  != _magic) {
       _valSeen[v - _min] = _magic;
       if (_valMatch[v - _min] == -1)
@@ -93,14 +110,10 @@ bool MaximumMatching::findAlternatingPathFromVal(int v) {
 }
 
 MaximumMatching::~MaximumMatching()
-{
-   delete[] _valMatch;
-   delete[] _match;
-   delete[] _varSeen;
-   delete[] _valSeen;
-}
+{}
 
-int MaximumMatching::compute(int result[]) {
+int MaximumMatching::compute()
+{
    for(auto k=0u;k < _x.size();k++) {
       if (_match[k] != INT32_MIN) {
          if (!_x[k]->contains(_match[k])) {
@@ -110,8 +123,5 @@ int MaximumMatching::compute(int result[]) {
          }
       }
    }
-   int rv = findMaximalMatching();
-   for(auto k=0u; k < _x.size();k++)
-      result[k] = _match[k];
-   return rv;
+   return findMaximalMatching();
 }
