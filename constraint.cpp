@@ -708,12 +708,12 @@ void AllDifferentAC::propagate()
      const int outSZ  = varsSCC.sizeOut();
      const int valsSZ = valsSCC.sizeIn();
      for(int k = 0; k < valsSZ;++k) {
-       const int v = valsIn[k] + _imin;
-       for(int k=0;k < outSZ;++k) {
-         const int i = varOut[k];
-         if (_match[i] != v && x[i]->containsBase(v))
-           x[i]->remove(v);
-       }         
+        const int v = valsIn[k] + _imin;
+        for(int l = 0;l < outSZ;++l) {
+           const int i = varOut[l];
+           if (_match[i] != v && x[i]->containsBase(v))
+              x[i]->remove(v);
+        }         
      }
    });
 }

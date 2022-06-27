@@ -576,6 +576,18 @@ namespace Factory
    inline var<bool>::Ptr isLarger(var<int>::Ptr x,const int c) {
       return isLargerOrEqual(x , c + 1);
    }
+   template <class T> var<int>::Ptr sum(std::initializer_list<T> allVars) {
+      int sumMin = 0,sumMax = 0;
+      for(T aVar : allVars) {
+         sumMin += aVar->min();
+         sumMax += aVar->max();
+      }
+      std::vector<T> vec = allVars;
+      auto cp = vec[0]->getSolver();
+      auto s = Factory::makeIntVar(cp,sumMin,sumMax);
+      cp->post(new (cp) Sum(allVars,s));
+      return s;      
+   }
    template <class Vec> var<int>::Ptr sum(Vec& xs) {
       int sumMin = 0,sumMax = 0;
       for(const auto& x : xs) {

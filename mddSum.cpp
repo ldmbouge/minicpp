@@ -20,6 +20,16 @@
 
 namespace Factory {
 
+   void sumMDD(MDDSpec& mdd,std::initializer_list<var<int>::Ptr> vars,std::initializer_list<int> array, int lb, int ub) {
+      CPSolver::Ptr cp = (*vars.begin())->getSolver();
+      auto theVars = Factory::intVarArray(cp,vars.size(),[&vars](int i) {
+         return std::data(vars)[i];
+      });
+      const std::vector<int> theCoefs = array;
+      sumMDD(mdd,theVars,theCoefs,lb,ub);
+   }
+   
+
    void sumMDD(MDDSpec& mdd, const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub) {
       // Enforce
       //   sum(i, array[i]*vars[i]) >= lb and

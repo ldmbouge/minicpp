@@ -37,28 +37,27 @@ public:
    void clear() noexcept { _sz = 0;} // this restore "in" to empty and "out" to full
    bool memberIn(int v)  const  noexcept { return _offset[v] < _sz;}
    bool memberOut(int v)  const noexcept { return _offset[v] >= _sz;}
-   int sizeIn() const noexcept  { return _sz;}
-   int sizeOut() const noexcept { return _msz - _sz;}
-   const int* const in() const noexcept  { return _value;}
-   const int* const out() const noexcept { return _value + _sz;}
-   void include(int v) noexcept {
+   inline int sizeIn() const noexcept  { return _sz;}
+   inline int sizeOut() const noexcept { return _msz - _sz;}
+   inline const int* const in() const noexcept  { return _value;}
+   inline const int* const out() const noexcept { return _value + _sz;}
+    __attribute__((always_inline)) inline void include(int v) noexcept {
       assert(0 <= v && v < _msz);
       const int at = _offset[v];
       assert(_value[at]==v);
-      if (at < _sz) // already in. Do nothing
-         return;
-      else if (at == _sz) { // at the boundary, increase the size
-         ++_sz;
-         return;
-      } else { // somewhere in excluded. Swap and increase the size
+      if (at > _sz) { // somewhere in excluded. Swap and increase the size
          const int toMove = _value[_sz];
          _offset[toMove] = at;
          _value[at]      = toMove;
          _value[_sz]     = v;
          _offset[v]      = _sz++;
-      }
+         return;
+      } else if (at == _sz) { // at the boundary, increase the size
+         ++_sz;
+         return;
+      } // else already in. Do nothing     
    }
-   void exclude(int v) noexcept {
+    __attribute__((always_inline)) inline void exclude(int v) noexcept {
       const int at = _offset[v];
       assert(_value[at] == v);
       if (at >= _sz) // already excluded. Do nothing
