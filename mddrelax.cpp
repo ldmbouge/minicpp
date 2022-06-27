@@ -450,6 +450,7 @@ public:
    template <class Callback> void instantiate(const Callback& cb,Trailer::Ptr trail,Storage::Ptr mem)
    {
       MDDNode* nc = cb(_n,_par,*_child,_val,_nbk,_keepKids);
+      if (nc == nullptr) return;
       for(int i=0;i < _nbPar;i++)
          _arc[i]->moveTo(nc,trail,mem);      
    }
@@ -794,22 +795,29 @@ void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can
             splitter.process(layer,_width,trail,mem,
                              [this,l,&layer](MDDNode* n,MDDNode* p,const MDDState& ms,int val,int nbk,bool* kk) {
                                 potEXEC++;
+                                MDDState down(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
+                                down.copyState(ms);
                                 MDDState up(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
                                 up.copyState(n->getUpState());
                                 MDDState combined(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
-                                MDDNode* nc = _nf->makeNode(ms,up,combined,x[l-1]->size(),l,(int)layer.size());
-                                fullStateCombined(nc);
-                                layer.push_back(nc,mem);
-                                unsigned int idx = 0;
-                                for(auto ca : n->getChildren()) {
-                                   if (kk[idx++]) {
-                                      nc->addArc(mem,ca->getChild(),ca->getValue());
-                                      addSupport(l,ca->getValue());
-                                      _fwd->enQueue(ca->getChild());
-                                   }
+                                MDDPack pack(down, up, combined);
+                                _mddspec.updateNode(combined, pack);
+                                if (_mddspec.consistent(pack)) {
+                                  MDDNode* nc = _nf->makeNode(ms,up,combined,x[l-1]->size(),l,(int)layer.size());
+                                  layer.push_back(nc,mem);
+                                  unsigned int idx = 0;
+                                  for(auto ca : n->getChildren()) {
+                                     if (kk[idx++]) {
+                                        nc->addArc(mem,ca->getChild(),ca->getValue());
+                                        addSupport(l,ca->getValue());
+                                        _fwd->enQueue(ca->getChild());
+                                     }
+                                  }
+                                  if (_mddspec.usesUp()) _bwd->enQueue(nc);
+                                  return nc;
+                                } else {
+                                  return (MDDNode*)nullptr;
                                 }
-                                if (_mddspec.usesUp()) _bwd->enQueue(nc);
-                                return nc;
                              });
             if (n->getNumParents() == 0) {
                delState(n,l);

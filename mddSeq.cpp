@@ -228,10 +228,25 @@ namespace Factory {
       });
 
       // arc definitions
-      spec.arcExist(desc,[values,YminCombined,YmaxCombined](const auto& parent,const auto& child,const auto& x,int v) -> bool {
+      spec.arcExist(desc,[values,YminCombined,YmaxCombined/*,N,len,AmaxWin,AminWin,lb,ub,nbVars*/](const auto& parent,const auto& child,const auto& x,int v) -> bool {
          bool c0 = true,c1 = true,inS = values.member(v);
          c0 = (parent.comb[YminCombined] + inS <= child.comb[YmaxCombined]);
          c1 = (parent.comb[YmaxCombined] + inS >= child.comb[YminCombined]);
+/*         if (c0 && c1) {
+
+            auto Amin = parent.down.getSW(AminWin);
+            auto Amax = parent.down.getSW(AmaxWin);
+                       if (parent.down[N] >= len - 1) {
+                          bool c0 = Amax.first() + inS - Amin.last() + 1 >= lb;
+                          bool c1 = Amin.first() + inS - Amax.last() - 1 <= ub;
+                          return c0 && c1;
+                       } else {
+                          bool c0 = len - (parent.down[N]+1) + Amax.first() + inS + 1 >= lb;
+                          bool c1 =                            Amin.first() + inS - 1 <= ub;
+                          return c0 && c1;
+                       }
+}
+return false;*/
          return c0 && c1;
       });
       
