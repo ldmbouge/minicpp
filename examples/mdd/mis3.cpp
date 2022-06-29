@@ -24,7 +24,6 @@
 #include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 
-
 int main(int argc,char* argv[])
 {
    using namespace std;
@@ -32,7 +31,7 @@ int main(int argc,char* argv[])
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto x = Factory::intVarArray(cp, 5, 0, 1);
    auto z = Factory::makeIntVar(cp,0,10000);
-   auto mdd = Factory::makeMDDRelax(cp,4);
+   auto mdd = Factory::makeMDDRelax(cp,1);
    mdd->post(sum(mdd,x,{5,4,2,6,8},z));
    mdd->post(sum(mdd,{x[0],x[1]},0, 1));
    mdd->post(sum(mdd,{x[0],x[4]},0, 1));
@@ -49,7 +48,6 @@ int main(int argc,char* argv[])
       auto xk = selectMin(x,
                           [](const auto& xi) { return xi->size() > 1;},
                           [](const auto& xi) { return xi->size();});
-      //auto xk = selectFirst(x,[](const auto& xi) { return xi->size() > 1;});
       if (xk) {        
        int c = xk->max();         
        return  [=] {
@@ -58,7 +56,6 @@ int main(int argc,char* argv[])
        }
          | [=] {
            std::cout << "choice  <" << xk << " != " << c << ">\n";
-           std::cout << "VARS: " << x << "\t Z=" << z <<  "\n";
            cp->post(xk != c);
          };
      } else return Branches({});

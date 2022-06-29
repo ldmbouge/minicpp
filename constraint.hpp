@@ -611,6 +611,26 @@ namespace Factory
          cp->post(new (cp) Sum(xs,s));
       return s;
    }
+      template <class Vec> var<int>::Ptr sum(Vec& allVars,std::initializer_list<int> allCoefs) {
+      assert(allVars.size()==allCoefs.size());
+      Factory::Veci vec(allVars.size(),Factory::alloci(allVars[0]->getStore()));
+      auto cbi = allCoefs.begin();
+      for(unsigned int i=0;i < allVars.size();++i) {
+         vec[i] = allVars[i] * *cbi;
+         ++cbi;
+      }
+      return sum(vec);
+   }   
+   template <class T> var<int>::Ptr sum(std::initializer_list<T> allVars,std::initializer_list<int> allCoefs) {
+      assert(allVars.size()==allCoefs.size());
+      std::vector<T> vec(allVars.size());
+      auto cbi = allCoefs.begin();
+      for(unsigned int i=0;i < allVars.size();++i) {
+         vec[i] = allVars.data()[i] * *cbi;
+         ++cbi;
+      }
+      return sum(vec);
+   }   
    inline Constraint::Ptr sum(const Factory::Veci& xs,var<int>::Ptr s) {
       return new (xs[0]->getSolver()) Sum(xs,s);
    }

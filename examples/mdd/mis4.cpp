@@ -32,13 +32,15 @@ int main(int argc,char* argv[])
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto x = Factory::intVarArray(cp, 5, 0, 1);
    auto z = Factory::makeIntVar(cp,0,10000);
-   cp->post(sum({5 * x[0],4 * x[1],2 * x[2],6 * x[3],8 * x[4]}) == z);
+
+   cp->post(sum(x,{5,4,2,6,8}) == z);
    cp->post(sum({x[0],x[1]}) <= 1);
    cp->post(sum({x[0],x[4]}) <= 1);
    cp->post(sum({x[1],x[2]}) <= 1);
    cp->post(sum({x[1],x[3]}) <= 1);
    cp->post(sum({x[2],x[3]}) <= 1);
    cp->post(sum({x[3],x[4]}) <= 1);
+
    auto obj = Factory::maximize(z);
    std::cout << "VARS: " << x << "\tZ=" << z << std::endl;
    
@@ -46,7 +48,6 @@ int main(int argc,char* argv[])
       auto xk = selectMin(x,
                           [](const auto& xi) { return xi->size() > 1;},
                           [](const auto& xi) { return xi->size();});
-      
       if (xk) {
          int c = xk->max();         
          return  [=] {
@@ -55,7 +56,6 @@ int main(int argc,char* argv[])
          }
             | [=] {
                std::cout << "choice  <" << xk << " != " << c << ">\n";
-               std::cout << "VARS: " << x << "\tZ=" << z << std::endl;
                cp->post(xk != c);               
             };
       } else return Branches({});
