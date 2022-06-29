@@ -58,9 +58,9 @@ int main(int argc,char* argv[])
    else if (mode == 1) {
      cout << "Using MDD encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
      auto mdd = new MDDRelax(cp,width);
-     Factory::sumMDD(mdd->getSpec(), vars, vals1, 18, 19);
-     Factory::sumMDD(mdd->getSpec(), vars, vals2, 18, 19);
-     Factory::sumMDD(mdd->getSpec(), vars, vals3, 50, 65);
+     mdd->post(sum(mdd, vars, vals1, 18, 19));
+     mdd->post(sum(mdd, vars, vals2, 18, 19));
+     mdd->post(sum(mdd, vars, vals3, 50, 65));
      cp->post(mdd);
      cstr = mdd;
    }
@@ -70,13 +70,13 @@ int main(int argc,char* argv[])
      auto mdd = new MDDRelax(cp,width);
 
      auto z1 = Factory::makeIntVar(cp, 18, 19);  
-     Factory::sumMDD(mdd->getSpec(), vars, vals1, z1);
+     mdd->post(sum(mdd, vars, vals1, z1));
      
      auto z2 = Factory::makeIntVar(cp, 18, 19);
-     Factory::sumMDD(mdd->getSpec(), vars, vals2, z2);
+     mdd->post(sum(mdd, vars, vals2, z2));
      
      auto z3 = Factory::makeIntVar(cp, 50, 65);
-     Factory::sumMDD(mdd->getSpec(), vars, vals3, z3);
+     mdd->post(sum(mdd, vars, vals3, z3));
      cp->post(mdd);
      cstr = mdd;
    }
@@ -94,7 +94,7 @@ int main(int argc,char* argv[])
        }
        valMatrix1.push_back(tmpVals);
      }
-     Factory::sumMDD(mdd->getSpec(), vars, valMatrix1, z1);
+     mdd->post(sum(mdd, vars, valMatrix1, z1));
      
      auto z2 = Factory::makeIntVar(cp, 18, 19);  
      vector< vector<int> > valMatrix2;
@@ -105,7 +105,7 @@ int main(int argc,char* argv[])
        }
        valMatrix2.push_back(tmpVals);
      }
-     Factory::sumMDD(mdd->getSpec(), vars, valMatrix2, z2);
+     mdd->post(sum(mdd, vars, valMatrix2, z2));
      
      auto z3 = Factory::makeIntVar(cp, 50, 65);
      vector< vector<int> > valMatrix3;
@@ -116,7 +116,7 @@ int main(int argc,char* argv[])
        }
        valMatrix3.push_back(tmpVals);
      }
-     Factory::sumMDD(mdd->getSpec(), vars, valMatrix3, z3);
+     mdd->post(sum(mdd, vars, valMatrix3, z3));
      cp->post(mdd);
      cstr = mdd;
    }

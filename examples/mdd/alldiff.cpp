@@ -159,10 +159,17 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     if (mode == 1 || mode == 2) {
       cout << "AllDiff MDD" << endl;
       for (int constraintIndex = 0; constraintIndex < 5; constraintIndex++) {
+         MDDOpts opts = {
+            .nodeP = nodePriority,
+            .candP = candidatePriority,
+            .cstrP = priorities[constraintIndex],
+            .appxEQMode = approxEquivMode,
+            .eqThreshold = equivalenceThreshold
+         };
         for (int cliqueIndex = 0; cliqueIndex < (int)cliquesByConstraint[constraintIndex].size(); cliqueIndex++) { 
           auto adv = all(cp, cliquesByConstraint[constraintIndex][cliqueIndex], vars);
-          addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, maxConstraintPriority, sameMDD, [adv, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold, priorities, constraintIndex](MDDRelax* mdd) {
-            Factory::allDiffMDD2(mdd->getSpec(), adv, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold, priorities[constraintIndex]);
+          addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, maxConstraintPriority, sameMDD, [adv,opts](MDDRelax* mdd) {
+             mdd->post(Factory::allDiffMDD2(mdd, adv,opts));
           });
         }
       }

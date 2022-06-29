@@ -37,7 +37,7 @@ int main(int argc,char* argv[])
    auto v = Factory::intVarArray(cp, 50, 1, 9);
    auto start = RuntimeMonitor::cputime();
    auto mdd = Factory::makeMDD(cp);
-   Factory::seqMDD(mdd->getSpec(),v,10,2,5,{2,4,5,6});
+   mdd->post(Factory::seqMDD(mdd,v,10,2,5,{2,4,5,6}));
    
    cp->post(mdd);
     std::cout << "MDD Usage:" << mdd->usage() << std::endl;

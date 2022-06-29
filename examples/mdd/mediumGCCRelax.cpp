@@ -83,7 +83,7 @@ int main(int argc,char* argv[])
    for(auto& b : bounds) {
       std::cout << b.first << " : " << b.second << std::endl;
    }
-   Factory::gccMDD(mdd->getSpec(),v,bounds);
+   mdd->post(gccMDD(mdd,v,bounds));
    cp->post(mdd);
    auto end = RuntimeMonitor::cputime();
    MDDStats stats(mdd);

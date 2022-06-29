@@ -160,7 +160,7 @@ namespace Factory {
     const int N = mdd.addDownState(d,0,2,MinFun); // layer index 
     const int NUp = mdd.addUpState(d,0,2,MinFun); // layer index 
 
-    mdd.transitionDown(xMin,{xMin,N},{},[xMin,N] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
+    mdd.transitionDown(d,xMin,{xMin,N},{},[xMin,N] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
        if (parent.down.at(N)==0) {	  
           int min=INT_MAX;
           for(int v : val)
@@ -171,7 +171,7 @@ namespace Factory {
           out.set(xMin,parent.down.at(xMin));
        }	  
     });
-    mdd.transitionDown(xMax,{xMax,N},{},[xMax,N] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
+    mdd.transitionDown(d,xMax,{xMax,N},{},[xMax,N] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
        if (parent.down.at(N)==0) {	    
           int max=-INT_MAX;
           for(int v : val)
@@ -182,7 +182,7 @@ namespace Factory {
           out.set(xMax, parent.down.at(xMax));
        }
     });
-    mdd.transitionDown(yMin,{yMin,N},{},[yMin,N] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
+    mdd.transitionDown(d,yMin,{yMin,N},{},[yMin,N] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
        if (parent.down.at(N)==1) {	  
           int min=INT_MAX;
           for(int v : val)
@@ -193,7 +193,7 @@ namespace Factory {
           out.set(yMin, parent.down.at(yMin));
        }
     });
-    mdd.transitionDown(yMax,{yMax,N},{},[yMax,N] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
+    mdd.transitionDown(d,yMax,{yMax,N},{},[yMax,N] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
        if (parent.down.at(N)==1) {
           int max=-INT_MAX;
           for(int v : val)
@@ -205,10 +205,10 @@ namespace Factory {
        }
     });
 
-    mdd.transitionDown(N,{N},{},[N](auto& out,const auto& parent,auto x,const auto& val,bool up)    { out.set(N,parent.down.at(N)+1); });
-    mdd.transitionUp(NUp,{NUp},{},[NUp](auto& out,const auto& child,auto x,const auto& val,bool up) { out.set(NUp,child.up.at(NUp)+1); });
+    mdd.transitionDown(d,N,{N},{},[N](auto& out,const auto& parent,auto x,const auto& val,bool up)    { out.set(N,parent.down.at(N)+1); });
+    mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& child,auto x,const auto& val,bool up) { out.set(NUp,child.up.at(NUp)+1); });
 
-    mdd.transitionUp(yMinUp,{yMinUp,NUp},{},[yMinUp,NUp] (auto& out,const auto& child,auto x, const auto& val,bool up) {
+    mdd.transitionUp(d,yMinUp,{yMinUp,NUp},{},[yMinUp,NUp] (auto& out,const auto& child,auto x, const auto& val,bool up) {
        if (child.up.at(NUp)==1) {
           int min=INT_MAX;
           for(int v : val)
@@ -219,7 +219,7 @@ namespace Factory {
           out.set(yMinUp, child.up.at(yMinUp));
        }
     });
-    mdd.transitionUp(yMaxUp,{yMaxUp,NUp},{},[yMaxUp,NUp] (auto& out,const auto& child,auto x, const auto& val,bool up) {
+    mdd.transitionUp(d,yMaxUp,{yMaxUp,NUp},{},[yMaxUp,NUp] (auto& out,const auto& child,auto x, const auto& val,bool up) {
        if (child.up.at(NUp)==1) {
           int max=-INT_MAX;
           for(int v : val)
@@ -230,7 +230,7 @@ namespace Factory {
           out.set(yMaxUp, child.up.at(yMaxUp));
        }
     });
-    mdd.transitionUp(zMinUp,{zMinUp,N},{},[zMinUp,N] (auto& out,const auto& child,auto x, const auto& val,bool up) {
+    mdd.transitionUp(d,zMinUp,{zMinUp,N},{},[zMinUp,N] (auto& out,const auto& child,auto x, const auto& val,bool up) {
        if (child.up.at(N)==0) {
           int min=INT_MAX;
           for(int v : val)
@@ -241,7 +241,7 @@ namespace Factory {
           out.set(zMinUp, child.up.at(zMinUp));
        }
     });
-    mdd.transitionUp(zMaxUp,{zMaxUp,N},{},[zMaxUp,N] (auto& out,const auto& child,auto x, const auto& val,bool up) {
+    mdd.transitionUp(d,zMaxUp,{zMaxUp,N},{},[zMaxUp,N] (auto& out,const auto& child,auto x, const auto& val,bool up) {
        if (child.up.at(N)==0) {
           int max=-INT_MAX;
           for(int v : val)
@@ -426,8 +426,8 @@ int main(int argc,char* argv[])
        auto tmpVars = all(cp, tmpVarsIdx, [&vars](int i) {return vars[i];});
        Factory::absDiffMDD(mdd->getSpec(),tmpVars);
      }
-     Factory::allDiffMDD(mdd->getSpec(),xVars);
-     Factory::allDiffMDD(mdd->getSpec(),yVars);
+     mdd->post(Factory::allDiffMDD(mdd,xVars));
+     mdd->post(Factory::allDiffMDD(mdd,yVars));
      cp->post(mdd);
      //mdd->saveGraph();
 

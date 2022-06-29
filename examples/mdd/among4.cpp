@@ -35,10 +35,10 @@ int main(int argc,char* argv[])
    auto v = Factory::intVarArray(cp, 200, 1, 9);
    auto start = RuntimeMonitor::now();
    auto mdd = Factory::makeMDD(cp);
-   Factory::amongMDD(mdd->getSpec(),v, 2, 5, {2});
-   Factory::amongMDD(mdd->getSpec(),v, 2, 5, {3});
-   Factory::amongMDD(mdd->getSpec(),v, 3, 5, {4});
-   Factory::amongMDD(mdd->getSpec(),v, 3, 5, {5});
+   mdd->post(Factory::amongMDD(mdd,v, 2, 5, {2}));
+   mdd->post(Factory::amongMDD(mdd,v, 2, 5, {3}));
+   mdd->post(Factory::amongMDD(mdd,v, 3, 5, {4}));
+   mdd->post(Factory::amongMDD(mdd,v, 3, 5, {5}));
 
    cp->post(mdd);
 

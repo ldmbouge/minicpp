@@ -154,6 +154,15 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
 
   std::cout << cliques.size() << "\n";
 
+  MDDOpts opts = {
+     .nodeP = nodePriority,
+     .candP = candidatePriority,
+     .cstrP = 0,
+     .appxEQMode = approxEquivMode,
+     .eqThreshold = equivalenceThreshold
+  };
+
+  
   if (mode == 0) {
   } else if (mode == 1) {
     cout << "amongMDD2 encoding" << endl;
@@ -161,8 +170,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
 
     for (auto clique : cliques) {
       auto adv = all(cp, clique, vars);
-      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold](MDDRelax* mdd) { 
-        Factory::amongMDD2(mdd->getSpec(), adv, 0, 1, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold);
+      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included,opts](MDDRelax* mdd) { 
+         mdd->post(Factory::amongMDD2(mdd, adv, 0, 1, included,opts));
       });
     }
   } else if (mode == 2) {
@@ -171,46 +180,42 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
 
     for (auto clique : cliques) {
       auto adv = all(cp, clique, vars);
-      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold](MDDRelax* mdd) { 
-        Factory::upToOneMDD(mdd->getSpec(), adv, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold);
+      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included,opts](MDDRelax* mdd) { 
+         mdd->post(Factory::upToOneMDD(mdd, adv, included,opts));
       });
     }
   }
 
   if (mdd && sameMDD) {
-    addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [vars, objective](MDDRelax* mdd) { 
-      Factory::sumMDD(mdd->getSpec(), vars, objective);
+     addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [vars, objective](MDDRelax* mdd) { 
+        mdd->post(Factory::sum(mdd, vars, objective));
     });
-    cp->post(mdd);
+     cp->post(mdd);
   }
   
   Objective::Ptr obj = Factory::maximize(objective);
   
   DFSearch search(cp,[=]() {
-auto current = RuntimeMonitor::cputime();
-if (RuntimeMonitor::milli(start,current) >= 180000) {
-  std::cout << "Taken " << RuntimeMonitor::milli(start,current)/1000 << " seconds.  Lowerbound is " << objective->min() << ".  Upperbound is " << objective->max() << "\n";
-}
-      unsigned i = 0u;
-      for(i=0u;i < vars.size();i++)
-	if (vars[i]->size()> 1) break;
-      auto x = i< vars.size() ? vars[i] : nullptr;
-
-      // auto x = selectMin(vars,
-      // 			 [](const auto& x) { return x->size() > 1;},
-      // 			 [](const auto& x) { return x->size();});
-      
+     auto current = RuntimeMonitor::cputime();
+     if (RuntimeMonitor::milli(start,current) >= 180000) {
+        std::cout << "Taken " << RuntimeMonitor::milli(start,current)/1000 << " seconds.  Lowerbound is "
+                  << objective->min() << ".  Upperbound is " << objective->max() << "\n";
+     }
+     unsigned i = 0u;
+     for(i=0u;i < vars.size();i++)
+        if (vars[i]->size()> 1) break;
+     auto x = i< vars.size() ? vars[i] : nullptr;         
       if (x) {
-	//bool c = x->min();
-	int c = x->max();
-	
-	return  [=] {
-	  cp->post(x == c);}
-	| [=] {
-	  cp->post(x != c);};
+         //bool c = x->min();
+         int c = x->max();
+         
+         return  [=] {
+            cp->post(x == c);}
+            | [=] {
+               cp->post(x != c);};
       } else return Branches({});
-    });
-
+  });
+  
   int cnt = 0;
   RuntimeMonitor::HRClock firstSolTime;
 
@@ -225,15 +230,7 @@ if (RuntimeMonitor::milli(start,current) >= 180000) {
                          firstSolNumFail = stat.numberOfFailures();
                        }
     });
-   search.optimize(obj,stat);
-
-
-//  stat = search.solve([&stat](const SearchStatistics& stats) {
-//                              stat = stats;
-//                              //return stats.numberOfNodes() > 1;
-//                              return stats.numberOfSolutions() > INT_MAX;
-//                              //return stats.numberOfSolutions() > 0;
-//    }); 
+  search.optimize(obj,stat);
   cout << stat << endl;
   
   auto end = RuntimeMonitor::cputime();

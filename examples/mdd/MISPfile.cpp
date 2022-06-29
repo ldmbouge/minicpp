@@ -215,20 +215,28 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   auto start = RuntimeMonitor::cputime();
 
   MDDRelax* mdd = nullptr;
+  MDDOpts opts = {
+     .nodeP = nodePriority,
+     .candP = candidatePriority,
+     .cstrP = 0,
+     .appxEQMode = approxEquivMode,
+     .eqThreshold = equivalenceThreshold
+  };
 
   if (mode == 0) {
     for (auto clique : cliques) {
       auto adv = all(cp, clique, vars);
-      Factory::upToOneMDD(mdd->getSpec(), adv, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold);
+      mdd->post(Factory::upToOneMDD(mdd, adv, included, opts));
     }
   } else if (mode == 1) {
     cout << "amongMDD2 encoding" << endl;
     if (sameMDD) mdd = newMDDRelax(cp, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact);
 
+            
     for (auto clique : cliques) {
       auto adv = all(cp, clique, vars);
-      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold](MDDRelax* mdd) { 
-        Factory::amongMDD2(mdd->getSpec(), adv, 0, 1, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold);
+      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included,opts](MDDRelax* mdd) { 
+         mdd->post(Factory::amongMDD2(mdd, adv, 0, 1, included,opts));
       });
     }
   } else if (mode == 2) {
@@ -237,15 +245,15 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
 
     for (auto clique : cliques) {
       auto adv = all(cp, clique, vars);
-      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold](MDDRelax* mdd) { 
-        Factory::upToOneMDD(mdd->getSpec(), adv, included, nodePriority, candidatePriority, approxEquivMode, equivalenceThreshold);
+      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included,opts](MDDRelax* mdd) { 
+         mdd->post(Factory::upToOneMDD(mdd, adv, included,opts));
       });
     }
   }
 
   if (mdd && sameMDD) {
     addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [vars, objective](MDDRelax* mdd) { 
-      Factory::sumMDD(mdd->getSpec(), vars, objective);
+       mdd->post(Factory::sum(mdd, vars, objective));
     });
     cp->post(mdd);
   }

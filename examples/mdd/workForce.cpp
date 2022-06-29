@@ -251,11 +251,11 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          auto c = cv[theClique];
          std::cout << "Clique: " << c << '\n';
          auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-         Factory::allDiffMDD(mdd->getSpec(),adv);
+         mdd->post(Factory::allDiffMDD(mdd,adv));
          //cp->post(Factory::allDifferent(adv));
       }
       // add objective to MDD
-      Factory::sumMDD(mdd->getSpec(), emp, compat, z);
+      mdd->post(sum(mdd, emp, compat, z));
       cp->post(mdd);
       theOne = mdd;
       //mdd->saveGraph();

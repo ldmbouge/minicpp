@@ -67,7 +67,7 @@ int main(int argc,char* argv[])
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
    auto start = RuntimeMonitor::cputime();
    auto mdd = Factory::makeMDD(cp);
-   Factory::allDiffMDD(mdd->getSpec(),v);
+   mdd->post(Factory::allDiffMDD(mdd,v));
    cp->post(mdd);
    auto end = RuntimeMonitor::cputime();
    MDDStats stats(mdd);

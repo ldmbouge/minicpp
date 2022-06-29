@@ -231,6 +231,7 @@ class MDDRelax : public MDD {
    void refreshAll() override;
    const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:
+   typedef handle_ptr<MDDRelax> Ptr;
    MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),
             int maxSplitIter = 5,
             bool approxThenExact = true,

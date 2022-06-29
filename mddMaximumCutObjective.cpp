@@ -19,7 +19,11 @@
 
 namespace Factory {
 
-   void maximumCutObjectiveMDD(MDDSpec& mdd, const Factory::Vecb& vars, const std::vector<std::vector<int>>& weights, var<int>::Ptr z, int nodePriority, int candidatePriority, int approxEquivMode, int equivalenceThreshold, int constraintPriority) {
+   MDDCstrDesc::Ptr maxCutObjectiveMDD(MDD::Ptr m, const Factory::Vecb& vars,
+                                       const std::vector<std::vector<int>>& weights,
+                                       var<int>::Ptr z,MDDOpts opts)
+   {
+      MDDSpec& mdd = m->getSpec();
       mdd.append(vars);
       mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
 
@@ -33,15 +37,15 @@ namespace Factory {
             if (weights[i][j] < 0) rootValue += weights[i][j];
 
       // Define the states
-      const int downWeights = mdd.addDownSWState(d, nbVars, 0, 0, External, constraintPriority);
-      const int maxDownValue = mdd.addDownState(d, rootValue, INT_MAX, External, constraintPriority);
-      const int len = mdd.addDownState(d, 0, nbVars, MaxFun, constraintPriority);
+      const int downWeights = mdd.addDownSWState(d, nbVars, 0, 0, External, opts.cstrP);
+      const int maxDownValue = mdd.addDownState(d, rootValue, INT_MAX, External, opts.cstrP);
+      const int len = mdd.addDownState(d, 0, nbVars, MaxFun, opts.cstrP);
 
       mdd.arcExist(d,[=](const auto&,const auto&,var<int>::Ptr, const auto&) -> bool {
          return true;
       });
 
-      mdd.transitionDown(downWeights,{downWeights,maxDownValue},{},[downWeights, len, weights, nbVars] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,downWeights,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
          bool relaxed = val.size()==2;
          int k = parent.down[len];
          MDDSWin<short> outWeights = out.getSW(downWeights);
@@ -64,7 +68,7 @@ namespace Factory {
             }
          }
       });
-      mdd.transitionDown(maxDownValue,{downWeights,maxDownValue},{},[maxDownValue, downWeights, len, nbVars, weights] (auto& out,const auto& parent,const auto& var,const auto& val,bool up) {
+      mdd.transitionDown(d,maxDownValue,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var,const auto& val,bool up) {
          bool relaxed = val.size()==2;
          int k = parent.down[len];
          MDDSWin<short> parentWeights = parent.down.getSW(downWeights);
@@ -100,12 +104,12 @@ namespace Factory {
             out.setInt(maxDownValue, parent.down[maxDownValue] + std::max(newValueForS, newValueForT));
          }
       });
-      mdd.transitionDown(len,{len},{},[len] (auto& out,const auto& parent,const auto&,const auto&,bool) {
+      mdd.transitionDown(d,len,{len},{},[len] (auto& out,const auto& parent,const auto&,const auto&,bool) {
          out.setInt(len,parent.down[len] + 1);
       });
 
-      mdd.addRelaxationDown(downWeights,[](auto& out,const auto& l,const auto& r) noexcept {});
-      mdd.addRelaxationDown(maxDownValue,[downWeights,maxDownValue,len,nbVars](auto& out,const auto& l,const auto& r) noexcept    {
+      mdd.addRelaxationDown(d,downWeights,[](auto& out,const auto& l,const auto& r) noexcept {});
+      mdd.addRelaxationDown(d,maxDownValue,[=](auto& out,const auto& l,const auto& r) noexcept    {
          MDDSWin<short> outWeights = out.getSW(downWeights);
          MDDSWin<short> lWeights = l.getSW(downWeights);
          MDDSWin<short> rWeights = r.getSW(downWeights);
@@ -132,11 +136,11 @@ namespace Factory {
          z->removeAbove(sinkDown[maxDownValue]);
       });
 
-      switch (candidatePriority) {
+      switch (opts.candP) {
         case 0:
           mdd.candidateByLargest([maxDownValue](const auto& state, void* arcs, int numArcs) {
              return state[maxDownValue];
-          }, constraintPriority);
+          }, opts.cstrP);
           break;
         case 1:
           mdd.candidateByLargest([downWeights,maxDownValue,len,nbVars](const auto& state, void* arcs, int numArcs) {
@@ -146,10 +150,11 @@ namespace Factory {
                  rank += abs(stateWeights.get(i));
                }
                return rank;
-          }, constraintPriority);
+          }, opts.cstrP);
           break;
         default:
           break;
       }
+      return d;
    }
 }

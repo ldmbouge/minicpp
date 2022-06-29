@@ -864,6 +864,16 @@ inline std::ostream& operator<<(std::ostream& os,MDDCstrDesc& p)
    p.print(os);return os;
 }
 
+class MDDPropValue {
+   MDDProperty::Ptr _p;
+   char*          _mem;
+public:
+   MDDPropValue(MDDProperty::Ptr p,char* mem) : _p(p),_mem(mem) {}
+   MDDPropValue& operator=(int v) noexcept               { _p->setInt(_mem,v);return *this;}
+   MDDPropValue& operator=(const MDDBSValue& v) noexcept { _p->setBS(_mem,v);return *this;}
+   operator int() const { return _p->getInt(_mem);}
+};
+
 class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
@@ -971,6 +981,8 @@ public:
    }
    void init(int i) const  noexcept    { propAt(i)->init(_mem); }
    int operator[](int i) const noexcept   { return propAt(i)->getInt(_mem); } // to _read_ a state property (fast)
+   //MDDPropValue operator[](int i) noexcept             { return MDDPropValue(propAt(i),_mem);}
+   //const MDDPropValue operator[](int i) const noexcept { return MDDPropValue(propAt(i),_mem);}
    int at(int i) const noexcept { return propAt(i)->get(_mem); }
    int byte(int i) const noexcept { return propAt(i)->getByte(_mem); }
    MDDBSValue getBS(int i) const noexcept { return propAt(i)->getBS(_mem); }
@@ -1094,34 +1106,34 @@ public:
    int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External,int cPriority = 0) override;
    void nodeExist(NodeFun a);
    void arcExist(const MDDCstrDesc::Ptr d,ArcFun a);
-   void updateNode(int,std::set<int> spDown,std::set<int> spUp,UpdateFun update);
-   void transitionDown(int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
-   void transitionUp(int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
-   template <typename LR> void addRelaxationDown(int p,LR r) {
+   void updateNode(MDDCstrDesc::Ptr cd,int,std::set<int> spDown,std::set<int> spUp,UpdateFun update);
+   void transitionDown(MDDCstrDesc::Ptr,int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
+   void transitionUp(MDDCstrDesc::Ptr,int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
+   template <typename LR> void addRelaxationDown(MDDCstrDesc::Ptr cd,int p,LR r) {
       _xDownRelax.insert(p);
       int rid = (int)_downRelaxation.size();
-      for(auto& cd : constraints)
-         if (cd->ownsDownProperty(p)) {
-            cd->registerDownRelaxation(rid);
-            _attrsDown[p]->setRelax(rid);
-            break;
-         }  
+      //for(auto& cd : constraints)
+      if (cd->ownsDownProperty(p)) {
+         cd->registerDownRelaxation(rid);
+         _attrsDown[p]->setRelax(rid);
+         //break;
+      }  
       _downRelaxation.emplace_back(std::move(r));
    }
-   template <typename LR> void addRelaxationUp(int p,LR r) {
+   template <typename LR> void addRelaxationUp(MDDCstrDesc::Ptr cd,int p,LR r) {
       _xUpRelax.insert(p);
       int rid = (int)_upRelaxation.size();
-      for(auto& cd : constraints)
-         if (cd->ownsUpProperty(p)) {
-            cd->registerUpRelaxation(rid);
-            _attrsUp[p]->setRelax(rid);
-            break;
-         }  
+      //for(auto& cd : constraints)
+      if (cd->ownsUpProperty(p)) {
+         cd->registerUpRelaxation(rid);
+         _attrsUp[p]->setRelax(rid);
+         //break;
+      }  
       _upRelaxation.emplace_back(std::move(r));
    }
    void addSimilarity(int,lambdaSim);
-   void transitionDown(const lambdaMap& map);
-   void transitionUp(const lambdaMap& map);
+   void transitionDown(MDDCstrDesc::Ptr cd,const lambdaMap& map);
+   void transitionUp(MDDCstrDesc::Ptr cd,const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
    void splitOnLargest(SplitFun onSplit, int cPriority = 0);

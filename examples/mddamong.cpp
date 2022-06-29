@@ -39,8 +39,8 @@ int main(int argc,char* argv[])
   std::set<int> values_rem = {1,3,4};
      
   MDD* mdd = Factory::makeMDD(cp);
-  Factory::amongMDD(mdd->getSpec(), iv, 1, 2, values_5);
-  Factory::amongMDD(mdd->getSpec(), iv, 1, 2, values_2);
+  mdd->post(Factory::amongMDD(mdd, iv, 1, 2, values_5));
+  mdd->post(Factory::amongMDD(mdd, iv, 1, 2, values_2));
   cp->post(mdd);
   mdd->saveGraph();
     

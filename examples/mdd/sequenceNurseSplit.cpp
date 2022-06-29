@@ -135,35 +135,35 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int nbCon)
   }
   else if (mode == 1) {
     cout << "seqMDD encoding" << endl;
-    if (c1) seqMDD(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    if (c2) seqMDD(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    if (c3) seqMDD(mdd->getSpec(), vars, Q3, L3, U3, S3);
-    if (c4) seqMDD(mdd->getSpec(), vars, Q4, L4, U4, S4);
-    if (c5) seqMDD(mdd->getSpec(), vars, Q5, L5, U5, S5);
-    if (c6) seqMDD(mdd->getSpec(), vars, Q6, L6, U6, S6);
-    if (c7) seqMDD(mdd->getSpec(), vars, Q7, L7, U7, S7);
+    if (c1) mdd->post(seqMDD(mdd, vars, Q1, L1, U1, S1));
+    if (c2) mdd->post(seqMDD(mdd, vars, Q2, L2, U2, S2));
+    if (c3) mdd->post(seqMDD(mdd, vars, Q3, L3, U3, S3));
+    if (c4) mdd->post(seqMDD(mdd, vars, Q4, L4, U4, S4));
+    if (c5) mdd->post(seqMDD(mdd, vars, Q5, L5, U5, S5));
+    if (c6) mdd->post(seqMDD(mdd, vars, Q6, L6, U6, S6));
+    if (c7) mdd->post(seqMDD(mdd, vars, Q7, L7, U7, S7));
     cp->post(mdd);
   }
   else if (mode == 2) {
     cout << "seqMDD2 encoding" << endl;
-    if (c1) seqMDD2(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    if (c2) seqMDD2(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    if (c3) seqMDD2(mdd->getSpec(), vars, Q3, L3, U3, S3);
-    if (c4) seqMDD2(mdd->getSpec(), vars, Q4, L4, U4, S4);
-    if (c5) seqMDD2(mdd->getSpec(), vars, Q5, L5, U5, S5);
-    if (c6) seqMDD2(mdd->getSpec(), vars, Q6, L6, U6, S6);
-    if (c7) seqMDD2(mdd->getSpec(), vars, Q7, L7, U7, S7);
+    if (c1) mdd->post(seqMDD2(mdd, vars, Q1, L1, U1, S1));
+    if (c2) mdd->post(seqMDD2(mdd, vars, Q2, L2, U2, S2));
+    if (c3) mdd->post(seqMDD2(mdd, vars, Q3, L3, U3, S3));
+    if (c4) mdd->post(seqMDD2(mdd, vars, Q4, L4, U4, S4));
+    if (c5) mdd->post(seqMDD2(mdd, vars, Q5, L5, U5, S5));
+    if (c6) mdd->post(seqMDD2(mdd, vars, Q6, L6, U6, S6));
+    if (c7) mdd->post(seqMDD2(mdd, vars, Q7, L7, U7, S7));
     cp->post(mdd);
   }
   else if (mode == 3) {
     cout << "seqMDD3 encoding" << endl;
-    if (c1) seqMDD3(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    if (c2) seqMDD3(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    if (c3) seqMDD3(mdd->getSpec(), vars, Q3, L3, U3, S3);
-    if (c4) seqMDD3(mdd->getSpec(), vars, Q4, L4, U4, S4);
-    if (c5) seqMDD3(mdd->getSpec(), vars, Q5, L5, U5, S5);
-    if (c6) seqMDD3(mdd->getSpec(), vars, Q6, L6, U6, S6);
-    if (c7) seqMDD3(mdd->getSpec(), vars, Q7, L7, U7, S7);
+    if (c1) mdd->post(seqMDD3(mdd, vars, Q1, L1, U1, S1));
+    if (c2) mdd->post(seqMDD3(mdd, vars, Q2, L2, U2, S2));
+    if (c3) mdd->post(seqMDD3(mdd, vars, Q3, L3, U3, S3));
+    if (c4) mdd->post(seqMDD3(mdd, vars, Q4, L4, U4, S4));
+    if (c5) mdd->post(seqMDD3(mdd, vars, Q5, L5, U5, S5));
+    if (c6) mdd->post(seqMDD3(mdd, vars, Q6, L6, U6, S6));
+    if (c7) mdd->post(seqMDD3(mdd, vars, Q7, L7, U7, S7));
     cp->post(mdd);
   }
   

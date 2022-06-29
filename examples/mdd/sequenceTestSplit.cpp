@@ -107,25 +107,25 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
   }
   else if (mode == 1) {
     cout << "SeqMDD1 encoding" << endl; 
-    Factory::seqMDD(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    Factory::seqMDD(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    Factory::seqMDD(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    mdd->post(Factory::seqMDD(mdd, vars, Q1, L1, U1, S1));
+    mdd->post(Factory::seqMDD(mdd, vars, Q2, L2, U2, S2));
+    mdd->post(Factory::seqMDD(mdd, vars, Q3, L3, U3, S3));
     cp->post(mdd);
     // mdd->saveGraph();
   }
   else if (mode == 2) {
     cout << "SeqMDD2 encoding" << endl; 
-    Factory::seqMDD2(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    Factory::seqMDD2(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    Factory::seqMDD2(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    mdd->post(Factory::seqMDD2(mdd, vars, Q1, L1, U1, S1));
+    mdd->post(Factory::seqMDD2(mdd, vars, Q2, L2, U2, S2));
+    mdd->post(Factory::seqMDD2(mdd, vars, Q3, L3, U3, S3));
     cp->post(mdd);
     // mdd->saveGraph();
   }
   else if (mode == 3) {
     cout << "SeqMDD3 encoding" << endl; 
-    Factory::seqMDD3(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    Factory::seqMDD3(mdd->getSpec(), vars, Q2, L2, U2, S2);
-    Factory::seqMDD3(mdd->getSpec(), vars, Q3, L3, U3, S3);
+    mdd->post(Factory::seqMDD3(mdd, vars, Q1, L1, U1, S1));
+    mdd->post(Factory::seqMDD3(mdd, vars, Q2, L2, U2, S2));
+    mdd->post(Factory::seqMDD3(mdd, vars, Q3, L3, U3, S3));
     cp->post(mdd);
     mdd->saveGraph();
   }

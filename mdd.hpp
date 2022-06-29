@@ -29,9 +29,11 @@ class MDDNodeFactory;
 
 class MDD  : public Constraint {
 public:
+   typedef handle_ptr<MDD> Ptr;
    void saveGraph();
    virtual void debugGraph() {}
    void post() override;
+   void post(MDDCstrDesc::Ptr cDesc);
    MDDSpec& getSpec()      { return _mddspec; }
    virtual void trimLayer(unsigned int layer);
    void scheduleRemoval(MDDNode*);
@@ -48,8 +50,8 @@ public:
    unsigned long layerSize(const int layer) {return layers[layer].size();}
    virtual void removeArc(int outL,int inL,MDDEdge* arc) {}
    unsigned long layerAbove(var<int>::Ptr theVar);
-protected:
    MDD(CPSolver::Ptr cp);
+protected:
    virtual bool trimDomains();
    void hookupPropagators();
    virtual void buildNextLayer(unsigned int i);
@@ -82,7 +84,7 @@ class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
    MDD* _mdd;
    unsigned int _layer;
 public:
-   MDDTrim(CPSolver::Ptr cp, MDD* mdd,unsigned int layer): Constraint(cp), _mdd(mdd), _layer(layer){}
+   MDDTrim(CPSolver::Ptr cp,MDD* mdd,unsigned int layer): Constraint(cp), _mdd(mdd), _layer(layer){}
    void post() override {}
    void propagate() override { _mdd->trimLayer(_layer);}
 };

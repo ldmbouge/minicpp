@@ -152,7 +152,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
      mdd = new MDDRelax(cp,relaxSize);
      for (int i=0; i<NbCliques; i++) {
        auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
-       Factory::allDiffMDD(mdd->getSpec(),adv);
+       mdd->post(Factory::allDiffMDD(mdd,adv));
      }
      cp->post(mdd);
    }

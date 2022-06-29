@@ -184,7 +184,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
          cout << endl;
       
          auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
-         Factory::amongMDD2(mdd->getSpec(), adv, L1, U1, workDay);
+         mdd->post(Factory::amongMDD2(mdd, adv, L1, U1, workDay));
       }
     
       // constraint 2
@@ -199,7 +199,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
          cout << endl;
       
          auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
-         Factory::amongMDD2(mdd->getSpec(), adv, L2, U2, workDay);
+         mdd->post(Factory::amongMDD2(mdd, adv, L2, U2, workDay));
       }
   
       // constraint 3
@@ -215,7 +215,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
             cout << endl;
 	
             auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
-            Factory::amongMDD2(mdd->getSpec(), adv, L3, U3, workDay);
+            mdd->post(Factory::amongMDD2(mdd, adv, L3, U3, workDay));
          }
       }
       cp->post(mdd);
@@ -225,11 +225,11 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
       // constraint 1
       cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
-      Factory::seqMDD2(mdd->getSpec(), vars, N1, L1, U1, workDay);
+      mdd->post(Factory::seqMDD2(mdd, vars, N1, L1, U1, workDay));
 
       // constraint 2
       cout << "Sequence(vars," << N2 << "," << L2 << "," << U2 << ",{1})" << std::endl;
-      Factory::seqMDD2(mdd->getSpec(), vars, N2, L2, U2, workDay);
+      mdd->post(Factory::seqMDD2(mdd, vars, N2, L2, U2, workDay));
 
       // constraint 3
       cout << "Constraint type 3" << endl;
@@ -244,7 +244,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
             cout << endl;
 	
             auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
-            Factory::amongMDD2(mdd->getSpec(), adv, L3, U3, workDay);
+            mdd->post(Factory::amongMDD2(mdd, adv, L3, U3, workDay));
          }
       }
       cp->post(mdd);
@@ -254,11 +254,11 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
 
       // constraint 1
       cout << "Sequence(vars," << N1 << "," << L1 << "," << U1 << ",{1})" << std::endl;
-      Factory::seqMDD3(mdd->getSpec(), vars, N1, L1, U1, workDay);
+      mdd->post(Factory::seqMDD3(mdd, vars, N1, L1, U1, workDay));
 
       // constraint 2
       cout << "Sequence(vars," << N2 << "," << L2 << "," << U2 << ",{1})" << std::endl;
-      Factory::seqMDD3(mdd->getSpec(), vars, N2, L2, U2, workDay);
+      mdd->post(Factory::seqMDD3(mdd, vars, N2, L2, U2, workDay));
 
       // constraint 3
       cout << "Constraint type 3" << endl;
@@ -273,7 +273,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
             cout << endl;
 	
             auto adv = all(cp, amongVars, [&vars](int i) {return vars[i];});
-            Factory::amongMDD2(mdd->getSpec(), adv, L3, U3, workDay);
+            mdd->post(Factory::amongMDD2(mdd, adv, L3, U3, workDay));
          }
       }
       cp->post(mdd);

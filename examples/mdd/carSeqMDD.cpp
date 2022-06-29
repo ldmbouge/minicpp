@@ -228,7 +228,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
       cout << vl << endl;
       cp->post(sum(vl) == in.demand(o));
    }
-   //gccMDD(mdd->getSpec(), line, tomap(0, mx,[&in] (int i) { return in.demand(i);}));
+   //mdd->post(gccMDD(mdd, line, tomap(0, mx,[&in] (int i) { return in.demand(i);})));
    //cp->post(mdd);
    //std::cout << mdd->getSpec() << std::endl;
    MDDRelax* as[nbO];
@@ -240,7 +240,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
       }
       auto mdd = new MDDRelax(cp,width);
       as[o] = mdd;
-      seqMDD(mdd->getSpec(),opts, in.ub(o), 0, in.lb(o), {1});
+      mdd->post(seqMDD(mdd,opts, in.ub(o), 0, in.lb(o), {1}));
       cp->post(mdd);
    }
    for(int c = 0; c < nbC; c++) {

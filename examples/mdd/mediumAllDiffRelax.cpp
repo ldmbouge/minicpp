@@ -72,7 +72,7 @@ int main(int argc,char* argv[])
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
    auto start = RuntimeMonitor::cputime();
    auto mdd = new MDDRelax(cp,width);
-   Factory::allDiffMDD(mdd->getSpec(),v);
+   mdd->post(Factory::allDiffMDD(mdd,v));
    cp->post(mdd);
    mdd->saveGraph();
    auto end = RuntimeMonitor::cputime();

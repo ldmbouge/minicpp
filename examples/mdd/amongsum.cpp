@@ -35,8 +35,8 @@ int main(int argc,char* argv[])
    std::set<int> values_2 = {3};
    auto start = RuntimeMonitor::cputime();
    auto mdd = Factory::makeMDD(cp);
-   Factory::amongMDD(mdd->getSpec(),v, 2, 2, values_1);
-   Factory::amongMDD(mdd->getSpec(),v, 2, 2, values_2);
+   mdd->post(Factory::amongMDD(mdd,v, 2, 2, values_1));
+   mdd->post(Factory::amongMDD(mdd,v, 2, 2, values_2));
    cp->post(mdd);
    
    auto sv = Factory::intVarArray(cp,2);

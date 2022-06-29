@@ -47,7 +47,7 @@ int main(int argc,char* argv[])
    for(int i = min; i <= 10; i++)
       bounds.insert(std::pair<int,int>(i,n));
    print_map(bounds);
-   Factory::gccMDD(mdd->getSpec(),v,bounds);
+   mdd->post(gccMDD(mdd,v,bounds));
    
    cp->post(mdd);
    

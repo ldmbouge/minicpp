@@ -19,8 +19,9 @@
 
 namespace Factory {
 
-   void gccMDD(MDDSpec& spec,const Factory::Veci& vars,const std::map<int,int>& ub)
+   MDDCstrDesc::Ptr gccMDD(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
+      MDDSpec& spec = m->getSpec();
       spec.append(vars);
       int sz = (int) vars.size();
       auto udom = domRange(vars);
@@ -43,26 +44,28 @@ namespace Factory {
                                   out.set(pi,parent.down.at(pi) + ((val.singleton() - min) == i));
                                });
                             });
-      spec.transitionDown(d0);
+      spec.transitionDown(desc,d0);
       lambdaMap d1 = toDict(maxFDom,maxLDom,ps,
                             [dz,min,ps] (int i,int pi) -> auto {
                                return tDesc({pi},{},[=] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
                                   out.set(pi,parent.down.at(pi) + ((val.singleton() - min) == (i - dz)));
                                });
                             });
-      spec.transitionDown(d1);
+      spec.transitionDown(desc,d1);
 
       for(int i = minFDom; i <= minLDom; i++){
-         spec.addRelaxationDown(ps[i],[p = ps[i]](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addRelaxationDown(desc,ps[i],[p = ps[i]](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
       }
 
       for(int i = maxFDom; i <= maxLDom; i++){
-         spec.addRelaxationDown(ps[i],[p = ps[i]](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         spec.addRelaxationDown(desc,ps[i],[p = ps[i]](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
+      return desc;
    }
 
-   void gccMDD2(MDDSpec& spec,const Factory::Veci& vars, const std::map<int,int>& lb, const std::map<int,int>& ub)
+   MDDCstrDesc::Ptr gccMDD2(MDD::Ptr m,const Factory::Veci& vars, const std::map<int,int>& lb, const std::map<int,int>& ub)
    {
+      MDDSpec& spec = m->getSpec();
       spec.append(vars);
       int sz = (int) vars.size();
       auto udom = domRange(vars);
@@ -114,7 +117,7 @@ namespace Factory {
           }
       	  return (fixedValues+remainingLB<=sz);
       });
-      spec.transitionDown(toDict(minFDom,minLDom,
+      spec.transitionDown(desc,toDict(minFDom,minLDom,
                                  [min,downPs] (int i) {
                                     return tDesc({downPs[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val,bool up) {
                                        int tmp = parent.down.at(downPs[i]);
@@ -122,20 +125,20 @@ namespace Factory {
                                        out.set(downPs[i], tmp);
                                     });
                                  }));
-      spec.transitionDown(toDict(maxFDom,maxLDom,
+      spec.transitionDown(desc,toDict(maxFDom,maxLDom,
                                  [min,downPs,maxFDom](int i) {
                                     return tDesc({downPs[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val,bool up) {
                                        out.set(downPs[i], parent.down.at(downPs[i])+val.contains(i-maxFDom+min));
                                     });
                                  }));
       
-      spec.transitionUp(toDict(minFDomUp,minLDomUp,
+      spec.transitionUp(desc,toDict(minFDomUp,minLDomUp,
                                [min,upPs,minFDomUp] (int i) {
                                   return tDesc({upPs[i]},{},[=](auto& out,const auto& child,auto x,const auto& val,bool up) {
                                     out.set(upPs[i], child.up.at(upPs[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
                                   });
                                }));
-      spec.transitionUp(toDict(maxFDomUp,maxLDomUp,
+      spec.transitionUp(desc,toDict(maxFDomUp,maxLDomUp,
                                [min,upPs,maxFDomUp](int i) {
                                  return tDesc({upPs[i]},{},[=](auto& out,const auto& child,auto x,const auto& val,bool up) {
                                     out.set(upPs[i], child.up.at(upPs[i])+val.contains(i-maxFDomUp+min));
@@ -144,22 +147,23 @@ namespace Factory {
 
       for(int i = minFDom; i <= minLDom; i++){
          int p = downPs[i];
-         spec.addRelaxationDown(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addRelaxationDown(desc,p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
       }
 
       for(int i = maxFDom; i <= maxLDom; i++){
          int p = downPs[i];
-         spec.addRelaxationDown(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         spec.addRelaxationDown(desc,p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
 
       for(int i = minFDomUp; i <= minLDomUp; i++){
          int p = upPs[i];
-         spec.addRelaxationUp(p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
+         spec.addRelaxationUp(desc,p,[p](auto& out,auto l,auto r)  { out.set(p,std::min(l.at(p),r.at(p)));});
       }
 
       for(int i = maxFDomUp; i <= maxLDomUp; i++){
          int p = upPs[i];
-         spec.addRelaxationUp(p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
+         spec.addRelaxationUp(desc,p,[p](auto& out,auto l,auto r) { out.set(p,std::max(l.at(p),r.at(p)));});
       }
+      return desc;
    }
 }

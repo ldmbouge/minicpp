@@ -443,61 +443,55 @@ void MDDSpec::arcExist(MDDCstrDesc::Ptr d,ArcFun a)
 {
    _exists.emplace_back(std::make_pair<MDDCstrDesc::Ptr,ArcFun>(std::move(d),std::move(a)));
 }
-void MDDSpec::updateNode(int p,std::set<int> spDown,std::set<int> spUp,UpdateFun nf)
+void MDDSpec::updateNode(MDDCstrDesc::Ptr cd,int p,std::set<int> spDown,std::set<int> spUp,UpdateFun nf)
 {
-   for (auto& cd : constraints)
-      if (cd->ownsCombinedProperty(p)) {
-         int uid = (int)_updates.size();
-         cd->registerUpdate(uid);
-         _attrsCombined[p]->setAntecedents(spDown,spUp);
-         _attrsCombined[p]->setTransition(uid);
-         _updates.emplace_back(std::move(nf));
-         break;
-      }
+   if (cd->ownsCombinedProperty(p)) {
+      int uid = (int)_updates.size();
+      cd->registerUpdate(uid);
+      _attrsCombined[p]->setAntecedents(spDown,spUp);
+      _attrsCombined[p]->setTransition(uid);
+      _updates.emplace_back(std::move(nf));
+   }
 }
-void MDDSpec::transitionDown(int p,std::set<int> spDown,std::set<int> spCombined,lambdaTrans t)
+void MDDSpec::transitionDown(MDDCstrDesc::Ptr cd,int p,std::set<int> spDown,std::set<int> spCombined,lambdaTrans t)
 {
-   for(auto& cd : constraints)
-      if (cd->ownsDownProperty(p)) {
-         int tid = (int)_downTransition.size();
-         cd->registerDown(tid);
-         _attrsDown[p]->setAntecedents(spDown,spCombined);
-         _attrsDown[p]->setTransition(tid);
-         _downTransition.emplace_back(std::move(t));
-         break;
-      }
+   if (cd->ownsDownProperty(p)) {
+      int tid = (int)_downTransition.size();
+      cd->registerDown(tid);
+      _attrsDown[p]->setAntecedents(spDown,spCombined);
+      _attrsDown[p]->setTransition(tid);
+      _downTransition.emplace_back(std::move(t));
+   }
 }
 
-void MDDSpec::transitionUp(int p,std::set<int> spUp,std::set<int> spCombined,lambdaTrans t)
+void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,int p,std::set<int> spUp,std::set<int> spCombined,lambdaTrans t)
 {
-   for(auto& cd : constraints)
-      if (cd->ownsUpProperty(p)) {
-         int tid = (int)_upTransition.size();
-         cd->registerUp(tid);
-         _attrsUp[p]->setAntecedents(spUp,spCombined);
-         _attrsUp[p]->setTransition(tid);
-         _upTransition.emplace_back(std::move(t));
-         break;
-      }
+   if (cd->ownsUpProperty(p)) {
+      int tid = (int)_upTransition.size();
+      cd->registerUp(tid);
+      _attrsUp[p]->setAntecedents(spUp,spCombined);
+      _attrsUp[p]->setTransition(tid);
+      _upTransition.emplace_back(std::move(t));
+   }
 }
 
-void MDDSpec::transitionDown(const lambdaMap& map)
+void MDDSpec::transitionDown(MDDCstrDesc::Ptr cd,const lambdaMap& map)
 {
    for(auto& kv : map) {
       const auto& spDown = std::get<0>(kv.second);
       const auto& spCombined = std::get<1>(kv.second);
       const auto& f  = std::get<2>(kv.second);
-      transitionDown(kv.first,spDown,spCombined,f);
+      transitionDown(cd,kv.first,spDown,spCombined,f);
    }
 }
 
-void MDDSpec::transitionUp(const lambdaMap& map)
+void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,const lambdaMap& map)
 {
    for(auto& kv : map) {
       const auto& spUp = std::get<0>(kv.second);
       const auto& spCombined = std::get<1>(kv.second);
       const auto& f  = std::get<2>(kv.second);
-      transitionUp(kv.first,spUp,spCombined,f);
+      transitionUp(cd,kv.first,spUp,spCombined,f);
    }
 }
 

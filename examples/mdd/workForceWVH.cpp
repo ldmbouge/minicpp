@@ -246,7 +246,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          auto c = cv[theClique];
          std::cout << "Clique: " << c << std::endl;
          auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-         Factory::allDiffMDD(mdd->getSpec(),adv);
+         mdd->post(Factory::allDiffMDD(mdd,adv));
          // WVH: uncommented the posting of normal alldiff
          cp->post(Factory::allDifferent(adv));
       }

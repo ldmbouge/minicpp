@@ -63,6 +63,11 @@ MDD::MDD(CPSolver::Ptr cp)
    _mddspec.setConstraintPrioritySize(1);
 }
 
+void MDD::post(MDDCstrDesc::Ptr cDesc)
+{
+   getSpec();
+}
+
 /*
   MDD::post() initializes the MDD and starts the build process of the diagram.
 */

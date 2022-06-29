@@ -111,8 +111,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     cout << "SeqMDD1 encoding" << endl; 
  
     auto mdd = new MDDRelax(cp,relaxSize);
-    Factory::seqMDD(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    Factory::seqMDD(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    mdd->post(Factory::seqMDD(mdd, vars, Q1, L1, U1, S1));
+    mdd->post(Factory::seqMDD(mdd, vars, Q2, L2, U2, S2));
     // Factory::seqMDD(mdd->getSpec(), vars, Q3, L3, U3, S3);
 
     cp->post(mdd);
@@ -122,8 +122,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     cout << "SeqMDD2 encoding" << endl; 
  
     auto mdd = new MDDRelax(cp,relaxSize);
-    Factory::seqMDD2(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    Factory::seqMDD2(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    mdd->post(Factory::seqMDD2(mdd, vars, Q1, L1, U1, S1));
+    mdd->post(Factory::seqMDD2(mdd, vars, Q2, L2, U2, S2));
     // Factory::seqMDD2(mdd->getSpec(), vars, Q3, L3, U3, S3);
 
     cp->post(mdd);
@@ -133,8 +133,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
     cout << "SeqMDD3 encoding" << endl; 
  
     auto mdd = new MDDRelax(cp,relaxSize);
-    Factory::seqMDD3(mdd->getSpec(), vars, Q1, L1, U1, S1);
-    Factory::seqMDD3(mdd->getSpec(), vars, Q2, L2, U2, S2);
+    mdd->post(Factory::seqMDD3(mdd, vars, Q1, L1, U1, S1));
+    mdd->post(Factory::seqMDD3(mdd, vars, Q2, L2, U2, S2));
     // Factory::seqMDD3(mdd->getSpec(), vars, Q3, L3, U3, S3);
 
     cp->post(mdd);

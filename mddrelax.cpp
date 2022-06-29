@@ -1210,7 +1210,7 @@ void MDDRelax::debugGraph()
 namespace Factory {
    MDD* makeMDD(CPSolver::Ptr cp)
    {
-      return new MDDRelax(cp,256);
+      return new MDDRelax(cp,32);
       //return new MDD(cp);
    }
    

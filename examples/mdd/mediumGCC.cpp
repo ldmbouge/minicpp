@@ -74,7 +74,7 @@ int main(int argc,char* argv[])
    auto start = RuntimeMonitor::cputime();
    auto mdd = Factory::makeMDD(cp);
    auto bounds = buildBounds(SZ_VAR, 1, SZ_VAL);
-   Factory::gccMDD(mdd->getSpec(),v,bounds);
+   mdd->post(gccMDD(mdd,v,bounds));
    cp->post(mdd);
    auto end = RuntimeMonitor::cputime();
    MDDStats stats(mdd);

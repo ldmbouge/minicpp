@@ -340,13 +340,13 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
        if ( in.requires(i,o) ) { Confs.insert(i); }
      }
      std::cout << "use seqMDD3 constraint for option " << o << std::endl;     
-     seqMDD3(mdd->getSpec(), line, in.ub(o), 0, in.lb(o), Confs);
+     mdd->post(seqMDD3(mdd, line, in.ub(o), 0, in.lb(o), Confs));
    }
 
    // // meet demand: use gccMDD2
    // std::map<int,int> boundsLB = tomap(0, mx,[&in] (int i) { return in.demand(i);} );
    // std::map<int,int> boundsUB = tomap(0, mx,[&in] (int i) { return in.demand(i);} );
-   // Factory::gccMDD2(mdd->getSpec(), line, boundsLB, boundsUB);
+   // mdd->post(Factory::gccMDD2(mdd, line, boundsLB, boundsUB));
    // std::cout << "use gccMDD2 constraints to model the demand" << std::endl;
 
    // meet demand: use amongMDD (for testing)
@@ -354,7 +354,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
    for(int i=0; i<in.nbConf(); i++) {
      set<int> S;
      S.insert(i);
-     Factory::amongMDD2(mdd->getSpec(), line, in.demand(i), in.demand(i), S);	  
+     mdd->post(Factory::amongMDD2(mdd, line, in.demand(i), in.demand(i), S));	  
    }
    
    // // meet demand: count occurrence of configuration via a Boolean variable

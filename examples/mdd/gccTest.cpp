@@ -127,14 +127,14 @@ int main(int argc,char* argv[])
    }
    else if (mode == 1) {
      std::cout << "use gccMDD -- only with UB constraints!" << std::endl;
-     Factory::gccMDD(mdd->getSpec(), v, boundsUB);
+     mdd->post(gccMDD(mdd, v, boundsUB));
      cp->post(mdd);
      mdd->saveGraph();
    }
    else if (mode == 2) {
-     std::cout << "use gccMDD2" << std::endl;
-     Factory::gccMDD2(mdd->getSpec(), v, boundsLB, boundsUB);
-     cp->post(mdd);
+      std::cout << "use gccMDD2" << std::endl;
+      mdd->post(gccMDD2(mdd, v, boundsLB, boundsUB));
+      cp->post(mdd);
      mdd->saveGraph();
    }
    else {
