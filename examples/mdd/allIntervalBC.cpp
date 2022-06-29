@@ -88,7 +88,7 @@ void EQAbsDiffBC::post()
       interval Y(_y->min(), _y->max());
       interval Z(_z->min(), _z->max());
       bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-      if (!check) { throw Failure; }
+      if (!check) { failNow(); }
 
       _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
       _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
@@ -101,7 +101,7 @@ void EQAbsDiffBC::post()
          interval Y(_y->min(), _y->max());
          interval Z(_z->min(), _z->max());
          bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-         if (!check) { throw Failure; }
+         if (!check) { failNow(); }
      	 _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
      	 _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
       });
@@ -113,7 +113,7 @@ void EQAbsDiffBC::post()
          interval Y(_y->min(), _y->max());
          interval Z(_z->min(), _z->max());
          bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-         if (!check) { throw Failure; }
+         if (!check) { failNow(); }
          _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
          _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
       });
@@ -125,7 +125,7 @@ void EQAbsDiffBC::post()
          interval Y(_y->min(), _y->max());
          interval Z(_z->min(), _z->max());
          bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-         if (!check) { throw Failure; }
+         if (!check) { failNow(); }
          _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
          _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
       });
@@ -138,9 +138,9 @@ void EQAbsDiffBC::post()
 /***/
 
 namespace Factory {
-
-   void absDiffMDD(MDDSpec& mdd, const Factory::Veci& vars)
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,const Factory::Veci& vars)
    {
+      MDDSpec& mdd = m->getSpec();
       assert(vars.size()==3);    
       // Filtering rules based the following constraint:
       //   |vars[0]-vars[1]| = vars[2]
@@ -163,32 +163,20 @@ namespace Factory {
             out.set(xMin,parent.down.at(xMin));       	  
       });
       mdd.transitionDown(d,xMax,{xMax,N},{},[xMax,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down.at(N)==0) {	    
-            int max=-INT_MAX;
-            for(int v : val)
-               if (v>max) max = v;
-            out.set(xMax,max);
-         }
+         if (parent.down.at(N)==0) 
+            out.set(xMax,val.max());
          else 
             out.set(xMax, parent.down.at(xMax));      
       });
       mdd.transitionDown(d,yMin,{yMin,N},{},[yMin,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down.at(N)==1) {	  
-            int min=INT_MAX;
-            for(int v : val)
-               if (v<min) min = v;
-            out.set(yMin,min);
-         }
+         if (parent.down.at(N)==1)
+            out.set(yMin,val.min());
          else 
             out.set(yMin, parent.down.at(yMin));       
       });
       mdd.transitionDown(d,yMax,{yMax,N},{},[yMax,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down.at(N)==1) {
-            int max=-INT_MAX;
-            for(int v : val)
-               if (v>max) max = v;
-            out.set(yMax,max);
-         }
+         if (parent.down.at(N)==1)
+            out.set(yMax,val.max());
          else 
             out.set(yMax, parent.down.at(yMax));      
       });
@@ -197,42 +185,26 @@ namespace Factory {
       mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& child,auto x,const auto& val) { out.set(NUp,child.up.at(NUp)+1); });
 
       mdd.transitionUp(d,yMinUp,{yMinUp,NUp},{},[yMinUp,NUp] (auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up.at(NUp)==1) {
-            int min=INT_MAX;
-            for(int v : val)
-               if (v<min) min = v;
-            out.set(yMinUp,min);
-         }
+         if (child.up.at(NUp)==1) 
+            out.set(yMinUp,val.min());
          else 
             out.set(yMinUp, child.up.at(yMinUp));       
       });
       mdd.transitionUp(d,yMaxUp,{yMaxUp,NUp},{},[yMaxUp,NUp](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up.at(NUp)==1) {
-            int max=-INT_MAX;
-            for(int v : val)
-               if (v>max) max = v;
-            out.set(yMaxUp,max);
-         }
+         if (child.up.at(NUp)==1)
+            out.set(yMaxUp,val.max());
          else 
             out.set(yMaxUp, child.up.at(yMaxUp));       
       });
       mdd.transitionUp(d,zMinUp,{zMinUp,N},{},[zMinUp,N](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up.at(N)==0) {
-            int min=INT_MAX;
-            for(int v : val)
-               if (v<min) min = v;
-            out.set(zMinUp,min);
-         }
+         if (child.up.at(N)==0)
+            out.set(zMinUp,val.min());
          else 
             out.set(zMinUp, child.up.at(zMinUp));       
       });
       mdd.transitionUp(d,zMaxUp,{zMaxUp,N},{},[zMaxUp,N](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up.at(N)==0) {
-            int max=-INT_MAX;
-            for(int v : val)
-               if (v>max) max = v;
-            out.set(zMaxUp,max);
-         }
+         if (child.up.at(N)==0)
+            out.set(zMaxUp,val.max());
          else 
             out.set(zMaxUp, child.up.at(zMaxUp));       
       });
@@ -291,6 +263,7 @@ namespace Factory {
          }
          return true;
       });
+      return d;
    }
 }
 
@@ -311,7 +284,6 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
 
 int main(int argc,char* argv[])
 {
-
    int N     = (argc >= 2 && strncmp(argv[1],"-n",2)==0) ? atoi(argv[1]+2) : 8;
    int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 1;
    int mode  = (argc >= 4 && strncmp(argv[3],"-m",2)==0) ? atoi(argv[3]+2) : 0;
@@ -356,7 +328,7 @@ int main(int argc,char* argv[])
    std::cout << "y = " << yVars << endl;
    
    
-   auto mdd = new MDDRelax(cp,width);
+   auto mdd = Factory::makeMDDRelax(cp,width);
 
    if (mode == 0) {
       cout << "domain encoding with equalAbsDiff constraint" << endl;
@@ -401,14 +373,14 @@ int main(int argc,char* argv[])
    if ((mode == 2) || (mode == 3)) {
       cout << "MDD encoding" << endl;     
       auto tmpFirst = all(cp, {0,1,2}, [&vars](int i) {return vars[i];});     
-      Factory::absDiffMDD(mdd->getSpec(),tmpFirst);
+      mdd->post(Factory::absDiffMDD(mdd,tmpFirst));
       for (int i=1; i<N-1; i++) {
          std::set<int> tmpVarsIdx;
          tmpVarsIdx.insert(2*i-1);
          tmpVarsIdx.insert(2*i+1);
          tmpVarsIdx.insert(2*i+2);       
          auto tmpVars = all(cp, tmpVarsIdx, [&vars](int i) {return vars[i];});
-         Factory::absDiffMDD(mdd->getSpec(),tmpVars);
+         mdd->post(Factory::absDiffMDD(mdd,tmpVars));
       }
       mdd->post(Factory::allDiffMDD(mdd,xVars));
       mdd->post(Factory::allDiffMDD(mdd,yVars));
