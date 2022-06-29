@@ -29,11 +29,10 @@ int main(int argc,char* argv[])
 {
    using namespace std;
    using namespace Factory;
-   auto start = RuntimeMonitor::cputime();
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto x = Factory::intVarArray(cp, 5, 0, 1);
-   auto z = Factory::makeIntVar(cp,0,1000);
-   auto mdd = Factory::makeMDDRelax(cp,3);
+   auto z = Factory::makeIntVar(cp,0,10000);
+   auto mdd = Factory::makeMDDRelax(cp,16);
    mdd->post(sum(mdd,x,{5,4,2,6,8},z));
    mdd->post(sum(mdd,{x[0],x[1]},0, 1));
    mdd->post(sum(mdd,{x[0],x[4]},0, 1));
@@ -43,37 +42,32 @@ int main(int argc,char* argv[])
    mdd->post(sum(mdd,{x[3],x[4]},0, 1));
    cp->post(mdd);
    auto obj = Factory::maximize(z);
-   auto end = RuntimeMonitor::cputime();
    mdd->saveGraph();
-   std::cout << "VARS: " << x << "\nZ=" << z <<  std::endl;
-   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
+   std::cout << "VARS: " << x << "\t Z=" << z <<  "\n";
    
    DFSearch search(cp,[=]() {
       auto xk = selectMin(x,
-                         [](const auto& xi) { return xi->size() > 1;},
-                         [](const auto& xi) { return xi->size();});
-      cp->post(x[4]==1);
-      mdd->saveGraph();
-      
+                          [](const auto& xi) { return xi->size() > 1;},
+                          [](const auto& xi) { return xi->size();});
+      //auto xk = selectFirst(x,[](const auto& xi) { return xi->size() > 1;});
       if (xk) {        
-         int c = xk->max();         
-         return  [=] {
-            std::cout << "choice  <" << xk << " == " << c << ">" << std::endl;
-            cp->post(xk == c);
-            //mdd->saveGraph();
-            //std::cout << "VARS: " << x << std::endl;
-         }
-            | [=] {
-               std::cout << "choice  <" << xk << " != " << c << ">" << std::endl;
-               cp->post(xk != c);
-               //mdd->saveGraph();                  
-               //std::cout << "VARS: " << x << std::endl;
-            };
-      } else return Branches({});
+       int c = xk->max();         
+       return  [=] {
+         std::cout << "choice  <" << xk << " == " << c << ">\n";
+         cp->post(xk == c);
+         mdd->saveGraph();
+       }
+         | [=] {
+           std::cout << "choice  <" << xk << " != " << c << ">\n";
+           std::cout << "VARS: " << x << "\t Z=" << z <<  "\n";
+           cp->post(xk != c);
+           mdd->saveGraph();
+         };
+     } else return Branches({});
    });
    
    search.onSolution([&x,&z]() {
-      std::cout << "Assignment:" << x << "\t OBJ:" << z << std::endl;
+      std::cout << "Assignment:" << x << "\t OBJ:" << z << "\n";
    });        
    auto stat = search.optimize(obj);
    cout << stat << endl;

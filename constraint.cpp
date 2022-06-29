@@ -267,7 +267,9 @@ Maximize::Maximize(var<int>::Ptr& x)
 {
    auto todo = std::function<void(void)>([this]() {
       TRYFAIL
+         std::cout << "1=====> objective primal:" << _primal << "  z = " << _obj << std::endl;
          _obj->removeBelow(_primal);
+         std::cout << "1-----> after:" << _obj << std::endl;
       ONFAIL
          NBT += 1;
          failNow();

@@ -29,7 +29,6 @@ int main(int argc,char* argv[])
 {
    using namespace std;
    using namespace Factory;
-   auto start = RuntimeMonitor::cputime();
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto x = Factory::intVarArray(cp, 5, 0, 1);
    auto z = Factory::makeIntVar(cp,0,10000);
@@ -41,13 +40,9 @@ int main(int argc,char* argv[])
    cp->post(sum({x[2],x[3]}) <= 1);
    cp->post(sum({x[3],x[4]}) <= 1);
    auto obj = Factory::maximize(z);
-   auto end = RuntimeMonitor::cputime();
-   std::cout << "VARS: " << x << std::endl;
-   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
+   std::cout << "VARS: " << x << "\tZ=" << z << std::endl;
    
    DFSearch search(cp,[=]() {
-      std::cout << "-->VARS: " << x << std::endl;
-      
       auto xk = selectMin(x,
                           [](const auto& xi) { return xi->size() > 1;},
                           [](const auto& xi) { return xi->size();});
@@ -55,12 +50,13 @@ int main(int argc,char* argv[])
       if (xk) {
          int c = xk->max();         
          return  [=] {
-            std::cout << "choice  <" << xk << " == " << c << ">" << std::endl;
+            std::cout << "choice  <" << xk << " == " << c << ">\n";
             cp->post(xk == c);
          }
             | [=] {
-               std::cout << "choice  <" << xk << " != " << c << ">" << std::endl;
-               cp->post(xk != c);
+               std::cout << "choice  <" << xk << " != " << c << ">\n";
+               std::cout << "VARS: " << x << "\tZ=" << z << std::endl;
+               cp->post(xk != c);               
             };
       } else return Branches({});
    });

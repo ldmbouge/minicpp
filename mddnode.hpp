@@ -155,7 +155,7 @@ public:
       _fq = _bq = nullptr;
    }
    void print(std::ostream& os) {
-      os << "[" << layer << "," << pos <<  "] " << downState;
+      os << "[" << layer << "," << pos <<  "] " << downState << "\n" << upState << " " << combinedState;
    }
    bool parentsChanged() const noexcept { return _parentsChanged;}
    void resetParentsChanged() { _parentsChanged = false; }

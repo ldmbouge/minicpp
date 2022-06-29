@@ -1238,9 +1238,15 @@ void MDDRelax::refreshAll()
       for(unsigned p=0u;p < layers[l].size();++p) {
          auto n = layers[l][p];
          assert(n->isActive());
-         _fwd->enQueue(n);
-         if (_mddspec.usesUp())
-            _bwd->enQueue(n);
+         if (!_mddspec.consistent(n->pack())) {
+            if (l==0 || l==numVariables) failNow();
+            delState(n,l);
+         } else {
+            filterKids(n,l);
+            _fwd->enQueue(n);
+            if (_mddspec.usesUp())
+               _bwd->enQueue(n);
+         }
       }
    }
    propagate();

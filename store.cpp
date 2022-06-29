@@ -55,6 +55,7 @@ Storage::~Storage()
 
 void* Storage::allocate(std::size_t sz)
 {
+   if (sz == 0) return nullptr;
    if (sz & 0xF)  // unaligned on 8 bytes boundary
       sz = (sz | 0xF) + 1; // increase to align
    assert((sz & 0xF) == 0 && sz != 0);           // check alignment

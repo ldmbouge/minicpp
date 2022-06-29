@@ -70,6 +70,10 @@ namespace Factory {
          return ((parent.down[minW] + val*array[parent.down[len]] + child.up[minWup] <= ub) &&
                  (parent.down[maxW] + val*array[parent.down[len]] + child.up[maxWup] >= lb));
       });
+      mdd.nodeExist([=](const auto& n) {
+        return (n.down[minW] + n.up[minWup] <= ub) && (n.down[maxW] + n.up[maxWup] >= lb);
+      });
+
 
       mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len](auto& out,const auto& parent,const auto&, const auto& val,bool) {
          int delta = std::transform_reduce(val.begin(),val.end(),
@@ -121,6 +125,7 @@ namespace Factory {
       MDDSpec& mdd = m->getSpec();
       mdd.append(vars);
       const int nbVars = (int)vars.size();
+      mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
       // Define the states
@@ -188,7 +193,7 @@ namespace Factory {
       MDDSpec& mdd = m->getSpec();
       mdd.append(vars);
       const int nbVars = (int)vars.size();
-
+      mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
       // Define the states
@@ -257,6 +262,7 @@ namespace Factory {
       //   sum(i, array[i]*vars[i]) == z
       MDDSpec& mdd = m->getSpec();
       mdd.append(vars);
+      mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
       const int nbVars = (int)vars.size();
 
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
@@ -274,6 +280,10 @@ namespace Factory {
          return ((parent.down[minW] + val*array[parent.down[len]] + child.up[minWup] <= z->max()) &&
                  (parent.down[maxW] + val*array[parent.down[len]] + child.up[maxWup] >= z->min()));
       });
+      mdd.nodeExist([=](const auto& n) {
+        return (n.down[minW] + n.up[minWup] <= z->max()) && (n.down[maxW] + n.up[maxWup] >= z->min());
+      });
+
 
       mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
          int delta = std::numeric_limits<int>::max();
@@ -347,6 +357,10 @@ namespace Factory {
          return ((parent.down[minW] + mlv + child.up[minWup] <= z->max()) &&
                  (parent.down[maxW] + mlv + child.up[maxWup] >= z->min()));
       });
+      mdd.nodeExist([=](const auto& n) {
+        return (n.down[minW] + n.up[minWup] <= z->max()) && (n.down[maxW] + n.up[maxWup] >= z->min());
+      });
+
 
       mdd.transitionDown(d,minW,{len,minW},{},[minW,matrix,len] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
          int delta = std::numeric_limits<int>::max();
