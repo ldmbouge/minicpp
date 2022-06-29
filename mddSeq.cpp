@@ -147,7 +147,7 @@ namespace Factory {
          out.setInt(YmaxDown,maxVal);
       });
 
-      spec.transitionDown(desc,N,{N},{},[N](auto& out,const auto& parent,const auto& x,const auto& val) {
+      spec.transitionDown(desc,N,{N},{},[N](auto& out,const auto& parent,const auto& x,const auto& valo) {
          out.setInt(N,parent.down[N]+1);
       });
       spec.transitionDown(desc,Exact,{Exact},{},[Exact,values](auto& out,const auto& parent,const auto& x,const auto& val) {

@@ -115,6 +115,24 @@ public:
          return false;
       }
    }
+   const int min() const noexcept {
+      if (_isSingle) return _single;
+      else {
+         int min = std::numeric_limits<int>::max();
+         for(short i=0;i < _sz;++i)
+            min = std::min(min,_buf[i]);
+         return min;
+      }
+   }
+   const int max() const noexcept {
+      if (_isSingle) return _single;
+      else {
+         int max = std::numeric_limits<int>::min();
+         for(short i=0;i < _sz;++i)
+            max = std::max(max,_buf[i]);
+         return max;
+      }
+   }
    friend bool operator==(const MDDIntSet& a,const MDDIntSet& b) {
       if (a._isSingle == b._isSingle) {
          if (a._isSingle) return a._single == b._single;
