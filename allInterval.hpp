@@ -21,11 +21,10 @@ public:
 };
 
 namespace Factory {
-  inline Constraint::Ptr equalAbsDiff(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y) {
-    return new (x->getSolver()) EQAbsDiffBC(z,x,y);
-  }
-
-  void absDiffMDD(MDDSpec& mdd, const Factory::Veci& vars);
+   inline Constraint::Ptr equalAbsDiff(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y) {
+      return new (x->getSolver()) EQAbsDiffBC(z,x,y);
+   }
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars);
 }
 
 

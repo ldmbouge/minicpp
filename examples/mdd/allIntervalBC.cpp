@@ -138,6 +138,13 @@ void EQAbsDiffBC::post()
 /***/
 
 namespace Factory {
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars) {
+      CPSolver::Ptr cp = (*vars.begin())->getSolver();
+      auto theVars = Factory::intVarArray(cp,vars.size(),[&vars](int i) {
+         return std::data(vars)[i];
+      });
+      return absDiffMDD(m,theVars);
+   }
    MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,const Factory::Veci& vars)
    {
       MDDSpec& mdd = m->getSpec();
@@ -346,47 +353,28 @@ int main(int argc,char* argv[])
       std::vector<std::vector<int>> table;
       for (int i=0; i<N-1; i++) {
          for (int j=i+1; j<N; j++) {
-            std::vector<int> t1;
-            t1.push_back(i);
-            t1.push_back(j);
-            t1.push_back( std::abs(i-j) );	   
-            table.emplace_back(t1);
-            std::vector<int> t2;
-            t2.push_back(j);
-            t2.push_back(i);
-            t2.push_back( std::abs(i-j) );
-            table.emplace_back(t2);
+            table.emplace_back(std::vector<int> {i,j,std::abs(i-j)});           
+            table.emplace_back(std::vector<int> {j,i,std::abs(i-j)});
          }
       }
       std::cout << table << std::endl;
       auto tmpFirst = all(cp, {0,1,2}, [&vars](int i) {return vars[i];});     
       cp->post(Factory::table(tmpFirst, table));
       for (int i=1; i<N-1; i++) {
-         std::set<int> tmpVarsIdx;
-         tmpVarsIdx.insert(2*i-1);
-         tmpVarsIdx.insert(2*i+1);
-         tmpVarsIdx.insert(2*i+2);       
+         std::set<int> tmpVarsIdx = {2*i-1,2*i+1,2*i+2};       
          auto tmpVars = all(cp, tmpVarsIdx, [&vars](int i) {return vars[i];});
          cp->post(Factory::table(tmpVars, table));       
       }
    }
    if ((mode == 2) || (mode == 3)) {
       cout << "MDD encoding" << endl;     
-      auto tmpFirst = all(cp, {0,1,2}, [&vars](int i) {return vars[i];});     
-      mdd->post(Factory::absDiffMDD(mdd,tmpFirst));
-      for (int i=1; i<N-1; i++) {
-         std::set<int> tmpVarsIdx;
-         tmpVarsIdx.insert(2*i-1);
-         tmpVarsIdx.insert(2*i+1);
-         tmpVarsIdx.insert(2*i+2);       
-         auto tmpVars = all(cp, tmpVarsIdx, [&vars](int i) {return vars[i];});
-         mdd->post(Factory::absDiffMDD(mdd,tmpVars));
-      }
+      mdd->post(Factory::absDiffMDD(mdd,{vars[0],vars[1],vars[2]}));
+      for (int i=1; i<N-1; i++) 
+         mdd->post(Factory::absDiffMDD(mdd,{vars[2*i-1],vars[2*i+1],vars[2*i+2]}));      
       mdd->post(Factory::allDiffMDD(mdd,xVars));
       mdd->post(Factory::allDiffMDD(mdd,yVars));
       cp->post(mdd);
       //mdd->saveGraph();
-
       cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;          
       cp->post(Factory::allDifferentAC(xVars));
       cp->post(Factory::allDifferentAC(yVars));
@@ -414,17 +402,14 @@ int main(int argc,char* argv[])
       //                   [](const auto& x) { return x->size() > 1;},
       //                   [](const auto& x) { return x->size();});
 
-      if (x) {
-	
-         int c = x->min();
-          
+      if (x) {	
+         int c = x->min();          
          return  [=] {
             cp->post(x == c);
          }
             | [=] {
                cp->post(x != c);
-            };
-	
+            };	
       } else return Branches({});
    });
       
