@@ -22,7 +22,6 @@ namespace Factory {
    MDDCstrDesc::Ptr gccMDD(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       MDDSpec& spec = m->getSpec();
-      spec.append(vars);
       int sz = (int) vars.size();
       auto udom = domRange(vars);
       int dz = udom.second - udom.first + 1;
@@ -40,14 +39,14 @@ namespace Factory {
 
       lambdaMap d0 = toDict(minFDom,minLDom,ps,
                             [min,ps] (int i,int pi) -> auto {
-                               return tDesc({pi},{},[=] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
+                               return tDesc({pi},{},[=] (auto& out,const auto& parent,auto x, const auto& val) {
                                   out.set(pi,parent.down.at(pi) + ((val.singleton() - min) == i));
                                });
                             });
       spec.transitionDown(desc,d0);
       lambdaMap d1 = toDict(maxFDom,maxLDom,ps,
                             [dz,min,ps] (int i,int pi) -> auto {
-                               return tDesc({pi},{},[=] (auto& out,const auto& parent,auto x, const auto& val,bool up) {
+                               return tDesc({pi},{},[=] (auto& out,const auto& parent,auto x, const auto& val) {
                                   out.set(pi,parent.down.at(pi) + ((val.singleton() - min) == (i - dz)));
                                });
                             });
@@ -66,7 +65,6 @@ namespace Factory {
    MDDCstrDesc::Ptr gccMDD2(MDD::Ptr m,const Factory::Veci& vars, const std::map<int,int>& lb, const std::map<int,int>& ub)
    {
       MDDSpec& spec = m->getSpec();
-      spec.append(vars);
       int sz = (int) vars.size();
       auto udom = domRange(vars);
       int dz = udom.second - udom.first + 1;
@@ -119,7 +117,7 @@ namespace Factory {
       });
       spec.transitionDown(desc,toDict(minFDom,minLDom,
                                  [min,downPs] (int i) {
-                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val,bool up) {
+                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val) {
                                        int tmp = parent.down.at(downPs[i]);
                                        if (val.isSingleton() && (val.singleton() - min) == i) tmp++;
                                        out.set(downPs[i], tmp);
@@ -127,20 +125,20 @@ namespace Factory {
                                  }));
       spec.transitionDown(desc,toDict(maxFDom,maxLDom,
                                  [min,downPs,maxFDom](int i) {
-                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val,bool up) {
+                                    return tDesc({downPs[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val) {
                                        out.set(downPs[i], parent.down.at(downPs[i])+val.contains(i-maxFDom+min));
                                     });
                                  }));
       
       spec.transitionUp(desc,toDict(minFDomUp,minLDomUp,
                                [min,upPs,minFDomUp] (int i) {
-                                  return tDesc({upPs[i]},{},[=](auto& out,const auto& child,auto x,const auto& val,bool up) {
+                                  return tDesc({upPs[i]},{},[=](auto& out,const auto& child,auto x,const auto& val) {
                                     out.set(upPs[i], child.up.at(upPs[i]) + (val.isSingleton() && (val.singleton() - min + minFDomUp == i)));
                                   });
                                }));
       spec.transitionUp(desc,toDict(maxFDomUp,maxLDomUp,
                                [min,upPs,maxFDomUp](int i) {
-                                 return tDesc({upPs[i]},{},[=](auto& out,const auto& child,auto x,const auto& val,bool up) {
+                                 return tDesc({upPs[i]},{},[=](auto& out,const auto& child,auto x,const auto& val) {
                                     out.set(upPs[i], child.up.at(upPs[i])+val.contains(i-maxFDomUp+min));
                                  });
                                }));

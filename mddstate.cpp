@@ -674,7 +674,7 @@ void MDDSpec::compile()
    _frameLayer.reserve(nbL);
    for(auto i = 0u;i < nbL;i++) {
       int reboot = 0;
-      int rebootSum = 0;
+      //int rebootSum = 0;
       int numConstraints = 0;
       auto& layer   = _transLayer.emplace_back(std::vector<lambdaTrans>());
       auto& upLayer = _uptransLayer.emplace_back(std::vector<lambdaTrans>());
@@ -688,7 +688,7 @@ void MDDSpec::compile()
             if (c->vars().size() < nbL/2) {
                int highestLayer = c->vars()[0]->getId();
                reboot = std::max(reboot, (int) i - highestLayer);
-               rebootSum += (int) i - highestLayer;
+               //rebootSum += (int) i - highestLayer;
                numConstraints++;
             }
          } else { // x[i] does not appear in constraint c. So the properties of c should be subject to frame axioms (copied)
@@ -726,24 +726,24 @@ void MDDSpec::compile()
    }
 }
 
-void MDDSpec::fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp)
+void MDDSpec::fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
    result.clear();
    result.zero();
    _frameLayer[l].frameDown(result,parent.down);
    for(const auto& t : _transLayer[l])
-      t(result,parent,var,v,hasUp);
+      t(result,parent,var,v);
    result.relax(parent.down.isRelaxed() || v.size() > 1);
 }
 
 void MDDSpec::incrStateDown(const MDDPropSet& out,MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,
-                              const MDDIntSet& v,bool hasUp)
+                              const MDDIntSet& v)
 {
    result.clear();
    for(auto p : out) {
       int tid = _frameLayer[l].hasDownProp(p) ? -1 : _attrsDown[p]->getTransition();
       if (tid != -1)
-         _downTransition[tid](result,parent,var,v,hasUp); // actual transition
+         _downTransition[tid](result,parent,var,v); // actual transition
       else 
          result.setProp(p,parent.down); // frame axiom
    }
@@ -811,7 +811,7 @@ void MDDSpec::fullStateUp(MDDState& target,const MDDPack& child,unsigned l,const
    target.clear();
    _frameLayer[l].frameUp(target,child.up);
    for(const auto& t : _uptransLayer[l])
-      t(target,child,var,v,true);
+      t(target,child,var,v);
    target.relax(child.up.isRelaxed() || v.size() > 1);
 }
 
@@ -821,7 +821,7 @@ void MDDSpec::incrStateUp(const MDDPropSet& out,MDDState& target,const MDDPack& 
    for(auto p : out) {
       int tid = _frameLayer[l].hasUpProp(p) ? -1 : _attrsUp[p]->getTransition();
       if (tid != -1)
-         _upTransition[tid](target,child,var,v,true); // actual transition
+         _upTransition[tid](target,child,var,v); // actual transition
       else 
          target.setProp(p,child.up); // frame axiom
    }
@@ -900,7 +900,7 @@ void MDDStateFactory::createStateDown(MDDState& result,const MDDPack& parent,int
          result.copyState(*match);
       } else {
          nbCSDown++;
-         _mddspec->fullStateDown(result,parent,layer,x,MDDIntSet(vals.singleton()),up);
+         _mddspec->fullStateDown(result,parent,layer,x,MDDIntSet(vals.singleton()));
          result.computeHash();
          MDDState* pdc = new (_mem) MDDState(parent.down.clone(_mem));
          MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_mem));
@@ -909,7 +909,7 @@ void MDDStateFactory::createStateDown(MDDState& result,const MDDPack& parent,int
       }
    } else {
       nbCSDown++;
-      _mddspec->fullStateDown(result,parent,layer,x,vals,up);
+      _mddspec->fullStateDown(result,parent,layer,x,vals);
       result.computeHash();
    }
 }
@@ -948,7 +948,7 @@ void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDPack& par
    } else {
       nbCSDown++;
       result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
-      _mddspec->fullStateDown(*result,parent,layer,x,MDDIntSet(val),true);
+      _mddspec->fullStateDown(*result,parent,layer,x,MDDIntSet(val));
       result->computeHash();
       MDDState* pdc = new (_mem) MDDState(parent.down.clone(_mem));
       MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_mem));

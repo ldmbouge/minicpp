@@ -164,7 +164,6 @@ namespace Factory {
     
     // Filtering rules based the following constraint:  |vars[0]-vars[1]| = vars[2]
     // referred to below as |x-y| = z.
-    mdd.append(vars);    
     auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
 
     auto udom  = domRange(vars);

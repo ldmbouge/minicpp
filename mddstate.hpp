@@ -194,7 +194,7 @@ typedef std::function<bool(const MDDPack&)> NodeFun;
 typedef std::function<bool(const MDDPack&,const MDDPack&,const var<int>::Ptr&,int)> ArcFun;
 typedef std::function<void(const MDDState&,const MDDState&,const MDDState&)> FixFun;
 typedef std::function<void(MDDState&,const MDDPack&)> UpdateFun;
-typedef std::function<void(MDDState&,const MDDPack&,const var<int>::Ptr&,const MDDIntSet&,bool)> lambdaTrans;
+typedef std::function<void(MDDState&,const MDDPack&,const var<int>::Ptr&,const MDDIntSet&)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
 typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
@@ -1089,7 +1089,9 @@ class MDDSpec: public MDDStateSpec {
 public:
    MDDSpec();
    // End-user API to define an ADD
-   template <class Container> MDDCstrDesc::Ptr makeConstraintDescriptor(const Container& v, const char* n) {
+   template <class Container>
+   MDDCstrDesc::Ptr makeConstraintDescriptor(const Container& v,const char* n) {
+      append(v);
       return constraints.emplace_back(new MDDCstrDesc(v,n));
    }
    int addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0) override;
@@ -1145,8 +1147,8 @@ public:
    bool consistent(const MDDPack& pack) const noexcept;
    void updateNode(MDDState& result,const MDDPack& n) const noexcept;
    bool exist(const MDDPack& parent,const MDDPack& child,const var<int>::Ptr& x,int v) const noexcept;
-   void fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool up);
-   void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v,bool hasUp);
+   void fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
+   void incrStateDown(const MDDPropSet& out,MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
    void fullStateUp(MDDState& target,const MDDPack& child,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
    void incrStateUp(const MDDPropSet& out,MDDState& target,const MDDPack& child,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v);
    void relaxationDown(MDDState& a,const MDDState& b) const noexcept;

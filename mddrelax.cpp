@@ -242,7 +242,7 @@ void MDDRelax::incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDD
       auto p = _src[i];                           // this is the parent
       assert(_afp[i].size() > 0);                 // afp[i] is the set of arcs from that parent
       cs.copyState(n->getDownState());       // grab the down information from other properties
-      _mddspec.incrStateDown(out,cs,p->pack(),l-1,x[l-1],_afp[i],true); // compute a full scale transitions (all props).
+      _mddspec.incrStateDown(out,cs,p->pack(),l-1,x[l-1],_afp[i]); // compute a full scale transitions (all props).
       if (first) {
          ms.copyState(cs); // install the result into an accumulator
          first = false;

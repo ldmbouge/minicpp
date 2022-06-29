@@ -20,7 +20,6 @@
 namespace Factory {
   MDDCstrDesc::Ptr amongMDD(MDD::Ptr m, const Factory::Vecb& x, int lb, int ub,std::set<int> rawValues) {
     MDDSpec& mdd = m->getSpec();
-    mdd.append(x);
     assert(rawValues.size()==1);
     int tv = *rawValues.cbegin();
     auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
@@ -32,15 +31,15 @@ namespace Factory {
       return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
     });
 
-    mdd.transitionDown(d,minC,{minC},{},[minC,tv] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,minC,{minC},{},[minC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
       bool allMembers = val.size()==1 && val.singleton() == tv;
       out.setInt(minC,parent.down[minC] + allMembers);
     });
-    mdd.transitionDown(d,maxC,{maxC},{},[maxC,tv] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,maxC,{maxC},{},[maxC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
       bool oneMember = val.contains(tv);
       out.setInt(maxC,parent.down[maxC] + oneMember);
     });
-    mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+    mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val) {
       out.setInt(rem,parent.down[rem] - 1);
     });      
     mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
@@ -49,7 +48,6 @@ namespace Factory {
 
   MDDCstrDesc::Ptr amongMDD(MDD::Ptr m, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
     MDDSpec& mdd = m->getSpec();
-    mdd.append(x);
     ValueSet values(rawValues);
     auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
     const int minC = mdd.addDownState(d,0,INT_MAX,MinFun);
@@ -68,7 +66,7 @@ namespace Factory {
       });
     }
 
-    mdd.transitionDown(d,minC,{minC},{},[minC,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,minC,{minC},{},[minC,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
       bool allMembers = true;
       for(int v : val) {
         allMembers &= values.member(v);
@@ -76,7 +74,7 @@ namespace Factory {
       }
       out.setInt(minC,parent.down[minC] + allMembers);
     });
-    mdd.transitionDown(d,maxC,{maxC},{},[maxC,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,maxC,{maxC},{},[maxC,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
       bool oneMember = false;
       for(int v : val) {
         oneMember = values.member(v);
@@ -84,7 +82,7 @@ namespace Factory {
       }
       out.setInt(maxC,parent.down[maxC] + oneMember);
     });
-    mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val,bool up) {
+    mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val) {
       out.setInt(rem,parent.down[rem] - 1);
     });
       
@@ -94,7 +92,6 @@ namespace Factory {
   
   MDDCstrDesc::Ptr amongMDD2(MDD::Ptr m, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues,MDDOpts opts) {
     MDDSpec& mdd = m->getSpec();
-    mdd.append(x);
     ValueSet values(rawValues);
     auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
     const int L = mdd.addDownState(d,0,INT_MAX,MinFun, opts.cstrP);
@@ -102,7 +99,7 @@ namespace Factory {
     const int Lup = mdd.addUpState(d,0,INT_MAX,MinFun, opts.cstrP);
     const int Uup = mdd.addUpState(d,0,INT_MAX,MaxFun, opts.cstrP);
 
-    mdd.transitionDown(d,L,{L},{},[L,values](auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,L,{L},{},[L,values](auto& out,const auto& parent,const auto& x, const auto& val) {
       bool allMembers = true;
       for(int v : val) {
         allMembers &= values.member(v);
@@ -110,7 +107,7 @@ namespace Factory {
       }
       out.set(L,parent.down.at(L) + allMembers);
     });
-    mdd.transitionDown(d,U,{U},{},[U,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,U,{U},{},[U,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
       bool oneMember = false;
       for(int v : val) {
         oneMember = values.member(v);
@@ -119,7 +116,7 @@ namespace Factory {
       out.set(U,parent.down.at(U) + oneMember);
     });
 
-    mdd.transitionUp(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
+    mdd.transitionUp(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
       bool allMembers = true;
       for(int v : val) {
         allMembers &= values.member(v);
@@ -127,7 +124,7 @@ namespace Factory {
       }
       out.set(Lup,child.up.at(Lup) + allMembers);
     });
-    mdd.transitionUp(d,Uup,{Uup},{},[Uup,values] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
+    mdd.transitionUp(d,Uup,{Uup},{},[Uup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
       bool oneMember = false;
       for(int v : val) {
         oneMember = values.member(v);
@@ -312,7 +309,6 @@ namespace Factory {
 
   MDDCstrDesc::Ptr amongMDD2(MDD::Ptr m, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues,MDDOpts opts) {
     MDDSpec& mdd = m->getSpec();
-    mdd.append(x);
     ValueSet values(rawValues);
     assert(rawValues.size()==1);
     int tv = *rawValues.cbegin();
@@ -322,20 +318,20 @@ namespace Factory {
     const int Lup = mdd.addUpState(d,0,INT_MAX,MinFun, opts.cstrP);
     const int Uup = mdd.addUpState(d,0,INT_MAX,MaxFun, opts.cstrP);
 
-    mdd.transitionDown(d,L,{L},{},[L,tv] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,L,{L},{},[L,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
       bool allMembers = val.size() == 1 && val.singleton() == tv;
       out.setInt(L,parent.down[L] + allMembers);
     });
-    mdd.transitionDown(d,U,{U},{},[U,tv] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,U,{U},{},[U,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
       bool oneMember = val.contains(tv);
       out.setInt(U,parent.down[U] + oneMember);
     });
 
-    mdd.transitionUp(d,Lup,{Lup},{},[Lup,tv] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
+    mdd.transitionUp(d,Lup,{Lup},{},[Lup,tv] (auto& out,const auto& child,const auto& x, const auto& val) {
       bool allMembers = val.size() == 1 && val.singleton() == tv;
       out.setInt(Lup,child.up[Lup] + allMembers);
     });
-    mdd.transitionUp(d,Uup,{Uup},{},[Uup,tv] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
+    mdd.transitionUp(d,Uup,{Uup},{},[Uup,tv] (auto& out,const auto& child,const auto& x, const auto& val) {
       bool oneMember = val.contains(tv);
       out.setInt(Uup,child.up[Uup] + oneMember);
     });
@@ -515,15 +511,15 @@ namespace Factory {
     return d;
   }
 
-  MDDCstrDesc::Ptr upToOneMDD(MDD::Ptr m, const Factory::Vecb& x, std::set<int> rawValues,MDDOpts opts) {
+  MDDCstrDesc::Ptr upToOneMDD(MDD::Ptr m, const Factory::Vecb& x, std::set<int> rawValues,MDDOpts opts)
+  {
     MDDSpec& mdd = m->getSpec();
-    mdd.append(x);
     ValueSet values(rawValues);
     auto d = mdd.makeConstraintDescriptor(x,"upToOne");
     const int L = mdd.addDownState(d,0,1,MinFun, opts.cstrP);
     const int Lup = mdd.addUpState(d,0,1,MinFun, opts.cstrP);
 
-    mdd.transitionDown(d,L,{L},{},[L,values] (auto& out,const auto& parent,const auto& x, const auto& val,bool up) {
+    mdd.transitionDown(d,L,{L},{},[L,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
       bool allMembers = true;
       for(int v : val) {
         allMembers &= values.member(v);
@@ -532,7 +528,7 @@ namespace Factory {
       out.set(L,parent.down.at(L) + allMembers);
     });
       
-    mdd.transitionUp(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val,bool up) {
+    mdd.transitionUp(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
       bool allMembers = true;
       for(int v : val) {
         allMembers &= values.member(v);

@@ -24,9 +24,7 @@ namespace Factory {
                                        var<int>::Ptr z,MDDOpts opts)
    {
       MDDSpec& mdd = m->getSpec();
-      mdd.append(vars);
       mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
-
       int nbVars = (int)vars.size();
       auto d = mdd.makeConstraintDescriptor(vars,"maximumCutObjectiveMDD");
 
@@ -45,7 +43,7 @@ namespace Factory {
          return true;
       });
 
-      mdd.transitionDown(d,downWeights,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,downWeights,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var, const auto& val) {
          bool relaxed = val.size()==2;
          int k = parent.down[len];
          MDDSWin<short> outWeights = out.getSW(downWeights);
@@ -68,7 +66,7 @@ namespace Factory {
             }
          }
       });
-      mdd.transitionDown(d,maxDownValue,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var,const auto& val,bool up) {
+      mdd.transitionDown(d,maxDownValue,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var,const auto& val) {
          bool relaxed = val.size()==2;
          int k = parent.down[len];
          MDDSWin<short> parentWeights = parent.down.getSW(downWeights);
@@ -104,7 +102,7 @@ namespace Factory {
             out.setInt(maxDownValue, parent.down[maxDownValue] + std::max(newValueForS, newValueForT));
          }
       });
-      mdd.transitionDown(d,len,{len},{},[len] (auto& out,const auto& parent,const auto&,const auto&,bool) {
+      mdd.transitionDown(d,len,{len},{},[len] (auto& out,const auto& parent,const auto&,const auto&) {
          out.setInt(len,parent.down[len] + 1);
       });
 

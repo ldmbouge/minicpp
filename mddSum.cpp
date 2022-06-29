@@ -52,7 +52,6 @@ namespace Factory {
       //   sum(i, array[i]*vars[i]) >= lb and
       //   sum(i, array[i]*vars[i]) <= ub
       MDDSpec& mdd = m->getSpec();
-      mdd.append(vars);
       const int nbVars = (int)vars.size();      
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
@@ -74,15 +73,14 @@ namespace Factory {
         return (n.down[minW] + n.up[minWup] <= ub) && (n.down[maxW] + n.up[maxWup] >= lb);
       });
 
-
-      mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len](auto& out,const auto& parent,const auto&, const auto& val,bool) {
+      mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len](auto& out,const auto& parent,const auto&, const auto& val) {
          int delta = std::transform_reduce(val.begin(),val.end(),
                                            std::numeric_limits<int>::max(),
                                            [](int a,int b) constexpr { return std::min(a,b);},
                                            [coef = array[parent.down[len]]](int v) constexpr { return coef*v;});
          out.setInt(minW, parent.down[minW] + delta);
       });
-      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& parent,const auto&, const auto& val) {
          int delta = std::numeric_limits<int>::min();
          const auto coef = array[parent.down[len]];
          for(int v : val)
@@ -91,7 +89,7 @@ namespace Factory {
          //out[maxW] =  parent.down[maxW] + delta;
       });
 
-      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,array,lenUp](auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,array,lenUp](auto& out,const auto& child,const auto&, const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::max();
             const auto coef = array[nbVars - child.up[lenUp]-1];
@@ -100,7 +98,7 @@ namespace Factory {
             out.setInt(minWup, child.up[minWup] + delta);
          }
       });
-      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,array,lenUp](auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,array,lenUp](auto& out,const auto& child,const auto&, const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::min();
             const auto coef = array[nbVars - child.up[lenUp]-1];
@@ -109,11 +107,10 @@ namespace Factory {
             out.setInt(maxWup, child.up[maxWup] + delta);
          }
       });
-
-      mdd.transitionDown(d,len,{len},{},[len] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val) {
          out.setInt(len,  parent.down[len] + 1);
       });
-      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp] (auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val) {
          out.setInt(lenUp,child.up[lenUp] + 1);
       });
       return d;
@@ -123,7 +120,6 @@ namespace Factory {
       // Enforce MDD bounds consistency on
       //   sum(i, vars[i]) == z
       MDDSpec& mdd = m->getSpec();
-      mdd.append(vars);
       const int nbVars = (int)vars.size();
       mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
@@ -146,20 +142,20 @@ namespace Factory {
         return (n.down[minW] + n.up[minWup] <= z->max()) && (n.down[maxW] + n.up[maxWup] >= z->min());
       });
 
-      mdd.transitionDown(d,minW,{minW},{},[minW] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,minW,{minW},{},[minW] (auto& out,const auto& parent,const auto& var, const auto& val) {
          int delta = std::numeric_limits<int>::max();
          for(int v : val)
             delta = std::min(delta,v);
          out.setInt(minW,parent.down[minW] + delta);
       });
-      mdd.transitionDown(d,maxW,{maxW},{},[maxW] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,maxW,{maxW},{},[maxW] (auto& out,const auto& parent,const auto& var, const auto& val) {
          int delta = std::numeric_limits<int>::min();
          for(int v : val)
             delta = std::max(delta,v);
          out.setInt(maxW, parent.down[maxW] + delta);
       });
 
-      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,lenUp] (auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,lenUp] (auto& out,const auto& child,const auto& var, const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::max();
             for(int v : val)
@@ -167,7 +163,7 @@ namespace Factory {
             out.setInt(minWup, child.up[minWup] + delta);
          }
       });
-      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,lenUp] (auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,lenUp] (auto& out,const auto& child,const auto& var, const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::min();
             for(int v : val)
@@ -176,10 +172,10 @@ namespace Factory {
          }
       });
 
-      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val) {
          out.setInt(len,parent.down[len] + 1);
       });
-      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val) {
          out.setInt(lenUp,child.up[lenUp] + 1);
       });
       mdd.onFixpoint([z,minW,maxW](const auto& sinkDown,const auto& sinkUp,const auto& sinkCombined) {
@@ -191,7 +187,6 @@ namespace Factory {
       // Enforce MDD bounds consistency on
       //   sum(i, vars[i]) == z
       MDDSpec& mdd = m->getSpec();
-      mdd.append(vars);
       const int nbVars = (int)vars.size();
       mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
@@ -214,20 +209,20 @@ namespace Factory {
         return (n.down[minW] + n.up[minWup] <= z->max()) && (n.down[maxW] + n.up[maxWup] >= z->min());
       });
 
-      mdd.transitionDown(d,minW,{minW},{},[minW] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,minW,{minW},{},[minW] (auto& out,const auto& parent,const auto& var, const auto& val) {
          int delta = std::numeric_limits<int>::max();
          for(int v : val)
             delta = std::min(delta,v);
          out.setInt(minW,parent.down[minW] + delta);
       });
-      mdd.transitionDown(d,maxW,{maxW},{},[maxW] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,maxW,{maxW},{},[maxW] (auto& out,const auto& parent,const auto& var, const auto& val) {
          int delta = std::numeric_limits<int>::min();
          for(int v : val)
             delta = std::max(delta,v);
          out.setInt(maxW, parent.down[maxW] + delta);
       });
 
-      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,lenUp] (auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,lenUp] (auto& out,const auto& child,const auto& var, const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::max();
             for(int v : val)
@@ -235,7 +230,7 @@ namespace Factory {
             out.setInt(minWup, child.up[minWup] + delta);
          }
       });
-      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,lenUp] (auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,lenUp] (auto& out,const auto& child,const auto& var, const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::min();
             for(int v : val)
@@ -244,10 +239,10 @@ namespace Factory {
          }
       });
 
-      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val) {
          out.setInt(len,parent.down[len] + 1);
       });
-      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val) {
          out.setInt(lenUp,child.up[lenUp] + 1);
       });
       mdd.onFixpoint([z,minW,maxW](const auto& sinkDown,const auto& sinkUp,const auto& sinkCombined) {
@@ -261,7 +256,6 @@ namespace Factory {
       // Enforce MDD bounds consistency on
       //   sum(i, array[i]*vars[i]) == z
       MDDSpec& mdd = m->getSpec();
-      mdd.append(vars);
       mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
       const int nbVars = (int)vars.size();
 
@@ -285,14 +279,14 @@ namespace Factory {
       });
 
 
-      mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len] (auto& out,const auto& parent,const auto& var, const auto& val) {
          int delta = std::numeric_limits<int>::max();
          auto coef = array[parent.down[len]];
          for(int v : val)
             delta = std::min(delta,coef * v);
          out.setInt(minW,parent.down[minW] + delta);
       });
-      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& parent,const auto& var, const auto& val) {
          int delta = std::numeric_limits<int>::min();
          auto coef = array[parent.down[len]];
          for(int v : val)
@@ -300,7 +294,7 @@ namespace Factory {
          out.setInt(maxW, parent.down[maxW] + delta);
       });
 
-      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,array,lenUp] (auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,array,lenUp] (auto& out,const auto& child,const auto& var, const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::max();
             auto coef = array[nbVars - child.up[lenUp]-1];
@@ -309,7 +303,7 @@ namespace Factory {
             out.setInt(minWup, child.up[minWup] + delta);
          }
       });
-      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,array,lenUp] (auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,array,lenUp] (auto& out,const auto& child,const auto& var, const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::min();
             auto coef = array[nbVars - child.up[lenUp]-1];
@@ -319,10 +313,10 @@ namespace Factory {
          }
       });
 
-      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val) {
          out.setInt(len,parent.down[len] + 1);
       });
-      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val) {
          out.setInt(lenUp,child.up[lenUp] + 1);
       });
 
@@ -336,11 +330,8 @@ namespace Factory {
       // Enforce MDD bounds consistency on
       //   sum(i, matrix[i][vars[i]]) == z
       MDDSpec& mdd = m->getSpec();
-      mdd.append(vars);
       mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
-
       const int nbVars = (int)vars.size();
-
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
       // Define the states
@@ -362,21 +353,21 @@ namespace Factory {
       });
 
 
-      mdd.transitionDown(d,minW,{len,minW},{},[minW,matrix,len] (auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,minW,{len,minW},{},[minW,matrix,len] (auto& out,const auto& parent,const auto& var, const auto& val) {
          int delta = std::numeric_limits<int>::max();
          const auto& row = matrix[parent.down[len]];
          for(int v : val)
             delta = std::min(delta,row[v]);
          out.setInt(minW,parent.down[minW] + delta);
       });
-      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,matrix,len] (auto& out,const auto& parent,const auto& var,const auto& val,bool up) {
+      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,matrix,len] (auto& out,const auto& parent,const auto& var,const auto& val) {
          int delta = std::numeric_limits<int>::min();
          const auto& row = matrix[parent.down[len]];
          for(int v : val)
             delta = std::max(delta,row[v]);
          out.setInt(maxW,parent.down[maxW] + delta);
       });
-      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,matrix,lenUp](auto& out,const auto& child,const auto& var,const auto& val,bool up) {
+      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,matrix,lenUp](auto& out,const auto& child,const auto& var,const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::max();
             const auto& row = matrix[nbVars - child.up[lenUp]-1];
@@ -385,7 +376,7 @@ namespace Factory {
             out.setInt(minWup, child.up[minWup] + delta);
          }
       });
-      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,matrix,lenUp](auto& out,const auto& child,const auto& var,const auto& val,bool up) {
+      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,matrix,lenUp](auto& out,const auto& child,const auto& var,const auto& val) {
          if (child.up[lenUp] < nbVars) {
             int delta = std::numeric_limits<int>::min();
             const auto& row = matrix[nbVars - child.up[lenUp]-1];
@@ -395,10 +386,10 @@ namespace Factory {
          }
       });
 
-      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val,bool up) {
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val) {
          out.setInt(len,  parent.down[len] + 1);
       });
-      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val,bool up) {
+      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val) {
          out.setInt(lenUp,  child.up[lenUp] + 1);
       });
 
