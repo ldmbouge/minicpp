@@ -337,12 +337,18 @@ void MDD::removeSupport(int layer, int value)
 */
 void MDD::saveGraph()
 {
+   std::string colors[2] = {"green","red"};
    std::cout << "digraph MDD {" << std::endl;
-   for(auto l = 0u; l < numVariables; l++){
+   std::cout << " node [style=filled gradientangle=270];\n"; 
+   for(auto l = 0u; l <= numVariables; l++){
       for(auto i = 0u; i < layers[l].size(); i++){
          if(!layers[l][i]->isActive()) continue;
+         auto n  = layers[l][i];
          auto nc = layers[l][i]->getNumChildren();
          const auto& ch = layers[l][i]->getChildren();
+         bool dR = n->getDownState().isRelaxed();
+         bool uR = n->getUpState().isRelaxed();         
+         std::cout << "\"" << *(layers[l][i]) << "\" [color=\"" << colors[dR] << ":" << colors[uR] << "\"];\n";
          for(auto j = 0u; j < nc; j++){
             int count = ch[j]->getChild()->getPosition();
             assert(ch[j]->getParent() == layers[l][i]);

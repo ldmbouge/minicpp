@@ -44,143 +44,136 @@ int main(int argc,char* argv[])
    vector<int> vals3 {7, 8, 11, 15, 4};
    MDDRelax* cstr = nullptr;
    if (mode == 0) {
-     cout << "Using domain encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
-     auto sum1 = Factory::intVarArray(cp,5,[&](int i) { return vals1[i]*vars[i];});
-     cp->post(Factory::sum(sum1)>=18);
-     cp->post(Factory::sum(sum1)<=19);
-     auto sum2 = Factory::intVarArray(cp,5,[&](int i) { return vals2[i]*vars[i];});
-     cp->post(Factory::sum(sum2)>=18);
-     cp->post(Factory::sum(sum2)<=19);
-     auto sum3 = Factory::intVarArray(cp,5,[&](int i) { return vals3[i]*vars[i];});
-     cp->post(Factory::sum(sum3)>=50);
-     cp->post(Factory::sum(sum3)<=65);
+      cout << "Using domain encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
+      auto sum1 = Factory::intVarArray(cp,5,[&](int i) { return vals1[i]*vars[i];});
+      cp->post(Factory::sum(sum1)>=18);
+      cp->post(Factory::sum(sum1)<=19);
+      auto sum2 = Factory::intVarArray(cp,5,[&](int i) { return vals2[i]*vars[i];});
+      cp->post(Factory::sum(sum2)>=18);
+      cp->post(Factory::sum(sum2)<=19);
+      auto sum3 = Factory::intVarArray(cp,5,[&](int i) { return vals3[i]*vars[i];});
+      cp->post(Factory::sum(sum3)>=50);
+      cp->post(Factory::sum(sum3)<=65);
    }
    else if (mode == 1) {
-     cout << "Using MDD encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
-     auto mdd = new MDDRelax(cp,width);
-     mdd->post(sum(mdd, vars, vals1, 18, 19));
-     mdd->post(sum(mdd, vars, vals2, 18, 19));
-     mdd->post(sum(mdd, vars, vals3, 50, 65));
-     cp->post(mdd);
-     cstr = mdd;
+      cout << "Using MDD encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
+      auto mdd = new MDDRelax(cp,width);
+      mdd->post(sum(mdd, vars, vals1, 18, 19));
+      mdd->post(sum(mdd, vars, vals2, 18, 19));
+      mdd->post(sum(mdd, vars, vals3, 50, 65));
+      cp->post(mdd);
+      cstr = mdd;
    }
    else if (mode == 2) {
-     cout << "Using MDD encoding of  sum_i w[i]x[i] == z" << endl;
+      cout << "Using MDD encoding of  sum_i w[i]x[i] == z" << endl;
 
-     auto mdd = new MDDRelax(cp,width);
+      auto mdd = new MDDRelax(cp,width);
 
-     auto z1 = Factory::makeIntVar(cp, 18, 19);  
-     mdd->post(sum(mdd, vars, vals1, z1));
+      auto z1 = Factory::makeIntVar(cp, 18, 19);  
+      mdd->post(sum(mdd, vars, vals1, z1));
      
-     auto z2 = Factory::makeIntVar(cp, 18, 19);
-     mdd->post(sum(mdd, vars, vals2, z2));
+      auto z2 = Factory::makeIntVar(cp, 18, 19);
+      mdd->post(sum(mdd, vars, vals2, z2));
      
-     auto z3 = Factory::makeIntVar(cp, 50, 65);
-     mdd->post(sum(mdd, vars, vals3, z3));
-     cp->post(mdd);
-     cstr = mdd;
+      auto z3 = Factory::makeIntVar(cp, 50, 65);
+      mdd->post(sum(mdd, vars, vals3, z3));
+      cp->post(mdd);
+      cstr = mdd;
    }
    else if (mode == 3) {
-     cout << "Using MDD encoding of  sum_i M[i][x[i]] == z" << endl;
+      cout << "Using MDD encoding of  sum_i M[i][x[i]] == z" << endl;
 
-     auto mdd = new MDDRelax(cp,width);
+      auto mdd = new MDDRelax(cp,width);
 
-     auto z1 = Factory::makeIntVar(cp, 18, 19);  
-     vector< vector<int> > valMatrix1;
-     for (unsigned int i=0; i<vars.size(); i++) {
-       vector<int> tmpVals;
-       for (int j=0; j<=5; j++) {
-	 tmpVals.push_back(j*vals1[i]);
-       }
-       valMatrix1.push_back(tmpVals);
-     }
-     mdd->post(sum(mdd, vars, valMatrix1, z1));
+      auto z1 = Factory::makeIntVar(cp, 18, 19);  
+      vector< vector<int> > valMatrix1;
+      for (unsigned int i=0; i<vars.size(); i++) {
+         vector<int> tmpVals;
+         for (int j=0; j<=5; j++) {
+            tmpVals.push_back(j*vals1[i]);
+         }
+         valMatrix1.push_back(tmpVals);
+      }
+      mdd->post(sum(mdd, vars, valMatrix1, z1));
      
-     auto z2 = Factory::makeIntVar(cp, 18, 19);  
-     vector< vector<int> > valMatrix2;
-     for (unsigned int i=0; i<vars.size(); i++) {
-       vector<int> tmpVals;
-       for (int j=0; j<=5; j++) {
-	 tmpVals.push_back(j*vals2[i]);
-       }
-       valMatrix2.push_back(tmpVals);
-     }
-     mdd->post(sum(mdd, vars, valMatrix2, z2));
+      auto z2 = Factory::makeIntVar(cp, 18, 19);  
+      vector< vector<int> > valMatrix2;
+      for (unsigned int i=0; i<vars.size(); i++) {
+         vector<int> tmpVals;
+         for (int j=0; j<=5; j++) {
+            tmpVals.push_back(j*vals2[i]);
+         }
+         valMatrix2.push_back(tmpVals);
+      }
+      mdd->post(sum(mdd, vars, valMatrix2, z2));
      
-     auto z3 = Factory::makeIntVar(cp, 50, 65);
-     vector< vector<int> > valMatrix3;
-     for (unsigned int i=0; i<vars.size(); i++) {
-       vector<int> tmpVals;
-       for (int j=0; j<=5; j++) {
-	 tmpVals.push_back(j*vals3[i]);
-       }
-       valMatrix3.push_back(tmpVals);
-     }
-     mdd->post(sum(mdd, vars, valMatrix3, z3));
-     cp->post(mdd);
-     cstr = mdd;
+      auto z3 = Factory::makeIntVar(cp, 50, 65);
+      vector< vector<int> > valMatrix3;
+      for (unsigned int i=0; i<vars.size(); i++) {
+         vector<int> tmpVals;
+         for (int j=0; j<=5; j++) {
+            tmpVals.push_back(j*vals3[i]);
+         }
+         valMatrix3.push_back(tmpVals);
+      }
+      mdd->post(sum(mdd, vars, valMatrix3, z3));
+      cp->post(mdd);
+      cstr = mdd;
    }
    else {
-     cout << "Error: specify a mode in {0,1,2,3}:" << endl;
-     cout << "  0: domain encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
-     cout << "  1: MDD encoding of     lb <= sum_i w[i]x[i] <= ub" << endl;
-     cout << "  2: MDD encoding of     sum_i w[i]x[i] == z" << endl;
-     cout << "  3: MDD encoding of     sum_i M[i][x[i]] == z" << endl;
-     exit(1);
+      cout << "Error: specify a mode in {0,1,2,3}:" << endl;
+      cout << "  0: domain encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
+      cout << "  1: MDD encoding of     lb <= sum_i w[i]x[i] <= ub" << endl;
+      cout << "  2: MDD encoding of     sum_i w[i]x[i] == z" << endl;
+      cout << "  3: MDD encoding of     sum_i M[i][x[i]] == z" << endl;
+      exit(1);
    }
    // mdd->saveGraph();
 
    
    DFSearch search(cp,[=]() {
-
-      unsigned i = 0u;
-      for(i=0u;i < vars.size();i++)
-	if (vars[i]->size()> 1) break;
-      auto x = i< vars.size() ? vars[i] : nullptr;
-          
+      auto x = selectFirst(vars,[](auto xk) { return xk->size() >1;});
       if (x) {
-	
-         //int c = x->min();
-         int c = bestValue(cstr,x);
-	
-	return  [=] {
-                   if (cstr) cstr->saveGraph();
-                   cout << "CHOICE: x_" << x->getId() << " == " << c << '\n';
-                   cp->post(x == c);
-                   if (cstr) cstr->saveGraph();
-                   cout << "AFTER : x_" << x->getId() << " == " << c << '\n';                   
-                } | [=] {
-                       if (cstr) cstr->saveGraph();
-                       cout << "CHOICE: x_" << x->getId() << " != " << c << '\n';
-                       cp->post(x != c);
-                       if (cstr) cstr->saveGraph();
-                       cout << "AFTER : x_" << x->getId() << " != " << c << '\n';                   
-                    };
+         int c = cstr ? bestValue(cstr,x) : x->min();
+         //int c = x->min();         
+         return  [=] {
+            if (cstr) cstr->saveGraph();
+            cout << "CHOICE: x_" << x->getId() << " == " << c << '\n';
+            cp->post(x == c);
+            if (cstr) cstr->saveGraph();
+            cout << "AFTER : x_" << x->getId() << " == " << c << '\n';                   
+         } | [=] {
+            if (cstr) cstr->saveGraph();
+            cout << "CHOICE: x_" << x->getId() << " != " << c << '\n';
+            cp->post(x != c);
+            if (cstr) cstr->saveGraph();
+            cout << "AFTER : x_" << x->getId() << " != " << c << '\n';                   
+         };
       } else return Branches({});
    });
       
-     search.onSolution([&vars,vals1,vals2,vals3]() {
-	 std::cout << "Assignment:" << vars;
+   search.onSolution([&vars,vals1,vals2,vals3]() {
+      std::cout << "Assignment:" << vars;
 
-	 int value1 = 0;
-	 for (unsigned int i=0; i<vars.size(); i++)
-	   value1 += vals1[i]*vars[i]->min();
+      int value1 = 0;
+      for (unsigned int i=0; i<vars.size(); i++)
+         value1 += vals1[i]*vars[i]->min();
 
-	 int value2 = 0;
-	 for (unsigned int i=0; i<vars.size(); i++)
-	   value2 += vals2[i]*vars[i]->min();
+      int value2 = 0;
+      for (unsigned int i=0; i<vars.size(); i++)
+         value2 += vals2[i]*vars[i]->min();
 
-	 int value3 = 0;
-	 for (unsigned int i=0; i<vars.size(); i++)
-	   value3 += vals3[i]*vars[i]->min();
+      int value3 = 0;
+      for (unsigned int i=0; i<vars.size(); i++)
+         value3 += vals3[i]*vars[i]->min();
 
-	 std::cout << " with values: " << value1 << ", " << value2 << ", " << value3 << std::endl;
-       });
+      std::cout << " with values: " << value1 << ", " << value2 << ", " << value3 << std::endl;
+   });
       
       
-      auto stat = search.solve();
-      cout << stat << endl;
+   auto stat = search.solve();
+   cout << stat << endl;
       
-    cp.dealloc();
-    return 0;
+   cp.dealloc();
+   return 0;
 }
