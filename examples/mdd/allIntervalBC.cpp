@@ -161,73 +161,73 @@ namespace Factory {
       const int yMaxUp = mdd.addUpState(d,0,INT_MAX,MaxFun);
       const int zMinUp = mdd.addUpState(d,0,-INT_MAX,MinFun);
       const int zMaxUp = mdd.addUpState(d,0,INT_MAX,MaxFun);
-      const int N = mdd.addDownState(d,0,2,MinFun); // layer index
-      const int NUp = mdd.addUpState(d,0,2,MinFun); // layer index
+      const int N = mdd.addDownState(d,0,INT_MAX,MinFun); // layer index
+      const int NUp = mdd.addUpState(d,0,INT_MAX,MinFun); // layer index
       mdd.transitionDown(d,xMin,{xMin,N},{},[xMin,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down.at(N)==0) 
-            out.set(xMin,val.min());        
+         if (parent.down[N]==0) 
+            out.setInt(xMin,val.min());        
          else 
-            out.set(xMin,parent.down.at(xMin));       	  
+            out.setInt(xMin,parent.down[xMin]);       	  
       });
       mdd.transitionDown(d,xMax,{xMax,N},{},[xMax,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down.at(N)==0) 
-            out.set(xMax,val.max());
+        if (parent.down[N]==0) 
+            out.setInt(xMax,val.max());
          else 
-            out.set(xMax, parent.down.at(xMax));      
+            out.setInt(xMax, parent.down[xMax]);      
       });
       mdd.transitionDown(d,yMin,{yMin,N},{},[yMin,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down.at(N)==1)
-            out.set(yMin,val.min());
+         if (parent.down[N]==1)
+            out.setInt(yMin,val.min());
          else 
-            out.set(yMin, parent.down.at(yMin));       
+            out.setInt(yMin, parent.down[yMin]);       
       });
       mdd.transitionDown(d,yMax,{yMax,N},{},[yMax,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down.at(N)==1)
-            out.set(yMax,val.max());
+         if (parent.down[N]==1)
+            out.setInt(yMax,val.max());
          else 
-            out.set(yMax, parent.down.at(yMax));      
+            out.setInt(yMax, parent.down[yMax]);      
       });
 
-      mdd.transitionDown(d,N,{N},{},[N](auto& out,const auto& parent,auto x,const auto& val)    { out.set(N,parent.down.at(N)+1); });
-      mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& child,auto x,const auto& val) { out.set(NUp,child.up.at(NUp)+1); });
+      mdd.transitionDown(d,N,{N},{},[N](auto& out,const auto& parent,auto x,const auto& val)    { out.setInt(N,parent.down[N]+1); });
+      mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& child,auto x,const auto& val) { out.setInt(NUp,child.up[NUp]+1); });
 
       mdd.transitionUp(d,yMinUp,{yMinUp,NUp},{},[yMinUp,NUp] (auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up.at(NUp)==1) 
-            out.set(yMinUp,val.min());
+         if (child.up[NUp]==1) 
+            out.setInt(yMinUp,val.min());
          else 
-            out.set(yMinUp, child.up.at(yMinUp));       
+            out.setInt(yMinUp, child.up[yMinUp]);       
       });
       mdd.transitionUp(d,yMaxUp,{yMaxUp,NUp},{},[yMaxUp,NUp](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up.at(NUp)==1)
-            out.set(yMaxUp,val.max());
+         if (child.up[NUp]==1)
+            out.setInt(yMaxUp,val.max());
          else 
-            out.set(yMaxUp, child.up.at(yMaxUp));       
+            out.setInt(yMaxUp, child.up[yMaxUp]);       
       });
       mdd.transitionUp(d,zMinUp,{zMinUp,N},{},[zMinUp,N](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up.at(N)==0)
-            out.set(zMinUp,val.min());
+         if (child.up[N]==0)
+            out.setInt(zMinUp,val.min());
          else 
-            out.set(zMinUp, child.up.at(zMinUp));       
+            out.setInt(zMinUp, child.up[zMinUp]);       
       });
       mdd.transitionUp(d,zMaxUp,{zMaxUp,N},{},[zMaxUp,N](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up.at(N)==0)
-            out.set(zMaxUp,val.max());
+         if (child.up[N]==0)
+            out.setInt(zMaxUp,val.max());
          else 
-            out.set(zMaxUp, child.up.at(zMaxUp));       
+            out.setInt(zMaxUp, child.up[zMaxUp]);       
       });
 
       mdd.arcExist(d,[=](const auto& parent,const auto& child,var<int>::Ptr var,const auto& val) {
-         if (parent.down.at(N)==2) {
+         if (parent.down[N]==2) {
             // filter z variable
             interval v1(0,INT_MAX);
             interval v3(0,INT_MAX);
-            // interval X(pDown.at(xMin), pDown.at(xMax));
-            // interval Y(pDown.at(yMin), pDown.at(yMax));
+            // interval X(pDown[xMin], pDown[xMax]);
+            // interval Y(pDown[yMin], pDown[yMax]);
             // interval Z(val, val);
             // return propagateExpression(&X, &Y, &Z, v1, v3);
           
-            for (int x=parent.down.at(xMin); x<=parent.down.at(xMax); x++) {
-               for (int y=parent.down.at(yMin); y<=parent.down.at(yMax); y++) {
+            for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
+               for (int y=parent.down[yMin]; y<=parent.down[yMax]; y++) {
                   if ((x != y) && (val == std::abs(x-y)))
                      return true;
                }
@@ -235,32 +235,32 @@ namespace Factory {
             return false;
          }
          else {
-            if (parent.down.at(N) == 0) {
+            if (parent.down[N] == 0) {
                // filter x variable
                interval v1(0,INT_MAX);
                interval v3(0,INT_MAX);
                // interval X(val, val);
-               // interval Y(cUp.at(yMinUp), cUp.at(yMaxUp));
-               // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
+               // interval Y(cUp[yMinUp], cUp[yMaxUp]);
+               // interval Z(cUp[zMinUp], cUp[zMaxUp]);
                // return propagateExpression(&X, &Y, &Z, v1, v3);
-               for (int y=child.up.at(yMinUp); y<=child.up.at(yMaxUp); y++) {
-                  for (int z=child.up.at(zMinUp); z<=child.up.at(zMaxUp); z++) {
+               for (int y=child.up[yMinUp]; y<=child.up[yMaxUp]; y++) {
+                  for (int z=child.up[zMinUp]; z<=child.up[zMaxUp]; z++) {
                      if ((y != val) && (z == std::abs(val-y)))
                         return true;
                   }
                }
                return false;
             }
-            else if (parent.down.at(N) == 1) {
+            else if (parent.down[N] == 1) {
                // filter y variable
                interval v1(0,INT_MAX);
                interval v3(0,INT_MAX);
-               // interval X(pDown.at(xMin), pDown.at(xMax));
+               // interval X(pDown[xMin], pDown[xMax]);
                // interval Y(val, val);
-               // interval Z(cUp.at(zMinUp), cUp.at(zMaxUp));
+               // interval Z(cUp[zMinUp], cUp[zMaxUp]);
                // return propagateExpression(&X, &Y, &Z, v1, v3);
-               for (int x=parent.down.at(xMin); x<=parent.down.at(xMax); x++) {
-                  for (int z=child.up.at(zMinUp); z<=child.up.at(zMaxUp); z++) {
+               for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
+                  for (int z=child.up[zMinUp]; z<=child.up[zMaxUp]; z++) {
                      if ((x != val) && (z == std::abs(x-val)))
                         return true;
                   }
@@ -377,7 +377,7 @@ int main(int argc,char* argv[])
       //mdd->saveGraph();
       cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;          
       cp->post(Factory::allDifferentAC(xVars));
-      cp->post(Factory::allDifferentAC(yVars));
+      //cp->post(Factory::allDifferentAC(yVars));
 
    }
    if ((mode < 0) || (mode > 3)) {
@@ -390,26 +390,19 @@ int main(int argc,char* argv[])
    }
 
    DFSearch search(cp,[=]() {
-
       // Lex order
-      unsigned i = 0u;
-      for(i=0u;i < xVars.size();i++)
-         if (xVars[i]->size()> 1) break;
-      auto x = i< xVars.size() ? xVars[i] : nullptr;
-       
-      // // Fail first
-      // auto x = selectMin(xVars,
-      //                   [](const auto& x) { return x->size() > 1;},
-      //                   [](const auto& x) { return x->size();});
-
+      auto x = selectFirst(xVars,[](const auto& x) { return x->size() > 1;});
       if (x) {	
          int c = x->min();          
          return  [=] {
-            cp->post(x == c);
-         }
-            | [=] {
-               cp->post(x != c);
-            };	
+           //cout << "->choose: " << x << " == " << c << endl; 
+           cp->post(x == c);
+           //cout << "<-choose: " << x << " == " << c << endl; 
+         }     | [=] {
+           //cout << "->choose: " << x << " != " << c << endl; 
+           cp->post(x != c);
+           //cout << "<-choose: " << x << " != " << c << endl; 
+         };	
       } else return Branches({});
    });
       
@@ -417,8 +410,8 @@ int main(int argc,char* argv[])
    int cnt = 0;
    search.onSolution([&cnt,xVars,yVars]() {
       cnt++;
-      std::cout << "\rNumber of solutions:" << cnt << std::flush;
-      // std::cout << "x = " << xVars << endl;
+      // std::cout << "\rNumber of solutions:" << cnt << "\n"; 
+      // std::cout << "x = " << xVars << "\n";
       // std::cout << "y = " << yVars << endl;
    });
 

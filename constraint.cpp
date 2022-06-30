@@ -267,9 +267,9 @@ Maximize::Maximize(var<int>::Ptr& x)
 {
    auto todo = std::function<void(void)>([this]() {
       TRYFAIL
-         std::cout << "1=====> objective primal:" << _primal << "  z = " << _obj << std::endl;
+         //std::cout << "1=====> objective primal:" << _primal << "  z = " << _obj << std::endl;
          _obj->removeBelow(_primal);
-         std::cout << "1-----> after:" << _obj << std::endl;
+         //std::cout << "1-----> after:" << _obj << std::endl;
       ONFAIL
          NBT += 1;
          failNow();
@@ -716,10 +716,12 @@ void AllDifferentAC::propagate()
    });
    if (nc > 1) {
       Factory::Veci::pointer x = _x.data();
-      for(int i=0;i < _nVar;i++)
-         for(int v = _minVal; v <= _maxVal;v++)
+      for(int i=0;i < _nVar;i++) {
+         const int ub = x[i]->max();
+         for(int v = x[i]->min(); v <= ub;++v)
             if (_match[i] != v && scc[i] != scc[valNode(v)] && x[i]->containsBase(v))
                x[i]->remove(v);
+      }
    }
 }
 
