@@ -25,10 +25,14 @@
  */
 void pN(MDDNode* n)
 {
-   std::cout << n->getDownState() << " [" << n->getNumChildren() << "]" << std::endl;
+   std::cout << "D:"
+             << n->getDownState() << " U:"
+             << n->getUpState()
+             << " [#C:" << n->getNumChildren() << "]" << std::endl;
    for(auto& arc : n->getChildren()) {
       std::cout << '\t' << " - "  << arc->getValue() << " -> " 
-                << arc->getChild()->getDownState() << " P:" << arc->getChild() << std::endl;
+                << arc->getChild()->getDownState()
+                << " P:" << arc->getChild() << std::endl;
    }
 }
 
@@ -146,7 +150,8 @@ void MDD::propagate()
    while (!queue.empty()) {
       auto node = queue.front();
       queue.pop_front();
-      removeNode(node);
+      if (node->isActive())
+         removeNode(node);
    }
 }
 

@@ -328,6 +328,7 @@ bool MDDRelax::filterKids(MDDNode* n,int l)
       for(auto i = n->getChildren().rbegin(); i != n->getChildren().rend();i++) {
          auto arc = *i;
          MDDNode* child = arc->getChild();
+         if (!child->isActive()) continue;
          int v = arc->getValue();
          if (!_mddspec.exist(n->pack(),child->pack(),x[l],v)) {
             n->unhook(arc);
@@ -355,6 +356,7 @@ bool MDDRelax::filterParents(MDDNode* n,int l)
       for(auto i = n->getParents().rbegin(); i != n->getParents().rend();i++) {
          auto arc = *i;
          MDDNode* parent = arc->getParent();
+         if (!parent->isActive()) continue;
          int v = arc->getValue();
          if (!_mddspec.exist(parent->pack(),n->pack(),x[l-1],v)) {
             parent->unhook(arc);
