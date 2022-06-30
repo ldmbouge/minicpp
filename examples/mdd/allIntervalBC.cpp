@@ -217,58 +217,43 @@ namespace Factory {
       });
 
       mdd.arcExist(d,[=](const auto& parent,const auto& child,var<int>::Ptr var,const auto& val) {
-         if (parent.down[N]==2) {
-            // filter z variable
-            interval v1(0,INT_MAX);
-            interval v3(0,INT_MAX);
-            // interval X(pDown[xMin], pDown[xMax]);
-            // interval Y(pDown[yMin], pDown[yMax]);
-            // interval Z(val, val);
-            // return propagateExpression(&X, &Y, &Z, v1, v3);
-          
-            for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
-               for (int y=parent.down[yMin]; y<=parent.down[yMax]; y++) {
-                  if ((x != y) && (val == std::abs(x-y)))
-                     return true;
-               }
+        switch(parent.down[N]) {
+          case 0: {
+            // filter x variable
+            const int lb = child.up[zMinUp], ub = child.up[zMaxUp];
+            for (int y=child.up[yMinUp]; y<=child.up[yMaxUp]; y++) {
+              if (y == val) continue;
+              const int z=std::abs(val-y);
+              if (lb <= z && z <= ub)
+                return true;
             }
             return false;
-         }
-         else {
-            if (parent.down[N] == 0) {
-               // filter x variable
-               interval v1(0,INT_MAX);
-               interval v3(0,INT_MAX);
-               // interval X(val, val);
-               // interval Y(cUp[yMinUp], cUp[yMaxUp]);
-               // interval Z(cUp[zMinUp], cUp[zMaxUp]);
-               // return propagateExpression(&X, &Y, &Z, v1, v3);
-               for (int y=child.up[yMinUp]; y<=child.up[yMaxUp]; y++) {
-                  for (int z=child.up[zMinUp]; z<=child.up[zMaxUp]; z++) {
-                     if ((y != val) && (z == std::abs(val-y)))
-                        return true;
-                  }
-               }
-               return false;
+          }break;
+          case 1: {
+            // filter y variable
+            const int lb = child.up[zMinUp], ub = child.up[zMaxUp];
+            for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
+              if (x==val) continue;
+              const int z = std::abs(x-val);
+              if (lb <= z && z <= ub)
+                return true;
             }
-            else if (parent.down[N] == 1) {
-               // filter y variable
-               interval v1(0,INT_MAX);
-               interval v3(0,INT_MAX);
-               // interval X(pDown[xMin], pDown[xMax]);
-               // interval Y(val, val);
-               // interval Z(cUp[zMinUp], cUp[zMaxUp]);
-               // return propagateExpression(&X, &Y, &Z, v1, v3);
-               for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
-                  for (int z=child.up[zMinUp]; z<=child.up[zMaxUp]; z++) {
-                     if ((x != val) && (z == std::abs(x-val)))
-                        return true;
-                  }
-               }
-               return false;
+            return false;
+          }break;
+          case 2: {
+            // filter z variable
+            const int lb = parent.down[yMin], ub = parent.down[yMax];
+            for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
+              const int y0 = x - val;
+              const int y1 = x + val;
+              bool y0In = lb <= y0 && y0 <= ub;
+              bool y1In = lb <= y1 && y1 <= ub;
+              if (y0In || y1In) return true;
             }
-         }
-         return true;
+            return false;
+          }break;
+          default: return true;
+        }
       });
       return d;
    }
@@ -371,13 +356,13 @@ int main(int argc,char* argv[])
       mdd->post(Factory::absDiffMDD(mdd,{vars[0],vars[1],vars[2]}));
       for (int i=1; i<N-1; i++) 
          mdd->post(Factory::absDiffMDD(mdd,{vars[2*i-1],vars[2*i+1],vars[2*i+2]}));      
-      mdd->post(Factory::allDiffMDD(mdd,xVars));
-      mdd->post(Factory::allDiffMDD(mdd,yVars));
+      mdd->post(Factory::allDiffMDD2(mdd,xVars));
+      mdd->post(Factory::allDiffMDD2(mdd,yVars));
       cp->post(mdd);
       //mdd->saveGraph();
       cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;          
       cp->post(Factory::allDifferentAC(xVars));
-      //cp->post(Factory::allDifferentAC(yVars));
+      cp->post(Factory::allDifferentAC(yVars));
 
    }
    if ((mode < 0) || (mode > 3)) {
