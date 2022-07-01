@@ -225,12 +225,10 @@ namespace Factory {
              MDDBSValue yVals = c.up.getBS(ySomeUp),zVals = c.up.getBS(zSomeUp);
              for(auto yofs : yVals) {
                 auto i = yofs + minDom;
-                if (val != i) {
-                   int zval1 = val-i,zval2 = i-val;
-                   if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
-                       (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2)))
-                      return true;
-                }
+                if (i == val) continue;
+                int zval = std::abs(val-i);
+                if (zval >= udom.first && zval <= udom.second && zVals.getBit(zval))
+                   return true;
              }    
              return false;
           }break;
@@ -238,12 +236,10 @@ namespace Factory {
              MDDBSValue xVals = p.down.getBS(xSome),zVals = c.up.getBS(zSomeUp);
              for(auto xofs : xVals) {
                 auto i = xofs + minDom;
-                if (i != val) {
-                   int zval1 = val-i,zval2 = i-val;
-                   if ((zval1 >= udom.first && zval1 <= udom.second && zVals.getBit(zval1)) ||
-                       (zval2 >= udom.first && zval2 <= udom.second && zVals.getBit(zval2)))
-                      return true;
-                }
+                if (i == val) continue;
+                int zval = std::abs(i-val);
+                if (zval >= udom.first && zval <= udom.second && zVals.getBit(zval))
+                   return true;
              }    
              return false;
           }break;
