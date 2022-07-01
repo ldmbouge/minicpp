@@ -114,10 +114,10 @@ namespace Factory {
             out.setInt(maxWup, child.up[maxWup] + delta);
          }
       });
-      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto& var, const auto& val) {
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto&, const auto&) {
          out.setInt(len,  parent.down[len] + 1);
       });
-      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val) {
+      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto&, const auto&) {
          out.setInt(lenUp,child.up[lenUp] + 1);
       });
       return d;

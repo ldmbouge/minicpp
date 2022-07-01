@@ -182,68 +182,46 @@ namespace Factory {
     const int zSomeUp = mdd.addUpBSState(d,udom.second - udom.first + 1,0,MinFun);
     const int N       = mdd.addDownState(d,0,INT_MAX,MinFun);        // layer index
     const int NUp     = mdd.addUpState(d,3,INT_MAX,MinFun);        // layer index
-    mdd.transitionDown(d,xSome,{xSome,N},{},[xSome,N,minDom] (auto& out,const auto& p,auto x, const auto& val)  noexcept {
+    mdd.transitionDown(d,xSome,{xSome,N},{},[=](auto& out,const auto& p,auto x, const auto& val)  noexcept {
+       out.setProp(xSome,p.down);
        if (p.down[N]==0) {
-          out.setProp(xSome,p.down);
           MDDBSValue sv(out.getBS(xSome));
           for(auto v : val)
              sv.set(v - minDom);
        }
-       else
-          out.setProp(xSome,p.down);
     });
-    mdd.transitionDown(d,ySome,{ySome,N},{},[ySome,N,minDom] (auto& out,const auto& p,auto x, const auto& val)  noexcept {
+    mdd.transitionDown(d,ySome,{ySome,N},{},[=](auto& out,const auto& p,auto x, const auto& val)  noexcept {
+       out.setProp(ySome,p.down);
        if (p.down[N]==1) {
-          out.setProp(ySome,p.down);
           MDDBSValue sv(out.getBS(ySome));
           for(auto v : val)
              sv.set(v - minDom);
        }
-       else
-          out.setProp(ySome,p.down);
     });
 
     mdd.transitionDown(d,N,{N},{},[N](auto& out,const auto& p,auto x,const auto& val) noexcept   { out.setInt(N,p.down[N]+1);});
     mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& c,auto x,const auto& val) noexcept { out.setInt(NUp,c.up[NUp]-1);});
 
-    mdd.transitionUp(d,ySomeUp,{ySomeUp,NUp},{},[ySomeUp,NUp,minDom](auto& out,const auto& c,auto x, const auto& val) noexcept {
+    mdd.transitionUp(d,ySomeUp,{ySomeUp,NUp},{},[=](auto& out,const auto& c,auto x, const auto& val) noexcept {
+       out.setProp(ySomeUp,c.up);
        if (c.up[NUp]==2) {
-          out.setProp(ySomeUp,c.up);
           MDDBSValue sv(out.getBS(ySomeUp));
           for(auto v : val)
              sv.set(v - minDom);                                 
        }
-       else 
-          out.setProp(ySomeUp,c.up);
     });
-    mdd.transitionUp(d,zSomeUp,{zSomeUp,NUp},{},[zSomeUp,NUp,minDom](auto& out,const auto& c,auto x, const auto& val) noexcept  {
+    mdd.transitionUp(d,zSomeUp,{zSomeUp,NUp},{},[=](auto& out,const auto& c,auto x, const auto& val) noexcept  {
+       out.setProp(zSomeUp,c.up);
        if (c.up[NUp]==3) {
-          out.setProp(zSomeUp,c.up);
           MDDBSValue sv(out.getBS(zSomeUp));
           for(auto v : val)
              sv.set(v - minDom);                                 
        }
-       else
-          out.setProp(zSomeUp,c.up);
     });
 
     mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val)  noexcept -> bool {
-       if (p.down[N]==2) {
-          // filter z variable
-          MDDBSValue xVals = p.down.getBS(xSome),yVals = p.down.getBS(ySome);
-          for(const auto xofs : xVals) {
-             const auto i = xofs + minDom;
-             if (val==0) continue;
-             int yval1 = i-val,yval2 = i+val;
-             if ((yval1 >= udom.first && yval1 <= udom.second && yVals.getBit(yval1)) ||
-                 (yval2 >= udom.first && yval2 <= udom.second && yVals.getBit(yval2)))
-                return true;
-          }    
-          return false;
-       }
-       else {
-          if (p.down[N] == 0) {
-             // filter x variable
+       switch(p.down[N]) {
+          case 0: { // filter x variable
              MDDBSValue yVals = c.up.getBS(ySomeUp),zVals = c.up.getBS(zSomeUp);
              for(auto yofs : yVals) {
                 auto i = yofs + minDom;
@@ -255,9 +233,8 @@ namespace Factory {
                 }
              }    
              return false;
-          }
-          else if (p.down[N] == 1) {
-             // filter y variable
+          }break;
+          case 1: { // filter y variable
              MDDBSValue xVals = p.down.getBS(xSome),zVals = c.up.getBS(zSomeUp);
              for(auto xofs : xVals) {
                 auto i = xofs + minDom;
@@ -269,7 +246,20 @@ namespace Factory {
                 }
              }    
              return false;
-          }
+          }break;
+          case 2: { // filter z variable
+             MDDBSValue xVals = p.down.getBS(xSome),yVals = p.down.getBS(ySome);
+             for(const auto xofs : xVals) {
+                const auto i = xofs + minDom;
+                if (val==0) continue;
+                int yval1 = i-val,yval2 = i+val;
+                if ((yval1 >= udom.first && yval1 <= udom.second && yVals.getBit(yval1)) ||
+                    (yval2 >= udom.first && yval2 <= udom.second && yVals.getBit(yval2)))
+                   return true;
+             }    
+             return false;
+          }break;
+          default: return true;
        }
        return true;
     });
