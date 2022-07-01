@@ -94,6 +94,17 @@ namespace Factory {
    {
       return SumStub2 {std::vector<var<int>::Ptr> {vars} ,lb,ub};
    }
+   struct SumStub3 {
+      const Factory::Veci& _vars;
+      std::vector<int> _c;
+      int _lb;
+      int _ub;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return sum(m,_vars,_c,_lb,_ub);}
+   };
+   inline SumStub3 sum(const Factory::Veci& vars,std::initializer_list<int> c,int lb,int ub)
+   {
+      return SumStub3 {vars,std::vector<int> {c},lb,ub};
+   }
    
    MDDCstrDesc::Ptr maxCutObjectiveMDD(MDD::Ptr m,const Factory::Vecb& vars,
                                        const std::vector<std::vector<int>>& weights,

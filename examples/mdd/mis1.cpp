@@ -35,12 +35,12 @@ int main(int argc,char* argv[])
    auto z = Factory::makeIntVar(cp,12,1000);
    auto mdd = Factory::makeMDDRelax(cp,2);
    mdd->post(sum(x,{5,4,2,6,8},12,12));
-   mdd->post(sum({x[0],x[1]},{1,1},0, 1));
-   mdd->post(sum({x[0],x[4]},{1,1},0, 1));
-   mdd->post(sum({x[1],x[2]},{1,1},0, 1));
-   mdd->post(sum({x[1],x[3]},{1,1},0, 1));
-   mdd->post(sum({x[2],x[3]},{1,1},0, 1));
-   mdd->post(sum({x[3],x[4]},{1,1},0, 1));
+   mdd->post(sum({x[0],x[1]},0, 1));
+   mdd->post(sum({x[0],x[4]},0, 1));
+   mdd->post(sum({x[1],x[2]},0, 1));
+   mdd->post(sum({x[1],x[3]},0, 1));
+   mdd->post(sum({x[2],x[3]},0, 1));
+   mdd->post(sum({x[3],x[4]},0, 1));
    cp->post(mdd);
    auto end = RuntimeMonitor::cputime();
    mdd->saveGraph();
