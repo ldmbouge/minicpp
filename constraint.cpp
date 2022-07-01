@@ -707,11 +707,12 @@ void AllDifferentAC::propagate()
      auto varOut = varsSCC.out();  // we will loop on vars *NOT* in the SCC
      const int outSZ  = varsSCC.sizeOut();
      const int valsSZ = valsSCC.sizeIn();
-     for(int k = 0; k < valsSZ;++k) {
-        const int v = valsIn[k] + _imin;
-        for(int l = 0;l < outSZ;++l) {
-           const int i = varOut[l];
-           if (_match[i] != v && x[i]->containsBase(v))
+     for(int l = 0;l < outSZ;++l) {
+        const int i = varOut[l]; // this is variable i
+        if (x[i]->isBound()) continue;
+        for(int k = 0; k < valsSZ;++k) {
+           const int v = valsIn[k] + _imin;
+           if (x[i]->containsBase(v))
               x[i]->remove(v);
         }         
      }
