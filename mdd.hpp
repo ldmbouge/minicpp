@@ -34,6 +34,9 @@ public:
    virtual void debugGraph() {}
    void post() override;
    void post(MDDCstrDesc::Ptr cDesc);
+   template <class Stub> void post(const Stub& s) {
+      post(s.execute(this));
+   }
    MDDSpec& getSpec()      { return _mddspec; }
    virtual void trimLayer(unsigned int layer);
    void scheduleRemoval(MDDNode*);

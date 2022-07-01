@@ -37,7 +37,6 @@ namespace Factory {
       });
       return sum(m,theVars,z);
    }
-
    MDDCstrDesc::Ptr sum(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,std::initializer_list<int> array, int lb, int ub) {
       CPSolver::Ptr cp = (*vars.begin())->getSolver();
       auto theVars = Factory::intVarArray(cp,vars.size(),[&vars](int i) {
@@ -46,7 +45,15 @@ namespace Factory {
       const std::vector<int> theCoefs = array;
       return sum(m,theVars,theCoefs,lb,ub);
    }
-   
+   MDDCstrDesc::Ptr sum(MDD::Ptr m,std::vector<var<int>::Ptr> vars,int lb, int ub) {
+     CPSolver::Ptr cp = vars[0]->getSolver();
+     auto theVars = Factory::intVarArray(cp,vars.size(),[&vars](int i) {
+       return vars[i];
+     });
+     const std::vector<int> theCoefs(vars.size(),1);
+     return sum(m,theVars,theCoefs,lb,ub);
+   }
+
    MDDCstrDesc::Ptr sum(MDD::Ptr m, const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub) {
       // Enforce
       //   sum(i, array[i]*vars[i]) >= lb and
@@ -55,7 +62,7 @@ namespace Factory {
       const int nbVars = (int)vars.size();      
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
-      // Define the states: minimum and maximum weighted value (initialize at 0, maximum is INT_MAX (when negative values are allowed).
+      // Define the states: min and max weighted value (initialize at 0, maximum is INT_MAX (when negative values are allowed).
       const int minW = mdd.addDownState(d, 0, INT_MAX,MinFun);
       const int maxW = mdd.addDownState(d, 0, INT_MAX,MaxFun);
       const int minWup = mdd.addUpState(d, 0, INT_MAX,MinFun);

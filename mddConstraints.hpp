@@ -62,15 +62,39 @@ namespace Factory {
    MDDCstrDesc::Ptr gccMDD(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub);
    MDDCstrDesc::Ptr gccMDD2(MDD::Ptr m,const Factory::Veci& vars, const std::map<int,int>& lb, const std::map<int,int>& ub);
 
+
    MDDCstrDesc::Ptr sum(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,int lb, int ub);
    MDDCstrDesc::Ptr sum(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,std::initializer_list<int> array, int lb, int ub);
-   MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub);
-   MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Vecb& vars, var<int>::Ptr z);
    MDDCstrDesc::Ptr sum(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,var<int>::Ptr z);
+   MDDCstrDesc::Ptr sum(MDD::Ptr m,std::vector<var<int>::Ptr> vars,int lb, int ub);
+   MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Veci& vars, const std::vector<int>& array, int lb, int ub);
    MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Veci& vars, var<int>::Ptr z);
    MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Veci& vars, const std::vector<int>& array, var<int>::Ptr z);
    MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z);
-
+   MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Vecb& vars, var<int>::Ptr z);
+   
+   struct SumStub {
+      const Factory::Veci& _vars;
+      const std::vector<int>& _a;
+      var<int>::Ptr           _z;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return sum(m,_vars,_a,_z);}
+   };
+   inline SumStub sum(const Factory::Veci& vars,const std::vector<int>& a,var<int>::Ptr z)
+   {
+      return SumStub {vars,a,z};
+   }
+   
+   struct SumStub2 {
+      std::vector<var<int>::Ptr> _vars;
+      int _lb;
+      int _ub;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return sum(m,_vars,_lb,_ub);}
+   };
+   inline SumStub2 sum(std::initializer_list<var<int>::Ptr> vars,int lb,int ub)
+   {
+      return SumStub2 {std::vector<var<int>::Ptr> {vars} ,lb,ub};
+   }
+   
    MDDCstrDesc::Ptr maxCutObjectiveMDD(MDD::Ptr m,const Factory::Vecb& vars,
                                        const std::vector<std::vector<int>>& weights,
                                        var<int>::Ptr z,MDDOpts opts = {});
