@@ -157,6 +157,13 @@ void EQAbsDiffBC::post()
 /***/
 
 namespace Factory {
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars) {
+      CPSolver::Ptr cp = (*vars.begin())->getSolver();
+      auto theVars = Factory::intVarArray(cp,vars.size(),[&vars](int i) {
+         return std::data(vars)[i];
+      });
+      return absDiffMDD(m,theVars);
+   }
 
    MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars) {
       MDDSpec& mdd = m->getSpec();
@@ -393,20 +400,17 @@ int main(int argc,char* argv[])
      }
    }
    if ((mode == 2) || (mode == 3)) {
-     cout << "MDD encoding" << endl;     
-     auto tmpFirst = all(cp, {0,1,2}, [&vars](int i) {return vars[i];});     
-     mdd->post(Factory::absDiffMDD(mdd,tmpFirst));
-     for (int i=1; i<N-1; i++) {
-       std::set<int> tmpVarsIdx;
-       tmpVarsIdx.insert(2*i-1);
-       tmpVarsIdx.insert(2*i+1);
-       tmpVarsIdx.insert(2*i+2);       
-       auto tmpVars = all(cp, tmpVarsIdx, [&vars](int i) {return vars[i];});
-       mdd->post(Factory::absDiffMDD(mdd,tmpVars));
-     }
-     mdd->post(Factory::allDiffMDD(mdd,xVars));
-     mdd->post(Factory::allDiffMDD(mdd,yVars));
-     cp->post(mdd);
+      cout << "MDD encoding" << endl;     
+      mdd->post(Factory::absDiffMDD(mdd,{vars[0],vars[1],vars[2]}));
+      for (int i=1; i<N-1; i++) 
+         mdd->post(Factory::absDiffMDD(mdd,{vars[2*i-1],vars[2*i+1],vars[2*i+2]}));      
+      mdd->post(Factory::allDiffMDD(mdd,xVars));
+      mdd->post(Factory::allDiffMDD(mdd,yVars));
+      cp->post(mdd);
+      //mdd->saveGraph();
+      cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;
+      cp->post(Factory::allDifferentAC(xVars));
+      cp->post(Factory::allDifferentAC(yVars));
    }
    if ((mode < 0) || (mode > 3)) {
      cout << "Exit: specify a mode in {0,1,2,3}:" << endl;
@@ -417,27 +421,23 @@ int main(int argc,char* argv[])
      exit(1);
    }
 
+
    DFSearch search(cp,[=]() {
-        // Lex order
-      unsigned i = 0u;
-      for(i=0u;i < xVars.size();i++)
-         if (xVars[i]->size()> 1) break;
-      auto x = i< xVars.size() ? xVars[i] : nullptr;
-      
-      if (x) {
-         
-         int c = x->min();
-         
+      // Lex order
+      auto x = selectFirst(xVars,[](const auto& x) { return x->size() > 1;});
+      if (x) {	
+         int c = x->min();          
          return  [=] {
-            cp->post(x == c);
-         }
-            | [=] {
-               cp->post(x != c);
-            };
-         
+           //cout << "->choose: " << x << " == " << c << endl; 
+           cp->post(x == c);
+           //cout << "<-choose: " << x << " == " << c << endl; 
+         }     | [=] {
+           //cout << "->choose: " << x << " != " << c << endl; 
+           cp->post(x != c);
+           //cout << "<-choose: " << x << " != " << c << endl; 
+         };	
       } else return Branches({});
    });
-   
 
    int cnt = 0;
    RuntimeMonitor::HRClock firstSolTime = RuntimeMonitor::cputime();

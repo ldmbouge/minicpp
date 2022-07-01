@@ -356,8 +356,8 @@ int main(int argc,char* argv[])
       mdd->post(Factory::absDiffMDD(mdd,{vars[0],vars[1],vars[2]}));
       for (int i=1; i<N-1; i++) 
          mdd->post(Factory::absDiffMDD(mdd,{vars[2*i-1],vars[2*i+1],vars[2*i+2]}));      
-      mdd->post(Factory::allDiffMDD2(mdd,xVars));
-      mdd->post(Factory::allDiffMDD2(mdd,yVars));
+      mdd->post(Factory::allDiffMDD(mdd,xVars));
+      mdd->post(Factory::allDiffMDD(mdd,yVars));
       cp->post(mdd);
       //mdd->saveGraph();
       cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;          
