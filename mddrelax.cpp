@@ -578,6 +578,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
                delSupport(l-1,v);
                removeArc(l-1,l,a.get());
                if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+               if (lowest < l) break; // do not go on splitting. We've been told to reboot. Cut to the chase.
             } else {
                MDDState* combined = new MDDState(&_mddspec,(char*)mem->allocate(_mddspec.layoutSizeCombined()),Bi);
                if (_mddspec.usesCombined()) {

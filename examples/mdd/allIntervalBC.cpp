@@ -384,15 +384,15 @@ int main(int argc,char* argv[])
       if (x) {	
          int c = x->min();          
          return  [=] {
-            std::string tabs(cp->getStateManager()->depth(),'\t');
-            cout << tabs <<  "->choose: " << x << " == " << c << endl; 
+            //std::string tabs(cp->getStateManager()->depth(),'\t');
+            //cout << tabs <<  "->choose: " << x << " == " << c << endl; 
             cp->post(x == c);
-            cout << tabs << "<-choose: " << x << " == " << c << endl; 
+            //cout << tabs << "<-choose: " << x << " == " << c << endl; 
          }     | [=] {
-            std::string tabs(cp->getStateManager()->depth(),'\t');
-            cout << tabs << "->choose: " << x << " != " << c << endl; 
+            //std::string tabs(cp->getStateManager()->depth(),'\t');
+            //cout << tabs << "->choose: " << x << " != " << c << endl; 
             cp->post(x != c);
-            cout << tabs << "<-choose: " << x << " != " << c << endl; 
+            //cout << tabs << "<-choose: " << x << " != " << c << endl; 
          };	
       } else return Branches({});
    });
@@ -401,9 +401,9 @@ int main(int argc,char* argv[])
    int cnt = 0;
    search.onSolution([&cnt,&xVars,&yVars]() {
       cnt++;
-      std::cout << "\rNumber of solutions:" << cnt << "\n"; 
-      std::cout << "x = " << xVars << "\n";
-      std::cout << "y = " << yVars << endl;
+      std::cout << "\rNumber of solutions:" << cnt; 
+      //std::cout << "\nx = " << xVars << "\n";
+      //std::cout << "y = " << yVars << endl;
    });
       
    // auto stat = search.solve([](const SearchStatistics& stats) {
