@@ -25,6 +25,7 @@
 #include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 #include "table.hpp"
+#include "range.hpp"
 #include "allInterval.hpp"
 
 
@@ -181,7 +182,7 @@ namespace Factory {
     const int ySomeUp = mdd.addUpBSState(d,udom.second - udom.first + 1,0,MinFun);
     const int zSomeUp = mdd.addUpBSState(d,udom.second - udom.first + 1,0,MinFun);
     const int N       = mdd.addDownState(d,0,INT_MAX,MinFun);        // layer index
-    const int NUp     = mdd.addUpState(d,3,INT_MAX,MinFun);        // layer index
+    const int NUp     = mdd.addUpState(d,0,INT_MAX,MinFun);        // layer index
     mdd.transitionDown(d,xSome,{xSome,N},{},[=](auto& out,const auto& p,auto x, const auto& val)  noexcept {
        out.setProp(xSome,p.down);
        if (p.down[N]==0) {
@@ -200,11 +201,11 @@ namespace Factory {
     });
 
     mdd.transitionDown(d,N,{N},{},[N](auto& out,const auto& p,auto x,const auto& val) noexcept   { out.setInt(N,p.down[N]+1);});
-    mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& c,auto x,const auto& val) noexcept { out.setInt(NUp,c.up[NUp]-1);});
+    mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& c,auto x,const auto& val) noexcept { out.setInt(NUp,c.up[NUp]+1);});
 
     mdd.transitionUp(d,ySomeUp,{ySomeUp,NUp},{},[=](auto& out,const auto& c,auto x, const auto& val) noexcept {
        out.setProp(ySomeUp,c.up);
-       if (c.up[NUp]==2) {
+       if (c.up[NUp]==1) {
           MDDBSValue sv(out.getBS(ySomeUp));
           for(auto v : val)
              sv.set(v - minDom);                                 
@@ -212,7 +213,7 @@ namespace Factory {
     });
     mdd.transitionUp(d,zSomeUp,{zSomeUp,NUp},{},[=](auto& out,const auto& c,auto x, const auto& val) noexcept  {
        out.setProp(zSomeUp,c.up);
-       if (c.up[NUp]==3) {
+       if (c.up[NUp]==0) {
           MDDBSValue sv(out.getBS(zSomeUp));
           for(auto v : val)
              sv.set(v - minDom);                                 
@@ -289,6 +290,16 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
    return res;
 }
 
+template <class Container,typename UP>
+std::set<typename Container::value_type> filter(const Container& c,const UP& pred)
+{
+   std::set<typename Container::value_type> r;
+   for(auto e : c)
+      if (pred(e))
+         r.insert(e);
+   return r;
+}
+
 
 
 int main(int argc,char* argv[])
@@ -322,21 +333,14 @@ int main(int argc,char* argv[])
    // vars[i] = x[ ceil(i/2) ] if i is odd
    // vars[i] = y[ i/2 ]       if i is even
 
-   set<int> xVarsIdx;
-   set<int> yVarsIdx;
-   xVarsIdx.insert(0);
-   for (int i=1; i<2*N-1; i++) {
-     if ( i%2==0 ) {
-       cp->post(vars[i] != 0);
-       yVarsIdx.insert(i);
-     }
-     else {
-       xVarsIdx.insert(i);
-     }
-   }
+   set<int> xVarsIdx = filter(range(0,2*N-2),[](int i) {return i==0 || i%2!=0;});
+   set<int> yVarsIdx = filter(range(2,2*N-2),[](int i) {return i%2==0;});
+
+   for (int i=2; i<2*N-1; i+=2) 
+      cp->post(vars[i] != 0);
+
    auto xVars = all(cp, xVarsIdx, [&vars](int i) {return vars[i];});
    auto yVars = all(cp, yVarsIdx, [&vars](int i) {return vars[i];});
-
 
    std::cout << "x = " << xVars << endl;
    std::cout << "y = " << yVars << endl;
@@ -354,36 +358,25 @@ int main(int argc,char* argv[])
      }
    }
    if ((mode == 1) || (mode == 3)) {
-     cout << "domain encoding with AbsDiff-Table constraint" << endl;
-     cp->post(Factory::allDifferentAC(xVars));
-     cp->post(Factory::allDifferentAC(yVars));
+      cout << "domain encoding with AbsDiff-Table constraint" << endl;
+      cp->post(Factory::allDifferentAC(xVars));
+      cp->post(Factory::allDifferentAC(yVars));
 
-     std::vector<std::vector<int>> table;
-     for (int i=0; i<N-1; i++) {
-       for (int j=i+1; j<N; j++) {
-	 std::vector<int> t1;
-	 t1.push_back(i);
-	 t1.push_back(j);
-	 t1.push_back( std::abs(i-j) );	   
-	 table.emplace_back(t1);
-	 std::vector<int> t2;
-	 t2.push_back(j);
-	 t2.push_back(i);
-	 t2.push_back( std::abs(i-j) );
-	 table.emplace_back(t2);
-       }
-     }
-     std::cout << table << std::endl;
-     auto tmpFirst = all(cp, {0,1,2}, [&vars](int i) {return vars[i];});     
-     cp->post(Factory::table(tmpFirst, table));
-     for (int i=1; i<N-1; i++) {
-       std::set<int> tmpVarsIdx;
-       tmpVarsIdx.insert(2*i-1);
-       tmpVarsIdx.insert(2*i+1);
-       tmpVarsIdx.insert(2*i+2);       
-       auto tmpVars = all(cp, tmpVarsIdx, [&vars](int i) {return vars[i];});
-       cp->post(Factory::table(tmpVars, table));       
-     }
+      std::vector<std::vector<int>> table;
+      for (int i=0; i<N-1; i++) {
+         for (int j=i+1; j<N; j++) {
+            table.emplace_back(std::vector<int> {i,j,std::abs(i-j)});           
+            table.emplace_back(std::vector<int> {j,i,std::abs(i-j)});
+         }
+      }
+      std::cout << table << std::endl;
+      auto tmpFirst = all(cp, {0,1,2}, [&vars](int i) {return vars[i];});     
+      cp->post(Factory::table(tmpFirst, table));
+      for (int i=1; i<N-1; i++) {
+         std::set<int> tmpVarsIdx = {2*i-1,2*i+1,2*i+2};       
+         auto tmpVars = all(cp, tmpVarsIdx, [&vars](int i) {return vars[i];});
+         cp->post(Factory::table(tmpVars, table));       
+      }
    }
    if ((mode == 2) || (mode == 3)) {
       cout << "MDD encoding" << endl;     
@@ -414,13 +407,15 @@ int main(int argc,char* argv[])
       if (x) {	
          int c = x->min();          
          return  [=] {
-           //cout << "->choose: " << x << " == " << c << endl; 
-           cp->post(x == c);
-           //cout << "<-choose: " << x << " == " << c << endl; 
+            std::string tabs(cp->getStateManager()->depth(),'\t');
+            cout << tabs <<  "->choose: " << x << " == " << c << endl; 
+            cp->post(x == c);
+            cout << tabs << "<-choose: " << x << " == " << c << endl; 
          }     | [=] {
-           //cout << "->choose: " << x << " != " << c << endl; 
-           cp->post(x != c);
-           //cout << "<-choose: " << x << " != " << c << endl; 
+            std::string tabs(cp->getStateManager()->depth(),'\t');
+            cout << tabs << "->choose: " << x << " != " << c << endl; 
+            cp->post(x != c);
+            cout << tabs << "<-choose: " << x << " != " << c << endl; 
          };	
       } else return Branches({});
    });
@@ -430,14 +425,17 @@ int main(int argc,char* argv[])
    int firstSolNumFail = 0;
    SearchStatistics stat;
 
-   search.onSolution([&cnt,&firstSolTime,&firstSolNumFail,&stat]() {
-       cnt++;
-       firstSolTime = RuntimeMonitor::cputime();
-       if (cnt == 1) {
+   search.onSolution([&cnt,&firstSolTime,&firstSolNumFail,&stat,&xVars,&yVars]() {
+      cnt++;
+      std::cout << "\rNumber of solutions:" << cnt << "\n"; 
+      std::cout << "x = " << xVars << "\n";
+      std::cout << "y = " << yVars << endl;
+      firstSolTime = RuntimeMonitor::cputime();
+      if (cnt == 1) {
          firstSolTime = RuntimeMonitor::cputime();
          firstSolNumFail = stat.numberOfFailures();
-       }
-     });
+      }
+   });
 
       
    stat = search.solve([&stat](const SearchStatistics& stats) {

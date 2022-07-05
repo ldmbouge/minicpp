@@ -49,7 +49,7 @@ public:
    void pop();
    void popToNode(long node);
    void clear();
-
+   int depth() const noexcept { return _tops.size();}
    void saveState() override;
    void restoreState() override;
    void withNewState(const std::function<void(void)>& body) override;

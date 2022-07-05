@@ -25,6 +25,7 @@
 #include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 #include "table.hpp"
+#include "range.hpp"
 #include "allInterval.hpp"
 
 
@@ -272,17 +273,29 @@ Veci all(CPSolver::Ptr cp,const set<int>& over, std::function<var<int>::Ptr(int)
    return res;
 }
 
-
+template <class Container,typename UP>
+std::set<typename Container::value_type> filter(const Container& c,const UP& pred)
+{
+   std::set<typename Container::value_type> r;
+   for(auto e : c)
+      if (pred(e))
+         r.insert(e);
+   return r;
+}
 
 int main(int argc,char* argv[])
 {
    int N     = (argc >= 2 && strncmp(argv[1],"-n",2)==0) ? atoi(argv[1]+2) : 8;
    int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 1;
    int mode  = (argc >= 4 && strncmp(argv[3],"-m",2)==0) ? atoi(argv[3]+2) : 0;
+   int maxRebootDistance  = (argc >= 5 && strncmp(argv[4],"-r",2)==0) ? atoi(argv[4]+2) : 0;
+   int maxSplitIter = (argc >= 6 && strncmp(argv[5],"-i",2)==0) ? atoi(argv[5]+2) : INT_MAX;
 
    cout << "N = " << N << endl;   
    cout << "width = " << width << endl;   
    cout << "mode = " << mode << endl;
+   cout << "max reboot distance = " << maxRebootDistance << endl;
+   cout << "max split iterations = " << maxSplitIter << endl;
 
    auto start = RuntimeMonitor::cputime();
 
@@ -300,27 +313,19 @@ int main(int argc,char* argv[])
    // vars[i] = x[ ceil(i/2) ] if i is odd
    // vars[i] = y[ i/2 ]       if i is even
 
-   set<int> xVarsIdx;
-   set<int> yVarsIdx;
-   xVarsIdx.insert(0);
-   for (int i=1; i<2*N-1; i++) {
-      if ( i%2==0 ) {
-         cp->post(vars[i] != 0);
-         yVarsIdx.insert(i);
-      }
-      else {
-         xVarsIdx.insert(i);
-      }
-   }
+   set<int> xVarsIdx = filter(range(0,2*N-2),[](int i) {return i==0 || i%2!=0;});
+   set<int> yVarsIdx = filter(range(2,2*N-2),[](int i) {return i%2==0;});
+
+   for (int i=2; i<2*N-1; i+=2) 
+      cp->post(vars[i] != 0);
+
    auto xVars = all(cp, xVarsIdx, [&vars](int i) {return vars[i];});
    auto yVars = all(cp, yVarsIdx, [&vars](int i) {return vars[i];});
 
-
    std::cout << "x = " << xVars << endl;
    std::cout << "y = " << yVars << endl;
-   
-   
-   auto mdd = Factory::makeMDDRelax(cp,width);
+      
+   auto mdd = Factory::makeMDDRelax(cp,width,maxRebootDistance,maxSplitIter);
 
    if (mode == 0) {
       cout << "domain encoding with equalAbsDiff constraint" << endl;
@@ -360,10 +365,9 @@ int main(int argc,char* argv[])
       mdd->post(Factory::allDiffMDD(mdd,yVars));
       cp->post(mdd);
       //mdd->saveGraph();
-      cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;          
+      cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;
       cp->post(Factory::allDifferentAC(xVars));
       cp->post(Factory::allDifferentAC(yVars));
-
    }
    if ((mode < 0) || (mode > 3)) {
       cout << "Exit: specify a mode in {0,1,2,3}:" << endl;
@@ -380,26 +384,27 @@ int main(int argc,char* argv[])
       if (x) {	
          int c = x->min();          
          return  [=] {
-           //cout << "->choose: " << x << " == " << c << endl; 
-           cp->post(x == c);
-           //cout << "<-choose: " << x << " == " << c << endl; 
+            std::string tabs(cp->getStateManager()->depth(),'\t');
+            cout << tabs <<  "->choose: " << x << " == " << c << endl; 
+            cp->post(x == c);
+            cout << tabs << "<-choose: " << x << " == " << c << endl; 
          }     | [=] {
-           //cout << "->choose: " << x << " != " << c << endl; 
-           cp->post(x != c);
-           //cout << "<-choose: " << x << " != " << c << endl; 
+            std::string tabs(cp->getStateManager()->depth(),'\t');
+            cout << tabs << "->choose: " << x << " != " << c << endl; 
+            cp->post(x != c);
+            cout << tabs << "<-choose: " << x << " != " << c << endl; 
          };	
       } else return Branches({});
    });
       
 
    int cnt = 0;
-   search.onSolution([&cnt,xVars,yVars]() {
+   search.onSolution([&cnt,&xVars,&yVars]() {
       cnt++;
-      // std::cout << "\rNumber of solutions:" << cnt << "\n"; 
-      // std::cout << "x = " << xVars << "\n";
-      // std::cout << "y = " << yVars << endl;
+      std::cout << "\rNumber of solutions:" << cnt << "\n"; 
+      std::cout << "x = " << xVars << "\n";
+      std::cout << "y = " << yVars << endl;
    });
-
       
    // auto stat = search.solve([](const SearchStatistics& stats) {
    //    return stats.numberOfSolutions() > 0;

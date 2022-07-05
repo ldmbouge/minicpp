@@ -35,6 +35,7 @@ public:
       bool operator ==(const iterator& other) const { return _i == other._i; }
       bool operator !=(const iterator& other) const { return _i != other._i; }
    };
+   typedef T value_type;
    Range(T f,T t) : _from(f),_to(t) {} // [from,to]
    iterator begin() const { return iterator(_from); }
    iterator end() const   { return iterator(_to+1); } // end is always excluded
