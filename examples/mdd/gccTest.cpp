@@ -135,7 +135,7 @@ int main(int argc,char* argv[])
       std::cout << "use gccMDD2" << std::endl;
       mdd->post(gccMDD2(mdd, v, boundsLB, boundsUB));
       cp->post(mdd);
-     mdd->saveGraph();
+      mdd->saveGraph();
    }
    else {
      std::cout << "exit: mode should be 0 (Boolean domains), 1 (gccMDD), or 2 (gccMDD2)" << std::endl;

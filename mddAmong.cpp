@@ -18,124 +18,124 @@
 #include <limits.h>
 
 namespace Factory {
-  MDDCstrDesc::Ptr amongMDD(MDD::Ptr m, const Factory::Vecb& x, int lb, int ub,std::set<int> rawValues) {
-    MDDSpec& mdd = m->getSpec();
-    assert(rawValues.size()==1);
-    int tv = *rawValues.cbegin();
-    auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-    const int minC = mdd.addDownState(d,0,INT_MAX,MinFun);
-    const int maxC = mdd.addDownState(d,0,INT_MAX,MaxFun);
-    const int rem  = mdd.addDownState(d,(int)x.size(),INT_MAX,MaxFun);
-    mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& parent,const auto& child,auto var,const auto& val) -> bool {
-      bool vinS = tv == val;
-      return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
-    });
-
-    mdd.transitionDown(d,minC,{minC},{},[minC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool allMembers = val.size()==1 && val.singleton() == tv;
-      out.setInt(minC,parent.down[minC] + allMembers);
-    });
-    mdd.transitionDown(d,maxC,{maxC},{},[maxC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool oneMember = val.contains(tv);
-      out.setInt(maxC,parent.down[maxC] + oneMember);
-    });
-    mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val) {
-      out.setInt(rem,parent.down[rem] - 1);
-    });      
-    mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
-    return d;
-  }
-
-  MDDCstrDesc::Ptr amongMDD(MDD::Ptr m, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
-    MDDSpec& mdd = m->getSpec();
-    ValueSet values(rawValues);
-    auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-    const int minC = mdd.addDownState(d,0,INT_MAX,MinFun);
-    const int maxC = mdd.addDownState(d,0,INT_MAX,MaxFun);
-    const int rem  = mdd.addDownState(d,(int)x.size(),INT_MAX,MaxFun);
-    if (rawValues.size() == 1) {
+   MDDCstrDesc::Ptr amongMDD(MDD::Ptr m, const Factory::Vecb& x, int lb, int ub,std::set<int> rawValues) {
+      MDDSpec& mdd = m->getSpec();
+      assert(rawValues.size()==1);
       int tv = *rawValues.cbegin();
-      mdd.arcExist(d,[minC,maxC,rem,tv,ub,lb] (const auto& parent,const auto& child,auto var, const auto& val) -> bool {
-        bool vinS = tv == val;
-        return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
+      auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
+      const auto minC = mdd.downIntState(d,0,INT_MAX,MinFun);
+      const auto maxC = mdd.downIntState(d,0,INT_MAX,MaxFun);
+      const auto rem  = mdd.downIntState(d,(int)x.size(),INT_MAX,MaxFun);
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child,auto,const auto& val) {
+         bool vinS = tv == val;
+         return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
       });
-    } else {
-      mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
-        bool vinS = values.member(val);
-        return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
-      });
-    }
-
-    mdd.transitionDown(d,minC,{minC},{},[minC,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool allMembers = true;
-      for(int v : val) {
-        allMembers &= values.member(v);
-        if (!allMembers) break;
-      }
-      out.setInt(minC,parent.down[minC] + allMembers);
-    });
-    mdd.transitionDown(d,maxC,{maxC},{},[maxC,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool oneMember = false;
-      for(int v : val) {
-        oneMember = values.member(v);
-        if (oneMember) break;
-      }
-      out.setInt(maxC,parent.down[maxC] + oneMember);
-    });
-    mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val) {
-      out.setInt(rem,parent.down[rem] - 1);
-    });
       
-    mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
-    return d;
-  }
+      mdd.transitionDown2(d,minC,{minC},{},[minC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
+         bool allMembers = val.size()==1 && val.singleton() == tv;
+         out[minC] = parent.down[minC] + allMembers;
+      });
+      mdd.transitionDown2(d,maxC,{maxC},{},[maxC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
+         bool oneMember = val.contains(tv);
+         out[maxC] = parent.down[maxC] + oneMember;
+      });
+      mdd.transitionDown2(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val) {
+         out[rem] = parent.down[rem] - 1;
+      });      
+      mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
+      return d;
+   }
+
+   MDDCstrDesc::Ptr amongMDD(MDD::Ptr m, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues) {
+      MDDSpec& mdd = m->getSpec();
+      ValueSet values(rawValues);
+      auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
+      const auto minC = mdd.downIntState(d,0,INT_MAX,MinFun);
+      const auto maxC = mdd.downIntState(d,0,INT_MAX,MaxFun);
+      const auto rem  = mdd.downIntState(d,(int)x.size(),INT_MAX,MaxFun);
+      if (rawValues.size() == 1) {
+         int tv = *rawValues.cbegin();
+         mdd.arcExist(d,[=] (const auto& parent,const auto& child,auto, const auto& val)  {
+            bool vinS = tv == val;
+            return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
+         });
+      } else {
+         mdd.arcExist(d,[=] (const auto& parent,const auto& child,auto, const auto& val)  {
+            bool vinS = values.member(val);
+            return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
+         });
+      }
+
+      mdd.transitionDown2(d,minC,{minC},{},[minC,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
+         bool allMembers = true;
+         for(int v : val) {
+            allMembers &= values.member(v);
+            if (!allMembers) break;
+         }
+         out[minC] = parent.down[minC] + allMembers;
+      });
+      mdd.transitionDown2(d,maxC,{maxC},{},[maxC,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
+         bool oneMember = false;
+         for(int v : val) {
+            oneMember = values.member(v);
+            if (oneMember) break;
+         }
+         out[maxC] = parent.down[maxC] + oneMember;
+      });
+      mdd.transitionDown2(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val) {
+         out[rem] = parent.down[rem] - 1;
+      });
+      
+      mdd.splitOnLargest([](const auto& in) { return -(double)in.getNumParents();});
+      return d;
+   }
   
   MDDCstrDesc::Ptr amongMDD2(MDD::Ptr m, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues,MDDOpts opts) {
     MDDSpec& mdd = m->getSpec();
     ValueSet values(rawValues);
     auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-    const int L = mdd.addDownState(d,0,INT_MAX,MinFun, opts.cstrP);
-    const int U = mdd.addDownState(d,0,INT_MAX,MaxFun, opts.cstrP);
-    const int Lup = mdd.addUpState(d,0,INT_MAX,MinFun, opts.cstrP);
-    const int Uup = mdd.addUpState(d,0,INT_MAX,MaxFun, opts.cstrP);
+    const auto L = mdd.downIntState(d,0,INT_MAX,MinFun, opts.cstrP);
+    const auto U = mdd.downIntState(d,0,INT_MAX,MaxFun, opts.cstrP);
+    const auto Lup = mdd.upIntState(d,0,INT_MAX,MinFun, opts.cstrP);
+    const auto Uup = mdd.upIntState(d,0,INT_MAX,MaxFun, opts.cstrP);
 
-    mdd.transitionDown(d,L,{L},{},[L,values](auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool allMembers = true;
-      for(int v : val) {
-        allMembers &= values.member(v);
-        if (!allMembers) break;
-      }
-      out.set(L,parent.down.at(L) + allMembers);
+    mdd.transitionDown2(d,L,{L},{},[L,values](auto& out,const auto& parent,const auto& x, const auto& val) {
+       bool allMembers = true;
+       for(int v : val) {
+          allMembers &= values.member(v);
+          if (!allMembers) break;
+       }
+       out[L] = parent.down[L] + allMembers;
     });
-    mdd.transitionDown(d,U,{U},{},[U,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool oneMember = false;
-      for(int v : val) {
-        oneMember = values.member(v);
-        if (oneMember) break;
-      }
-      out.set(U,parent.down.at(U) + oneMember);
-    });
-
-    mdd.transitionUp(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
-      bool allMembers = true;
-      for(int v : val) {
-        allMembers &= values.member(v);
-        if (!allMembers) break;
-      }
-      out.set(Lup,child.up.at(Lup) + allMembers);
-    });
-    mdd.transitionUp(d,Uup,{Uup},{},[Uup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
-      bool oneMember = false;
-      for(int v : val) {
-        oneMember = values.member(v);
-        if (oneMember) break;
-      }
-      out.set(Uup,child.up.at(Uup) + oneMember);
+    mdd.transitionDown2(d,U,{U},{},[U,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
+       bool oneMember = false;
+       for(int v : val) {
+          oneMember = values.member(v);
+          if (oneMember) break;
+       }
+       out[U] = parent.down[U] + oneMember;
     });
 
-    mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
-      return ((parent.down.at(U) + values.member(val) + child.up.at(Uup) >= lb) &&
-              (parent.down.at(L) + values.member(val) + child.up.at(Lup) <= ub));
+    mdd.transitionUp2(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
+       bool allMembers = true;
+       for(int v : val) {
+          allMembers &= values.member(v);
+          if (!allMembers) break;
+       }
+       out[Lup] = child.up[Lup] + allMembers;
+    });
+    mdd.transitionUp2(d,Uup,{Uup},{},[Uup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
+       bool oneMember = false;
+       for(int v : val) {
+          oneMember = values.member(v);
+          if (oneMember) break;
+       }
+       out[Uup] = child.up[Uup] + oneMember;
+    });
+
+    mdd.arcExist(d,[=] (const auto& parent,const auto& child,const auto&, const auto& val) -> bool {
+       return ((parent.down[U] + values.member(val) + child.up[Uup] >= lb) &&
+               (parent.down[L] + values.member(val) + child.up[Lup] <= ub));
     });
 
     switch (opts.nodeP) {
@@ -161,44 +161,46 @@ namespace Factory {
         break;
       case 4:
         mdd.splitOnLargest([L](const auto& in) {
-          return in.getDownState().at(L);
+          return in.getDownState()[L];
         }, opts.cstrP);
         break;
       case 5:
         mdd.splitOnLargest([L](const auto& in) {
-          return -in.getDownState().at(L);
+          return -in.getDownState()[L];
         }, opts.cstrP);
         break;
       case 6:
         mdd.splitOnLargest([U](const auto& in) {
-          return in.getDownState().at(U);
+          return in.getDownState()[U];
         }, opts.cstrP);
         break;
       case 7:
         mdd.splitOnLargest([U](const auto& in) {
-          return -in.getDownState().at(U);
+          return -in.getDownState()[U];
         }, opts.cstrP);
         break;
       case 8:
         mdd.splitOnLargest([L,U](const auto& in) {
-          return in.getDownState().at(U) - in.getDownState().at(L);
+          return in.getDownState()[U] - in.getDownState()[L];
         }, opts.cstrP);
         break;
       case 9:
         mdd.splitOnLargest([L,U](const auto& in) {
-          return in.getDownState().at(L) - in.getDownState().at(U);
+          return in.getDownState()[L] - in.getDownState()[U];
         }, opts.cstrP);
         break;
       case 10:
         mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-          return -((double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
-                   (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0));
+           auto down = in.getDownState();
+           auto up   = in.getUpState();
+           return -((double)std::max(lb - (down[L] + up[Lup]),0) + (double)std::max((down[U] + up[Uup]) - ub,0));
         }, opts.cstrP);
         break;
       case 11:
         mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-          return (double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
-            (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0);
+           auto down = in.getDownState();
+           auto up   = in.getUpState();
+           return (double)std::max(lb - (down[L] + up[Lup]),0) + (double)std::max((down[U] + up[Uup]) - ub,0);
         }, opts.cstrP);
       default:
         break;
@@ -296,13 +298,13 @@ namespace Factory {
     }
     switch (opts.appxEQMode) {
       case 0:
-        mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup,opts](const auto& down, const auto& up) -> int {
-          return (lb - (down.at(L) + up.at(Lup)) > opts.eqThreshold) +
-            2*(ub - (down.at(U) + up.at(Uup)) > opts.eqThreshold);
-        }, opts.cstrP);
-        break;
-      default:
-        break;
+         mdd.equivalenceClassValue([=](const auto& down, const auto& up) -> int {
+            return (lb - (down[L] + up[Lup]) > opts.eqThreshold) +
+               2*(ub - (down[U] + up[Uup]) > opts.eqThreshold);
+         }, opts.cstrP);
+         break;
+       default:
+          break;
     }
     return d;
   }
@@ -313,33 +315,32 @@ namespace Factory {
     assert(rawValues.size()==1);
     int tv = *rawValues.cbegin();
     auto d = mdd.makeConstraintDescriptor(x,"amongMDD");
-    const int L = mdd.addDownState(d,0,INT_MAX,MinFun, opts.cstrP);
-    const int U = mdd.addDownState(d,0,INT_MAX,MaxFun, opts.cstrP);
-    const int Lup = mdd.addUpState(d,0,INT_MAX,MinFun, opts.cstrP);
-    const int Uup = mdd.addUpState(d,0,INT_MAX,MaxFun, opts.cstrP);
+    const auto L = mdd.downIntState(d,0,INT_MAX,MinFun, opts.cstrP);
+    const auto U = mdd.downIntState(d,0,INT_MAX,MaxFun, opts.cstrP);
+    const auto Lup = mdd.upIntState(d,0,INT_MAX,MinFun, opts.cstrP);
+    const auto Uup = mdd.upIntState(d,0,INT_MAX,MaxFun, opts.cstrP);
+    
+    mdd.transitionDown2(d,L,{L},{},[L,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
+       bool allMembers = val.size() == 1 && val.singleton() == tv;
+       out[L] = parent.down[L] + allMembers;
+    });
+    mdd.transitionDown2(d,U,{U},{},[U,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
+       bool oneMember = val.contains(tv);
+       out[U] = parent.down[U] + oneMember;
+    });
+    mdd.transitionUp2(d,Lup,{Lup},{},[Lup,tv] (auto& out,const auto& child,const auto& x, const auto& val) {
+       bool allMembers = val.size() == 1 && val.singleton() == tv;
+       out[Lup] = child.up[Lup] + allMembers;
+    });
+    mdd.transitionUp2(d,Uup,{Uup},{},[Uup,tv] (auto& out,const auto& child,const auto& x, const auto& val) {
+       bool oneMember = val.contains(tv);
+       out[Uup] = child.up[Uup] + oneMember;
+    });
 
-    mdd.transitionDown(d,L,{L},{},[L,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool allMembers = val.size() == 1 && val.singleton() == tv;
-      out.setInt(L,parent.down[L] + allMembers);
-    });
-    mdd.transitionDown(d,U,{U},{},[U,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool oneMember = val.contains(tv);
-      out.setInt(U,parent.down[U] + oneMember);
-    });
-
-    mdd.transitionUp(d,Lup,{Lup},{},[Lup,tv] (auto& out,const auto& child,const auto& x, const auto& val) {
-      bool allMembers = val.size() == 1 && val.singleton() == tv;
-      out.setInt(Lup,child.up[Lup] + allMembers);
-    });
-    mdd.transitionUp(d,Uup,{Uup},{},[Uup,tv] (auto& out,const auto& child,const auto& x, const auto& val) {
-      bool oneMember = val.contains(tv);
-      out.setInt(Uup,child.up[Uup] + oneMember);
-    });
-
-    mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
-      const bool vinS = tv == val;
-      return ((parent.down[U] + vinS + child.up[Uup] >= lb) &&
-              (parent.down[L] + vinS + child.up[Lup] <= ub));
+    mdd.arcExist(d,[tv,L,U,Lup,Uup,lb,ub] (const auto& parent,const auto& child,auto var, const auto& val) {
+       const bool vinS = tv == val;
+       return ((parent.down[U] + vinS + child.up[Uup] >= lb) &&
+               (parent.down[L] + vinS + child.up[Lup] <= ub));
     });
 
     switch (opts.nodeP) {
@@ -365,44 +366,44 @@ namespace Factory {
         break;
       case 4:
         mdd.splitOnLargest([L](const auto& in) {
-          return in.getDownState().at(L);
+          return in.getDownState()[L];
         }, opts.cstrP);
         break;
       case 5:
         mdd.splitOnLargest([L](const auto& in) {
-          return -in.getDownState().at(L);
+          return -in.getDownState()[L];
         }, opts.cstrP);
         break;
       case 6:
         mdd.splitOnLargest([U](const auto& in) {
-          return in.getDownState().at(U);
+          return in.getDownState()[U];
         }, opts.cstrP);
         break;
       case 7:
         mdd.splitOnLargest([U](const auto& in) {
-          return -in.getDownState().at(U);
+          return -in.getDownState()[U];
         }, opts.cstrP);
         break;
       case 8:
         mdd.splitOnLargest([L,U](const auto& in) {
-          return in.getDownState().at(U) - in.getDownState().at(L);
+          return in.getDownState()[U] - in.getDownState()[L];
         }, opts.cstrP);
         break;
       case 9:
         mdd.splitOnLargest([L,U](const auto& in) {
-          return in.getDownState().at(L) - in.getDownState().at(U);
+          return in.getDownState()[L] - in.getDownState()[U];
         }, opts.cstrP);
         break;
       case 10:
         mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-          return -((double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
-                   (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0));
+          return -((double)std::max(lb - (in.getDownState()[L] + in.getUpState()[Lup]),0) +
+                   (double)std::max((in.getDownState()[U] + in.getUpState()[Uup]) - ub,0));
         }, opts.cstrP);
         break;
       case 11:
         mdd.splitOnLargest([lb,ub,L,Lup,U,Uup](const auto& in) {
-          return (double)std::max(lb - (in.getDownState().at(L) + in.getUpState().at(Lup)),0) +
-            (double)std::max((in.getDownState().at(U) + in.getUpState().at(Uup)) - ub,0);
+          return (double)std::max(lb - (in.getDownState()[L] + in.getUpState()[Lup]),0) +
+            (double)std::max((in.getDownState()[U] + in.getUpState()[Uup]) - ub,0);
         }, opts.cstrP);
       default:
         break;
@@ -501,8 +502,8 @@ namespace Factory {
     switch (opts.appxEQMode) {
       case 0:
         mdd.equivalenceClassValue([d,lb,ub,L,Lup,U,Uup,opts](const auto& down, const auto& up) -> int {
-          return (lb - (down.at(L) + up.at(Lup)) > opts.eqThreshold) +
-            2*(ub - (down.at(U) + up.at(Uup)) > opts.eqThreshold);
+          return (lb - (down[L] + up[Lup]) > opts.eqThreshold) +
+             2*(ub - (down[U] + up[Uup]) > opts.eqThreshold);
         }, opts.cstrP);
         break;
       default:
@@ -516,29 +517,29 @@ namespace Factory {
     MDDSpec& mdd = m->getSpec();
     ValueSet values(rawValues);
     auto d = mdd.makeConstraintDescriptor(x,"upToOne");
-    const int L = mdd.addDownState(d,0,1,MinFun, opts.cstrP);
-    const int Lup = mdd.addUpState(d,0,1,MinFun, opts.cstrP);
+    const auto L = mdd.downIntState(d,0,1,MinFun, opts.cstrP);
+    const auto Lup = mdd.upIntState(d,0,1,MinFun, opts.cstrP);
 
-    mdd.transitionDown(d,L,{L},{},[L,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
-      bool allMembers = true;
-      for(int v : val) {
-        allMembers &= values.member(v);
-        if (!allMembers) break;
-      }
-      out.set(L,parent.down.at(L) + allMembers);
+    mdd.transitionDown2(d,L,{L},{},[L,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
+       bool allMembers = true;
+       for(int v : val) {
+          allMembers &= values.member(v);
+          if (!allMembers) break;
+       }
+       out[L] = parent.down[L] + allMembers;
     });
       
-    mdd.transitionUp(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
+    mdd.transitionUp2(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
       bool allMembers = true;
       for(int v : val) {
         allMembers &= values.member(v);
         if (!allMembers) break;
       }
-      out.set(Lup,child.up.at(Lup) + allMembers);
+      out[Lup] = child.up[Lup] + allMembers;
     });
       
     mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) -> bool {
-      return (parent.down.at(L) + values.member(val) + child.up.at(Lup) <= 1);
+      return (parent.down[L] + values.member(val) + child.up[Lup] <= 1);
     });
 
     switch (opts.nodeP) {
@@ -564,12 +565,12 @@ namespace Factory {
         break;
       case 4:
         mdd.splitOnLargest([L](const auto& in) {
-          return in.getDownState().at(L);
+          return in.getDownState()[L];
         }, opts.cstrP);
         break;
       case 5:
         mdd.splitOnLargest([L](const auto& in) {
-          return -in.getDownState().at(L);
+          return -in.getDownState()[L];
         }, opts.cstrP);
         break;
       default:

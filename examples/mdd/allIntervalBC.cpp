@@ -399,7 +399,7 @@ int main(int argc,char* argv[])
       
 
    int cnt = 0;
-   search.onSolution([&cnt,&xVars,&yVars]() {
+   search.onSolution([&]() {
       cnt++;
       std::cout << "\rNumber of solutions:" << cnt; 
       //std::cout << "\nx = " << xVars << "\n";

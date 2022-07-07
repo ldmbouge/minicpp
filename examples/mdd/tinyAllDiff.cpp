@@ -36,7 +36,7 @@ int main(int argc,char* argv[])
    auto v = Factory::intVarArray(cp, nb, 1, nb);
    auto start = RuntimeMonitor::cputime();
    auto mdd = Factory::makeMDD(cp);
-   mdd->post(Factory::allDiffMDD(mdd,v));
+   mdd->post(Factory::allDiffMDD2(mdd,v));
 
    cp->post(mdd);
    
@@ -53,9 +53,7 @@ int main(int argc,char* argv[])
           
                             if (x) {
                                //mddAppliance->saveGraph();
-
                                int c = x->min();
-
                                return  [=] {
                                           std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
                                           cp->post(x == c);

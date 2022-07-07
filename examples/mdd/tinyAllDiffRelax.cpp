@@ -38,7 +38,7 @@ int main(int argc,char* argv[])
    auto v = Factory::intVarArray(cp, nb, 0, nb-1);
    auto start = RuntimeMonitor::cputime();
    auto mdd = new MDDRelax(cp,width);
-   mdd->post(Factory::allDiffMDD(mdd,v));
+   mdd->post(Factory::allDiffMDD2(mdd,v));
 
    cp->post(mdd);
    
@@ -50,43 +50,35 @@ int main(int argc,char* argv[])
    
    if(useSearch){
       DFSearch search(cp,[=]() {
-                            unsigned i = 0u;
-                            for(i=0u;i < v.size();i++)
-                               if (v[i]->size()> 1) break;
-                            auto x = i< v.size() ? v[i] : nullptr;
-
-                            // auto x = selectMin(v,
-                            //                    [](const auto& x) { return x->size() > 1;},
-                            //                    [](const auto& x) { return x->size();});
-          
-                            if (x) {
-                               //mddAppliance->saveGraph();
-
-                               int c = x->min();
-
-                               return  [=] {
-                                          std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
-                                          cp->post(x == c);
-                                          //                         mdd->saveGraph();
-                                          //std::cout << "VARS: " << v << std::endl;
-                                       }
-                                  | [=] {
-                                       std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
-                                       cp->post(x != c);
-                                       //                      mdd->saveGraph();
-                                       //std::cout << "VARS: " << v << std::endl;
-                                    };
-                            } else return Branches({});
-                         });
+         auto x = selectFirst(v,[](const auto& x) { return x->size() > 1;});
+         if (x) {
+            //mddAppliance->saveGraph();
+            
+            int c = x->min();
+            
+            return  [=] {
+               std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
+               cp->post(x == c);
+               //                         mdd->saveGraph();
+               //std::cout << "VARS: " << v << std::endl;
+            }
+               | [=] {
+                  std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
+                  cp->post(x != c);
+                  //                      mdd->saveGraph();
+                  //std::cout << "VARS: " << v << std::endl;
+               };
+         } else return Branches({});
+      });
       
       search.onSolution([&v]() {
-                           std::cout << "Assignment:"  << v << std::endl;
-                        });
+         std::cout << "Assignment:"  << v << std::endl;
+      });
       
       
       auto stat = search.solve([](const SearchStatistics& stats) {
-                                  return stats.numberOfSolutions() > 0;
-                               });
+         return stats.numberOfSolutions() > 0;
+      });
       cout << stat << endl;
    }
    cp.dealloc();

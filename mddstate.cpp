@@ -39,14 +39,19 @@ namespace Factory {
          rv = new MDDPInt(id,ofs,init,max,rw);
       return rv;
    }
-   MDDProperty::Ptr makeBSProperty(short id,unsigned short ofs,int nbb,unsigned char init,enum RelaxWith rw)
+   MDDPInt::Ptr makePInt(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
    {
-      MDDProperty::Ptr rv = new MDDPBitSequence(id,ofs,nbb,init,rw);
+      MDDPInt::Ptr rv = new MDDPInt(id,ofs,init,max,rw);
       return rv;
    }
-   MDDProperty::Ptr makeWinProperty(short id,unsigned short ofs,int len,int init,int finit,enum RelaxWith rw)
+   MDDPBitSequence::Ptr makeBSProperty(short id,unsigned short ofs,int nbb,unsigned char init,enum RelaxWith rw)
    {
-      MDDProperty::Ptr rv = new MDDPSWindow<short>(id,ofs,len,init,finit,rw);
+      MDDPBitSequence::Ptr rv = new MDDPBitSequence(id,ofs,nbb,init,rw);
+      return rv;
+   }
+   MDDPSWindow<short>::Ptr makeWinProperty(short id,unsigned short ofs,int len,int init,int finit,enum RelaxWith rw)
+   {
+      MDDPSWindow<short>::Ptr rv = new MDDPSWindow<short>(id,ofs,len,init,finit,rw);
       return rv;
    }
 }
@@ -196,168 +201,233 @@ void MDDStateSpec::layout()
    std::cout << "Combined State requires:" << _lszCombined << " bytes" << std::endl;
 }
 
-int MDDStateSpec::addDownState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int constraintPriority)
+MDDPBitSequence::Ptr MDDStateSpec::downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority)
 {
    int aid = (int)_nbpDown;
-   addDownProperty(Factory::makeProperty(aid, 0, init, max,rw));
+   MDDPBitSequence::Ptr p = Factory::makeBSProperty(aid,0,nbb,init,rw); 
+   addDownProperty(p);
    d->addDownProperty(aid);
-   return aid;
-}
-int MDDStateSpec::addUpState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int constraintPriority)
-{
-   int aid = (int)_nbpUp;
-   addUpProperty(Factory::makeProperty(aid, 0, init, max,rw));
-   d->addUpProperty(aid);
-   return aid;
-}
-int MDDStateSpec::addCombinedState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int constraintPriority)
-{
-   int aid = (int)_nbpCombined;
-   addCombinedProperty(Factory::makeProperty(aid, 0, init, max,rw));
-   d->addCombinedProperty(aid);
-   return aid;
-}
-int MDDStateSpec::addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
-{
-   int aid = (int)_nbpDown;
-   addDownProperty(Factory::makeBSProperty(aid,0,nbb,init,rw));
-   d->addDownProperty(aid);
-   return aid;
-}
-int MDDStateSpec::addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
-{
-   int aid = (int)_nbpUp;
-   addUpProperty(Factory::makeBSProperty(aid,0,nbb,init,rw));
-   d->addUpProperty(aid);
-   return aid;
-}
-int MDDStateSpec::addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
-{
-   int aid = (int)_nbpCombined;
-   addCombinedProperty(Factory::makeBSProperty(aid,0,nbb,init,rw));
-   d->addCombinedProperty(aid);
-   return aid;
-}
-int MDDStateSpec::addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
-{
-   int aid = (int)_nbpDown;
-   addDownProperty(Factory::makeWinProperty(aid,0,len,init,finit,rw));
-   d->addDownProperty(aid);
-   return aid;
-}
-int MDDStateSpec::addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
-{
-   int aid = (int)_nbpUp;
-   addUpProperty(Factory::makeWinProperty(aid,0,len,init,finit,rw));
-   d->addUpProperty(aid);
-   return aid;
-}
-int MDDStateSpec::addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
-{
-   int aid = (int)_nbpCombined;
-   addCombinedProperty(Factory::makeWinProperty(aid,0,len,init,finit,rw));
-   d->addCombinedProperty(aid);
-   return aid;
+   return p;
 }
 
+MDDPBitSequence::Ptr MDDStateSpec::upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority)
+{
+   int aid = (int)_nbpUp;
+   MDDPBitSequence::Ptr p = Factory::makeBSProperty(aid,0,nbb,init,rw); 
+   addUpProperty(p);
+   d->addUpProperty(aid);
+   return p;
+}
+MDDPBitSequence::Ptr MDDStateSpec::combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority)
+{
+   int aid = (int)_nbpCombined;
+   MDDPBitSequence::Ptr p = Factory::makeBSProperty(aid,0,nbb,init,rw);
+   addCombinedProperty(p);
+   d->addCombinedProperty(aid);
+   return p;
+}
+MDDPInt::Ptr MDDStateSpec::downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority)
+{
+   int aid = (int)_nbpDown;
+   MDDPInt::Ptr p = Factory::makePInt(aid, 0, init, max,rw);
+   addDownProperty(p);
+   d->addDownProperty(aid);
+   return p;
+}
+MDDPInt::Ptr MDDStateSpec::upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw,int cPriority)
+{
+   int aid = (int)_nbpUp;
+   MDDPInt::Ptr p = Factory::makePInt(aid, 0, init, max,rw);
+   addUpProperty(p);
+   d->addUpProperty(aid);
+   return p;
+}
+MDDPInt::Ptr MDDStateSpec::combinedIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority)
+{
+   int aid = (int)_nbpCombined;
+   MDDPInt::Ptr p = Factory::makePInt(aid, 0, init, max,rw);
+   addCombinedProperty(p);
+   d->addCombinedProperty(aid);
+   return p;
+}
+MDDPSWindow<short>::Ptr MDDStateSpec::downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpDown;
+   MDDPSWindow<short>::Ptr p =Factory::makeWinProperty(aid,0,len,init,finit,rw);
+   addDownProperty(p);
+   d->addDownProperty(aid);
+   return p;
+}
+MDDPSWindow<short>::Ptr MDDStateSpec::upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpUp;
+   MDDPSWindow<short>::Ptr p = Factory::makeWinProperty(aid,0,len,init,finit,rw);
+   addUpProperty(p);
+   d->addUpProperty(aid);
+   return p;
+}
+MDDPSWindow<short>::Ptr MDDStateSpec::combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+{
+   int aid = (int)_nbpCombined;
+   MDDPSWindow<short>::Ptr p = Factory::makeWinProperty(aid,0,len,init,finit,rw);
+   addCombinedProperty(p);
+   d->addCombinedProperty(aid);
+   return p;
+}
+
+// --------------------------------------------------------------------------------
 
 std::vector<int> MDDStateSpec::addDownStates(MDDCstrDesc::Ptr d,int from, int to,int max, std::function<int(int)> clo)
 {
    std::vector<int> res;
    for(int i = from; i <= to; i++)
-      res.push_back(addDownState(d,clo(i),max));
+      res.push_back(downIntState(d,clo(i),max)->getId());
    return res;
 }
 std::vector<int> MDDStateSpec::addUpStates(MDDCstrDesc::Ptr d,int from, int to,int max, std::function<int(int)> clo)
 {
    std::vector<int> res;
    for(int i = from; i <= to; i++)
-      res.push_back(addUpState(d,clo(i),max));
+      res.push_back(upIntState(d,clo(i),max)->getId());
    return res;
 }
 std::vector<int> MDDStateSpec::addCombinedStates(MDDCstrDesc::Ptr d,int from, int to,int max, std::function<int(int)> clo)
 {
    std::vector<int> res;
    for(int i = from; i <= to; i++)
-      res.push_back(addCombinedState(d,clo(i),max));
+      res.push_back(combinedIntState(d,clo(i),max)->getId());
    return res;
 }
 std::vector<int> MDDStateSpec::addDownStates(MDDCstrDesc::Ptr d,int max, std::initializer_list<int> inputs)
 {
    std::vector<int> res;
    for(auto& v : inputs)
-      res.push_back(addDownState(d,v,max));
+      res.push_back(downIntState(d,v,max)->getId());
    return res;
 }
 std::vector<int> MDDStateSpec::addUpStates(MDDCstrDesc::Ptr d,int max, std::initializer_list<int> inputs)
 {
    std::vector<int> res;
    for(auto& v : inputs)
-      res.push_back(addUpState(d,v,max));
+      res.push_back(upIntState(d,v,max)->getId());
    return res;
 }
 std::vector<int> MDDStateSpec::addCombinedStates(MDDCstrDesc::Ptr d,int max, std::initializer_list<int> inputs)
 {
    std::vector<int> res;
    for(auto& v : inputs)
-      res.push_back(addCombinedState(d,v,max));
+      res.push_back(combinedIntState(d,v,max)->getId());
    return res;
 }
 
-int MDDSpec::addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
+// --------------------------------------------------------------------------------
+// MDDSpec
+// --------------------------------------------------------------------------------
+
+MDDPBitSequence::Ptr MDDSpec::downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw,int cPriority)
 {
-   auto rv = MDDStateSpec::addDownState(d,init,max,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
+   auto rv = MDDStateSpec::downBSState(d,nbb,init,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;   
+}
+MDDPInt::Ptr MDDSpec::downIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::downIntState(d,init,max,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
-int MDDSpec::addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
+MDDPBitSequence::Ptr MDDSpec::upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority)
 {
-   auto rv = MDDStateSpec::addUpState(d,init,max,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
+   auto rv = MDDStateSpec::upBSState(d,nbb,init,rw);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
+}
+MDDPInt::Ptr MDDSpec::upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::upIntState(d,init,max,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;
+}
+MDDPBitSequence::Ptr MDDSpec::combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw,int cPriority)
+{
+   auto rv = MDDStateSpec::combinedBSState(d,nbb,init,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;   
+}
+MDDPInt::Ptr MDDSpec::combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::combinedIntState(d,init,max,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;
+}
+MDDPSWindow<short>::Ptr MDDSpec::downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::downSWState(d,len,init,finit,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;
+}
+MDDPSWindow<short>::Ptr MDDSpec::upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::upSWState(d,len,init,finit,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;
+}
+MDDPSWindow<short>::Ptr MDDSpec::combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::combinedSWState(d,len,init,finit,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;
+}
+
+
+int MDDSpec::addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
+{
+   auto rv = downIntState(d,init,max,rw,constraintPriority);
+   return rv->getId();
+}
+ int MDDSpec::addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
+{
+   auto rv = upIntState(d,init,max,rw,constraintPriority);
+   return rv->getId();
 }
 int MDDSpec::addCombinedState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
 {
-   auto rv = MDDStateSpec::addCombinedState(d,init,max,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
-   return rv;
+   auto rv = combinedIntState(d,init,max,rw,constraintPriority);
+   return rv->getId();
 }
 int MDDSpec::addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
 {
-   auto rv = MDDStateSpec::addDownBSState(d,nbb,init,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
-   return rv;
+   auto rv = downBSState(d,nbb,init,rw,constraintPriority);
+   return rv->getId();
 }
 int MDDSpec::addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
 {
-   auto rv = MDDStateSpec::addUpBSState(d,nbb,init,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
-   return rv;
+   auto rv = upBSState(d,nbb,init,rw,constraintPriority);
+   return rv->getId();
 }
 int MDDSpec::addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
 {
-   auto rv = MDDStateSpec::addCombinedBSState(d,nbb,init,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
-   return rv;
+   auto rv = combinedBSState(d,nbb,init,rw,constraintPriority);
+   return rv->getId();
 }
-int MDDSpec::addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+int MDDSpec::addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
 {
-   auto rv = MDDStateSpec::addDownSWState(d,len,init,finit,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
-   return rv;
+   auto rv = downSWState(d,len,init,finit,rw,cPriority);
+   return rv->getId();
 }
-int MDDSpec::addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+int MDDSpec::addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
 {
-   auto rv = MDDStateSpec::addUpSWState(d,len,init,finit,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
-   return rv;
+   auto rv = upSWState(d,len,init,finit,rw,cPriority);
+   return rv->getId();
 }
-int MDDSpec::addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+int MDDSpec::addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
 {
-   auto rv = MDDStateSpec::addCombinedSWState(d,len,init,finit,rw);
-   _propertiesByPriorities[constraintPriority].emplace_back(rv);
-   return rv;
+   auto rv = combinedSWState(d,len,init,finit,rw,cPriority);
+   return rv->getId();
 }
+
+// --------------------------------------------------------------------------------
+
 
 void MDDSpec::onFixpoint(FixFun onFix)
 {
@@ -443,13 +513,16 @@ void MDDSpec::arcExist(MDDCstrDesc::Ptr d,ArcFun a)
 {
    _exists.emplace_back(std::make_pair<MDDCstrDesc::Ptr,ArcFun>(std::move(d),std::move(a)));
 }
-void MDDSpec::updateNode(MDDCstrDesc::Ptr cd,int p,std::set<int> spDown,std::set<int> spUp,UpdateFun nf)
+void MDDSpec::updateNode(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spUp,UpdateFun nf)
 {
-   if (cd->ownsCombinedProperty(p)) {
+   if (cd->ownsCombinedProperty(p->getId())) {
       int uid = (int)_updates.size();
       cd->registerUpdate(uid);
-      _attrsCombined[p]->setAntecedents(spDown,spUp);
-      _attrsCombined[p]->setTransition(uid);
+      std::set<int> spd,spu;
+      for(auto p : spDown) spd.insert(p->getId());
+      for(auto p : spUp) spu.insert(p->getId());
+      _attrsCombined[p->getId()]->setAntecedents(spd,spu);
+      _attrsCombined[p->getId()]->setTransition(uid);
       _updates.emplace_back(std::move(nf));
    }
 }
@@ -463,6 +536,14 @@ void MDDSpec::transitionDown(MDDCstrDesc::Ptr cd,int p,std::set<int> spDown,std:
       _downTransition.emplace_back(std::move(t));
    }
 }
+void MDDSpec::transitionDown2(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans t)
+{
+   std::set<int> pD,pC;
+   for(auto p : spDown) pD.insert(p->getId());
+   for(auto p : spCombined) pC.insert(p->getId());
+   transitionDown(cd,p->getId(),pD,pC,t);
+}
+
 
 void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,int p,std::set<int> spUp,std::set<int> spCombined,lambdaTrans t)
 {
@@ -473,6 +554,13 @@ void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,int p,std::set<int> spUp,std::set
       _attrsUp[p]->setTransition(tid);
       _upTransition.emplace_back(std::move(t));
    }
+}
+void MDDSpec::transitionUp2(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans t)
+{
+   std::set<int> pD,pC;
+   for(auto p : spDown) pD.insert(p->getId());
+   for(auto p : spCombined) pC.insert(p->getId());
+   transitionUp(cd,p->getId(),pD,pC,t);
 }
 
 void MDDSpec::transitionDown(MDDCstrDesc::Ptr cd,const lambdaMap& map)

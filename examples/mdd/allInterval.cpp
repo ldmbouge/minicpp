@@ -32,7 +32,6 @@
 using namespace std;
 using namespace Factory;
 
-
 class interval {
 public:
   int min, max;
@@ -95,64 +94,64 @@ void EQAbsDiffBC::post()
      _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
       
      _x->whenBoundsChange([this] {
-	 interval v1(-INT_MAX,INT_MAX);
-	 interval v3(-INT_MAX,INT_MAX);
-	 interval X(_x->min(), _x->max());
-	 interval Y(_y->min(), _y->max());
-	 interval Z(_z->min(), _z->max());
-	 bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-	 if (!check) { failNow(); }
-     	 _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
-     	 _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
-       });
-      
-      _y->whenBoundsChange([this] {
-	 interval v1(-INT_MAX,INT_MAX);
-	 interval v3(-INT_MAX,INT_MAX);
-	 interval X(_x->min(), _x->max());
-	 interval Y(_y->min(), _y->max());
-	 interval Z(_z->min(), _z->max());
-	 bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-	 if (!check) { failNow(); }
-     	  _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
-     	  _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
-     	});
-
-      // Applying domain consistency to x and y when Dom(z) changes seems to mimick the Puget&Regin approach.
-      _z->whenDomainChange([this] {
-	  for (int x=_x->min(); x<=_x->max(); x++) {
-	    if (_x->contains(x)) {
-	      bool support = false;
-	      for (int y=_y->min(); y<=_y->max() && !support; y++) {
-		if (_y->contains(y)) {
-		  for (int z=_z->min(); z<=_z->max() && !support; z++) {
-		    if (_z->contains(z) && (z==std::abs(x-y))){
-		      support = true;
-		      break;
-		    }
-		  }
-		}
-	      }
-	      if (!support) { _x->remove(x); }
-	    }
-	  }
-	  for (int y=_y->min(); y<=_y->max(); y++) {
-	    if (_y->contains(y)) {
-	      bool support = false;
-	      for (int x=_x->min(); x<=_x->max() && !support; x++) {
-		if (_x->contains(x)) {
-		  for (int z=_z->min(); z<=_z->max() && !support; z++) {
-		    if (_z->contains(z) && (z==std::abs(x-y))){
-		      support = true;
-		      break;
-		    }
-		  }
-		}
-	      }
-	      if (!support) { _y->remove(y); }
-	    }
-	  }
-     	});
+       interval v1(-INT_MAX,INT_MAX);
+       interval v3(-INT_MAX,INT_MAX);
+       interval X(_x->min(), _x->max());
+       interval Y(_y->min(), _y->max());
+       interval Z(_z->min(), _z->max());
+       bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+       if (!check)  failNow();
+       _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+       _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
+     });
+     
+     _y->whenBoundsChange([this] {
+       interval v1(-INT_MAX,INT_MAX);
+       interval v3(-INT_MAX,INT_MAX);
+       interval X(_x->min(), _x->max());
+       interval Y(_y->min(), _y->max());
+       interval Z(_z->min(), _z->max());
+       bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+       if (!check) { failNow(); }
+       _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+       _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+      });
+     
+     // Applying domain consistency to x and y when Dom(z) changes seems to mimick the Puget&Regin approach.
+     _z->whenDomainChange([this] {
+       for (int x=_x->min(); x<=_x->max(); x++) {
+         if (_x->contains(x)) {
+           bool support = false;
+           for (int y=_y->min(); y<=_y->max() && !support; y++) {
+             if (_y->contains(y)) {
+               for (int z=_z->min(); z<=_z->max() && !support; z++) {
+                 if (_z->contains(z) && (z==std::abs(x-y))){
+                   support = true;
+                   break;
+                 }
+               }
+             }
+           }
+           if (!support) { _x->remove(x); }
+         }
+       }
+       for (int y=_y->min(); y<=_y->max(); y++) {
+         if (_y->contains(y)) {
+           bool support = false;
+           for (int x=_x->min(); x<=_x->max() && !support; x++) {
+             if (_x->contains(x)) {
+               for (int z=_z->min(); z<=_z->max() && !support; z++) {
+                 if (_z->contains(z) && (z==std::abs(x-y))){
+                   support = true;
+                   break;
+                 }
+               }
+             }
+           }
+           if (!support) { _y->remove(y); }
+         }
+       }
+     });
    }
 }
 /***/
@@ -167,89 +166,90 @@ namespace Factory {
    }
 
    MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars) {
-      MDDSpec& mdd = m->getSpec();
-      assert(vars.size()==3);
+     MDDSpec& mdd = m->getSpec();
+     assert(vars.size()==3);
+     
+     // Filtering rules based the following constraint:  |vars[0]-vars[1]| = vars[2]
+     // referred to below as |x-y| = z.
+     auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
+     const auto udom  = domRange(vars);
+     const int minDom = udom.first;
     
-    // Filtering rules based the following constraint:  |vars[0]-vars[1]| = vars[2]
-    // referred to below as |x-y| = z.
-    auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
-
-    auto udom  = domRange(vars);
-    int minDom = udom.first;
+    const auto xSome  = mdd.downBSState(d,udom.second - udom.first + 1,0,MinFun);
+    const auto ySome  = mdd.downBSState(d,udom.second - udom.first + 1,0,MinFun);
+    const auto N      = mdd.downIntState(d,0,INT_MAX,MinFun);        // layer index
     
-    const int xSome   = mdd.addDownBSState(d,udom.second - udom.first + 1,0,MinFun);
-    const int ySome   = mdd.addDownBSState(d,udom.second - udom.first + 1,0,MinFun);
-    const int ySomeUp = mdd.addUpBSState(d,udom.second - udom.first + 1,0,MinFun);
-    const int zSomeUp = mdd.addUpBSState(d,udom.second - udom.first + 1,0,MinFun);
-    const int N       = mdd.addDownState(d,0,INT_MAX,MinFun);        // layer index
-    const int NUp     = mdd.addUpState(d,0,INT_MAX,MinFun);        // layer index
-    mdd.transitionDown(d,xSome,{xSome,N},{},[=](auto& out,const auto& p,auto x, const auto& val)  noexcept {
-       out.setProp(xSome,p.down);
-       if (p.down[N]==0) {
-          MDDBSValue sv(out.getBS(xSome));
-          for(auto v : val)
-             sv.set(v - minDom);
-       }
+    const auto ySomeUp = mdd.upBSState(d,udom.second - udom.first + 1,0,MinFun);
+    const auto zSomeUp = mdd.upBSState(d,udom.second - udom.first + 1,0,MinFun);
+    const auto NUp     = mdd.upIntState(d,0,INT_MAX,MinFun);        // layer index
+    
+    mdd.transitionDown2(d,xSome,{xSome,N},{},[=](auto& out,const auto& p,auto,const auto& val)  noexcept {
+      out[xSome] = p.down[xSome]; // another syntax      
+      if (p.down[N]==0) {
+        auto sv = out[xSome];
+        for(auto v : val)
+          sv.set(v - minDom);
+      }
     });
-    mdd.transitionDown(d,ySome,{ySome,N},{},[=](auto& out,const auto& p,auto x, const auto& val)  noexcept {
-       out.setProp(ySome,p.down);
-       if (p.down[N]==1) {
-          MDDBSValue sv(out.getBS(ySome));
-          for(auto v : val)
-             sv.set(v - minDom);
-       }
+    mdd.transitionDown2(d,ySome,{ySome,N},{},[=](auto& out,const auto& p,auto,const auto& val)  noexcept {
+      out[ySome] = p.down[ySome];
+      if (p.down[N]==1) {
+        auto sv = out[ySome];
+        for(auto v : val)
+          sv.set(v - minDom);
+      }
     });
 
-    mdd.transitionDown(d,N,{N},{},[N](auto& out,const auto& p,auto x,const auto& val) noexcept   { out.setInt(N,p.down[N]+1);});
-    mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& c,auto x,const auto& val) noexcept { out.setInt(NUp,c.up[NUp]+1);});
+    mdd.transitionDown2(d,N,{N},{},[N](auto& out,const auto& p,auto,const auto&) noexcept     { out[N]   = p.down[N]+1;});
+    mdd.transitionUp2(d,NUp,{NUp},{},[NUp](auto& out,const auto& c,auto,const auto&) noexcept { out[NUp] = c.up[NUp]+1;});
 
-    mdd.transitionUp(d,ySomeUp,{ySomeUp,NUp},{},[=](auto& out,const auto& c,auto x, const auto& val) noexcept {
-       out.setProp(ySomeUp,c.up);
-       if (c.up[NUp]==1) {
-          MDDBSValue sv(out.getBS(ySomeUp));
-          for(auto v : val)
-             sv.set(v - minDom);                                 
-       }
+    mdd.transitionUp2(d,ySomeUp,{ySomeUp,NUp},{},[=](auto& out,const auto& c,auto, const auto& val) noexcept {
+      out[ySomeUp] = c.up[ySomeUp];
+      if (c.up[NUp]==1) {
+        auto sv(out[ySomeUp]);
+        for(auto v : val)
+          sv.set(v - minDom);                                 
+      }
     });
-    mdd.transitionUp(d,zSomeUp,{zSomeUp,NUp},{},[=](auto& out,const auto& c,auto x, const auto& val) noexcept  {
-       out.setProp(zSomeUp,c.up);
+    mdd.transitionUp2(d,zSomeUp,{zSomeUp,NUp},{},[=](auto& out,const auto& c,auto, const auto& val) noexcept  {
+       out[zSomeUp] = c.up[zSomeUp];
        if (c.up[NUp]==0) {
-          MDDBSValue sv(out.getBS(zSomeUp));
-          for(auto v : val)
-             sv.set(v - minDom);                                 
+         auto sv = out[zSomeUp];
+         for(auto v : val)
+           sv.set(v - minDom);                                 
        }
     });
 
-    mdd.arcExist(d,[=] (const auto& p,const auto& c,var<int>::Ptr var, const auto& val)  noexcept -> bool {
+    mdd.arcExist(d,[=](const auto& p,const auto& c,var<int>::Ptr, const auto& val)  noexcept {
        switch(p.down[N]) {
           case 0: { // filter x variable
-             MDDBSValue yVals = c.up.getBS(ySomeUp),zVals = c.up.getBS(zSomeUp);
+             MDDBSValue yVals = c.up[ySomeUp],zVals = c.up[zSomeUp];
              for(auto yofs : yVals) {
-                auto i = yofs + minDom;
-                if (i == val) continue;
-                int zval = std::abs(val-i);
-                if (zval >= udom.first && zval <= udom.second && zVals.getBit(zval))
-                   return true;
+               const auto i = yofs + minDom;
+               if (i == val) continue;
+               const int zval = std::abs(val-i);
+               if (zval >= udom.first && zval <= udom.second && zVals.getBit(zval))
+                 return true;
              }    
              return false;
           }break;
           case 1: { // filter y variable
-             MDDBSValue xVals = p.down.getBS(xSome),zVals = c.up.getBS(zSomeUp);
+             MDDBSValue xVals = p.down[xSome],zVals = c.up[zSomeUp];
              for(auto xofs : xVals) {
-                auto i = xofs + minDom;
+                const auto i = xofs + minDom;
                 if (i == val) continue;
-                int zval = std::abs(i-val);
+                const int zval = std::abs(i-val);
                 if (zval >= udom.first && zval <= udom.second && zVals.getBit(zval))
                    return true;
              }    
              return false;
           }break;
           case 2: { // filter z variable
-             MDDBSValue xVals = p.down.getBS(xSome),yVals = p.down.getBS(ySome);
+             MDDBSValue xVals = p.down[xSome],yVals = p.down[ySome];
              for(const auto xofs : xVals) {
                 const auto i = xofs + minDom;
                 if (val==0) continue;
-                int yval1 = i-val,yval2 = i+val;
+                const int yval1 = i-val,yval2 = i+val;
                 if ((yval1 >= udom.first && yval1 <= udom.second && yVals.getBit(yval1)) ||
                     (yval2 >= udom.first && yval2 <= udom.second && yVals.getBit(yval2)))
                    return true;
@@ -261,17 +261,17 @@ namespace Factory {
        return true;
     });
       
-    mdd.addRelaxationDown(d,xSome,[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
-       out.getBS(xSome).setBinOR(l.getBS(xSome),r.getBS(xSome));
+    mdd.addRelaxationDown(d,xSome->getId(),[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
+       out[xSome].setBinOR(l[xSome],r[xSome]);
     });
-    mdd.addRelaxationDown(d,ySome,[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
-       out.getBS(ySome).setBinOR(l.getBS(ySome),r.getBS(ySome));
+    mdd.addRelaxationDown(d,ySome->getId(),[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
+       out[ySome].setBinOR(l[ySome],r[ySome]);
     });
     mdd.addRelaxationUp(d,ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)  noexcept     {
-       out.getBS(ySomeUp).setBinOR(l.getBS(ySomeUp),r.getBS(ySomeUp));
+       out[ySomeUp].setBinOR(l[ySomeUp],r[ySomeUp]);
     });
     mdd.addRelaxationUp(d,zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)  noexcept      {
-       out.getBS(zSomeUp).setBinOR(l.getBS(zSomeUp),r.getBS(zSomeUp));
+       out[zSomeUp].setBinOR(l[zSomeUp],r[zSomeUp]);
     });
     return d;
   }
@@ -299,8 +299,6 @@ std::set<typename Container::value_type> filter(const Container& c,const UP& pre
          r.insert(e);
    return r;
 }
-
-
 
 int main(int argc,char* argv[])
 {
@@ -425,7 +423,7 @@ int main(int argc,char* argv[])
    int firstSolNumFail = 0;
    SearchStatistics stat;
 
-   search.onSolution([&cnt,&firstSolTime,&firstSolNumFail,&stat,&xVars,&yVars]() {
+   search.onSolution([&]() {
       cnt++;
       std::cout << "\rNumber of solutions:" << cnt; 
       // std::cout << "x = " << xVars << "\n";

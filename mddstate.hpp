@@ -296,6 +296,8 @@ class MDDBSValue {
 public:
    MDDBSValue(char* buf,short nbw)
       : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw) {}
+   MDDBSValue(const MDDBSValue& v)
+      : _buf(v._buf),_nbw(v._nbw) {}
    MDDBSValue(MDDBSValue&& v) : _buf(v._buf),_nbw(v._nbw) { v._buf = nullptr;}
    short nbWords() const noexcept { return _nbw;}
    MDDBSValue& operator=(const MDDBSValue& v) noexcept {
@@ -412,6 +414,7 @@ class MDDSWin {
 public:
    MDDSWin(ET* buf,int nb) : _buf(buf),_nb(nb) {}
    MDDSWin(MDDSWin<ET>&& v) : _buf(v._buf),_nb(v._nb) {}
+   MDDSWin(const MDDSWin<short>& v) : _buf(v._buf),_nb(v._nb) {}
    int nbWords() const noexcept { return _nb;}
    MDDSWin<ET>& operator=(const MDDSWin<ET>& v) noexcept {
       for(int i=0;i < _nb;++i) _buf[i] = v._buf[i];
@@ -469,6 +472,7 @@ public:
       _rid = p._rid;
       return *this;
    }
+   const short getId() const { return _id;}
    enum RelaxWith relaxFun() const noexcept { return _rw;}
    unsigned short startOfs() const noexcept { return _ofs;}
    unsigned short endOfs() const noexcept   { return _ofs + _bsz;}
@@ -493,15 +497,15 @@ public:
    MDDBSValue getBS(char* buf) const noexcept                 { return MDDBSValue(buf + _ofs,_bsz >> 3);}
    template <class ET>
    MDDSWin<ET> getSW(char* buf) const noexcept                { return MDDSWin<ET>(reinterpret_cast<short*>(buf + _ofs),_bsz / sizeof(ET));}
-   virtual void set(char* buf,int v) noexcept                 {}
-   void setInt(char* buf,int v) noexcept                      { *reinterpret_cast<int*>(buf+_ofs) = v;}
-   void setByte(char* buf,char v) noexcept                    { buf[_ofs] = v;}
-   MDDBSValue setBS(char* buf,const MDDBSValue& v) noexcept {
+   virtual void set(char* buf,int v) const noexcept           {}
+   void setInt(char* buf,int v) const noexcept                { *reinterpret_cast<int*>(buf+_ofs) = v;}
+   void setByte(char* buf,char v) const noexcept              { buf[_ofs] = v;}
+   MDDBSValue setBS(char* buf,const MDDBSValue& v) const noexcept {
       MDDBSValue dest(buf + _ofs,_bsz >> 3);
       dest = v;
       return dest;
    }
-   virtual void setProp(char* buf,char* from) noexcept   {
+   virtual void setProp(char* buf,char* from) const noexcept {
       switch(_bsz) {
          case 1: buf[_ofs] = from[_ofs];break;
          case 2: *reinterpret_cast<short*>(buf+_ofs) = *reinterpret_cast<short*>(from+_ofs);break;
@@ -536,7 +540,7 @@ public:
       : MDDProperty(id,ofs,4,rw),_init(init),_max(max) {}
    void init(char* buf) const noexcept override      { *reinterpret_cast<int*>(buf+_ofs) = _init;}
    int get(char* buf) const noexcept override        { return *reinterpret_cast<int*>(buf+_ofs);}
-   void set(char* buf,int v) noexcept override       { *reinterpret_cast<int*>(buf+_ofs) = v;}
+   void set(char* buf,int v) const noexcept override       { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void stream(char* buf,std::ostream& os) const override { os << *reinterpret_cast<int*>(buf+_ofs);}
    void minWith(char* buf,char* other) const noexcept override {
       int* o = reinterpret_cast<int*>(buf+_ofs);
@@ -580,8 +584,8 @@ public:
          buf[_ofs] &= ~_bitmask;
    }
    int get(char* buf) const  noexcept override       { return (buf[_ofs] & _bitmask) == _bitmask;}
-   int getInt(char* buf) const  noexcept override       { return (buf[_ofs] & _bitmask) == _bitmask;}
-   void set(char* buf,int v) noexcept override {
+   int getInt(char* buf) const  noexcept override    { return (buf[_ofs] & _bitmask) == _bitmask;}
+   void set(char* buf,int v) const noexcept override {
       if (v)
          buf[_ofs] |= _bitmask;
       else
@@ -598,7 +602,7 @@ public:
    bool diff(char* buf,char* other) const noexcept  override {
       return (buf[_ofs] & _bitmask) != (other[_ofs] & _bitmask);
    }
-   void setProp(char* buf,char* from) noexcept  override {
+   void setProp(char* buf,char* from) const noexcept override {
       if ((from[_ofs] & _bitmask) == _bitmask)
          buf[_ofs] |= _bitmask;
       else
@@ -628,7 +632,7 @@ public:
    void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
    int get(char* buf) const  noexcept override       { return buf[_ofs];}
    int getInt(char* buf) const  noexcept override       { return buf[_ofs];}
-   void set(char* buf,int v) noexcept override       { buf[_ofs] = (char)v;}
+   void set(char* buf,int v) const noexcept override       { buf[_ofs] = (char)v;}
    void stream(char* buf,std::ostream& os) const override { int v = buf[_ofs];os << v;}
    void minWith(char* buf,char* other) const noexcept override {
       buf[_ofs] = std::min(buf[_ofs],other[_ofs]);
@@ -664,6 +668,7 @@ class MDDPBitSequence : public MDDProperty {
       return (_ofs << 3) + storageSize();
    }
  public:
+   typedef handle_ptr<MDDPBitSequence> Ptr;
    MDDPBitSequence(short id,unsigned short ofs,int nbbits,unsigned char init,enum RelaxWith rw) // init = 0 | 1
       : MDDProperty(id,ofs,8 * ((nbbits % 64) ? nbbits/64 + 1 : nbbits/64),rw),_nbBits(nbbits),_init(init)
    {}   
@@ -733,6 +738,7 @@ class MDDPSWindow : public MDDProperty {
       return bitOffset + storageSize();
    }
 public:
+   typedef handle_ptr<MDDPSWindow<ET>> Ptr;
    MDDPSWindow(short id,unsigned short ofs,int len,ET eInit,ET fInit,enum RelaxWith rw)
       : MDDProperty(id,ofs,len * sizeof(ET),rw),_eltInit(eInit),_fstInit(fInit),_len(len) {}
    void init(char* buf) const noexcept override {
@@ -830,15 +836,15 @@ public:
    unsigned short startOfsUp(int p) const noexcept { return _attrsUp[p]->startOfs();}
    unsigned short endOfsDown(int p) const noexcept { return _attrsDown[p]->endOfs();}
    unsigned short endOfsUp(int p) const noexcept { return _attrsUp[p]->endOfs();}
-   virtual int addDownState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addUpState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addCombinedState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
-   virtual int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int constraintPriority = 0);
+   virtual MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External,int cPriority=0);
+   virtual MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPBitSequence::Ptr upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPInt::Ptr upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority=0);
+   virtual MDDPBitSequence::Ptr combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External,int cPriority=0);
+   virtual MDDPInt::Ptr combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0);   
+   virtual MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPSWindow<short>::Ptr upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
    std::vector<int> addDownStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addUpStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
    std::vector<int> addCombinedStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
@@ -882,14 +888,47 @@ inline std::ostream& operator<<(std::ostream& os,MDDCstrDesc& p)
    p.print(os);return os;
 }
 
-class MDDPropValue {
-   MDDProperty::Ptr _p;
-   char*          _mem;
+template <typename Prop> class MDDPropValue {};
+
+template <> class MDDPropValue<MDDPBitSequence> {
+   MDDBSValue         _lhs;
 public:
-   MDDPropValue(MDDProperty::Ptr p,char* mem) : _p(p),_mem(mem) {}
-   MDDPropValue& operator=(int v) noexcept               { _p->setInt(_mem,v);return *this;}
-   MDDPropValue& operator=(const MDDBSValue& v) noexcept { _p->setBS(_mem,v);return *this;}
+   MDDPropValue<MDDPBitSequence>(MDDPBitSequence::Ptr p,char* mem) : _lhs(p->getBS(mem)) {}
+   MDDPropValue<MDDPBitSequence>& operator=(const MDDPropValue<MDDPBitSequence>& v) noexcept {
+      _lhs = v._lhs; // this invokes the assignment operator on MDDBSValue that copies the bits to the destination
+      return *this;
+   }
+   operator MDDBSValue() const { return _lhs;} // this invokes the copy constructor (only copies the shell)
+   void set(int k)             { _lhs.set(k);}
+   constexpr bool getBit(const int ofs) const noexcept { return _lhs.getBit(ofs);}
+   constexpr int cardinality() const noexcept { return _lhs.cardinality();}
+   inline void setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept  { _lhs.setBinOR(a,b);}
+   inline void setBinAND(const MDDBSValue& a,const MDDBSValue& b) noexcept { _lhs.setBinAND(a,b);}
+};
+
+template <> class MDDPropValue<MDDPInt> {
+   MDDPInt::Ptr  _p;
+   char*       _mem;
+public:
+   MDDPropValue<MDDPInt>(MDDPInt::Ptr p,char* mem): _p(p),_mem(mem) {}
+   MDDPropValue<MDDPInt>& operator=(const MDDPropValue<MDDPInt>& v) noexcept { _p->setInt(_mem,v);return *this;}
+   MDDPropValue<MDDPInt>& operator=(const int& v) noexcept { _p->setInt(_mem,v);return *this;}
    operator int() const { return _p->getInt(_mem);}
+};
+
+template <> class MDDPropValue<MDDPSWindow<short>> {
+   MDDSWin<short>         _lhs;
+public:
+   MDDPropValue<MDDPSWindow<short>>(MDDPSWindow<short>::Ptr p,char* mem)
+      : _lhs(p->getSW<short>(mem)) {}
+   MDDPropValue<MDDPSWindow<short>>& operator=(const MDDPropValue<MDDPSWindow<short>>& v) noexcept {
+      _lhs = v._lhs;
+      return *this;
+   }
+   operator MDDSWin<short>() const { return _lhs;}
+   short get(int ofs) const noexcept { return _lhs.get(ofs);}
+   short last() const noexcept  { return _lhs.last();}
+   short first() const noexcept { return _lhs.first();}
 };
 
 class MDDState {  // An actual state of an MDDNode.
@@ -981,7 +1020,7 @@ public:
    }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize(_dir);}
-   MDDProperty::Ptr propAt(int i) const noexcept {
+   const MDDProperty::Ptr propAt(int i) const noexcept {
       switch (_dir) {
          case Down: return _spec->_attrsDown[i]; break;
          case Up: return _spec->_attrsUp[i]; break;
@@ -998,21 +1037,26 @@ public:
       }
    }
    void init(int i) const  noexcept    { propAt(i)->init(_mem); }
-   int operator[](int i) const noexcept   { return propAt(i)->getInt(_mem); } // to _read_ a state property (fast)
-   //MDDPropValue operator[](int i) noexcept             { return MDDPropValue(propAt(i),_mem);}
-   //const MDDPropValue operator[](int i) const noexcept { return MDDPropValue(propAt(i),_mem);}
-   int at(int i) const noexcept { return propAt(i)->get(_mem); }
+   auto operator[](MDDPBitSequence::Ptr i) noexcept                { return MDDPropValue<MDDPBitSequence>(i,_mem);}
+   const auto operator[](MDDPBitSequence::Ptr i) const noexcept    { return MDDPropValue<MDDPBitSequence>(i,_mem);}
+   auto operator[](MDDPInt::Ptr i) noexcept                        { return MDDPropValue<MDDPInt>(i,_mem);}
+   const auto operator[](MDDPInt::Ptr i) const noexcept            { return MDDPropValue<MDDPInt>(i,_mem);}
+   auto operator[](MDDPSWindow<short>::Ptr i) noexcept             { return MDDPropValue<MDDPSWindow<short>>(i,_mem);}
+   const auto operator[](MDDPSWindow<short>::Ptr i) const noexcept { return MDDPropValue<MDDPSWindow<short>>(i,_mem);}
    int byte(int i) const noexcept { return propAt(i)->getByte(_mem); }
-   MDDBSValue getBS(int i) const noexcept { return propAt(i)->getBS(_mem); }
+   int at(int i) const noexcept { return propAt(i)->get(_mem); }
+   int operator[](int i) const noexcept   { return propAt(i)->getInt(_mem); } // to _read_ a state property (fast)
+   //MDDBSValue getBS(int i) const noexcept { return propAt(i)->getBS(_mem); }
    MDDSWin<short> getSW(int i) const noexcept { return propAt(i)->getSW<short>(_mem); }
    void set(int i,int val) noexcept { propAt(i)->set(_mem,val); } // to set a state property (slow)
    void setInt(int i,int val) noexcept { propAt(i)->setInt(_mem,val); } // to set a state property (fast)
-   void setByte(int i,int val) noexcept { propAt(i)->setByte(_mem,val); } // to set a state property (fast)
-   MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return propAt(i)->setBS(_mem,val); } // (fast)
+   //void setByte(int i,int val) noexcept { propAt(i)->setByte(_mem,val); } // to set a state property (fast)
+   //MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return propAt(i)->setBS(_mem,val); } // (fast)
+   
    void setProp(int i,const MDDState& from) noexcept { propAt(i)->setProp(_mem,from._mem); } // (fast)
    int byteSize(int i) const noexcept { return propAt(i)->size(); }
    void copyZone(const Zone& z,const MDDState& in) noexcept { z.copy(_mem,in._mem);}
-   void clear() noexcept                { _flags._relax = false;;_flags._hashed=false;}
+   void clear() noexcept                { _flags._relax = false;_flags._hashed=false;}
    void zero() noexcept                 { memset(_mem, 0, _spec->layoutSize(_dir)); }
    bool isRelaxed() const noexcept      { return _flags._relax;}
    void relax(bool r = true) noexcept   { _flags._relax = r;}
@@ -1112,42 +1156,53 @@ public:
       append(v);
       return constraints.emplace_back(new MDDCstrDesc(v,n));
    }
-   int addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0) override;
-   int addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0) override;
-   int addCombinedState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0) override;
+   MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
+   MDDPBitSequence::Ptr upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
+   MDDPBitSequence::Ptr combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
+   MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
+   MDDPInt::Ptr upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
+   MDDPInt::Ptr combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
+   MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
+   MDDPSWindow<short>::Ptr upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
+   MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
+
+   
+   int addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
+   int addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
+   int addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
+   int addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
+   int addCombinedState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
+   int addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
+   int addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0);
+   int addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0);
+   int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External,int cPriority = 0);
+
    int addDownState(MDDCstrDesc::Ptr d,int init,size_t max,enum RelaxWith rw=External, int cPriority = 0) {
       return addDownState(d,init,(int)max,rw,cPriority);
    }
-   int addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
-   int addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
-   int addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
-   int addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0) override;
-   int addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0) override;
-   int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External,int cPriority = 0) override;
+
    void nodeExist(NodeFun a);
    void arcExist(const MDDCstrDesc::Ptr d,ArcFun a);
-   void updateNode(MDDCstrDesc::Ptr cd,int,std::set<int> spDown,std::set<int> spUp,UpdateFun update);
+   void updateNode(MDDCstrDesc::Ptr cd,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spUp,UpdateFun update);
    void transitionDown(MDDCstrDesc::Ptr,int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
+   void transitionDown2(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans);
    void transitionUp(MDDCstrDesc::Ptr,int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
+   void transitionUp2(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans);
    template <typename LR> void addRelaxationDown(MDDCstrDesc::Ptr cd,int p,LR r) {
       _xDownRelax.insert(p);
       int rid = (int)_downRelaxation.size();
-      //for(auto& cd : constraints)
       if (cd->ownsDownProperty(p)) {
          cd->registerDownRelaxation(rid);
          _attrsDown[p]->setRelax(rid);
-         //break;
       }  
       _downRelaxation.emplace_back(std::move(r));
    }
    template <typename LR> void addRelaxationUp(MDDCstrDesc::Ptr cd,int p,LR r) {
       _xUpRelax.insert(p);
       int rid = (int)_upRelaxation.size();
-      //for(auto& cd : constraints)
       if (cd->ownsUpProperty(p)) {
          cd->registerUpRelaxation(rid);
          _attrsUp[p]->setRelax(rid);
-         //break;
       }  
       _upRelaxation.emplace_back(std::move(r));
    }
@@ -1281,9 +1336,9 @@ template <typename Container> std::pair<int,int> domRange(const Container& vars)
    std::pair<int,int> udom;
    udom.first = INT_MAX;
    udom.second = -INT_MAX;
-   for(auto& x : vars){
-      udom.first = (udom.first > x->min()) ? x->min() : udom.first;
-      udom.second = (udom.second < x->max()) ? x->max() : udom.second;
+   for(const auto& x : vars){
+      udom.first  = std::min(udom.first,x->min());
+      udom.second = std::max(udom.second,x->max());
    }
    return udom;
 }
