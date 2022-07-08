@@ -43,7 +43,7 @@ namespace Factory {
          return true;
       });
 
-      mdd.transitionDown2(d,downWeights,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var, const auto& val) {
+      mdd.transitionDown(d,downWeights,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var, const auto& val) {
          bool relaxed = val.size()==2;
          int k = parent.down[len];
          MDDSWin<short> outWeights = out[downWeights];
@@ -66,7 +66,7 @@ namespace Factory {
             }
          }
       });
-      mdd.transitionDown2(d,maxDownValue,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var,const auto& val) {
+      mdd.transitionDown(d,maxDownValue,{downWeights,maxDownValue},{},[=] (auto& out,const auto& parent,const auto& var,const auto& val) {
          bool relaxed = val.size()==2;
          int k = parent.down[len];
          MDDSWin<short> parentWeights = parent.down[downWeights];
@@ -101,12 +101,12 @@ namespace Factory {
             out[maxDownValue] =  parent.down[maxDownValue] + std::max(newValueForS, newValueForT);
          }
       });
-      mdd.transitionDown2(d,len,{len},{},[len] (auto& out,const auto& parent,const auto&,const auto&) {
+      mdd.transitionDown(d,len,{len},{},[len] (auto& out,const auto& parent,const auto&,const auto&) {
          out[len] = parent.down[len] + 1;
       });
 
-      mdd.addRelaxationDown(d,downWeights->getId(),[](auto& out,const auto& l,const auto& r) noexcept {});
-      mdd.addRelaxationDown(d,maxDownValue->getId(),[=](auto& out,const auto& l,const auto& r) noexcept    {
+      mdd.addRelaxationDown(d,downWeights,[](auto& out,const auto& l,const auto& r) noexcept {});
+      mdd.addRelaxationDown(d,maxDownValue,[=](auto& out,const auto& l,const auto& r) noexcept    {
          MDDSWin<short> outWeights = out[downWeights];
          MDDSWin<short> lWeights = l[downWeights];
          MDDSWin<short> rWeights = r[downWeights];

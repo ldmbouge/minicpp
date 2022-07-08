@@ -39,12 +39,12 @@ namespace Factory {
       });
 
       for(int i=minFDom; i <= minLDom;++i)
-         spec.transitionDown2(desc,ps[i],{ps[i]},{},[=](auto& out,const auto& parent,auto x, const auto& val) {
+         spec.transitionDown(desc,ps[i],{ps[i]},{},[=](auto& out,const auto& parent,auto x, const auto& val) {
             out[ps.at(i)] = parent.down[ps.at(i)] + (val.isSingleton() ? (val.singleton() == i) : 0);
          });
 
       for(int i=maxFDom; i <= maxLDom;++i)
-         spec.transitionDown2(desc,ps[i],{ps[i]},{},[=](auto& out,const auto& parent,auto x, const auto& val) {
+         spec.transitionDown(desc,ps[i],{ps[i]},{},[=](auto& out,const auto& parent,auto x, const auto& val) {
             out[ps.at(i)] = parent.down[ps.at(i)] + (val.isSingleton() ? (val.singleton() == i - dz) : 0);
          });
 
@@ -97,22 +97,22 @@ namespace Factory {
       });
 
       for(int i=minFDom;i <= minLDom;++i)
-         spec.transitionDown2(desc,dps[i],{dps[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val) {
+         spec.transitionDown(desc,dps[i],{dps[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val) {
             out[dps.at(i)] = parent.down[dps.at(i)] + (val.isSingleton() && (val.singleton() == i)); 
          });
       
       for(int i=maxFDom;i <= maxLDom;++i) 
-         spec.transitionDown2(desc,dps[i],{dps[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val) {
+         spec.transitionDown(desc,dps[i],{dps[i]},{},[=](auto& out,const auto& parent,auto x,const auto& val) {
             out[dps.at(i)] = parent.down[dps.at(i)] + val.contains(i - dz);
          });
       
       for(int i=minFDom;i <= minLDom;++i)
-         spec.transitionUp2(desc,ups[i],{ups[i]},{},[=](auto& out,const auto& child,auto x,const auto& val) {
+         spec.transitionUp(desc,ups[i],{ups[i]},{},[=](auto& out,const auto& child,auto x,const auto& val) {
             out[ups.at(i)] = child.up[ups.at(i)] + (val.isSingleton() && (val.singleton() == i));
          });
       
       for(int i=maxFDom;i <= maxLDom;++i) 
-         spec.transitionUp2(desc,ups[i],{ups[i]},{},[=](auto& out,const auto& child,auto x,const auto& val) {
+         spec.transitionUp(desc,ups[i],{ups[i]},{},[=](auto& out,const auto& child,auto x,const auto& val) {
             out[ups.at(i)] = child.up[ups.at(i)] + val.contains(i - dz);
          });
       

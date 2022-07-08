@@ -218,8 +218,8 @@ typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
 typedef std::function<double(const MDDState&, void*, int)> CandidateFun;
 typedef std::function<int(const MDDState&,const MDDState&)> EquivalenceValueFun;
-typedef std::tuple<std::set<int>,std::set<int>,lambdaTrans> TransDesc;
-typedef std::map<int,TransDesc> lambdaMap;
+//typedef std::tuple<std::set<int>,std::set<int>,lambdaTrans> TransDesc;
+//typedef std::map<int,TransDesc> lambdaMap;
 class MDDStateSpec;
 
 class Zone {
@@ -1148,6 +1148,8 @@ public:
 };
 
 class MDDSpec: public MDDStateSpec {
+   void oldTransitionDown(MDDCstrDesc::Ptr,int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
+   void oldTransitionUp(MDDCstrDesc::Ptr,int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
 public:
    MDDSpec();
    // End-user API to define an ADD
@@ -1167,48 +1169,46 @@ public:
    MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
 
    
-   int addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
-   int addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
-   int addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
-   int addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
-   int addCombinedState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
-   int addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
-   int addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0);
-   int addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0);
-   int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External,int cPriority = 0);
+   // int addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
+   // int addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
+   // int addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
+   // int addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
+   // int addCombinedState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
+   // int addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
+   // int addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0);
+   // int addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0);
+   // int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External,int cPriority = 0);
 
-   int addDownState(MDDCstrDesc::Ptr d,int init,size_t max,enum RelaxWith rw=External, int cPriority = 0) {
-      return addDownState(d,init,(int)max,rw,cPriority);
-   }
+   // int addDownState(MDDCstrDesc::Ptr d,int init,size_t max,enum RelaxWith rw=External, int cPriority = 0) {
+   //    return addDownState(d,init,(int)max,rw,cPriority);
+   // }
 
    void nodeExist(NodeFun a);
    void arcExist(const MDDCstrDesc::Ptr d,ArcFun a);
    void updateNode(MDDCstrDesc::Ptr cd,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spUp,UpdateFun update);
-   void transitionDown(MDDCstrDesc::Ptr,int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
-   void transitionDown2(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans);
-   void transitionUp(MDDCstrDesc::Ptr,int,std::set<int> spDown,std::set<int> spCombined,lambdaTrans);
-   void transitionUp2(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans);
-   template <typename LR> void addRelaxationDown(MDDCstrDesc::Ptr cd,int p,LR r) {
-      _xDownRelax.insert(p);
+   void transitionDown(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans);
+   void transitionUp(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans);
+   template <typename LR> void addRelaxationDown(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,LR r) {
+      _xDownRelax.insert(p->getId());
       int rid = (int)_downRelaxation.size();
-      if (cd->ownsDownProperty(p)) {
+      if (cd->ownsDownProperty(p->getId())) {
          cd->registerDownRelaxation(rid);
-         _attrsDown[p]->setRelax(rid);
+         _attrsDown[p->getId()]->setRelax(rid);
       }  
       _downRelaxation.emplace_back(std::move(r));
    }
-   template <typename LR> void addRelaxationUp(MDDCstrDesc::Ptr cd,int p,LR r) {
-      _xUpRelax.insert(p);
+   template <typename LR> void addRelaxationUp(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,LR r) {
+      _xUpRelax.insert(p->getId());
       int rid = (int)_upRelaxation.size();
-      if (cd->ownsUpProperty(p)) {
+      if (cd->ownsUpProperty(p->getId())) {
          cd->registerUpRelaxation(rid);
-         _attrsUp[p]->setRelax(rid);
+         _attrsUp[p->getId()]->setRelax(rid);
       }  
       _upRelaxation.emplace_back(std::move(r));
    }
    void addSimilarity(int,lambdaSim);
-   void transitionDown(MDDCstrDesc::Ptr cd,const lambdaMap& map);
-   void transitionUp(MDDCstrDesc::Ptr cd,const lambdaMap& map);
+   // void transitionDown(MDDCstrDesc::Ptr cd,const lambdaMap& map);
+   // void transitionUp(MDDCstrDesc::Ptr cd,const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
    void splitOnLargest(SplitFun onSplit, int cPriority = 0);

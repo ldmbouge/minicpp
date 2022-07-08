@@ -183,7 +183,7 @@ namespace Factory {
     const auto zSomeUp = mdd.upBSState(d,udom.second - udom.first + 1,0,MinFun);
     const auto NUp     = mdd.upIntState(d,0,INT_MAX,MinFun);        // layer index
     
-    mdd.transitionDown2(d,xSome,{xSome,N},{},[=](auto& out,const auto& p,auto,const auto& val)  noexcept {
+    mdd.transitionDown(d,xSome,{xSome,N},{},[=](auto& out,const auto& p,auto,const auto& val)  noexcept {
       out[xSome] = p.down[xSome]; // another syntax      
       if (p.down[N]==0) {
         auto sv = out[xSome];
@@ -191,7 +191,7 @@ namespace Factory {
           sv.set(v - minDom);
       }
     });
-    mdd.transitionDown2(d,ySome,{ySome,N},{},[=](auto& out,const auto& p,auto,const auto& val)  noexcept {
+    mdd.transitionDown(d,ySome,{ySome,N},{},[=](auto& out,const auto& p,auto,const auto& val)  noexcept {
       out[ySome] = p.down[ySome];
       if (p.down[N]==1) {
         auto sv = out[ySome];
@@ -200,10 +200,10 @@ namespace Factory {
       }
     });
 
-    mdd.transitionDown2(d,N,{N},{},[N](auto& out,const auto& p,auto,const auto&) noexcept     { out[N]   = p.down[N]+1;});
-    mdd.transitionUp2(d,NUp,{NUp},{},[NUp](auto& out,const auto& c,auto,const auto&) noexcept { out[NUp] = c.up[NUp]+1;});
+    mdd.transitionDown(d,N,{N},{},[N](auto& out,const auto& p,auto,const auto&) noexcept     { out[N]   = p.down[N]+1;});
+    mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& c,auto,const auto&) noexcept { out[NUp] = c.up[NUp]+1;});
 
-    mdd.transitionUp2(d,ySomeUp,{ySomeUp,NUp},{},[=](auto& out,const auto& c,auto, const auto& val) noexcept {
+    mdd.transitionUp(d,ySomeUp,{ySomeUp,NUp},{},[=](auto& out,const auto& c,auto, const auto& val) noexcept {
       out[ySomeUp] = c.up[ySomeUp];
       if (c.up[NUp]==1) {
         auto sv(out[ySomeUp]);
@@ -211,7 +211,7 @@ namespace Factory {
           sv.set(v - minDom);                                 
       }
     });
-    mdd.transitionUp2(d,zSomeUp,{zSomeUp,NUp},{},[=](auto& out,const auto& c,auto, const auto& val) noexcept  {
+    mdd.transitionUp(d,zSomeUp,{zSomeUp,NUp},{},[=](auto& out,const auto& c,auto, const auto& val) noexcept  {
        out[zSomeUp] = c.up[zSomeUp];
        if (c.up[NUp]==0) {
          auto sv = out[zSomeUp];
@@ -261,10 +261,10 @@ namespace Factory {
        return true;
     });
       
-    mdd.addRelaxationDown(d,xSome->getId(),[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
+    mdd.addRelaxationDown(d,xSome,[xSome](auto& out,const auto& l,const auto& r)  noexcept     {
        out[xSome].setBinOR(l[xSome],r[xSome]);
     });
-    mdd.addRelaxationDown(d,ySome->getId(),[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
+    mdd.addRelaxationDown(d,ySome,[ySome](auto& out,const auto& l,const auto& r)  noexcept     {
        out[ySome].setBinOR(l[ySome],r[ySome]);
     });
     mdd.addRelaxationUp(d,ySomeUp,[ySomeUp](auto& out,const auto& l,const auto& r)  noexcept     {

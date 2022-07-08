@@ -34,42 +34,42 @@ namespace Factory {
       const auto allu  = mdd.upBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
       const auto someu = mdd.upBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
 
-      mdd.transitionDown2(d,all,{all},{},[minDom,all](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionDown(d,all,{all},{},[minDom,all](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[all] = in.down[all];
          if (val.size()==1)
             out[all].set(val.singleton() - minDom);
       });
-      mdd.transitionDown2(d,some,{some},{},[minDom,some](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionDown(d,some,{some},{},[minDom,some](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[some] = in.down[some];
          MDDBSValue sv(out[some]);
          for(auto v : val)
             sv.set(v - minDom);
       });
-      mdd.transitionDown2(d,len,{len},{},[len](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[len] = in.down[len] + 1;
       });
-      mdd.transitionUp2(d,allu,{allu},{},[minDom,allu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionUp(d,allu,{allu},{},[minDom,allu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[allu] = in.up[allu];
          if (val.size()==1)
             out[allu].set(val.singleton() - minDom);
       });
-      mdd.transitionUp2(d,someu,{someu},{},[minDom,someu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionUp(d,someu,{someu},{},[minDom,someu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[someu] = in.up[someu];
          MDDBSValue sv(out[someu]);
          for(auto v : val)
             sv.set(v - minDom);
       });
 
-      mdd.addRelaxationDown(d,all->getId(),[all](auto& out,const auto& l,const auto& r) noexcept    {
+      mdd.addRelaxationDown(d,all,[all](auto& out,const auto& l,const auto& r) noexcept    {
          out[all].setBinAND(l[all],r[all]);
       });
-      mdd.addRelaxationDown(d,some->getId(),[some](auto& out,const auto& l,const auto& r) noexcept  {
+      mdd.addRelaxationDown(d,some,[some](auto& out,const auto& l,const auto& r) noexcept  {
          out[some].setBinOR(l[some],r[some]);
       });
-      mdd.addRelaxationUp(d,allu->getId(),[allu](auto& out,const auto& l,const auto& r)  noexcept   {
+      mdd.addRelaxationUp(d,allu,[allu](auto& out,const auto& l,const auto& r)  noexcept   {
          out[allu].setBinAND(l[allu],r[allu]);
       });
-      mdd.addRelaxationUp(d,someu->getId(),[someu](auto& out,const auto& l,const auto& r)  noexcept {
+      mdd.addRelaxationUp(d,someu,[someu](auto& out,const auto& l,const auto& r)  noexcept {
          out[someu].setBinOR(l[someu],r[someu]);
       });
 
@@ -109,39 +109,39 @@ namespace Factory {
       const auto someu = mdd.upBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
       const auto numInSomeUp = mdd.upIntState(d,0,vars.size(),External,opts.cstrP);
 
-      mdd.transitionDown2(d,all,{all},{},[minDom,all](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionDown(d,all,{all},{},[minDom,all](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[all] = in.down[all];
          if (val.size()==1)
             out[all].set(val.singleton() - minDom);
       });
-      mdd.transitionDown2(d,some,{some},{},[minDom,some](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionDown(d,some,{some},{},[minDom,some](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[some] = in.down[some];
          MDDBSValue sv(out[some]);
          for(auto v : val)
             sv.set(v - minDom);
       });
-      mdd.transitionDown2(d,numInSome,{numInSome},{},[minDom,numInSome,some](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionDown(d,numInSome,{numInSome},{},[minDom,numInSome,some](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          int num = in.down[numInSome];
          MDDBSValue sv(in.down[some]);
          for(auto v : val)
             if (!sv.getBit(v - minDom)) num++;
          out[numInSome] = num;
       });
-      mdd.transitionDown2(d,len,{len},{},[len](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[len] = in.down[len] + 1;
       });
-      mdd.transitionUp2(d,allu,{allu},{},[minDom,allu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionUp(d,allu,{allu},{},[minDom,allu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[allu] = in.up[allu];
          if (val.size()==1)
             out[allu].set(val.singleton() - minDom);
       });
-      mdd.transitionUp2(d,someu,{someu},{},[minDom,someu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionUp(d,someu,{someu},{},[minDom,someu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          out[someu] = in.up[someu];
          MDDBSValue sv(out[someu]);
          for(auto v : val)
             sv.set(v - minDom);
       });
-      mdd.transitionUp2(d,numInSomeUp,{numInSomeUp},{},[minDom,numInSomeUp,someu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+      mdd.transitionUp(d,numInSomeUp,{numInSomeUp},{},[minDom,numInSomeUp,someu](auto& out,const auto& in,const auto&,const auto& val) noexcept {
          int num = in.up[numInSomeUp];
          MDDBSValue sv(in.up[someu]);
          for(auto v : val)
@@ -149,22 +149,22 @@ namespace Factory {
          out[numInSomeUp] = num;
       });
 
-      mdd.addRelaxationDown(d,all->getId(),[all](auto& out,const auto& l,const auto& r) noexcept    {
+      mdd.addRelaxationDown(d,all,[all](auto& out,const auto& l,const auto& r) noexcept    {
          out[all].setBinAND(l[all],r[all]);
       });
-      mdd.addRelaxationDown(d,some->getId(),[some,numInSome](auto& out,const auto& l,const auto& r) noexcept    {
+      mdd.addRelaxationDown(d,some,[some,numInSome](auto& out,const auto& l,const auto& r) noexcept    {
          out[some].setBinOR(l[some],r[some]);
          out[numInSome] = out[some].cardinality();
       });
-      mdd.addRelaxationDown(d,numInSome->getId(),[](auto& out,const auto& l,const auto& r)  noexcept   {});
-      mdd.addRelaxationUp(d,allu->getId(),[allu](auto& out,const auto& l,const auto& r)  noexcept   {
+      mdd.addRelaxationDown(d,numInSome,[](auto& out,const auto& l,const auto& r)  noexcept   {});
+      mdd.addRelaxationUp(d,allu,[allu](auto& out,const auto& l,const auto& r)  noexcept   {
          out[allu].setBinAND(l[allu],r[allu]);
       });
-      mdd.addRelaxationUp(d,someu->getId(),[someu,numInSomeUp](auto& out,const auto& l,const auto& r)  noexcept   {
+      mdd.addRelaxationUp(d,someu,[someu,numInSomeUp](auto& out,const auto& l,const auto& r)  noexcept   {
          out[someu].setBinOR(l[someu],r[someu]);
          out[numInSomeUp] = out[someu].cardinality();
       });
-      mdd.addRelaxationUp(d,numInSomeUp->getId(),[](auto& out,const auto& l,const auto& r)  noexcept   {});
+      mdd.addRelaxationUp(d,numInSomeUp,[](auto& out,const auto& l,const auto& r)  noexcept   {});
 
       mdd.arcExist(d,[=](const auto& parent,const auto& child,const auto& var,const auto& val) noexcept {
          MDDBSValue sbs = parent.down[some];
