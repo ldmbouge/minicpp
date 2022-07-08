@@ -80,36 +80,24 @@ namespace Factory {
       });
 
       mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len](auto& out,const auto& parent,const auto&, const auto& val) {
-         int delta = std::transform_reduce(val.begin(),val.end(),
-                                           std::numeric_limits<int>::max(),
-                                           [](int a,int b) constexpr { return std::min(a,b);},
-                                           [coef = array[parent.down[len]]](int v) constexpr { return coef*v;});
-         out[minW] = parent.down[minW] + delta;
+         const auto coef = array[parent.down[len]];
+         out[minW] = parent.down[minW] + coef * val.min();
       });
       mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& parent,const auto&, const auto& val) {
-         int delta = std::numeric_limits<int>::min();
          const auto coef = array[parent.down[len]];
-         for(int v : val)
-            delta = std::max(delta,coef*v);
-         out[maxW] = parent.down[maxW] + delta;
+         out[maxW] = parent.down[maxW] + coef * val.max();
       });
 
       mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,array,lenUp](auto& out,const auto& child,const auto&, const auto& val) {
          if (child.up[lenUp] < nbVars) {
-            int delta = std::numeric_limits<int>::max();
             const auto coef = array[nbVars - child.up[lenUp]-1];
-            for(int v : val)
-               delta = std::min(delta,coef*v);
-            out[minWup] = child.up[minWup] + delta;
+            out[minWup] = child.up[minWup] + coef * val.min();
          }
       });
       mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,array,lenUp](auto& out,const auto& child,const auto&, const auto& val) {
          if (child.up[lenUp] < nbVars) {
-            int delta = std::numeric_limits<int>::min();
             const auto coef = array[nbVars - child.up[lenUp]-1];
-            for(int v : val)
-               delta = std::max(delta,coef*v);
-            out[maxWup] = child.up[maxWup] + delta;
+            out[maxWup] = child.up[maxWup] + coef * val.max();
          }
       });
       mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto&, const auto&) {

@@ -26,7 +26,7 @@ namespace Factory {
       auto udom = domRange(vars);
       const int dz = udom.second - udom.first + 1; // size of union of all domains
       const int minFDom = udom.first, minLDom = udom.second;
-      const int maxFDom = udom.second+1,maxLDom = udom.second + dz;
+      const int maxFDom = dz + udom.first,maxLDom = dz + udom.second;
       ValueMap<int> values(udom.first, udom.second,0,ub);
       auto desc = spec.makeConstraintDescriptor(vars,"gccMDD");
 
