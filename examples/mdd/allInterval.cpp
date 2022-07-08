@@ -381,13 +381,13 @@ int main(int argc,char* argv[])
       mdd->post(Factory::absDiffMDD(mdd,{vars[0],vars[1],vars[2]}));
       for (int i=1; i<N-1; i++) 
          mdd->post(Factory::absDiffMDD(mdd,{vars[2*i-1],vars[2*i+1],vars[2*i+2]}));      
-      mdd->post(Factory::allDiffMDD(mdd,xVars));
-      mdd->post(Factory::allDiffMDD(mdd,yVars));
+      mdd->post(allDiffMDD(xVars));
+      mdd->post(allDiffMDD(yVars));
       cp->post(mdd);
       //mdd->saveGraph();
       cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;
-      cp->post(Factory::allDifferentAC(xVars));
-      cp->post(Factory::allDifferentAC(yVars));
+      cp->post(allDifferentAC(xVars));
+      cp->post(allDifferentAC(yVars));
    }
    if ((mode < 0) || (mode > 3)) {
      cout << "Exit: specify a mode in {0,1,2,3}:" << endl;

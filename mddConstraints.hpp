@@ -36,6 +36,26 @@ namespace Factory {
    
    MDDCstrDesc::Ptr allDiffMDD(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts = {.cstrP = 0});
    MDDCstrDesc::Ptr allDiffMDD2(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts = {.eqThreshold = 4});
+
+   struct ADStub {
+      const Factory::Veci& _vars;
+      MDDOpts              _opts;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return allDiffMDD(m,_vars,_opts);}
+   };
+   inline ADStub allDiffMDD(const Factory::Veci& vars,MDDOpts opts = {.cstrP = 0})
+   {
+      return ADStub {vars,opts};
+   }
+   struct ADStub2 {
+      const Factory::Veci& _vars;
+      MDDOpts              _opts;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return allDiffMDD2(m,_vars,_opts);}
+   };
+   inline ADStub2 allDiffMDD2(const Factory::Veci& vars,MDDOpts opts = {.eqThreshold = 4})
+   {
+      return ADStub2 {vars,opts};
+   }
+
    
    MDDCstrDesc::Ptr seqMDD(MDD::Ptr m,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
    MDDCstrDesc::Ptr seqMDD2(MDD::Ptr m,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
