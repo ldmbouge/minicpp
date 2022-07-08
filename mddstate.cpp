@@ -276,51 +276,6 @@ MDDPSWindow<short>::Ptr MDDStateSpec::combinedSWState(MDDCstrDesc::Ptr d,int len
 }
 
 // --------------------------------------------------------------------------------
-
-std::vector<int> MDDStateSpec::addDownStates(MDDCstrDesc::Ptr d,int from, int to,int max, std::function<int(int)> clo)
-{
-   std::vector<int> res;
-   for(int i = from; i <= to; i++)
-      res.push_back(downIntState(d,clo(i),max)->getId());
-   return res;
-}
-std::vector<int> MDDStateSpec::addUpStates(MDDCstrDesc::Ptr d,int from, int to,int max, std::function<int(int)> clo)
-{
-   std::vector<int> res;
-   for(int i = from; i <= to; i++)
-      res.push_back(upIntState(d,clo(i),max)->getId());
-   return res;
-}
-std::vector<int> MDDStateSpec::addCombinedStates(MDDCstrDesc::Ptr d,int from, int to,int max, std::function<int(int)> clo)
-{
-   std::vector<int> res;
-   for(int i = from; i <= to; i++)
-      res.push_back(combinedIntState(d,clo(i),max)->getId());
-   return res;
-}
-std::vector<int> MDDStateSpec::addDownStates(MDDCstrDesc::Ptr d,int max, std::initializer_list<int> inputs)
-{
-   std::vector<int> res;
-   for(auto& v : inputs)
-      res.push_back(downIntState(d,v,max)->getId());
-   return res;
-}
-std::vector<int> MDDStateSpec::addUpStates(MDDCstrDesc::Ptr d,int max, std::initializer_list<int> inputs)
-{
-   std::vector<int> res;
-   for(auto& v : inputs)
-      res.push_back(upIntState(d,v,max)->getId());
-   return res;
-}
-std::vector<int> MDDStateSpec::addCombinedStates(MDDCstrDesc::Ptr d,int max, std::initializer_list<int> inputs)
-{
-   std::vector<int> res;
-   for(auto& v : inputs)
-      res.push_back(combinedIntState(d,v,max)->getId());
-   return res;
-}
-
-// --------------------------------------------------------------------------------
 // MDDSpec
 // --------------------------------------------------------------------------------
 
@@ -378,53 +333,6 @@ MDDPSWindow<short>::Ptr MDDSpec::combinedSWState(MDDCstrDesc::Ptr d,int len,int 
    _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
-
-
-// int MDDSpec::addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
-// {
-//    auto rv = downIntState(d,init,max,rw,constraintPriority);
-//    return rv->getId();
-// }
-//  int MDDSpec::addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
-// {
-//    auto rv = upIntState(d,init,max,rw,constraintPriority);
-//    return rv->getId();
-// }
-// int MDDSpec::addCombinedState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int constraintPriority)
-// {
-//    auto rv = combinedIntState(d,init,max,rw,constraintPriority);
-//    return rv->getId();
-// }
-// int MDDSpec::addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
-// {
-//    auto rv = downBSState(d,nbb,init,rw,constraintPriority);
-//    return rv->getId();
-// }
-// int MDDSpec::addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
-// {
-//    auto rv = upBSState(d,nbb,init,rw,constraintPriority);
-//    return rv->getId();
-// }
-// int MDDSpec::addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int constraintPriority)
-// {
-//    auto rv = combinedBSState(d,nbb,init,rw,constraintPriority);
-//    return rv->getId();
-// }
-// int MDDSpec::addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
-// {
-//    auto rv = downSWState(d,len,init,finit,rw,cPriority);
-//    return rv->getId();
-// }
-// int MDDSpec::addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
-// {
-//    auto rv = upSWState(d,len,init,finit,rw,cPriority);
-//    return rv->getId();
-// }
-// int MDDSpec::addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
-// {
-//    auto rv = combinedSWState(d,len,init,finit,rw,cPriority);
-//    return rv->getId();
-// }
 
 // --------------------------------------------------------------------------------
 
@@ -560,26 +468,6 @@ void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,std::set<MDDPr
    for(auto p : spCombined) pC.insert(p->getId());
    oldTransitionUp(cd,p->getId(),pD,pC,t);
 }
-
-// void MDDSpec::transitionDown(MDDCstrDesc::Ptr cd,const lambdaMap& map)
-// {
-//    for(auto& kv : map) {
-//       const auto& spDown = std::get<0>(kv.second);
-//       const auto& spCombined = std::get<1>(kv.second);
-//       const auto& f  = std::get<2>(kv.second);
-//       oldTransitionDown(cd,kv.first,spDown,spCombined,f);
-//    }
-// }
-
-// void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,const lambdaMap& map)
-// {
-//    for(auto& kv : map) {
-//       const auto& spUp = std::get<0>(kv.second);
-//       const auto& spCombined = std::get<1>(kv.second);
-//       const auto& f  = std::get<2>(kv.second);
-//       oldTransitionUp(cd,kv.first,spUp,spCombined,f);
-//    }
-// }
 
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
 {

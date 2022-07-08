@@ -32,12 +32,10 @@ namespace Factory {
       });
       
       mdd.transitionDown(d,minC,{minC},{},[minC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
-         bool allMembers = val.size()==1 && val.singleton() == tv;
-         out[minC] = parent.down[minC] + allMembers;
+         out[minC] = parent.down[minC] + (val.size()==1 && val.singleton() == tv);
       });
       mdd.transitionDown(d,maxC,{maxC},{},[maxC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {
-         bool oneMember = val.contains(tv);
-         out[maxC] = parent.down[maxC] + oneMember;
+         out[maxC] = parent.down[maxC] + val.contains(tv);
       });
       mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val) {
          out[rem] = parent.down[rem] - 1;
@@ -66,23 +64,16 @@ namespace Factory {
          });
       }
 
-      mdd.transitionDown(d,minC,{minC},{},[minC,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
-         bool allMembers = true;
-         for(int v : val) {
-            allMembers &= values.member(v);
-            if (!allMembers) break;
-         }
-         out[minC] = parent.down[minC] + allMembers;
+      mdd.transitionDown(d,minC,{minC},{},[minC,values] (auto& out,const auto& parent,const auto& x, const auto& val)
+      {
+         out[minC] = parent.down[minC] + val.allInside(values);
       });
-      mdd.transitionDown(d,maxC,{maxC},{},[maxC,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
-         bool oneMember = false;
-         for(int v : val) {
-            oneMember = values.member(v);
-            if (oneMember) break;
-         }
-         out[maxC] = parent.down[maxC] + oneMember;
+      mdd.transitionDown(d,maxC,{maxC},{},[maxC,values] (auto& out,const auto& parent,const auto& x, const auto& val)
+      {
+         out[maxC] = parent.down[maxC] + val.memberInside(values);
       });
-      mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val) {
+      mdd.transitionDown(d,rem,{rem},{},[rem] (auto& out,const auto& parent,const auto& x,const auto& val)
+      {         
          out[rem] = parent.down[rem] - 1;
       });
       
@@ -100,37 +91,17 @@ namespace Factory {
     const auto Uup = mdd.upIntState(d,0,INT_MAX,MaxFun, opts.cstrP);
 
     mdd.transitionDown(d,L,{L},{},[L,values](auto& out,const auto& parent,const auto& x, const auto& val) {
-       bool allMembers = true;
-       for(int v : val) {
-          allMembers &= values.member(v);
-          if (!allMembers) break;
-       }
-       out[L] = parent.down[L] + allMembers;
+       out[L] = parent.down[L] + val.allInside(values);
     });
     mdd.transitionDown(d,U,{U},{},[U,values] (auto& out,const auto& parent,const auto& x, const auto& val) {
-       bool oneMember = false;
-       for(int v : val) {
-          oneMember = values.member(v);
-          if (oneMember) break;
-       }
-       out[U] = parent.down[U] + oneMember;
+       out[U] = parent.down[U] + val.memberInside(values);
     });
 
     mdd.transitionUp(d,Lup,{Lup},{},[Lup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
-       bool allMembers = true;
-       for(int v : val) {
-          allMembers &= values.member(v);
-          if (!allMembers) break;
-       }
-       out[Lup] = child.up[Lup] + allMembers;
+       out[Lup] = child.up[Lup] + val.allInside(values);
     });
     mdd.transitionUp(d,Uup,{Uup},{},[Uup,values] (auto& out,const auto& child,const auto& x, const auto& val) {
-       bool oneMember = false;
-       for(int v : val) {
-          oneMember = values.member(v);
-          if (oneMember) break;
-       }
-       out[Uup] = child.up[Uup] + oneMember;
+       out[Uup] = child.up[Uup] + val.memberInside(values);
     });
 
     mdd.arcExist(d,[=] (const auto& parent,const auto& child,const auto&, const auto& val) -> bool {

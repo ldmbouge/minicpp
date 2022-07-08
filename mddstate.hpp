@@ -218,8 +218,6 @@ typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
 typedef std::function<double(const MDDState&, void*, int)> CandidateFun;
 typedef std::function<int(const MDDState&,const MDDState&)> EquivalenceValueFun;
-//typedef std::tuple<std::set<int>,std::set<int>,lambdaTrans> TransDesc;
-//typedef std::map<int,TransDesc> lambdaMap;
 class MDDStateSpec;
 
 class Zone {
@@ -845,12 +843,6 @@ public:
    virtual MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
    virtual MDDPSWindow<short>::Ptr upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
    virtual MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
-   std::vector<int> addDownStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
-   std::vector<int> addUpStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
-   std::vector<int> addCombinedStates(MDDCstrDesc::Ptr d,int from, int to, int max,std::function<int(int)> clo);
-   std::vector<int> addDownStates(MDDCstrDesc::Ptr d,int max,std::initializer_list<int> inputs);
-   std::vector<int> addUpStates(MDDCstrDesc::Ptr d,int max,std::initializer_list<int> inputs);
-   std::vector<int> addCombinedStates(MDDCstrDesc::Ptr d,int max,std::initializer_list<int> inputs);
    void outputSetDown(MDDPropSet& out,const MDDPropSet& down,const MDDPropSet& combined) const noexcept {
       for(auto p : down)
          out.unionWith(_omapDown[p]);
@@ -1036,22 +1028,15 @@ public:
          default: return -1; break;
       }
    }
-   void init(int i) const  noexcept    { propAt(i)->init(_mem); }
+   void init(int i) const  noexcept                                { propAt(i)->init(_mem); }
    auto operator[](MDDPBitSequence::Ptr i) noexcept                { return MDDPropValue<MDDPBitSequence>(i,_mem);}
    const auto operator[](MDDPBitSequence::Ptr i) const noexcept    { return MDDPropValue<MDDPBitSequence>(i,_mem);}
    auto operator[](MDDPInt::Ptr i) noexcept                        { return MDDPropValue<MDDPInt>(i,_mem);}
    const auto operator[](MDDPInt::Ptr i) const noexcept            { return MDDPropValue<MDDPInt>(i,_mem);}
    auto operator[](MDDPSWindow<short>::Ptr i) noexcept             { return MDDPropValue<MDDPSWindow<short>>(i,_mem);}
    const auto operator[](MDDPSWindow<short>::Ptr i) const noexcept { return MDDPropValue<MDDPSWindow<short>>(i,_mem);}
-   int byte(int i) const noexcept { return propAt(i)->getByte(_mem); }
-   int at(int i) const noexcept { return propAt(i)->get(_mem); }
-   //int operator[](int i) const noexcept   { return propAt(i)->getInt(_mem); } // to _read_ a state property (fast)
-   //MDDBSValue getBS(int i) const noexcept { return propAt(i)->getBS(_mem); }
-   //MDDSWin<short> getSW(int i) const noexcept { return propAt(i)->getSW<short>(_mem); }
-   //void set(int i,int val) noexcept { propAt(i)->set(_mem,val); } // to set a state property (slow)
-   //void setInt(int i,int val) noexcept { propAt(i)->setInt(_mem,val); } // to set a state property (fast)
-   //void setByte(int i,int val) noexcept { propAt(i)->setByte(_mem,val); } // to set a state property (fast)
-   //MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return propAt(i)->setBS(_mem,val); } // (fast)
+   
+   int byte(int i) const noexcept  { return propAt(i)->getByte(_mem); } // old style. to be redone.
    
    void setProp(int i,const MDDState& from) noexcept { propAt(i)->setProp(_mem,from._mem); } // (fast)
    int byteSize(int i) const noexcept { return propAt(i)->size(); }
@@ -1168,21 +1153,6 @@ public:
    MDDPSWindow<short>::Ptr upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
    MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
 
-   
-   // int addDownState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
-   // int addUpState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
-   // int addDownBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
-   // int addUpBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
-   // int addCombinedState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External, int cPriority = 0);
-   // int addCombinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0);
-   // int addDownSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0);
-   // int addUpSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External, int cPriority = 0);
-   // int addCombinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw = External,int cPriority = 0);
-
-   // int addDownState(MDDCstrDesc::Ptr d,int init,size_t max,enum RelaxWith rw=External, int cPriority = 0) {
-   //    return addDownState(d,init,(int)max,rw,cPriority);
-   // }
-
    void nodeExist(NodeFun a);
    void arcExist(const MDDCstrDesc::Ptr d,ArcFun a);
    void updateNode(MDDCstrDesc::Ptr cd,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spUp,UpdateFun update);
@@ -1207,8 +1177,6 @@ public:
       _upRelaxation.emplace_back(std::move(r));
    }
    void addSimilarity(int,lambdaSim);
-   // void transitionDown(MDDCstrDesc::Ptr cd,const lambdaMap& map);
-   // void transitionUp(MDDCstrDesc::Ptr cd,const lambdaMap& map);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
    void splitOnLargest(SplitFun onSplit, int cPriority = 0);
@@ -1352,8 +1320,5 @@ template <typename Container> std::pair<int,int> idRange(const Container& vars) 
    }
    return std::make_pair(low,up);
 }
-
-
-
 #endif /* mddstate_hpp */
 

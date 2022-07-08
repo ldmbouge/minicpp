@@ -28,24 +28,6 @@ struct MDDOpts {
 };
 
 namespace Factory {
-   // template <typename Fun> inline lambdaMap toDict(int min, int max,Fun clo)
-   // {
-   //    lambdaMap r;
-   //    for(int i = min; i <= max; i++)
-   //       r[i] = clo(i);
-   //    return r;
-   // }
-   // template <typename Fun>
-   // lambdaMap toDict(int min, int max,std::vector<int>& p,Fun clo)
-   // {
-   //    lambdaMap r;
-   //    for(int i = min; i <= max; i++)
-   //       r[p[i]] = clo(i,p[i]);
-   //    return r;
-   // }
-   // inline TransDesc tDesc(std::initializer_list<int> sp1,std::initializer_list<int> sp2,lambdaTrans f) {
-   //    return std::make_tuple<std::set<int>,std::set<int>,lambdaTrans>(sp1,sp2,std::move(f));
-   // }
    MDDCstrDesc::Ptr amongMDD(MDD::Ptr m, const Factory::Vecb& x, int lb, int ub,std::set<int> rawValues);
    MDDCstrDesc::Ptr amongMDD(MDD::Ptr m, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues);
    MDDCstrDesc::Ptr amongMDD2(MDD::Ptr m, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3});
