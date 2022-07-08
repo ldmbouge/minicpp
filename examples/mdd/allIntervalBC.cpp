@@ -154,67 +154,43 @@ namespace Factory {
       //   |vars[0]-vars[1]| = vars[2]
       // referred to below as |x-y| = z.
       auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");    
-      const int xMin = mdd.addDownState(d,0,-INT_MAX,MinFun);
-      const int xMax = mdd.addDownState(d,0,INT_MAX,MaxFun);
-      const int yMin = mdd.addDownState(d,0,-INT_MAX,MinFun);
-      const int yMax = mdd.addDownState(d,0,INT_MAX,MaxFun);
-      const int yMinUp = mdd.addUpState(d,0,-INT_MAX,MinFun);
-      const int yMaxUp = mdd.addUpState(d,0,INT_MAX,MaxFun);
-      const int zMinUp = mdd.addUpState(d,0,-INT_MAX,MinFun);
-      const int zMaxUp = mdd.addUpState(d,0,INT_MAX,MaxFun);
-      const int N = mdd.addDownState(d,0,INT_MAX,MinFun); // layer index
-      const int NUp = mdd.addUpState(d,0,INT_MAX,MinFun); // layer index
-      mdd.transitionDown(d,xMin,{xMin,N},{},[xMin,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down[N]==0) 
-            out.setInt(xMin,val.min());        
-         else 
-            out.setInt(xMin,parent.down[xMin]);       	  
+      const auto xMin = mdd.downIntState(d,0,-INT_MAX,MinFun);
+      const auto xMax = mdd.downIntState(d,0,INT_MAX,MaxFun);
+      const auto yMin = mdd.downIntState(d,0,-INT_MAX,MinFun);
+      const auto yMax = mdd.downIntState(d,0,INT_MAX,MaxFun);
+      const auto yMinUp = mdd.upIntState(d,0,-INT_MAX,MinFun);
+      const auto yMaxUp = mdd.upIntState(d,0,INT_MAX,MaxFun);
+      const auto zMinUp = mdd.upIntState(d,0,-INT_MAX,MinFun);
+      const auto zMaxUp = mdd.upIntState(d,0,INT_MAX,MaxFun);
+      const auto N = mdd.downIntState(d,0,INT_MAX,MinFun); // layer index
+      const auto NUp = mdd.upIntState(d,0,INT_MAX,MinFun); // layer index
+      mdd.transitionDown2(d,xMin,{xMin,N},{},[xMin,N](auto& out,const auto& parent,auto x, const auto& val) {
+         out[xMin] = (parent.down[N]==0) ? val.min() : parent.down[xMin];
       });
-      mdd.transitionDown(d,xMax,{xMax,N},{},[xMax,N](auto& out,const auto& parent,auto x, const auto& val) {
-        if (parent.down[N]==0) 
-            out.setInt(xMax,val.max());
-         else 
-            out.setInt(xMax, parent.down[xMax]);      
+      mdd.transitionDown2(d,xMax,{xMax,N},{},[xMax,N](auto& out,const auto& parent,auto x, const auto& val) {
+         out[xMax] = (parent.down[N]==0) ? val.max() : parent.down[xMax];
       });
-      mdd.transitionDown(d,yMin,{yMin,N},{},[yMin,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down[N]==1)
-            out.setInt(yMin,val.min());
-         else 
-            out.setInt(yMin, parent.down[yMin]);       
+      mdd.transitionDown2(d,yMin,{yMin,N},{},[yMin,N](auto& out,const auto& parent,auto x, const auto& val) {
+         out[yMin] = (parent.down[N]==1) ? val.min() : parent.down[yMin];
       });
-      mdd.transitionDown(d,yMax,{yMax,N},{},[yMax,N](auto& out,const auto& parent,auto x, const auto& val) {
-         if (parent.down[N]==1)
-            out.setInt(yMax,val.max());
-         else 
-            out.setInt(yMax, parent.down[yMax]);      
+      mdd.transitionDown2(d,yMax,{yMax,N},{},[yMax,N](auto& out,const auto& parent,auto x, const auto& val) {
+         out[yMax] = (parent.down[N]==1) ? val.max() : parent.down[yMax];
       });
 
-      mdd.transitionDown(d,N,{N},{},[N](auto& out,const auto& parent,auto x,const auto& val)    { out.setInt(N,parent.down[N]+1); });
-      mdd.transitionUp(d,NUp,{NUp},{},[NUp](auto& out,const auto& child,auto x,const auto& val) { out.setInt(NUp,child.up[NUp]+1); });
+      mdd.transitionDown2(d,N,{N},{},[N](auto& out,const auto& parent,auto x,const auto& val)    { out[N] = parent.down[N]+1; });
+      mdd.transitionUp2(d,NUp,{NUp},{},[NUp](auto& out,const auto& child,auto x,const auto& val) { out[NUp] = child.up[NUp]+1; });
 
-      mdd.transitionUp(d,yMinUp,{yMinUp,NUp},{},[yMinUp,NUp] (auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up[NUp]==1) 
-            out.setInt(yMinUp,val.min());
-         else 
-            out.setInt(yMinUp, child.up[yMinUp]);       
+      mdd.transitionUp2(d,yMinUp,{yMinUp,NUp},{},[yMinUp,NUp] (auto& out,const auto& child,auto x, const auto& val) {
+         out[yMinUp] = (child.up[NUp]==1) ? val.min() : child.up[yMinUp];
       });
-      mdd.transitionUp(d,yMaxUp,{yMaxUp,NUp},{},[yMaxUp,NUp](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up[NUp]==1)
-            out.setInt(yMaxUp,val.max());
-         else 
-            out.setInt(yMaxUp, child.up[yMaxUp]);       
+      mdd.transitionUp2(d,yMaxUp,{yMaxUp,NUp},{},[yMaxUp,NUp](auto& out,const auto& child,auto x, const auto& val) {
+         out[yMaxUp] = (child.up[NUp]==1) ? val.max() : child.up[yMaxUp];
       });
-      mdd.transitionUp(d,zMinUp,{zMinUp,N},{},[zMinUp,N](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up[N]==0)
-            out.setInt(zMinUp,val.min());
-         else 
-            out.setInt(zMinUp, child.up[zMinUp]);       
+      mdd.transitionUp2(d,zMinUp,{zMinUp,N},{},[zMinUp,N](auto& out,const auto& child,auto x, const auto& val) {
+         out[zMinUp] = (child.up[N]==0) ? val.min() : child.up[zMinUp];
       });
-      mdd.transitionUp(d,zMaxUp,{zMaxUp,N},{},[zMaxUp,N](auto& out,const auto& child,auto x, const auto& val) {
-         if (child.up[N]==0)
-            out.setInt(zMaxUp,val.max());
-         else 
-            out.setInt(zMaxUp, child.up[zMaxUp]);       
+      mdd.transitionUp2(d,zMaxUp,{zMaxUp,N},{},[zMaxUp,N](auto& out,const auto& child,auto x, const auto& val) {         
+         out[zMaxUp] = (child.up[N]==0) ? val.max() : child.up[zMaxUp];
       });
 
       mdd.arcExist(d,[=](const auto& parent,const auto& child,var<int>::Ptr var,const auto& val) {

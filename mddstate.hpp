@@ -1045,11 +1045,11 @@ public:
    const auto operator[](MDDPSWindow<short>::Ptr i) const noexcept { return MDDPropValue<MDDPSWindow<short>>(i,_mem);}
    int byte(int i) const noexcept { return propAt(i)->getByte(_mem); }
    int at(int i) const noexcept { return propAt(i)->get(_mem); }
-   int operator[](int i) const noexcept   { return propAt(i)->getInt(_mem); } // to _read_ a state property (fast)
+   //int operator[](int i) const noexcept   { return propAt(i)->getInt(_mem); } // to _read_ a state property (fast)
    //MDDBSValue getBS(int i) const noexcept { return propAt(i)->getBS(_mem); }
-   MDDSWin<short> getSW(int i) const noexcept { return propAt(i)->getSW<short>(_mem); }
-   void set(int i,int val) noexcept { propAt(i)->set(_mem,val); } // to set a state property (slow)
-   void setInt(int i,int val) noexcept { propAt(i)->setInt(_mem,val); } // to set a state property (fast)
+   //MDDSWin<short> getSW(int i) const noexcept { return propAt(i)->getSW<short>(_mem); }
+   //void set(int i,int val) noexcept { propAt(i)->set(_mem,val); } // to set a state property (slow)
+   //void setInt(int i,int val) noexcept { propAt(i)->setInt(_mem,val); } // to set a state property (fast)
    //void setByte(int i,int val) noexcept { propAt(i)->setByte(_mem,val); } // to set a state property (fast)
    //MDDBSValue setBS(int i,const MDDBSValue& val) noexcept { return propAt(i)->setBS(_mem,val); } // (fast)
    
