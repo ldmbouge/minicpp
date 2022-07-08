@@ -24,7 +24,7 @@ namespace Factory {
                                        var<int>::Ptr z,MDDOpts opts)
    {
       MDDSpec& mdd = m->getSpec();
-      mdd.addGlobal(std::array<var<int>::Ptr,1>{z});
+      mdd.addGlobal({z});
       int nbVars = (int)vars.size();
       auto d = mdd.makeConstraintDescriptor(vars,"maximumCutObjectiveMDD");
 

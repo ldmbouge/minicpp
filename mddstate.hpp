@@ -834,14 +834,14 @@ public:
    unsigned short startOfsUp(int p) const noexcept { return _attrsUp[p]->startOfs();}
    unsigned short endOfsDown(int p) const noexcept { return _attrsDown[p]->endOfs();}
    unsigned short endOfsUp(int p) const noexcept { return _attrsUp[p]->endOfs();}
-   virtual MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External,int cPriority=0);
    virtual MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0);
-   virtual MDDPBitSequence::Ptr upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External, int cPriority=0);
-   virtual MDDPInt::Ptr upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority=0);
-   virtual MDDPBitSequence::Ptr combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External,int cPriority=0);
-   virtual MDDPInt::Ptr combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0);   
+   virtual MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External,int cPriority=0);
    virtual MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPInt::Ptr upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority=0);
+   virtual MDDPBitSequence::Ptr upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External, int cPriority=0);
    virtual MDDPSWindow<short>::Ptr upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPInt::Ptr combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0);   
+   virtual MDDPBitSequence::Ptr combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External,int cPriority=0);
    virtual MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
    void outputSetDown(MDDPropSet& out,const MDDPropSet& down,const MDDPropSet& combined) const noexcept {
       for(auto p : down)
@@ -1211,7 +1211,12 @@ public:
          if(std::find(x.cbegin(),x.cend(),e) == x.cend())
             x.push_back(e);
    }
-   template <class Container> void addGlobal(const Container& y) {
+   // template <class Container> void addGlobal(const Container& y) {
+   //    for(auto e : y)
+   //       if(std::find(z.cbegin(),z.cend(),e) == z.cend())
+   //          z.push_back(e);
+   // }
+   void addGlobal(std::initializer_list<var<int>::Ptr> y) {
       for(auto e : y)
          if(std::find(z.cbegin(),z.cend(),e) == z.cend())
             z.push_back(e);
