@@ -976,12 +976,15 @@ void Element1DDC::post()
       _z->remove(zk);
   }
   // build all the linked lists in _list (header in _values._k set at EOL marker at start)
+  _yMax = yMax;
+  _yMin = yMin;
   _list = new (cps) int[yMax - yMin + 1];
-  for(int yk=_y->min();yk <= _y->max();yk++) 
+  for(int yk=yMin;yk <= yMax;yk++) 
     if (_y->contains(yk)) {
-      int idx = findIndex(_t[yk]);  // locate the list that carries the value reachable by yk in _t
-      _list[yk] = _values[idx]._k;  // set the list entry to that list
-      _values[idx]._k = yk;         // and insert yk in front of that list (supports of _v) 
+      int idx = findIndex(_t[yk]);       // locate the list that carries the value reachable by yk in _t
+      //assert(0 <= yk && yk < yMax - yMin + 1);
+      _list[yk-_yMin] = _values[idx]._k;       // set the list entry to that list
+      _values[idx]._k = yk;             // and insert yk in front of that list (supports of _v)
     }
   // prune _y based on the values NOT in D(_z) that have supports.
   for(int k=0;k < _nbv;k++)
@@ -989,7 +992,8 @@ void Element1DDC::post()
       int link = _values[k]._k;
       while(link != _endOfList) {
         _y->remove(link);
-        link = _list[link];
+        assert(0 <= link && link < yMax - yMin + 1);
+        link = _list[link-_yMin];
       }
     }
   // setup a copy of the domains of z,y to be able to identify which values were lost.
@@ -1006,7 +1010,7 @@ void Element1DDC::post()
   for(int k = _y->min(); k <= _y->max();k++)
     if (!_y->contains(k))
       _yOld->remove(k,nn);
-
+  
   // Hook up listeners
   _y->propagateOnDomainChange(this);
   _z->propagateOnDomainChange(this);
@@ -1018,7 +1022,8 @@ void Element1DDC::zLostValue(int v)
   int link = _values[k]._k;
   while (link != _endOfList) {
     _y->remove(link);
-    link = _list[link];
+    //assert(0 <= link && link < _yMax -_yMin + 1);
+    link = _list[link-_yMin];
   }
 }
 

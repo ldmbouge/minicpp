@@ -26,10 +26,6 @@
 #include "acstr.hpp"
 #include "matching.hpp"
 
-
-
-
-
 class EQc : public Constraint { // x == c
    var<int>::Ptr _x;
    int           _c;
@@ -369,6 +365,7 @@ class Element1DDC : public Constraint { // z =DC= t[y] (Domain consistent versio
    DCIndex*    _values; // an array that holds, for each value in D(z), the support structure
    int*          _list; // holds _all_ the list indices (one list per index value) |_list| = range(t)
    int            _nbv; // number of values in _values
+   int     _yMin,_yMax;
    BitDomain::Ptr _zOld,_yOld;
    int findIndex(int target) const;
    void zLostValue(int v);
@@ -697,7 +694,7 @@ namespace Factory
       std::vector<int> flat(array.size());
       for(int i=0;i < array.size();i++)
          flat[i] = array[i];
-      return new (y->getSolver()) Element1DDC(flat,y,z);
+      return new (y->getSolver()) Element1D(flat,y,z);
    }
    template <class Vec> inline var<int>::Ptr element(const Vec& array,var<int>::Ptr y) {
       int min = INT32_MAX,max = INT32_MIN;
