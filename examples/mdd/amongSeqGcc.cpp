@@ -36,7 +36,7 @@ int main(int argc,char* argv[])
 
     auto v = Factory::intVarArray(cp,5, 1, 3);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = Factory::makeMDD(cp);
+   auto mdd = Factory::makeMDDRelax(cp,4);
    mdd->post(amongMDD(mdd,v,2,2,{3}));
    mdd->post(seqMDD(mdd,v,3,2,2,{2,3}));
    mdd->post(gccMDD(mdd,v,{{2,1},{1,2}, {3, 2}}));
@@ -56,9 +56,7 @@ int main(int argc,char* argv[])
           
           if (x) {
               //mddAppliance->saveGraph();
-
               int c = x->min();
-
               return  [=] {
                  if(debug)
                     std::cout << "choice  <" << x << " == " << c << ">" << std::endl;

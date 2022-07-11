@@ -33,6 +33,59 @@ namespace Factory {
    MDDCstrDesc::Ptr amongMDD2(MDD::Ptr m, const Factory::Veci& x, int lb, int ub, std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3});
    MDDCstrDesc::Ptr amongMDD2(MDD::Ptr m, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3});
    MDDCstrDesc::Ptr upToOneMDD(MDD::Ptr m, const Factory::Vecb& x, std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3});
+
+   struct AMStub0 {
+      const Factory::Veci& _vars;
+      int _lb,_ub;
+      std::set<int> _rawValues;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return amongMDD(m,_vars,_lb,_ub,_rawValues);}      
+   };
+   struct AMStub1 {
+      const Factory::Vecb& _vars;
+      int _lb,_ub;
+      std::set<int> _rawValues;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return amongMDD(m,_vars,_lb,_ub,_rawValues);}      
+   };
+   struct AMStub2 {
+      const Factory::Veci& _vars;
+      int _lb,_ub;
+      std::set<int>   _rawValues;
+      MDDOpts              _opts;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return amongMDD2(m,_vars,_lb,_ub,_rawValues,_opts);}    
+   };
+   struct AMStub3 {
+      const Factory::Vecb& _vars;
+      int _lb,_ub;
+      std::set<int>   _rawValues;
+      MDDOpts              _opts;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return amongMDD2(m,_vars,_lb,_ub,_rawValues,_opts);}    
+   };
+   struct AMStub4 {
+      const Factory::Vecb& _vars;
+      std::set<int>   _rawValues;
+      MDDOpts              _opts;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return upToOneMDD(m,_vars,_rawValues,_opts);}    
+   };
+   inline AMStub0 amongMDD(const Factory::Veci& vars,int lb,int ub,std::set<int> rawValues) 
+   {
+      return AMStub0 {vars,lb,ub,rawValues};
+   }
+   inline AMStub1 amongMDD(const Factory::Vecb& vars,int lb,int ub,std::set<int> rawValues) 
+   {
+      return AMStub1 {vars,lb,ub,rawValues};
+   }
+   inline AMStub2 amongMDD2(const Factory::Veci& vars,int lb,int ub,std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3}) 
+   {
+      return AMStub2 {vars,lb,ub,rawValues, opts};
+   }
+   inline AMStub3 amongMDD2(const Factory::Vecb& vars,int lb,int ub,std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3}) 
+   {
+      return AMStub3 {vars,lb,ub,rawValues, opts};
+   }
+   inline AMStub4 upToOneMDD(const Factory::Vecb& vars,std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3}) 
+   {
+      return AMStub4 {vars,rawValues, opts};
+   }
    
    MDDCstrDesc::Ptr allDiffMDD(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts = {.cstrP = 0});
    MDDCstrDesc::Ptr allDiffMDD2(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts = {.eqThreshold = 4});
@@ -57,13 +110,53 @@ namespace Factory {
    }
 
    
-   MDDCstrDesc::Ptr seqMDD(MDD::Ptr m,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
-   MDDCstrDesc::Ptr seqMDD2(MDD::Ptr m,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
-   MDDCstrDesc::Ptr seqMDD3(MDD::Ptr m,const Factory::Veci& vars, int len, int lb, int ub, std::set<int> rawValues);
+   MDDCstrDesc::Ptr seqMDD(MDD::Ptr m,const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues);
+   MDDCstrDesc::Ptr seqMDD2(MDD::Ptr m,const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues);
+   MDDCstrDesc::Ptr seqMDD3(MDD::Ptr m,const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues);
+   using seqFact = MDDCstrDesc::Ptr(*)(MDD::Ptr,const Factory::Veci&,int,int,int,std::set<int>);
+   template <typename Fun> struct SQStub1 {
+      const Factory::Veci& _vars;
+      int           _len,_lb,_ub;
+      std::set<int>   _rawValues;
+      Fun             _fun;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return _fun(m,_vars,_len,_lb,_ub,_rawValues);}
+   };
+   inline SQStub1<seqFact> seqMDD(const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues)
+   {
+      return SQStub1<seqFact> {vars,len,lb,ub,rawValues,seqMDD};
+   }
+   inline SQStub1<seqFact> seqMDD2(const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues)
+   {
+      return SQStub1<seqFact> {vars,len,lb,ub,rawValues,seqMDD2};
+   }
+   inline SQStub1<seqFact> seqMDD3(const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues)
+   {
+      return SQStub1<seqFact> {vars,len,lb,ub,rawValues,seqMDD3};
+   }
 
+   
    MDDCstrDesc::Ptr gccMDD(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub);
-   MDDCstrDesc::Ptr gccMDD2(MDD::Ptr m,const Factory::Veci& vars, const std::map<int,int>& lb, const std::map<int,int>& ub);
-
+   MDDCstrDesc::Ptr gccMDD2(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& lb, const std::map<int,int>& ub);
+   struct GCCStub1 {
+      const Factory::Veci&   _vars;
+      const std::map<int,int>& _ub;      
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return gccMDD(m,_vars,_ub);}
+   };
+   inline GCCStub1 gccMDD(const Factory::Veci& vars,const std::map<int,int>& ub)
+   {
+      return GCCStub1 {vars,ub};
+   }
+   struct GCCStub2 {
+      const Factory::Veci&   _vars;
+      const std::map<int,int>& _lb,_ub;      
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return gccMDD2(m,_vars,_lb,_ub);}
+   };
+   inline GCCStub2 gccMDD2(const Factory::Veci& vars,const std::map<int,int>& lb,const std::map<int,int>& ub)
+   {
+      return GCCStub2 {vars,lb,ub};
+   }
+   
+   
 
    MDDCstrDesc::Ptr sum(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,int lb, int ub);
    MDDCstrDesc::Ptr sum(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,std::initializer_list<int> array, int lb, int ub);

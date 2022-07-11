@@ -77,13 +77,13 @@ int main(int argc,char* argv[])
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDDRelax(cp,width);
+   auto mdd = Factory::makeMDDRelax(cp,width);
    auto bounds = buildBounds(SZ_VAR, 1, SZ_VAL);
    //std::map<int,int> bounds = {{1,1},{2,2},{3,3}};
    for(auto& b : bounds) {
       std::cout << b.first << " : " << b.second << std::endl;
    }
-   mdd->post(gccMDD(mdd,v,bounds));
+   mdd->post(gccMDD(v,bounds));
    cp->post(mdd);
    auto end = RuntimeMonitor::cputime();
    MDDStats stats(mdd);

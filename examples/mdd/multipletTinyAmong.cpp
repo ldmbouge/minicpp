@@ -36,9 +36,9 @@ int main(int argc,char* argv[])
    auto v2 = Factory::intVarArray(cp, 2, 1, 3);
    
    auto start = RuntimeMonitor::cputime();
-   auto mdd = Factory::makeMDD(cp);
-   mdd->post(Factory::amongMDD(mdd,v, 2, 2, {2}));
-   mdd->post(Factory::amongMDD(mdd,v2, 1, 1, {3}));
+   auto mdd = Factory::makeMDDRelax(cp,4);
+   mdd->post(Factory::amongMDD(v, 2, 2, {2}));
+   mdd->post(Factory::amongMDD(v2, 1, 1, {3}));
    cp->post(mdd);
    
    auto end = RuntimeMonitor::cputime();

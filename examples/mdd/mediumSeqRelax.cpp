@@ -76,8 +76,8 @@ int main(int argc,char* argv[])
    CPSolver::Ptr cp  = Factory::makeSolver();
    auto v = Factory::intVarArray(cp, SZ_VAR, 1, SZ_VAL);
    auto start = RuntimeMonitor::cputime();
-   auto mdd = new MDDRelax(cp,width);
-   mdd->post(Factory::seqMDD(mdd,v,LEN,LB,UB,{2,4,5,6}));
+   auto mdd = Factory::makeMDDRelax(cp,width);
+   mdd->post(Factory::seqMDD(v,LEN,LB,UB,{2,4,5,6}));
    cp->post(mdd);
    auto end = RuntimeMonitor::cputime();
    MDDStats stats(mdd);
