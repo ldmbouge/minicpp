@@ -122,16 +122,16 @@ int main(int argc,char* argv[])
       }
       mdd->post(sum(mdd,vars, valMatrix2, z2));
       
-     auto z3 = Factory::makeIntVar(cp, 50, 65);
-     vector< vector<int> > valMatrix3;
-     for (unsigned int i=0; i<vars.size(); i++) {
-       vector<int> tmpVals;
-       for (int j=0; j<=5; j++) {
-	 tmpVals.push_back(j*vals3[i]);
-       }
-       valMatrix3.push_back(tmpVals);
-     }
-     mdd->post(sum(mdd,vars, valMatrix3, z3));
+      auto z3 = Factory::makeIntVar(cp, 50, 65);
+      vector< vector<int> > valMatrix3;
+      for (unsigned int i=0; i<vars.size(); i++) {
+         vector<int> tmpVals;
+         for (int j=0; j<=5; j++) {
+            tmpVals.push_back(j*vals3[i]);
+         }
+         valMatrix3.push_back(tmpVals);
+      }
+      mdd->post(sum(mdd,vars, valMatrix3, z3));
    }
    else {
      cout << "Error: specify a mode in {0,1,2}:" << endl;
