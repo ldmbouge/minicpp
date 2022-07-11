@@ -38,6 +38,7 @@ public:
       post(s.execute(this));
    }
    MDDSpec& getSpec()      { return _mddspec; }
+   CPSolver::Ptr getSolver() const { return cp;}
    virtual void trimLayer(unsigned int layer);
    void scheduleRemoval(MDDNode*);
    int getSupport(int layer,int value) const { return supports[layer][value - oft[layer]];}

@@ -73,6 +73,10 @@ namespace Factory {
          out[someu].setBinOR(l[someu],r[someu]);
       });
 
+      const int nbW = someu->size() >> 3;
+      unsigned long long *tmp = new (m->getSolver()) unsigned long long[nbW];
+      for(int i=0;i<nbW;++i) tmp[i] = 0;
+      
       mdd.arcExist(d,[=](const auto& parent,const auto& child,const auto& var,const auto& val) noexcept  {
          MDDBSValue sbs = parent.down[some];
          const int ofs = val - minDom;
@@ -82,7 +86,7 @@ namespace Factory {
          MDDBSValue subs = child.up[someu];
          upNotOk = child.up[allu].getBit(ofs) || (subs.getBit(ofs) && subs.cardinality() == n - parent.down[len] - 1);
          if (upNotOk) return false;
-         MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords());
+         MDDBSValue both((char*)&tmp,nbW);
          both.setBinOR(subs,sbs).set(ofs);
          mixNotOk = both.cardinality() < n;
          return !mixNotOk;
