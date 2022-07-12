@@ -753,8 +753,10 @@ void MDDSpec::relaxationDown(MDDState& a,const MDDState& b) const noexcept
 {
    for(auto p : _defaultDownRelax) {
       switch(_attrsDown[p]->relaxFun()) {
-         case MinFun: _attrsDown[p]->minWith(a._mem,b._mem); //a.minWith(p,b);break;
-         case MaxFun: _attrsDown[p]->maxWith(a._mem,b._mem); // a.maxWith(p,b);break;
+        case MinFun: _attrsDown[p]->minWith(a._mem,b._mem);break;
+        case MaxFun: _attrsDown[p]->maxWith(a._mem,b._mem);break;
+          //case MinFun: a.minWith(p,b);break;
+          //case MaxFun: a.maxWith(p,b);break;
          case External: break;
       }
    }
@@ -767,9 +769,9 @@ void MDDSpec::relaxationUp(MDDState& a,const MDDState& b) const noexcept
 {
    for(auto p : _defaultUpRelax) {
       switch(_attrsUp[p]->relaxFun()) {
-         case MinFun: _attrsUp[p]->minWith(a._mem,b._mem); //a.minWith(p,b);break;
-         case MaxFun: _attrsUp[p]->maxWith(a._mem,b._mem); // a.maxWith(p,b);break;
-         case External: break;
+        case MinFun: _attrsUp[p]->minWith(a._mem,b._mem);break; //a.minWith(p,b);break;
+        case MaxFun: _attrsUp[p]->maxWith(a._mem,b._mem);break; // a.maxWith(p,b);break;
+        case External: break;
       }
    }
    for(const auto& relax : _upRelaxation)
@@ -781,8 +783,8 @@ void MDDSpec::relaxationDownIncr(const MDDPropSet& out,MDDState& a,const MDDStat
 {
    for(auto p : out) {
       switch(_attrsDown[p]->relaxFun()) {
-         case MinFun: _attrsDown[p]->minWith(a._mem,b._mem); //a.minWith(p,b);break;
-         case MaxFun: _attrsDown[p]->maxWith(a._mem,b._mem); // a.maxWith(p,b);break;
+        case MinFun: _attrsDown[p]->minWith(a._mem,b._mem);break; //a.minWith(p,b);break;
+        case MaxFun: _attrsDown[p]->maxWith(a._mem,b._mem);break; // a.maxWith(p,b);break;
          case External:
             _downRelaxation[_attrsDown[p]->getRelax()](a,a,b);
             break;
@@ -795,11 +797,11 @@ void MDDSpec::relaxationUpIncr(const MDDPropSet& out,MDDState& a,const MDDState&
 {
    for(auto p : out) {
       switch(_attrsUp[p]->relaxFun()) {
-         case MinFun: _attrsUp[p]->minWith(a._mem,b._mem); //a.minWith(p,b);break;
-         case MaxFun: _attrsUp[p]->maxWith(a._mem,b._mem); // a.maxWith(p,b);break;
-         case External:
-            _upRelaxation[_attrsUp[p]->getRelax()](a,a,b);
-            break;
+        case MinFun: _attrsUp[p]->minWith(a._mem,b._mem);break; //a.minWith(p,b);break;
+        case MaxFun: _attrsUp[p]->maxWith(a._mem,b._mem);break; // a.maxWith(p,b);break;
+        case External:
+          _upRelaxation[_attrsUp[p]->getRelax()](a,a,b);
+          break;
       }
    }
    a.computeHash();
