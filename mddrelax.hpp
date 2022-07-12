@@ -192,7 +192,7 @@ class MDDRelax : public MDD {
    ::trail<unsigned> _lowest;
    std::mt19937 _rnG;
    std::uniform_real_distribution<double> _sampler;
-   std::vector<MDDState>  _refs;
+   //std::vector<MDDState>  _refs;
    MDDIntSet*              _afp;
    MDDNode**               _src;
    MDDFQueue*              _fwd;
@@ -203,7 +203,7 @@ class MDDRelax : public MDD {
    MDDDelta* _deltaCombinedDown;
    MDDDelta*   _deltaCombinedUp;
    int _domMin,_domMax;
-   const MDDState& pickReference(int layer,int layerSize);
+   //const MDDState& pickReference(int layer,int layerSize);
    void checkGraph();
    void fullStateDown(MDDState& ms,MDDState& cs,int l);
    void incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNode* n,int l);
@@ -229,7 +229,7 @@ class MDDRelax : public MDD {
    void postUp();
    void removeArc(int outL,int inL,MDDEdge* arc) override;
    void refreshAll() override;
-   const MDDState& ref(int l) const noexcept { return _refs[l];}
+   //const MDDState& ref(int l) const noexcept { return _refs[l];}
 public:
    typedef handle_ptr<MDDRelax> Ptr;
    MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),
@@ -242,10 +242,6 @@ public:
    void trimLayer(unsigned int layer) override;
    void removeNode(MDDNode* node) override;
    void debugGraph() override;
-   void printRefs() {
-      for(auto i=0u;i < numVariables;i++)
-         std::cout << "R[" << i << "] = " << ref(i) << std::endl;
-   }
 };
 
 namespace Factory {

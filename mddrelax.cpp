@@ -54,15 +54,6 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,b
    _mddspec.setWidth(_width);
 }
 
-const MDDState& MDDRelax::pickReference(int layer,int layerSize)
-{
-   double v = _sampler(_rnG);
-   double w = 1.0 / (double)layerSize;
-   int c = (int)std::floor(v / w);
-   int dirIdx = c;
-   return layers[layer].get(dirIdx)->getDownState();
-}
-
 void MDDRelax::buildDiagram()
 {
    std::cout << "MDDRelax::buildDiagram" << '\n';
@@ -100,13 +91,9 @@ void MDDRelax::buildDiagram()
    sink = _nf->makeNode(sinkDownState,sinkUpState,sinkCombinedState,0,(int)numVariables,0);
    layers[numVariables].push_back(sink,mem);
 
-
    auto start = RuntimeMonitor::now();
-   _refs.emplace_back(rootDownState);
-   for(auto i = 0u; i < numVariables; i++) {
-      buildNextLayer(i);
-      _refs.emplace_back(pickReference(i+1,(int)layers[i+1].size()).clone(mem));
-   }
+   for(auto i = 0u; i < numVariables; i++) 
+      buildNextLayer(i);   
    postUp();
    trimDomains();
    auto dur = RuntimeMonitor::elapsedSince(start);
@@ -395,7 +382,7 @@ class MDDNodeSim {
    const MDDSpec& _mddspec;
    Heap<PQValue,PQOrder>  _pq;
 public:
-   MDDNodeSim(Pool::Ptr mem,const TVec<MDDNode*>& layer,const MDDState& ref,const MDDSpec& mddspec, int constraintPriority)
+   MDDNodeSim(Pool::Ptr mem,const TVec<MDDNode*>& layer,const MDDSpec& mddspec, int constraintPriority)
       : _mem(mem),
         _layer(layer),
         _mddspec(mddspec),
@@ -844,7 +831,7 @@ void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can
       ++nbScans;
       if (!x[l-1]->isBound() && layers[l].size() < _width) {
          splitter.clear();
-         MDDNodeSim nSim(_pool,layers[l],_refs[l],_mddspec,constraintPriority);
+         MDDNodeSim nSim(_pool,layers[l],_mddspec,constraintPriority);
          MDDNode* n = nullptr;
          while (layer.size() < _width && lowest==l) {
             while(splitter.size() == 0)  {
@@ -1274,7 +1261,6 @@ void MDDRelax::debugGraph()
    using namespace std;
    for(unsigned l=0u;l < numVariables;l++) {
       cout << "L[" << l <<"] = " << layers[l].size() << endl;
-      cout << "REF:" << _refs[l] << endl;
       for(unsigned i=0u;i < layers[l].size();i++) {
          cout << i << ":   " << layers[l][i]->getDownState()  << '\n';
       }
