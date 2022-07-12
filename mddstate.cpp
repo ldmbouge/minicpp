@@ -899,7 +899,7 @@ void MDDStateFactory::createStateDown(MDDState& result,const MDDPack& parent,int
          result.copyState(*match);
       } else {
          nbCSDown++;
-         _mddspec->fullStateDown(result,parent,layer,x,MDDIntSet(vals.singleton()));
+         _mddspec->fullStateDown(result,parent,layer,x,vals);
          result.computeHash();
          MDDState* pdc = new (_mem) MDDState(parent.down.clone(_mem));
          MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_mem));
@@ -923,7 +923,7 @@ void MDDStateFactory::createStateUp(MDDState& result,const MDDPack& child,int la
          result.copyState(*match);
       } else {
          nbCSUp++;
-         _mddspec->fullStateUp(result,child,layer,x,MDDIntSet(vals.singleton()));
+         _mddspec->fullStateUp(result,child,layer,x,vals);
          result.computeHash();
          MDDState* cuc = new (_mem) MDDState(child.up.clone(_mem));
          MDDState* ccc = new (_mem) MDDState(child.comb.clone(_mem));
@@ -939,6 +939,11 @@ void MDDStateFactory::createStateUp(MDDState& result,const MDDPack& child,int la
 
 void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDPack& parent,int layer,const var<int>::Ptr x,int val)
 {
+   // vanilla version (no caching)
+   //result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
+   //_mddspec->fullStateDown(*result,parent,layer,x,MDDIntSet(val));
+
+   // caching version
    MDDSKey key { &parent.down, &parent.comb, layer, val };
    auto loc = _downHash.get(key,result);
    if (loc) {
@@ -953,7 +958,7 @@ void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDPack& par
       MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_mem));
       MDDSKey ikey { pdc, pcc, layer, val };
       _downHash.insert(ikey,new (_mem) MDDState(result->clone(_mem)));
-   }
+   }  
 }
 
 void MDDStateFactory::clear()

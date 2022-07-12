@@ -486,16 +486,13 @@ public:
    bool isUp() const noexcept                                 { return (_dir & Up) == Up;}
    bool isDown() const noexcept                               { return (_dir & Down) == Down;}
    virtual void init(char* buf) const noexcept                {}
-   virtual int get(char* buf) const noexcept                  { return 0;}
    virtual void minWith(char* buf,char* other) const noexcept {}
    virtual void maxWith(char* buf,char* other) const noexcept {}
    virtual bool diff(char* buf,char* other) const noexcept    { return false;}
-   virtual int getInt(char* buf) const noexcept               { return *reinterpret_cast<int*>(buf + _ofs);}
    int getByte(char* buf) const noexcept                      { return buf[_ofs];}
    MDDBSValue getBS(char* buf) const noexcept                 { return MDDBSValue(buf + _ofs,_bsz >> 3);}
    template <class ET>
    MDDSWin<ET> getSW(char* buf) const noexcept                { return MDDSWin<ET>(reinterpret_cast<short*>(buf + _ofs),_bsz / sizeof(ET));}
-   virtual void set(char* buf,int v) const noexcept           {}
    void setInt(char* buf,int v) const noexcept                { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void setByte(char* buf,char v) const noexcept              { buf[_ofs] = v;}
    MDDBSValue setBS(char* buf,const MDDBSValue& v) const noexcept {
@@ -537,8 +534,8 @@ public:
    MDDPInt(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
       : MDDProperty(id,ofs,4,rw),_init(init),_max(max) {}
    void init(char* buf) const noexcept override      { *reinterpret_cast<int*>(buf+_ofs) = _init;}
-   int get(char* buf) const noexcept override        { return *reinterpret_cast<int*>(buf+_ofs);}
-   void set(char* buf,int v) const noexcept override       { *reinterpret_cast<int*>(buf+_ofs) = v;}
+   int getInt(char* buf) const noexcept                    { return *reinterpret_cast<int*>(buf+_ofs);}
+   void setInt(char* buf,int v) const noexcept             { *reinterpret_cast<int*>(buf+_ofs) = v;}
    void stream(char* buf,std::ostream& os) const override { os << *reinterpret_cast<int*>(buf+_ofs);}
    void minWith(char* buf,char* other) const noexcept override {
       int* o = reinterpret_cast<int*>(buf+_ofs);
@@ -581,9 +578,9 @@ public:
       else
          buf[_ofs] &= ~_bitmask;
    }
-   int get(char* buf) const  noexcept override       { return (buf[_ofs] & _bitmask) == _bitmask;}
-   int getInt(char* buf) const  noexcept override    { return (buf[_ofs] & _bitmask) == _bitmask;}
-   void set(char* buf,int v) const noexcept override {
+   int getInt(char* buf) const  noexcept  { return (buf[_ofs] & _bitmask) == _bitmask;}
+   int getBit(char* buf) const  noexcept  { return (buf[_ofs] & _bitmask) == _bitmask;}
+   void setBit(char* buf,int v) const noexcept {
       if (v)
          buf[_ofs] |= _bitmask;
       else
@@ -628,9 +625,8 @@ public:
    MDDPByte(short id,unsigned short ofs,char init,char max,enum RelaxWith rw)
       : MDDProperty(id,ofs,1,rw),_init(init),_max(max) {}
    void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
-   int get(char* buf) const  noexcept override       { return buf[_ofs];}
-   int getInt(char* buf) const  noexcept override       { return buf[_ofs];}
-   void set(char* buf,int v) const noexcept override       { buf[_ofs] = (char)v;}
+   int getByte(char* buf) const  noexcept               { return buf[_ofs];}
+   void setByte(char* buf,int v) const noexcept        { buf[_ofs] = (char)v;}
    void stream(char* buf,std::ostream& os) const override { int v = buf[_ofs];os << v;}
    void minWith(char* buf,char* other) const noexcept override {
       buf[_ofs] = std::min(buf[_ofs],other[_ofs]);
