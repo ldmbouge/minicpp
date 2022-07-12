@@ -78,18 +78,22 @@ namespace Factory {
       for(int i=0;i<nbW;++i) tmp[i] = 0;
       
       mdd.arcExist(d,[=](const auto& parent,const auto& child,const auto& var,const auto& val) noexcept  {
-         MDDBSValue sbs = parent.down[some];
          const int ofs = val - minDom;
-         const bool notOk = parent.down[all].getBit(ofs) || (sbs.getBit(ofs) && sbs.cardinality() == parent.down[len]);
-         if (notOk) return false;
-         bool upNotOk = false,mixNotOk = false;
+         if (parent.down[all].getBit(ofs))
+            return false;
+         MDDBSValue sbs = parent.down[some];         
+         const bool notOk = sbs.getBit(ofs) && sbs.cardinality() == parent.down[len];
+         if (notOk)
+            return false;
+         if (child.up[allu].getBit(ofs))
+            return false;         
          MDDBSValue subs = child.up[someu];
-         upNotOk = child.up[allu].getBit(ofs) || (subs.getBit(ofs) && subs.cardinality() == n - parent.down[len] - 1);
-         if (upNotOk) return false;
+         const bool upNotOk = subs.getBit(ofs) && subs.cardinality() == n - parent.down[len] - 1;
+         if (upNotOk)
+            return false;
          MDDBSValue both((char*)&tmp,nbW);
          both.setBinOR(subs,sbs).set(ofs);
-         mixNotOk = both.cardinality() < n;
-         return !mixNotOk;
+         return both.cardinality() >= n;
       });
       mdd.equivalenceClassValue([some,all,len](const auto& down, const auto& up) -> int {
          return (down[some].cardinality() - down[all].cardinality() < down[len]/2);

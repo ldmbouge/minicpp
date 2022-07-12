@@ -52,7 +52,7 @@ std::string tab(int d) {
    return s;
 }
 
-void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
+void buildModel(CPSolver::Ptr cp, int relaxSize, int mode,int maxRebootDistance)
 {
    // mode: 0 (standard alldiff), 1 (AC alldiff), 2 (MDD), 3 (AC + MDD)
 
@@ -77,7 +77,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
    int N = 20;
    int D = 0; // set later, to minimum Alldiff scope
    int NbCliques = 12;
-
+   int ttlSize = 0;
    // initialize random seed
    srand(666);
    
@@ -86,29 +86,25 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
    /*** This part is used to generate random cliques ***/
    for (int i=0; i<NbCliques; i++) {
      set<int> C;
-     // for (int j=0; j<N; j++) {
-     //   // include variable with some probability 
-     //   auto v = rand() % 100;
-     //   if (v < 60) {
-     // 	 C.insert(j);
-     //   }
-     // }
      for (int j=i; j<=i+N-NbCliques; j++) {
-       // include variables from staggered interval (best case scenario for MDDs)
-       auto v = rand() % 100;
-       if (v < 75) {
-     	 C.insert(j);
-	 isUsed[j] = true;
-       }
+        // include variables from staggered interval (best case scenario for MDDs)
+        auto v = rand() % 100;
+        if (v < 75) {
+           C.insert(j);
+           isUsed[j] = true;
+        }
      }
      if (C.size() <= 1) i--;
      else {
-       std::cout << "clique " << i << ": " << C << std::endl;
-       Cliques.push_back(C);
+        std::cout << "clique " << i << ": " << C << std::endl;
+        Cliques.push_back(C);
+        ttlSize += C.size();
      }
-
+     
      if (D < (int)C.size()) D = (int)C.size();
-   }   
+   }
+   float avgSz = round((float)ttlSize / NbCliques);
+   std::cout << "AVG:" << avgSz <<  "\n";
 
    // // Hard-coded instance
    // set<int> C = {0,1,2,5,6};
@@ -160,10 +156,13 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
    }
    if ((mode == 2) || (mode==3)) {
      std::cout << "MDD-AllDiff" << std::endl;      
-     mdd = new MDDRelax(cp,relaxSize);
+     mdd = new MDDRelax(cp,relaxSize,avgSz);
      for (int i=0; i<NbCliques; i++) {
        auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
-       mdd->post(Factory::allDiffMDD(adv));
+       if (mode == 2)
+          mdd->post(Factory::allDiffMDD(adv));
+       else 
+          mdd->post(Factory::allDiffMDD2(adv));
      }
      cp->post(mdd);
    }
@@ -182,8 +181,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode)
       */   
        if (x) {
 	 int c = x->min();
-         //int i = x->getId();
-          
+         //int i = x->getId();          
          return  [=] {
                     //cout << tab(i) << "?x(" << i << ") == " << c << endl;
                     cp->post(x == c);
@@ -217,6 +215,7 @@ int main(int argc,char* argv[])
 {
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 0;
+   int maxRebootDistance  = (argc >= 4 && strncmp(argv[3],"-r",2)==0) ? atoi(argv[3]+2) : 0;
 
    // mode: 0 (standard alldiff), 1 (AC alldiff), 2 (MDD), 3 (AC + MDD)
    
@@ -224,7 +223,7 @@ int main(int argc,char* argv[])
    std::cout << "mode = " << mode << std::endl;
    try {
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp, width, mode);
+      buildModel(cp, width, mode,maxRebootDistance);
    } catch(Status s) {
       std::cout << "model infeasible during post" << std::endl;
    } catch (std::exception& e) {

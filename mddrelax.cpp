@@ -67,10 +67,10 @@ void MDDRelax::buildDiagram()
    std::cout << "MDDRelax::buildDiagram" << '\n';
    _mddspec.layout();
    _mddspec.compile();
-   _deltaDown = new MDDDelta(_nf,_mddspec.sizeDown(),Down);
-   _deltaUp = new MDDDelta(_nf,_mddspec.sizeUp(),Up);
-   _deltaCombinedDown = new MDDDelta(_nf,_mddspec.sizeCombined(),Bi);
-   _deltaCombinedUp = new MDDDelta(_nf,_mddspec.sizeCombined(),Bi);
+   _deltaDown = new MDDDelta(_mddspec,_nf,_mddspec.sizeDown(),Down);
+   _deltaUp = new MDDDelta(_mddspec,_nf,_mddspec.sizeUp(),Up);
+   _deltaCombinedDown = new MDDDelta(_mddspec,_nf,_mddspec.sizeCombined(),Bi);
+   _deltaCombinedUp = new MDDDelta(_mddspec,_nf,_mddspec.sizeCombined(),Bi);
 
    _fwd = new (mem) MDDFQueue(numVariables+1);
    _bwd = new (mem) MDDBQueue(numVariables+1);
@@ -566,8 +566,8 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
             int nbk = (int)n->getNumChildren();
             bool keepArc[nbk];
             unsigned idx = 0,cnt = 0;
+            MDDPack pack(*ms,n->getUpState(),n->getCombinedState());
             for(auto ca : n->getChildren()) {
-               MDDPack pack(*ms,n->getUpState(),n->getCombinedState());
                cnt += keepArc[idx++] = _mddspec.exist(pack,ca->getChild()->pack(),x[l],ca->getValue());
             }
             if (cnt == 0) {

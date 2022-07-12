@@ -382,8 +382,6 @@ bool MDDSpec::exist(const MDDPack& parent,
                     const MDDPack& child,
                     const var<int>::Ptr& x,int v) const noexcept
 {
-   //std::cout << "DOWN:" << pDown << "\n";
-   //std::cout << "COMB:" << pCombined << "\n";
    ++nbAECall;
    bool arcOk = true;
    for(const auto& exist : _scopedExists[x->getId()]) {
@@ -471,9 +469,9 @@ void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,std::set<MDDPr
 
 MDDState MDDSpec::rootState(Storage::Ptr& mem)
 {
-   MDDState rootState(this,(char*)mem->allocate(layoutSizeDown()),Down);
+   MDDState rootState(this,(char*)mem->allocate(layoutSizeDown()),Down);   
    for(size_t k=0;k < sizeDown();k++)
-      rootState.init(k);
+      rootState.init(_attrsDown[k]);
    //std::cout << "ROOT:" << rootState << std::endl;
    return rootState;
 }
@@ -484,7 +482,7 @@ MDDState MDDSpec::sinkState(Storage::Ptr& mem)
    if (layoutSizeUp()) {
      sinkState = MDDState(this,(char*)mem->allocate(layoutSizeUp()),Up);
      for(size_t k=0;k < sizeUp();k++)
-        sinkState.init(k);
+        sinkState.init(_attrsUp[k]);
    } else sinkState = MDDState(this, nullptr, Up);
    return sinkState;
 }
@@ -494,6 +492,33 @@ void MDDSpec::reachedFixpoint(const MDDState& sinkDown,const MDDState& sinkUp,co
 {
    for(auto& fix : _onFix)
       fix(sinkDown,sinkUp,sinkCombined);
+}
+
+void MDDStateSpec::printState(std::ostream& os,const MDDState* sPtr) const noexcept
+{
+   int n = 0;
+   MDDProperty::Ptr* pa = nullptr;
+   switch(sPtr->_dir) {
+      case Down:
+         n = _nbpDown;
+         pa = _attrsDown;
+         break;
+      case Up:
+         n = _nbpUp;
+         pa = _attrsUp;
+         break;
+      case Bi:
+         n = _nbpCombined;
+         pa = _attrsCombined;
+      default:
+         break;
+   }
+   os << (sPtr->_flags._relax ? 'T' : 'F') << '[';
+   for(int p=0;p < n;++p) {
+      pa[p]->stream(sPtr->_mem,os);
+      os << ' ';
+   }
+   os << ']';  
 }
 
 void LayerDesc::zoning(const MDDSpec& spec)
@@ -719,7 +744,7 @@ void MDDSpec::incrStateDown(const MDDPropSet& out,MDDState& result,const MDDPack
       if (tid != -1)
          _downTransition[tid](result,parent,var,v); // actual transition
       else 
-         result.setProp(p,parent.down); // frame axiom
+         result.setProp(_attrsDown[p],parent.down); // frame axiom
    }
    result.relax(parent.down.isRelaxed() || v.size() > 1);
 }
@@ -728,8 +753,8 @@ void MDDSpec::relaxationDown(MDDState& a,const MDDState& b) const noexcept
 {
    for(auto p : _defaultDownRelax) {
       switch(_attrsDown[p]->relaxFun()) {
-         case MinFun: a.minWith(p,b);break;
-         case MaxFun: a.maxWith(p,b);break;
+         case MinFun: _attrsDown[p]->minWith(a._mem,b._mem); //a.minWith(p,b);break;
+         case MaxFun: _attrsDown[p]->maxWith(a._mem,b._mem); // a.maxWith(p,b);break;
          case External: break;
       }
    }
@@ -742,8 +767,8 @@ void MDDSpec::relaxationUp(MDDState& a,const MDDState& b) const noexcept
 {
    for(auto p : _defaultUpRelax) {
       switch(_attrsUp[p]->relaxFun()) {
-         case MinFun: a.minWith(p,b);break;
-         case MaxFun: a.maxWith(p,b);break;
+         case MinFun: _attrsUp[p]->minWith(a._mem,b._mem); //a.minWith(p,b);break;
+         case MaxFun: _attrsUp[p]->maxWith(a._mem,b._mem); // a.maxWith(p,b);break;
          case External: break;
       }
    }
@@ -756,8 +781,8 @@ void MDDSpec::relaxationDownIncr(const MDDPropSet& out,MDDState& a,const MDDStat
 {
    for(auto p : out) {
       switch(_attrsDown[p]->relaxFun()) {
-         case MinFun: a.minWith(p,b);break;
-         case MaxFun: a.maxWith(p,b);break;
+         case MinFun: _attrsDown[p]->minWith(a._mem,b._mem); //a.minWith(p,b);break;
+         case MaxFun: _attrsDown[p]->maxWith(a._mem,b._mem); // a.maxWith(p,b);break;
          case External:
             _downRelaxation[_attrsDown[p]->getRelax()](a,a,b);
             break;
@@ -770,8 +795,8 @@ void MDDSpec::relaxationUpIncr(const MDDPropSet& out,MDDState& a,const MDDState&
 {
    for(auto p : out) {
       switch(_attrsUp[p]->relaxFun()) {
-         case MinFun: a.minWith(p,b);break;
-         case MaxFun: a.maxWith(p,b);break;
+         case MinFun: _attrsUp[p]->minWith(a._mem,b._mem); //a.minWith(p,b);break;
+         case MaxFun: _attrsUp[p]->maxWith(a._mem,b._mem); // a.maxWith(p,b);break;
          case External:
             _upRelaxation[_attrsUp[p]->getRelax()](a,a,b);
             break;
@@ -797,7 +822,7 @@ void MDDSpec::incrStateUp(const MDDPropSet& out,MDDState& target,const MDDPack& 
       if (tid != -1)
          _upTransition[tid](target,child,var,v); // actual transition
       else 
-         target.setProp(p,child.up); // frame axiom
+         target.setProp(_attrsUp[p],child.up); // frame axiom
    }
    target.relax(child.up.isRelaxed() || v.size() > 1);
 }

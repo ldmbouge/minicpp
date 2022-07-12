@@ -293,13 +293,13 @@ class MDDBSValue {
    const  short        _nbw;
 public:
    MDDBSValue(char* buf,short nbw)
-      : _buf(reinterpret_cast<unsigned long long*>(buf)),_nbw(nbw) {}
+      : _buf((unsigned long long*)(buf)),_nbw(nbw) {}
    MDDBSValue(const MDDBSValue& v)
       : _buf(v._buf),_nbw(v._nbw) {}
    MDDBSValue(MDDBSValue&& v) : _buf(v._buf),_nbw(v._nbw) { v._buf = nullptr;}
    short nbWords() const noexcept { return _nbw;}
    MDDBSValue& operator=(const MDDBSValue& v) noexcept {
-      for(int i=0;i <_nbw;i++)
+      for(int i=0;i <_nbw;++i)
          _buf[i] = v._buf[i];
       assert(_nbw == v._nbw);
       return *this;
@@ -393,13 +393,13 @@ public:
 
    friend bool operator==(const MDDBSValue& a,const MDDBSValue& b) {
       bool eq = a._nbw == b._nbw;
-      for(short i = 0 ;eq && i < a._nbw;i++)
+      for(short i = 0 ;eq && i < a._nbw;++i)
          eq = a._buf[i] == b._buf[i];
       return eq;
    }
    friend bool operator!=(const MDDBSValue& a,const MDDBSValue& b) {
       bool eq = a._nbw == b._nbw;
-      for(short i = 0 ;eq && i < a._nbw;i++)
+      for(short i = 0 ;eq && i < a._nbw;++i)
          eq = a._buf[i] == b._buf[i];
       return !eq;
    }
@@ -867,7 +867,8 @@ public:
          out.unionWith(_omapUpToCombined[p]);
    }
    friend class MDDState;
-   friend std::ostream& operator<<(std::ostream& os,const MDDState& s);
+   friend class MDDDelta;
+   void printState(std::ostream& os,const MDDState* sPtr) const noexcept;    
 };
 
 inline std::ostream& operator<<(std::ostream& os,MDDProperty::Ptr p)
@@ -906,6 +907,18 @@ public:
    MDDPropValue<MDDPInt>& operator=(const MDDPropValue<MDDPInt>& v) noexcept { _p->setInt(_mem,v);return *this;}
    MDDPropValue<MDDPInt>& operator=(const int& v) noexcept { _p->setInt(_mem,v);return *this;}
    operator int() const { return _p->getInt(_mem);}
+};
+
+template <> class MDDPropValue<MDDPByte> {
+   MDDPByte::Ptr  _p;
+   char*        _mem;
+public:
+   MDDPropValue<MDDPByte>(MDDPByte::Ptr p,char* mem): _p(p),_mem(mem) {}
+   MDDPropValue<MDDPByte>& operator=(const MDDPropValue<MDDPByte>& v) noexcept { _p->setInt(_mem,v);return *this;}
+   MDDPropValue<MDDPByte>& operator=(const char v) noexcept { _p->setByte(_mem,v);return *this;}
+   MDDPropValue<MDDPByte>& operator=(const int& v) noexcept { _p->setByte(_mem,v);return *this;}
+   operator char() const { return _p->getByte(_mem);}
+   operator int()  const { return _p->getByte(_mem);}
 };
 
 template <> class MDDPropValue<MDDPSWindow<short>> {
@@ -960,8 +973,6 @@ public:
    MDDState(MDDStateSpec* s,char* b,int hash,enum Direction dir,const Flags& f) 
       : _spec(s),_mem(b),_hash(hash),_dir(dir),_flags(f)
    {
-      //auto sz = _spec->layoutSize(_dir);
-      //memset(b,0,sz);
    }
    MDDState(const MDDState& s) 
       : _spec(s._spec),_mem(s._mem),_hash(s._hash),_dir(s._dir),_flags(s._flags) {}
@@ -1006,47 +1017,29 @@ public:
    }
    template <class Allocator>
    MDDState clone(Allocator pool) const {
-      char* block = (_spec && _spec->layoutSize(_dir)) ? new (pool) char[_spec->layoutSize(_dir)] : nullptr;
-      if (_spec && _spec->layoutSize(_dir))  memcpy(block,_mem,_spec->layoutSize(_dir));
+      const size_t sz = _spec ? _spec->layoutSize(_dir) : 0;
+      char* block = sz ? new (pool) char[sz] : nullptr;
+      if (sz)  memcpy(block,_mem,sz);
       return MDDState(_spec,block,_hash,_dir,_flags);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize(_dir);}
-   const MDDProperty::Ptr propAt(int i) const noexcept {
-      switch (_dir) {
-         case Down: return _spec->_attrsDown[i]; break;
-         case Up: return _spec->_attrsUp[i]; break;
-         case Bi: return _spec->_attrsCombined[i]; break;
-         default: return nullptr; break;
-      }
-   }
-   int nbp() const noexcept {
-      switch (_dir) {
-         case Down: return _spec->_nbpDown; break;
-         case Up: return _spec->_nbpUp; break;
-         case Bi: return _spec->_nbpCombined; break;
-         default: return -1; break;
-      }
-   }
-   void init(int i) const  noexcept                                { propAt(i)->init(_mem); }
+   void init(MDDProperty::Ptr i) const  noexcept                   { i->init(_mem); }
    auto operator[](MDDPBitSequence::Ptr i) noexcept                { return MDDPropValue<MDDPBitSequence>(i,_mem);}
    const auto operator[](MDDPBitSequence::Ptr i) const noexcept    { return MDDPropValue<MDDPBitSequence>(i,_mem);}
    auto operator[](MDDPInt::Ptr i) noexcept                        { return MDDPropValue<MDDPInt>(i,_mem);}
    const auto operator[](MDDPInt::Ptr i) const noexcept            { return MDDPropValue<MDDPInt>(i,_mem);}
+   auto operator[](MDDPByte::Ptr i) noexcept                       { return MDDPropValue<MDDPByte>(i,_mem);}
+   const auto operator[](MDDPByte::Ptr i) const noexcept           { return MDDPropValue<MDDPByte>(i,_mem);}
    auto operator[](MDDPSWindow<short>::Ptr i) noexcept             { return MDDPropValue<MDDPSWindow<short>>(i,_mem);}
    const auto operator[](MDDPSWindow<short>::Ptr i) const noexcept { return MDDPropValue<MDDPSWindow<short>>(i,_mem);}
-   
-   int byte(int i) const noexcept  { return propAt(i)->getByte(_mem); } // old style. to be redone.
-   
-   void setProp(int i,const MDDState& from) noexcept { propAt(i)->setProp(_mem,from._mem); } // (fast)
-   int byteSize(int i) const noexcept { return propAt(i)->size(); }
-   void copyZone(const Zone& z,const MDDState& in) noexcept { z.copy(_mem,in._mem);}
+      
+   void setProp(MDDProperty::Ptr i,const MDDState& from) noexcept  { i->setProp(_mem,from._mem); } // (fast)
+   void copyZone(const Zone& z,const MDDState& in) noexcept        { z.copy(_mem,in._mem);}
    void clear() noexcept                { _flags._relax = false;_flags._hashed=false;}
    void zero() noexcept                 { memset(_mem, 0, _spec->layoutSize(_dir)); }
    bool isRelaxed() const noexcept      { return _flags._relax;}
    void relax(bool r = true) noexcept   { _flags._relax = r;}
-   void minWith(int i,const MDDState& s) const noexcept { propAt(i)->minWith(_mem,s._mem);}
-   void maxWith(int i,const MDDState& s) const noexcept { propAt(i)->maxWith(_mem,s._mem);}
    int hash() const noexcept {
       if (_flags._hashed)
          return _hash;
@@ -1072,26 +1065,13 @@ public:
    bool operator!=(const MDDState& s) const {
       return ! this->operator==(s);
    }
-   void diffWith(const MDDState& s,MDDPropSet& into) const {
-      for(int p=0;p < nbp();++p)
-         if (s.propAt(p)->diff(_mem,s._mem))
-            into.setProp(p);
-   }
-   void diffWith(const MDDPropSet& ps,const MDDState& s,MDDPropSet& into) const {
-      for(auto p : ps)
-         if (s.propAt(p)->diff(_mem,s._mem))
-            into.setProp(p);
-   }
    friend std::ostream& operator<<(std::ostream& os,const MDDState& s) {
-      os << (s._flags._relax ? 'T' : 'F') << '[';
-      for(int p=0;p < s.nbp();p++) {
-         auto atr = s.propAt(p);
-         atr->stream(s._mem,os);
-         os << ' ';
-      }
-      return os << ']';
+      s._spec->printState(os,&s);
+      return os;
    }
+   friend class MDDStateSpec;
    friend class MDDSpec;
+   friend class MDDDelta;
 };
 
 struct MDDPack {
@@ -1211,11 +1191,6 @@ public:
          if(std::find(x.cbegin(),x.cend(),e) == x.cend())
             x.push_back(e);
    }
-   // template <class Container> void addGlobal(const Container& y) {
-   //    for(auto e : y)
-   //       if(std::find(z.cbegin(),z.cend(),e) == z.cend())
-   //          z.push_back(e);
-   // }
    void addGlobal(std::initializer_list<var<int>::Ptr> y) {
       for(auto e : y)
          if(std::find(z.cbegin(),z.cend(),e) == z.cend())
