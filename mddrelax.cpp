@@ -51,6 +51,7 @@ MDDRelax::MDDRelax(CPSolver::Ptr cp,int width,int maxDistance,int maxSplitIter,b
    _deltaCombinedUp = nullptr;
    _nf->setWidth(width);
    _mddspec.setConstraintPrioritySize(maxConstraintPriority + 1);
+   _mddspec.setWidth(_width);
 }
 
 const MDDState& MDDRelax::pickReference(int layer,int layerSize)

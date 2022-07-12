@@ -62,9 +62,9 @@ MDD::MDD(CPSolver::Ptr cp)
    mem = new Storage(trail);
    setPriority(Constraint::CLOW);
    _posting = true;
-   _nf = new (mem) MDDNodeFactory(mem,trail,std::numeric_limits<int>::max());
-   _sf = new (mem) MDDStateFactory(&_mddspec);
    _mddspec.setConstraintPrioritySize(1);
+   _nf = new (mem) MDDNodeFactory(mem,trail,std::numeric_limits<int>::max());
+   _sf = nullptr;
 }
 
 void MDD::post(MDDCstrDesc::Ptr cDesc)
@@ -80,6 +80,8 @@ void MDD::post()
    _mddspec.varOrder();
    x = _mddspec.getVars();
    z = _mddspec.getGlobals();
+   _sf = new (mem) MDDStateFactory(&_mddspec);
+
    numVariables = (unsigned int) x.size();
    layers = std::vector<TVec<MDDNode*>>(numVariables+1);
    for(auto i = 0u; i < numVariables+1; i++)

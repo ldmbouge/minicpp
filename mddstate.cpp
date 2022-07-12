@@ -873,8 +873,8 @@ int hitCSUp = 0;
 MDDStateFactory::MDDStateFactory(MDDSpec* spec)
    : _mddspec(spec),
      _mem(new Pool()),
-     _downHash(_mem,300149),
-     _upHash(_mem,300149),
+     _downHash(_mem,300149),//spec->nodeUB()*10),
+     _upHash(_mem,300149),//spec->nodeUB()*10),
      _mark(_mem->mark()),
      _enabled(false)
 {

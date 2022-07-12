@@ -797,11 +797,14 @@ protected:
    size_t _lszUp;
    size_t _lszCombined;
    enum RelaxWith _relax;
+   size_t _width;
    void addDownProperty(MDDProperty::Ptr p) noexcept;
    void addUpProperty(MDDProperty::Ptr p) noexcept;
    void addCombinedProperty(MDDProperty::Ptr p) noexcept;
 public:
    MDDStateSpec();
+   void setWidth(size_t w) { _width = w;}
+   size_t getWidth() const { return _width;}
    const auto layoutSizeDown() const noexcept { return _lszDown;}
    const auto layoutSizeUp() const noexcept { return _lszUp;}
    const auto layoutSizeCombined() const noexcept { return _lszCombined;}
@@ -862,6 +865,7 @@ public:
       for(auto p : up)
          out.unionWith(_omapUpToCombined[p]);
    }
+   virtual size_t nodeUB() const = 0;
    friend class MDDState;
    friend class MDDDelta;
    void printState(std::ostream& os,const MDDState* sPtr) const noexcept;    
@@ -1128,6 +1132,7 @@ public:
    MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
    MDDPSWindow<short>::Ptr upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
    MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
+   size_t nodeUB() const override { return x.size() * getWidth() * 2;}
 
    void nodeExist(NodeFun a);
    void arcExist(const MDDCstrDesc::Ptr d,ArcFun a);
