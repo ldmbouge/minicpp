@@ -728,7 +728,7 @@ void MDDSpec::compile()
 void MDDSpec::fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
    result.clear();
-   result.zero();
+   //result.zero(); // [ldm] We are doing the full state. Why reset to zero?
    _frameLayer[l].frameDown(result,parent.down);
    for(const auto& t : _transLayer[l])
       t(result,parent,var,v);
@@ -875,13 +875,18 @@ int hitCSUp = 0;
 MDDStateFactory::MDDStateFactory(MDDSpec* spec)
    : _mddspec(spec),
      _mem(new Pool()),
-     _downHash(_mem,300149),//spec->nodeUB()*10),
-     _upHash(_mem,300149),//spec->nodeUB()*10),
+     _downHash(_mem,spec->nodeUB()*100),
+     _upHash(_mem,spec->nodeUB()*100),
      _mark(_mem->mark()),
      _enabled(false)
 {
 }
 
+MDDState* MDDStateFactory::createCombinedState()
+{
+  MDDState* cs = new (_mem) MDDState(_mddspec,(char*)_mem->allocate(_mddspec->layoutSizeCombined()),Bi);
+  return cs;
+}
 
 //void MDDStateFactory::createState(MDDState& result,const MDDState& pDown,const MDDState& pCombined,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up)
 //{

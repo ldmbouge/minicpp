@@ -37,37 +37,42 @@ public:
 };
 
 class MDDDelta {
-   MDDSpec&       _spec;
+   MDDSpec*       _spec;
    MDDNodeFactory*  _nf;
    Pool::Ptr      _pool;
    MDDStateDelta**   _t;
    int             _csz;
    MDDStateDelta _empty;
-   enum Direction  _dir;
+   const enum Direction  _dir;
+   const int _np; // number of properties
+   const MDDProperty::Ptr* _pa; // property array
    void adaptDelta();
-public:
-   MDDDelta(MDDSpec& spec,MDDNodeFactory* nf,int nb,enum Direction dir)
-      : _spec(spec),_nf(nf),_pool(new Pool),
-        _t(nullptr),_csz(0),
-        _empty(nullptr,new long long[propNbWords(nb)],nb),
-        _dir(dir)
-   {}
-   const MDDProperty::Ptr propAt(int i) const noexcept {
-      switch (_dir) {
-         case Down: return _spec._attrsDown[i]; break;
-         case Up: return _spec._attrsUp[i]; break;
-         case Bi: return _spec._attrsCombined[i]; break;
+   static int nbProps(MDDSpec& spec,const enum Direction dir) {
+      switch (dir) {
+         case Down: return spec._nbpDown;
+         case Up: return spec._nbpUp;
+         case Bi: return spec._nbpCombined;
+         default: return -1;
+      }
+   }
+   static const MDDProperty::Ptr* propArray(MDDSpec& spec,const enum Direction dir) {
+      switch (dir) {
+         case Down: return spec._attrsDown;
+         case Up: return spec._attrsUp;
+         case Bi: return spec._attrsCombined;
          default: return nullptr; break;
       }
    }
-   int nbp() const noexcept {
-      switch (_dir) {
-         case Down: return _spec._nbpDown; break;
-         case Up: return _spec._nbpUp; break;
-         case Bi: return _spec._nbpCombined; break;
-         default: return -1; break;
-      }
-   }
+public:
+   MDDDelta(MDDSpec& spec,MDDNodeFactory* nf,int nb,enum Direction dir)
+      : _spec(&spec),
+        _nf(nf),_pool(new Pool),
+        _t(nullptr),_csz(0),
+        _empty(nullptr,new long long[propNbWords(nb)],nb),
+        _dir(dir),
+        _np(nbProps(spec,dir)),
+        _pa(propArray(spec,dir))
+   {}
    void clear() {
       _pool->clear();
       memset(_t,'\0',sizeof(MDDStateDelta*)*_csz);
@@ -84,8 +89,9 @@ public:
       if (_nf->peakNodes() > _csz) adaptDelta();
       auto& entry = _t[n->getId()];
       if (entry == nullptr) {
-         MDDStateSpec* spec =  stateFrom(n)->getSpec();
-         entry = new (_pool) MDDStateDelta(spec,new (_pool) long long[propNbWords(spec->size(_dir))],spec->size(_dir));
+         entry = new (_pool) MDDStateDelta(_spec,
+                                           new (_pool) long long[propNbWords(_spec->size(_dir))],
+                                           _spec->size(_dir));
       } else
          entry->clear();
       return entry;
@@ -93,18 +99,16 @@ public:
    void setDelta(MDDNode* n,const MDDState& ns) {      
       auto entry = makeDelta(n);
       const MDDState* nState = stateFrom(n);
-      for(int p=0;p < nbp();++p)
-         if (propAt(p)->diff(nState->_mem,ns._mem))
+      for(int p=0;p < _np;++p)
+         if (_pa[p]->diff(nState->_mem,ns._mem))
             entry->setProp(p);                             
-      //stateFrom(n)->diffWith(ns,*entry);
    }
    void setDelta(MDDNode* n,const MDDState& ns,const MDDPropSet& ps) {
       auto entry = makeDelta(n);
       const MDDState* nState = stateFrom(n);
       for(auto p : ps)
-         if (propAt(p)->diff(nState->_mem,ns._mem))
+         if (_pa[p]->diff(nState->_mem,ns._mem))
             entry->setProp(p);
-      //stateFrom(n)->diffWith(ps,ns,*entry);
    }
    const MDDStateDelta& getDelta(MDDNode* n) {
       if (n->getId() >= _csz)

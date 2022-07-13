@@ -268,34 +268,38 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    }
    aggregateValueSet(n);
    const bool parentsChanged = n->parentsChanged();
-
-   MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSizeDown()),Down);
-   MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSizeDown()),Down);
-
+   const int stateSZInBytes = _mddspec.layoutSizeDown();
+   const int cDownSZInWords = propNbWords(_mddspec.sizeDown());
+   const int cCombSZInWords = propNbWords(_mddspec.sizeCombined());
+   const int cDownSZInBytes = cDownSZInWords * sizeof(long long);
+   const int cCombSZInBytes = cCombSZInWords * sizeof(long long);
+   char* block = (char*)alloca(stateSZInBytes*2 + cDownSZInBytes * 2 + cCombSZInBytes);
+   char* csBL = block;
+   char* msBL = block+stateSZInBytes;
+   char* psDBL = msBL+stateSZInBytes;
+   char* psCBL = psDBL+cDownSZInBytes;
+   char* outBL = psCBL+cCombSZInBytes;
+   MDDState cs(&_mddspec,csBL,Down);
+   MDDState ms(&_mddspec,msBL,Down);
    // Causes of "parentsChanged":
    // (1) arc removal, (2) arc addition to an existing parent, (3) arc addition to a new parent node.
    // Causes of changes != empty:
    // at least one Parent state is different.
-   MDDPropSet out;
-
+   MDDPropSet out((long long*)outBL,_mddspec.sizeDown());
    if (parentsChanged) {
       fullStateDown(ms,cs,l);
       n->resetParentsChanged();
    } else  {
-      MDDPropSet changesDown((long long*)alloca(sizeof(long long)*propNbWords(_mddspec.sizeDown())),_mddspec.sizeDown());
-      MDDPropSet changesCombined((long long*)alloca(sizeof(long long)*propNbWords(_mddspec.sizeCombined())),_mddspec.sizeCombined());
+      MDDPropSet changesDown((long long*)psDBL,_mddspec.sizeDown());
+      MDDPropSet changesCombined((long long*)psCBL,_mddspec.sizeCombined());
       for(auto& a : n->getParents()) {
-         changesDown.unionWith(_deltaDown->getDelta(a->getParent()));
-         changesCombined.unionWith(_deltaCombinedDown->getDelta(a->getParent()));
-         changesCombined.unionWith(_deltaCombinedUp->getDelta(a->getParent()));
+         auto parent = a->getParent();
+         changesDown.unionWith(_deltaDown->getDelta(parent));
+         changesCombined.unionWith(_deltaCombinedDown->getDelta(parent));
+         changesCombined.unionWith(_deltaCombinedUp->getDelta(parent));
       }
-      out = MDDPropSet((long long*)alloca(sizeof(long long)*changesDown.nbWords()),changesDown.nbProps());
       _mddspec.outputSetDown(out,changesDown,changesCombined);
       incrStateDown(out,ms,cs,n,l);
-      //MDDState csFull(&_mddspec,(char*)alloca(_mddspec.layoutSizeDown()),Down);
-      //MDDState msFull(&_mddspec,(char*)alloca(_mddspec.layoutSizeDown()),Down);
-      //fullStateDown(msFull,csFull,l);
-      //if (ms != msFull) std::cout << ms << " =/= " << msFull << "\n";
    }
    bool changed = n->getDownState() != ms;
    if (changed) {
@@ -568,21 +572,21 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
                if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
                if (lowest < l) break; // do not go on splitting. We've been told to reboot. Cut to the chase.
             } else {
-               MDDState* combined = new MDDState(&_mddspec,(char*)mem->allocate(_mddspec.layoutSizeCombined()),Bi);
+               MDDState* combined = _sf->createCombinedState();
                if (_mddspec.usesCombined()) {
-                 combined->copyState(n->getCombinedState());
-                 MDDPack pack(*ms, upState, *combined);
-                 _mddspec.updateNode(*combined, pack);
-                 if (!_mddspec.consistent(pack)) {
-                   foundNonviableCandidate = true;
-                   pruneCS++;               
-                   p->unhook(a);
-                   if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
-                   delSupport(l-1,v);
-                   removeArc(l-1,l,a.get());
-                   if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-                   continue;
-                 }
+                  combined->copyState(n->getCombinedState());
+                  MDDPack pack(*ms, upState, *combined);
+                  _mddspec.updateNode(*combined, pack);
+                  if (!_mddspec.consistent(pack)) {
+                     foundNonviableCandidate = true;
+                     pruneCS++;               
+                     p->unhook(a);
+                     if (p->getNumChildren()==0) lowest = std::min(lowest,delState(p,l-1));
+                     delSupport(l-1,v);
+                     removeArc(l-1,l,a.get());
+                     if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
+                     continue;
+                  }
                }
                splitter.addPotential(_pool,n,nbParents,p,a,ms,combined,v,nbk,(bool*)keepArc,0);
             }
@@ -665,7 +669,7 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
          }
          foundNonviableClass = true;
       } else {
-         MDDState* combined = new MDDState(&_mddspec,(char*)mem->allocate(_mddspec.layoutSizeCombined()),Bi);
+         MDDState* combined = _sf->createCombinedState();
          if (_mddspec.usesCombined()) {
            combined->copyState(n->getCombinedState());
            MDDPack pack(*ms, upState, *combined);
@@ -767,7 +771,7 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
          }
          foundNonviableClass = true;
       } else {
-         MDDState* combined = new MDDState(&_mddspec,(char*)mem->allocate(_mddspec.layoutSizeCombined()),Bi);
+         MDDState* combined = _sf->createCombinedState();
          if (_mddspec.usesCombined()) {
            combined->copyState(n->getCombinedState());
            MDDPack pack(*ms, upState, *combined);

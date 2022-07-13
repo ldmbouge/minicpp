@@ -1270,6 +1270,7 @@ class MDDStateFactory {
    bool          _enabled;
 public:
    MDDStateFactory(MDDSpec* spec);
+   MDDState* createCombinedState();
    void createStateDown(MDDState& result,const MDDPack& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
    void createStateUp(MDDState& result,const MDDPack& child,int layer,const var<int>::Ptr x,const MDDIntSet& vals);
    void splitState(MDDState*& result,MDDNode* n,const MDDPack& parent,int layer,const var<int>::Ptr x,int val);
