@@ -30,7 +30,6 @@
 #endif
 #include <limits>
 #include "hashtable.hpp"
-//#include "xxhash.hpp"
 #define XXH_INLINE_ALL
 #include "xxhash.h"
 
