@@ -613,14 +613,11 @@ int main(int argc,char* argv[])
    std::cout << "weeklyWorkConstraintPriority = " << weeklyWorkConstraintPriority << std::endl;
    std::cout << "sameMDD = " << sameMDD << std::endl;
    
-   try {
+   TRYFAIL
       CPSolver::Ptr cp  = Factory::makeSolver();
       buildModel(cp, width, mode, maxRebootDistance, maxSplitIter, constraintSet, horizonSize, nodePriority, nodePriorityAggregateStrategy, candidatePriority, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, approxEquivMode, equivalenceThreshold, maxWorkConstraintPriority, minWorkConstraintPriority, weeklyWorkConstraintPriority, sameMDD);
-   } catch(Status s) {
+   ONFAIL
       std::cout << "model infeasible during post" << std::endl;
-   } catch (std::exception& e) {
-      std::cerr << "Unable to find the file" << std::endl;
-   }
-
+   ENDFAIL
    return 0;   
 }

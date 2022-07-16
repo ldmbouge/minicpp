@@ -884,7 +884,9 @@ MDDStateFactory::MDDStateFactory(MDDSpec* spec)
 
 MDDState* MDDStateFactory::createCombinedState()
 {
-  MDDState* cs = new (_mem) MDDState(_mddspec,(char*)_mem->allocate(_mddspec->layoutSizeCombined()),Bi);
+  size_t lSz = _mddspec->layoutSizeCombined();
+  char* block = (lSz==0) ? nullptr : (char*)_mem->allocate(lSz);
+  MDDState* cs = new (_mem) MDDState(_mddspec,block,Bi);
   return cs;
 }
 
