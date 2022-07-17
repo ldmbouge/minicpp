@@ -80,7 +80,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Vec& vars, int N, int L, int U, const s
 }
 
 MDDRelax* newMDDRelax(CPSolver::Ptr cp, int relaxSize, int maxRebootDistance, int maxSplitIter, int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact, int maxPriority) {
-   auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance, relaxSize * maxSplitIter, approxThenExact, maxPriority);
+   auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance, maxSplitIter, approxThenExact, maxPriority);
    if (useApproxEquiv) {
       mdd->getSpec().useApproximateEquivalence();
    }
