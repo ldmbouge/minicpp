@@ -222,7 +222,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width)
    matrix<Vecb, var<bool>::Ptr, 2> setup(cp->getStore(),{nbC, nbO});
    using namespace std;
    cout << line << endl;
-   auto mdd = new MDDRelax(cp,width);
+   auto mdd = Factory::makeMDDRelax(cp,width);
    for(int o = 0; o < nbO;o++) {
       auto vl = slice<var<int>::Ptr>(0,in.nbCars(),[&line,o](int i) { return isEqual(line[i],o);});
       cout << vl << endl;

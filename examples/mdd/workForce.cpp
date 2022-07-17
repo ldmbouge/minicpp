@@ -235,27 +235,39 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    for (unsigned int i=0; i<emp.size(); i++) {
      int tmpMax = 0;
      for (int j=emp[i]->min(); j<=emp[i]->max(); j++) {
-       if (compat[i][j] > tmpMax) { tmpMax = compat[i][j]; }
+        tmpMax = std::max(tmpMax,compat[i][j]);
      }
      zUB += tmpMax;
    }
    cout << "zUB = " << zUB << endl;
    auto z = Factory::makeIntVar(cp, 0, zUB);
 
+   cout << "COMPAT MATRIX\n";
+   for (unsigned int i=0; i<emp.size(); i++) {
+      cout << "R" << setw(2) << i << ": ";
+     for (int j=emp[i]->min(); j<=emp[i]->max(); j++) {
+        std::cout << setw(2) << compat[i][j] << " ";
+     }
+     std::cout << "\n";
+   }
+
    //assert(ss == cv.size());
+   cout << "CID.size():" << cid.size() << "\n";
+   //int k = 0;
    MDDRelax* theOne = nullptr;
    for(auto& ctm : cid) {
+      //if (k++ < 10) continue;
       //auto mdd = new MDD(cp);
-      auto mdd = new MDDRelax(cp,relaxSize,0);
+      auto mdd = Factory::makeMDDRelax(cp,relaxSize);
       for(auto theClique : ctm) {  // merge on cliques if normal alldiff.
          auto c = cv[theClique];
          std::cout << "Clique: " << c << '\n';
          auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-         mdd->post(Factory::allDiffMDD(mdd,adv));
+         mdd->post(Factory::allDiffMDD(adv));
          //cp->post(Factory::allDifferent(adv));
       }
       // add objective to MDD
-      mdd->post(sum(mdd, emp, compat, z));
+      mdd->post(sum(emp, compat, z));
       cp->post(mdd);
       theOne = mdd;
       //mdd->saveGraph();
@@ -280,20 +292,11 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
-                         auto x = selectMin(emp,
-                                             [](const auto& x) { return x->size() > 1;},
-                                             [](const auto& x) { return x->size();});
-                                         
-                         // int depth = 0;
-                         // for(int i=0;i < emp.size();i++)
-                         //    depth += emp[i]->size() == 1;
-
-      // unsigned i;
-      // for(i=0u;i< emp.size();i++)
-      //     if (emp[i]->size() > 1)
-      //        break;
-      // auto x = i < emp.size() ? emp[i] : nullptr;                                                
-                         
+      //auto x = selectFirst(emp,[](const auto& x) { return x->size() > 1;});
+      auto x = selectMin(emp,
+                         [](const auto& x) { return x->size() > 1;},
+                         [](const auto& x) { return x->size();});
+                               
       if (x) {
          int i = x->getId();
          int largest = std::numeric_limits<int>::min();
@@ -304,28 +307,29 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             bv = compat[i][v] > largest ? v : bv;
             largest = std::max(largest,compat[i][v]);           
          }
+         //string tab(cp->getStateManager()->depth(),' ');
          return  [=] {
-                    //cout << tab(depth) << "?x(" << i << ") == " << bool_vars << " " <<  x << endl;
-                    cp->post(x == bv);
-                    //cout << tab(depth) << "!x(" << i << ") == " << bool_vars << endl;
-                 }
-            | [=] {
-                 //cout << tab(depth) << "?x(" << i << ") != " << bool_vars << " FAIL" << endl;
-                 cp->post(x != bv);
-                 //cout << tab(depth) << "!x(" << i << ") != " << bool_vars << endl;
-              };
+            //cout << tab << "?x(" << i << ") == " << bv << " -- " << x << endl;
+            cp->post(x == bv);
+            //cout << tab << "!x(" << i << ") == " << bv << endl;
+         } | [=] {
+            //cout << tab << "?x(" << i << ") != " << bv << " FAIL" << endl;
+            cp->post(x != bv);
+            //cout << tab << "!x(" << i << ") != " << bv << endl;
+         };
       } else return Branches({});
    });
 
    SearchStatistics stat;
-   search.onSolution([&emp,obj,z,&stat/*,&cliques,&compat*/]() {
+   search.onSolution([&emp,obj,z,&stat,theOne/*,&cliques,&compat*/]() {
        cout << "z->min() : " << z->min() << ", z->max() : " << z->max() << endl;
-                        cout << "obj : " << obj->value() << " " << emp << endl;
-                        cout << "#F  : " << stat.numberOfFailures() << endl;
-       cout << "Assignment: " << emp << endl;
-                        //exit(1);
-                        //checkSolution(obj,emp,cliques,compat);
-                     });   
+       cout << "obj : " << obj->value() << " " << emp << endl;
+       cout << "#C  : " << stat.numberOfNodes() << "\n";
+       cout << "#F  : " << stat.numberOfFailures() << endl;
+       //theOne->saveGraph();
+       //exit(1);
+       //checkSolution(obj,emp,cliques,compat);
+   });   
    search.optimize(obj,stat);   
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << '\n';
@@ -365,8 +369,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "build/data/workforce100-jobs.csv";
-   const char* compatFile = "build/data/workforce100.csv";
+   const char* jobsFile = "./data/workforce50-jobs.csv";
+   const char* compatFile = "./data/workforce50.csv";
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
    int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
    std::cout << "overlap = " << over << "\twidth=" << width << '\n';

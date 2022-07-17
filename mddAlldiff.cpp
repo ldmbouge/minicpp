@@ -74,9 +74,7 @@ namespace Factory {
       });
 
       const int nbW = someu->size() >> 3;
-      unsigned long long *tmp = new (m->getSolver()) unsigned long long[nbW];
-      for(int i=0;i<nbW;++i) tmp[i] = 0;
-      
+
       mdd.arcExist(d,[=](const auto& parent,const auto& child,const auto& var,const auto& val) noexcept  {
          const int ofs = val - minDom;
          if (parent.down[all].getBit(ofs))
@@ -91,7 +89,8 @@ namespace Factory {
          const bool upNotOk = subs.getBit(ofs) && subs.cardinality() == n - parent.down[len] - 1;
          if (upNotOk)
             return false;
-         MDDBSValue both((char*)&tmp,nbW);
+         char* tmp = (char*)alloca(sizeof(long long)*nbW);
+         MDDBSValue both((char*)tmp,nbW);
          both.setBinOR(subs,sbs).set(ofs);
          return both.cardinality() >= n;
       });

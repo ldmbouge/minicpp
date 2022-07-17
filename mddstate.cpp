@@ -442,12 +442,21 @@ void MDDSpec::oldTransitionDown(MDDCstrDesc::Ptr cd,int p,std::set<int> spDown,s
     _downTransition.emplace_back(std::move(t));
    }
 }
-void MDDSpec::transitionDown(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans t)
+void MDDSpec::transitionDown(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,
+                             std::initializer_list<MDDProperty::Ptr> spDown,
+                             std::initializer_list<MDDProperty::Ptr> spCombined,lambdaTrans t)
 {
    std::set<int> pD,pC;
    for(auto p : spDown) pD.insert(p->getId());
    for(auto p : spCombined) pC.insert(p->getId());
-   oldTransitionDown(cd,p->getId(),pD,pC,t);
+   const int pid = p->getId();
+   if (cd->ownsDownProperty(pid)) {
+     int tid = (int)_downTransition.size();
+     cd->registerDown(tid);
+     _attrsDown[pid]->setAntecedents(pD,pC);
+     _attrsDown[pid]->setTransition(tid);
+     _downTransition.emplace_back(std::move(t));
+   }
 }
 void MDDSpec::oldTransitionUp(MDDCstrDesc::Ptr cd,int p,std::set<int> spUp,std::set<int> spCombined,lambdaTrans t)
 {
@@ -459,12 +468,23 @@ void MDDSpec::oldTransitionUp(MDDCstrDesc::Ptr cd,int p,std::set<int> spUp,std::
       _upTransition.emplace_back(std::move(t));
    }
 }
-void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans t)
+void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,
+                           std::initializer_list<MDDProperty::Ptr> spUp,
+                           std::initializer_list<MDDProperty::Ptr> spCombined,lambdaTrans t)
 {
-   std::set<int> pD,pC;
-   for(auto p : spDown) pD.insert(p->getId());
-   for(auto p : spCombined) pC.insert(p->getId());
-   oldTransitionUp(cd,p->getId(),pD,pC,t);
+  std::set<int> pU;
+  std::set<int> pC;
+  for(auto k : spUp) pU.insert(k->getId());
+  for(auto k : spCombined) pC.insert(k->getId());
+
+   const int pid = p->getId();
+   if (cd->ownsUpProperty(pid)) {
+      int tid = (int)_upTransition.size();
+      cd->registerUp(tid);
+      _attrsUp[pid]->setAntecedents(pU,pC);
+      _attrsUp[pid]->setTransition(tid);
+      _upTransition.emplace_back(std::move(t));
+   }
 }
 
 MDDState MDDSpec::rootState(Storage::Ptr& mem)

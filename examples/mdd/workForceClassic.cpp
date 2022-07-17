@@ -276,8 +276,8 @@ int main(int argc,char* argv[])
    int mode = (argc >= 2 && strncmp(argv[1],"-m",2)==0) ? atoi(argv[1]+2) : 1;  
    cout << "mode = " << mode << endl;
    
-   const char* jobsFile = "data/workforce100-jobs.csv";
-   const char* compatFile = "data/workforce100.csv";
+   const char* jobsFile = "data/workforce50-jobs.csv";
+   const char* compatFile = "data/workforce50.csv";
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);

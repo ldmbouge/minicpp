@@ -1136,8 +1136,8 @@ public:
    void nodeExist(NodeFun a);
    void arcExist(const MDDCstrDesc::Ptr d,ArcFun a);
    void updateNode(MDDCstrDesc::Ptr cd,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spUp,UpdateFun update);
-   void transitionDown(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans);
-   void transitionUp(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spCombined,lambdaTrans);
+   void transitionDown(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::initializer_list<MDDProperty::Ptr> down,std::initializer_list<MDDProperty::Ptr> comb,lambdaTrans);
+   void transitionUp(MDDCstrDesc::Ptr,MDDProperty::Ptr,std::initializer_list<MDDProperty::Ptr> up,std::initializer_list<MDDProperty::Ptr> comb,lambdaTrans);
    template <typename LR> void addRelaxationDown(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,LR r) {
       _xDownRelax.insert(p->getId());
       int rid = (int)_downRelaxation.size();
