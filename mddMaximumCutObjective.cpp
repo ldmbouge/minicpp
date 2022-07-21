@@ -129,8 +129,8 @@ namespace Factory {
          out[maxDownValue] =  std::max(lValue, rValue);
       });
 
-      mdd.onFixpoint([z,maxDownValue](const auto& sinkDown,const auto& sinkUp,const auto& sinkCombined) {
-         z->removeAbove(sinkDown[maxDownValue]);
+      mdd.onFixpoint([z,maxDownValue](const auto& sink) {
+         z->removeAbove(sink.down[maxDownValue]);
       });
 
       switch (opts.candP) {
