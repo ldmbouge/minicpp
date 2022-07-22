@@ -1218,7 +1218,7 @@ void MDDRelax::propagate()
             trimVariable(l);
       } while (change);
       assert(layers[numVariables].size() == 1);
-      _mddspec.reachedFixpoint(sink->getDownState(),sink->getUpState(),sink->getCombinedState());
+      _mddspec.reachedFixpoint(sink->pack());
       setScheduled(false);
   ONFAIL    
       queue.clear();

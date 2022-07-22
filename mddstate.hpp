@@ -209,7 +209,7 @@ class MDDState;
 class MDDNode;
 typedef std::function<bool(const MDDPack&)> NodeFun;
 typedef std::function<bool(const MDDPack&,const MDDPack&,const var<int>::Ptr&,int)> ArcFun;
-typedef std::function<void(const MDDState&,const MDDState&,const MDDState&)> FixFun;
+typedef std::function<void(const MDDPack&)> FixFun;
 typedef std::function<void(MDDState&,const MDDPack&)> UpdateFun;
 typedef std::function<void(MDDState&,const MDDPack&,const var<int>::Ptr&,const MDDIntSet&)> lambdaTrans;
 typedef std::function<void(MDDState&,const MDDState&,const MDDState&)> lambdaRelax;
@@ -841,6 +841,9 @@ public:
    virtual MDDPInt::Ptr combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0);   
    virtual MDDPBitSequence::Ptr combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External,int cPriority=0);
    virtual MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
+
+   MDDPInt::Ptr intPropUp(int p) { return (MDDPInt*)_attrsUp[p].get();}
+   
    void outputSetDown(MDDPropSet& out,const MDDPropSet& down,const MDDPropSet& combined) const noexcept {
       for(auto p : down)
          out.unionWith(_omapDown[p]);
@@ -1196,7 +1199,7 @@ public:
          if(std::find(z.cbegin(),z.cend(),e) == z.cend())
             z.push_back(e);
    }
-   void reachedFixpoint(const MDDState& sinkDown,const MDDState& sinkUp,const MDDState& sinkCombined);
+   void reachedFixpoint(const MDDPack& sink);
    double nodeSplitPriority(const MDDNode& n, int cPriority) const;
    double candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int cPriority) const;
    std::vector<int> equivalenceValue(const MDDState& downState, const MDDState& upState, int cPriority = 0);

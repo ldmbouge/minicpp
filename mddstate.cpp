@@ -508,10 +508,10 @@ MDDState MDDSpec::sinkState(Storage::Ptr& mem)
 }
 
 
-void MDDSpec::reachedFixpoint(const MDDState& sinkDown,const MDDState& sinkUp,const MDDState& sinkCombined)
+void MDDSpec::reachedFixpoint(const MDDPack& sink)
 {
    for(auto& fix : _onFix)
-      fix(sinkDown,sinkUp,sinkCombined);
+     fix(sink);
 }
 
 void MDDStateSpec::printState(std::ostream& os,const MDDState* sPtr) const noexcept

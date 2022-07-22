@@ -24,73 +24,51 @@
 #include "mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 
-template<typename K, typename V>
-void print_map(std::map<K,V> const &m)
-{
-   for (auto const& pair: m) {
-      std::cout << "{" << pair.first << ": " << pair.second << "}\n";
-   }
-}
 int main(int argc,char* argv[])
 {
-   int useSearch = 1;
-   int debug = 0;
    using namespace std;
    using namespace Factory;
    CPSolver::Ptr cp  = Factory::makeSolver();
-   int min = 1; int max = 10; int nb = 30;
-   auto v = Factory::intVarArray(cp, nb, min, max);
-   auto start = RuntimeMonitor::cputime();
-   auto mdd = Factory::makeMDD(cp);
-   std::map<int,int> bounds;
-   int n =  nb / (max - min + 1);
-   for(int i = min; i <= 10; i++)
-      bounds.insert(std::pair<int,int>(i,n));
-   print_map(bounds);
-   mdd->post(gccMDD(mdd,v,bounds));
-   
-   cp->post(mdd);
-   
-   auto end = RuntimeMonitor::cputime();
-   std::cout << "VARS: " << v << std::endl;
-   std::cout << "Time : " << RuntimeMonitor::milli(start,end) << std::endl;
-   
-   if(useSearch){
-      DFSearch search(cp,[=]() {
-         auto x = selectMin(v,
-                            [](const auto& x) { return x->size() > 1;},
-                            [](const auto& x) { return x->size();});
-         
-         if (x) {
-            int c = x->min();
-            return  [=] {
-               if(debug)
-                  std::cout << "choice  <" << x << " == " << c << ">" << std::endl;
-               cp->post(x == c);
-               if (debug)
-                  std::cout << "VARS: " << v << std::endl;
-            }
-            | [=] {
-               if(debug)
-                  std::cout << "choice  <" << x << " != " << c << ">" << std::endl;
-               cp->post(x != c);
-               if(debug)
-                  std::cout << "VARS: " << v << std::endl;
-            };
-         } else return Branches({});
-      });
-      
-      search.onSolution([&v]() {
-         std::cout << "Assignment:" << std::endl;
-         std::cout << v << std::endl;
-      });
-      
-      
-      auto stat = search.solve([](const SearchStatistics& stats) {
-         return stats.numberOfSolutions() > 0;
-      });
-      cout << stat << endl;
+   int min = 1; int max = 10;
+   auto v = Factory::intVarArray(cp,20, min, max);
+   auto x0  = Factory::intVarArray(cp,15,[&](int i) { return v[i];});
+   auto x1  = Factory::intVarArray(cp,15,[&](int i) { return v[i+5];});
+   auto mdd = Factory::makeMDDRelax(cp,2);
+   std::map<int,int> boundsC1 = {
+      {1,3},{2,3},{3,3},
+      {4,3},{5,3},{6,3},
+      {7,3},{8,3},{9,10},
+      {10,0}
+   };
+   std::map<int,int> boundsC2 = {
+      {1,0},{2,1},{3,1},
+      {4,0},{5,0},{6,2},
+      {7,1},{8,2},{9,3},
+      {10,10}
+   };
+   TRYFAIL {
+      mdd->post(atMostMDD2(mdd,x0,boundsC1));   
+      mdd->post(atMostMDD2(mdd,x1,boundsC2));
+      cp->post(mdd);
+   } ONFAIL {
+      std::cout << "Infeasible model...\n";
+      return 1;
    }
+   ENDFAIL;
+      
+   DFSearch search(cp,[=]() {
+      return indomain_min(cp,selectFirst(v,[](const auto& x) { return x->size() > 1;}));
+   });
+      
+   search.onSolution([&v]() {
+      std::cout << "Assignment:" << v << "\n";
+   });      
+      
+   auto stat = search.solve([](const SearchStatistics& stats) {
+      return stats.numberOfSolutions() > 0;
+   });
+
+   cout << stat << endl;
    cp.dealloc();
    return 0;
 }

@@ -168,12 +168,13 @@ inline Branches operator|(std::function<void(void)> b0, std::function<void(void)
 
 
 template<class Container,typename Predicate, typename Fun>
-typename Container::value_type selectMin(Container& c,Predicate test, Fun f)
+typename Container::value_type selectMin(const Container& c,Predicate test, Fun f,
+                                         typename Container::value_type def = typename Container::value_type())
 {
    auto from = c.begin();
    auto to = c.end();
    auto min = to;
-   for(; from != to; from += 1)
+   for(; from != to; from++)
       {
          if (test(*from))
             {
@@ -183,17 +184,17 @@ typename Container::value_type selectMin(Container& c,Predicate test, Fun f)
             }
       }
    if (min == to)
-      return typename Container::value_type();
+      return def;
    else 
       return *min;
 }
 
 template<class Container,typename Predicate>
-typename Container::value_type selectFirst(Container& c,Predicate test)
+typename Container::value_type selectFirst(const Container& c,Predicate test)
 {
    auto from = c.begin();
    auto to = c.end();
-   for(; from != to; from += 1) {
+   for(; from != to; from++) {
       if (test(*from))
          return *from;
    }
@@ -216,22 +217,21 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
 }
 
 template<class Container,typename Predicate, typename Fun>
-typename Container::value_type selectMax(Container& c,Predicate test, Fun f)
+typename Container::value_type selectMax(const Container& c,Predicate test, Fun f,
+                                         typename Container::value_type def = typename Container::value_type())
 {
    auto from = c.begin();
    auto to = c.end();
    auto max = to;
-   for(; from != to; from += 1)
-      {
-         if (test(*from))
-            {
-               auto fv = f(*from);
-               if (max == to || fv > f(*max))
-                  max = from;
-            }
+   for(; from != to; from++) {
+      if (test(*from)) {
+         auto fv = f(*from);
+         if (max == to || fv > f(*max))
+            max = from;
       }
+   }
    if (max == to)
-      return typename Container::value_type();
+      return def;
    else
       return *max;
 }

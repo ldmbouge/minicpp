@@ -106,6 +106,13 @@ unsigned long MDD::layerAbove(var<int>::Ptr theVar)
          return i;
    return 0;
 }
+unsigned long MDD::layerBelow(var<int>::Ptr theVar)
+{
+   for(auto i = 0u; i < numVariables+1; i++) 
+      if (x[i] == theVar)
+         return i+1;
+   return numVariables;
+}
 
 int minCostDown(MDD* m,MDDNode* from,int depth)
 {
@@ -140,6 +147,29 @@ int bestValue(MDD* m,var<int>::Ptr theVar)
          int dCost = cInDeg * down;
          if (dCost < bestFun) {
             bestFun = dCost;
+            bestFound = val;
+         }
+      }
+   }
+   return bestFound;
+}
+
+int optProperty(MDD* m,int p,var<int>::Ptr theVar)
+{
+   auto& layers = m->getLayers();
+   auto& layer = layers[m->layerAbove(theVar)];
+   int bestFound = -1;
+   int bestFun = INT_MIN;
+   for(auto& node : layer) {
+      for(auto& edge : node->getChildren()) {
+         int val = edge->getValue();
+         auto c  = edge->getChild();
+         auto pack = c->pack();
+         auto theProp = pack.up.getSpec()->intPropUp(p);
+         std::cout << pack.up << "\n";
+         std::cout << "\tB/C:" << bestFun << "/" << pack.up[theProp] << "\n";
+         if (pack.up[theProp] > bestFun) {
+            bestFun = pack.up[theProp];
             bestFound = val;
          }
       }

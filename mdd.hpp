@@ -54,6 +54,7 @@ public:
    unsigned long layerSize(const int layer) {return layers[layer].size();}
    virtual void removeArc(int outL,int inL,MDDEdge* arc) {}
    unsigned long layerAbove(var<int>::Ptr theVar);
+   unsigned long layerBelow(var<int>::Ptr theVar);
    MDD(CPSolver::Ptr cp);
 protected:
    virtual bool trimDomains();
@@ -83,6 +84,7 @@ protected:
 };
 
 int bestValue(MDD* m,var<int>::Ptr theVar);
+int optProperty(MDD* m,int p,var<int>::Ptr theVar);
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
    MDD* _mdd;

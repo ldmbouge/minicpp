@@ -79,13 +79,14 @@ namespace Factory {
         return (n.down[minW] + n.up[minWup] <= ub) && (n.down[maxW] + n.up[maxWup] >= lb);
       });
 
-      mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len](auto& out,const auto& parent,const auto&, const auto& val) {
-         const auto coef = array[parent.down[len]];
-         out[minW] = parent.down[minW] + coef * val.min();
+      mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len](auto& out,const auto& parent,const auto&,const auto& val) {
+         out[minW] = parent.down[minW] + array[parent.down[len]] * val.min();
       });
-      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& parent,const auto&, const auto& val) {
-         const auto coef = array[parent.down[len]];
-         out[maxW] = parent.down[maxW] + coef * val.max();
+      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& parent,const auto&,const auto& val) {
+         out[maxW] = parent.down[maxW] + array[parent.down[len]] * val.max();
+      });
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto&, const auto&) {
+         out[len]  = parent.down[len] + 1;
       });
 
       mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,array,lenUp](auto& out,const auto& child,const auto&, const auto& val) {
@@ -99,9 +100,6 @@ namespace Factory {
             const auto coef = array[nbVars - child.up[lenUp]-1];
             out[maxWup] = child.up[maxWup] + coef * val.max();
          }
-      });
-      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto&, const auto&) {
-         out[len]  = parent.down[len] + 1;
       });
       mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto&, const auto&) {
          out[lenUp] = child.up[lenUp] + 1;
@@ -156,8 +154,8 @@ namespace Factory {
       mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto& var, const auto& val) {
          out[lenUp] = child.up[lenUp] + 1;
       });
-      mdd.onFixpoint([z,minW,maxW](const auto& sinkDown,const auto& sinkUp,const auto& sinkCombined) {
-         z->updateBounds(sinkDown[minW],sinkDown[maxW]);
+      mdd.onFixpoint([z,minW,maxW](const auto& sink) {
+         z->updateBounds(sink.down[minW],sink.down[maxW]);
       });
       return d;
    }
@@ -165,7 +163,6 @@ namespace Factory {
       // Enforce MDD bounds consistency on
       //   sum(i, vars[i]) == z
       MDDSpec& mdd = m->getSpec();
-      const int nbVars = (int)vars.size();
       mdd.addGlobal({z});
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
 
@@ -193,13 +190,11 @@ namespace Factory {
          out[maxW] =  parent.down[maxW] + val.max();
       });
 
-      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,lenUp] (auto& out,const auto& child,const auto&, const auto& val) {
-         if (child.up[lenUp] < nbVars) 
-            out[minWup] =  child.up[minWup] + val.min();
+      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[minWup,lenUp](auto& out,const auto& child,const auto&, const auto& val) {
+         out[minWup] =  child.up[minWup] + val.min();
       });
-      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,lenUp] (auto& out,const auto& child,const auto&, const auto& val) {
-         if (child.up[lenUp] < nbVars) 
-            out[maxWup] =  child.up[maxWup] + val.max();
+      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[maxWup,lenUp](auto& out,const auto& child,const auto&, const auto& val) {
+         out[maxWup] =  child.up[maxWup] + val.max();
       });
 
       mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto&, const auto& val) {
@@ -208,8 +203,8 @@ namespace Factory {
       mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto&, const auto& val) {
          out[lenUp] = child.up[lenUp] + 1;
       });
-      mdd.onFixpoint([z,minW,maxW](const auto& sinkDown,const auto& sinkUp,const auto& sinkCombined) {
-         z->updateBounds(sinkDown[minW],sinkDown[maxW]);
+      mdd.onFixpoint([z,minW,maxW](const auto& sink) {
+         z->updateBounds(sink.down[minW],sink.down[maxW]);
       });
       return d;
    }
@@ -269,8 +264,8 @@ namespace Factory {
          out[lenUp] = child.up[lenUp] + 1;
       });
 
-      mdd.onFixpoint([z,minW,maxW](const auto& sinkDown,const auto& sinkUp,const auto& sinkCombined) {
-         z->updateBounds(sinkDown[minW],sinkDown[maxW]);
+      mdd.onFixpoint([z,minW,maxW](const auto& sink) {
+         z->updateBounds(sink.down[minW],sink.down[maxW]);
       });
       return d;
    }
@@ -341,8 +336,8 @@ namespace Factory {
          out[lenUp] =   child.up[lenUp] + 1;
       });
 
-      mdd.onFixpoint([z,minW,maxW](const auto& sinkDown,const auto& sinkUp,const auto& sinkCombined) {
-         z->updateBounds(sinkDown[minW],sinkDown[maxW]);
+      mdd.onFixpoint([z,minW,maxW](const auto& sink) {
+         z->updateBounds(sink.down[minW],sink.down[maxW]);
       });
 
       mdd.splitOnLargest([minW](const auto& in) { return in.getDownState()[minW];});

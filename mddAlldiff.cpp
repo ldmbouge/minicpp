@@ -89,8 +89,9 @@ namespace Factory {
          const bool upNotOk = subs.getBit(ofs) && subs.cardinality() == n - parent.down[len] - 1;
          if (upNotOk)
             return false;
-         char* tmp = (char*)alloca(sizeof(long long)*nbW);
-         MDDBSValue both((char*)tmp,nbW);
+         char tmp[64];
+         char* tmpd = (nbW > 8) ?  (char*)alloca(sizeof(long long)*nbW) : tmp;
+         MDDBSValue both(tmpd,nbW);
          both.setBinOR(subs,sbs).set(ofs);
          return both.cardinality() >= n;
       });

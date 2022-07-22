@@ -44,22 +44,10 @@ int main(int argc,char* argv[])
    std::cout << "VARS: " << x << "\tZ=" << z << std::endl;
    
    DFSearch search(cp,[=]() {
-      auto xk = selectMin(x,
-                          [](const auto& xi) { return xi->size() > 1;},
-                          [](const auto& xi) { return xi->size();});
-      if (xk) {
-         int c = xk->max();         
-         return  [=] {
-            std::cout << "choice  <" << xk << " == " << c << ">\n";
-            cp->post(xk == c);
-         }
-            | [=] {
-               std::cout << "choice  <" << xk << " != " << c << ">\n";
-               cp->post(xk != c);               
-            };
-      } else return Branches({});
+      return indomain_max(cp,selectFirst(x,
+                                         [](const auto& xi) { return xi->size() > 1;}));
    });
-   
+
    search.onSolution([&x,&z]() {
       std::cout << "Assignment:" << x << "\t OBJ:" << z << std::endl;
    });        
