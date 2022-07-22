@@ -570,7 +570,7 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
                delSupport(l-1,v);
                removeArc(l-1,l,a.get());
                if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-               if (lowest < l) break; // do not go on splitting. We've been told to reboot. Cut to the chase.
+               if ((autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance) && lowest < l) return lowest; // do not go on splitting. We've been told to reboot. Cut to the chase.
             } else {
                MDDState* combined = _sf->createCombinedState();
                if (_mddspec.usesCombined()) {
@@ -593,7 +593,6 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
          }
       } //out-comment
    } // end of loop over parents.
-   if ((autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance) && lowest < l) return lowest;
 
    if (splitter.size() == 1 && !foundNonviableCandidate) {
       splitter.clear();
@@ -653,7 +652,8 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
       bool keepArc[nbk];
       unsigned idx = 0,cnt = 0;
       for(auto ca : n->getChildren()) {
-         MDDPack pack(*newState,ca->getParent()->getUpState(),ca->getParent()->getCombinedState());
+         //MDDPack pack(*newState,ca->getParent()->getUpState(),ca->getParent()->getCombinedState());
+         MDDPack pack(*newState,n->getUpState(),n->getCombinedState());
          cnt += keepArc[idx++] = _mddspec.exist(pack,ca->getChild()->pack(),x[l],ca->getValue());
       }
       if (cnt == 0) {
@@ -672,7 +672,8 @@ int MDDRelax::splitNodeForConstraintPriority(MDDNode* n,int l,MDDSplitter& split
          MDDState* combined = _sf->createCombinedState();
          if (_mddspec.usesCombined()) {
            combined->copyState(n->getCombinedState());
-           MDDPack pack(*ms, upState, *combined);
+           //MDDPack pack(*ms, upState, *combined);
+           MDDPack pack(*newState, upState, *combined);
            _mddspec.updateNode(*combined, pack);
            if (!_mddspec.consistent(pack)) {
              for (auto arc : arcsPerCandidate[candidateIndex]) {
@@ -744,7 +745,6 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
    } // end of loop over parents.
 
    bool foundNonviableClass = false;
-
    for (auto it = equivalenceClasses.begin(); it != equivalenceClasses.end(); ++it) {
       std::vector<int> equivalenceValue = it->first;
       MDDState* newState = it->second;
@@ -752,7 +752,8 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
       bool keepArc[nbk];
       unsigned idx = 0,cnt = 0;
       for(auto ca : n->getChildren()) {
-         MDDPack pack(*newState,ca->getParent()->getUpState(),ca->getParent()->getCombinedState());
+         //MDDPack pack(*newState,ca->getParent()->getUpState(),ca->getParent()->getCombinedState());
+         MDDPack pack(*newState,n->getUpState(),n->getCombinedState());
          cnt += keepArc[idx++] = _mddspec.exist(pack,ca->getChild()->pack(),x[l],ca->getValue());
       }
       if (cnt == 0) {
@@ -774,7 +775,8 @@ int MDDRelax::splitNodeApprox(MDDNode* n,int l,MDDSplitter& splitter, int constr
          MDDState* combined = _sf->createCombinedState();
          if (_mddspec.usesCombined()) {
            combined->copyState(n->getCombinedState());
-           MDDPack pack(*ms, upState, *combined);
+           //MDDPack pack(*ms, upState, *combined);
+           MDDPack pack(*newState, upState, *combined);
            _mddspec.updateNode(*combined, pack);
            if (!_mddspec.consistent(pack)) {
              for (auto arcIt = arcsPerClass.begin(); arcIt != arcsPerClass.end(); ++arcIt) {
@@ -1084,7 +1086,7 @@ bool MDDRelax::updateCombinedIncrDown(MDDNode* n)
 
    bool changed = n->getCombinedState() != state;
    if (changed) {
-      _deltaCombinedDown->setDelta(n,state,out);
+      _deltaCombinedDown->setDelta(n,state);
       n->setCombinedState(state,mem);
    }
    return changed;
@@ -1106,7 +1108,7 @@ bool MDDRelax::updateCombinedIncrUp(MDDNode* n)
 
    bool changed = n->getCombinedState() != state;
    if (changed) {
-      _deltaCombinedUp->setDelta(n,state,out);
+      _deltaCombinedUp->setDelta(n,state);
       n->setCombinedState(state,mem);
    }
    return changed;
