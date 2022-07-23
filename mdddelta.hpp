@@ -97,14 +97,24 @@ public:
       return entry;
    }
    void setDelta(MDDNode* n,const MDDState& ns) {      
-      auto entry = makeDelta(n);
+      MDDStateDelta* entry;
+      if (n->getId() >= _csz) entry = makeDelta(n);
+      else {
+        entry = _t[n->getId()];
+        if (!entry) entry = makeDelta(n);
+      }
       const MDDState* nState = stateFrom(n);
       for(int p=0;p < _np;++p)
          if (_pa[p]->diff(nState->_mem,ns._mem))
             entry->setProp(p);                             
    }
    void setDelta(MDDNode* n,const MDDState& ns,const MDDPropSet& ps) {
-      auto entry = makeDelta(n);
+      MDDStateDelta* entry;
+      if (n->getId() >= _csz) entry = makeDelta(n);
+      else {
+        entry = _t[n->getId()];
+        if (!entry) entry = makeDelta(n);
+      }
       const MDDState* nState = stateFrom(n);
       for(auto p : ps)
          if (_pa[p]->diff(nState->_mem,ns._mem))
