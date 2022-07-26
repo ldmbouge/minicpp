@@ -69,7 +69,7 @@ public:
          }
       }
       _mxs = low >= tsz ? sz :  _primes[low];
-      std::cout << "SIZE:" << _mxs << '\n';
+      //std::cout << "SIZE:" << _mxs << '\n';
       _tab = new (_pool) HTNode*[_mxs];
       _mgc = new (_pool) unsigned[_mxs];
       bzero(_tab,sizeof(HTNode*)*_mxs);

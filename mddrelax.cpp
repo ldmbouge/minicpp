@@ -91,13 +91,12 @@ void MDDRelax::buildDiagram()
    sink = _nf->makeNode(sinkDownState,sinkUpState,sinkCombinedState,0,(int)numVariables,0);
    layers[numVariables].push_back(sink,mem);
 
-   auto start = RuntimeMonitor::now();
+   //auto start = RuntimeMonitor::now();
    for(auto i = 0u; i < numVariables; i++) 
       buildNextLayer(i);   
    postUp();
    trimDomains();
-   auto dur = RuntimeMonitor::elapsedSince(start);
-   std::cout << "build/Relax:" << dur << '\n';
+   //std::cout << "build/Relax:" << RuntimeMonitor::elapsedSince(start) << '\n';
    propagate();
    hookupPropagators();
 }
@@ -1135,8 +1134,8 @@ void MDDRelax::computeDown(int iter)
    if (firstIteration) {
      fullRebootFirstIteration = fullReboot;
      partialRebootFirstIteration = partialReboot;
-     std::cout << "Full Reboot First Iteration: " << fullRebootFirstIteration << "\n";
-     std::cout << "Partial Reboot First Iteration: " << partialRebootFirstIteration << "\n";
+     //std::cout << "Full Reboot First Iteration: " << fullRebootFirstIteration << "\n";
+     //std::cout << "Partial Reboot First Iteration: " << partialRebootFirstIteration << "\n";
      firstIteration = false;
    }
    //timeDoingSplit += RuntimeMonitor::elapsedSinceMicro(start);

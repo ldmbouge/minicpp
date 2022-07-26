@@ -88,7 +88,7 @@ add_library(fzl
 		fz_parser/registry.cpp
 		)
 
-file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp")
+file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/fz.cpp")
 message("${files}")

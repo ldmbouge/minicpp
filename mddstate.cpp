@@ -198,7 +198,7 @@ void MDDStateSpec::layout()
    _lszCombined = lszBit >> 3;
    _lszCombined = (_lszCombined & 0x7) ? (_lszCombined | 0x7)+1 : _lszCombined;
    assert(_lszCombined % 8 == 0); // # bytes is always a multiple of 8.
-   std::cout << "Combined State requires:" << _lszCombined << " bytes" << std::endl;
+   //std::cout << "Combined State requires:" << _lszCombined << " bytes" << std::endl;
 }
 
 MDDPBitSequence::Ptr MDDStateSpec::downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority)
