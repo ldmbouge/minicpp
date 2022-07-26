@@ -28,31 +28,28 @@ namespace  Factory {
    MDDCstrDesc::Ptr atMostMDD(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       MDDSpec& spec = m->getSpec();
-      auto [minFDom,minLDom] = domRange(vars);
+      const auto [minFDom,minLDom] = domRange(vars);
       auto desc = spec.makeConstraintDescriptor(vars,"atMostMDD");
 
       std::map<int,MDDPInt::Ptr> pd;
       for(int i=minFDom; i <= minLDom;++i)
          pd[i] = spec.downIntState(desc,0,INT_MAX,MinFun);
 
-      spec.arcExist(desc,[=](const auto& parent,const auto& child,auto x,int v) {
-         return parent.down[pd.at(v)] < ub.at(v);
-      });
-
       for(int i=minFDom; i <= minLDom;++i)
          spec.transitionDown(desc,pd[i],{pd[i]},{},[=](auto& out,const auto& parent,auto x, const auto& val) {
             out[pd.at(i)] = parent.down[pd.at(i)] + (val.isSingleton() ? val.contains(i) : 0);
          });
 
+      spec.arcExist(desc,[=](const auto& parent,const auto& child,auto x,int v) {
+         return parent.down[pd.at(v)] < ub.at(v);
+      });
       return desc;
    }
 
    MDDCstrDesc::Ptr atMostMDD2(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       MDDSpec& spec = m->getSpec();
-      auto udom = domRange(vars);
-      const int minFDom = udom.first, minLDom = udom.second;
-      ValueMap<int> values(udom.first, udom.second,0,ub);
+      const auto [minFDom,minLDom] = domRange(vars);
       auto desc = spec.makeConstraintDescriptor(vars,"atMostMDD");
 
       std::map<int,MDDPInt::Ptr> pd;
@@ -61,10 +58,6 @@ namespace  Factory {
       std::map<int,MDDPInt::Ptr> pu;
       for(int i=minFDom; i <= minLDom;++i)
          pu[i] = spec.upIntState(desc,0,INT_MAX,MinFun);
-
-      spec.arcExist(desc,[=](const auto& parent,const auto& child,auto x,int v) {
-         return parent.down[pd.at(v)] + child.up[pu.at(v)] < values[v]; 
-      });
 
       for(int i=minFDom; i <= minLDom;++i)
          spec.transitionDown(desc,pd[i],{pd[i]},{},[=](auto& out,const auto& parent,auto,const auto& val) {
@@ -75,6 +68,10 @@ namespace  Factory {
          spec.transitionUp(desc,pu[i],{pu[i]},{},[=](auto& out,const auto& child,auto,const auto& val) {
             out[pu.at(i)] = child.up[pu.at(i)] + (val.isSingleton() ? val.contains(i) : 0);
          });
+
+      spec.arcExist(desc,[=](const auto& parent,const auto& child,auto x,int v) {
+         return parent.down[pd.at(v)] + child.up[pu.at(v)] < ub.at(v); 
+      });
       return desc;
    }
 }

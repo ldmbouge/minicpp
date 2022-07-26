@@ -57,6 +57,7 @@ add_library(copl
 	mddAlldiff.cpp
 	mddAmong.cpp
 	mddGcc.cpp
+	mddAbs.cpp
 	mddMaximumCutObjective.cpp
 	mddSeq.cpp
 	mddSum.cpp

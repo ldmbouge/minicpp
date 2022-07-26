@@ -93,7 +93,6 @@ public:
    RuntimeMonitor::HRClock getStartTime() const noexcept {return _startTime;}
    RuntimeMonitor::HRClock startTime() const noexcept {return _startTime;}
    friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
-      extern int NBT;
       return os
          << std::fixed << std::setprecision(3)
          << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss._startTime, ss._initTime) << std::endl
@@ -104,7 +103,6 @@ public:
          << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
          << "%%%mzn-stat: nodes=" << ss.nodes << std::endl
          << "%%%mzn-stat: failures=" << ss.failures << std::endl
-         << "@@@NBT = " << NBT << "\n"
          << "%%%mzn-stat-end" << std::endl;          
    }
 };

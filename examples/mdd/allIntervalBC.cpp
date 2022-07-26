@@ -289,38 +289,3 @@ int main(int argc,char* argv[])
    cp.dealloc();
    return 0;
 }
-
-
-
-
-// /*** Domain (bounds) propagation for AbsDiff constraint ***/
-// bool propagateExpression(interval &_x, interval &_y, interval &_z, interval &v1, interval &v3) {
-
-//   /*** 
-      //    * Apply interval propagation to expression [z] = [Abs[ [[x] - [y]] ]] :
-      //    * First propagate x, y, z bounds 'up' through to intersect [z] == [v3]
-      //    * Then propagate the intervals 'down' back to x, y, z: this done in 
-                                                                   //    * constraint, based on v1 and v3.
-                                                                   //    ***/
-  
-                                                                   //   // Up-propagate:
-                                                                   //   v1->min = _x->min - _y->max;
-                                                                   //   v1->max = _x->max - _y->min;
-                                                                   //   interval v2(0, 0);
-                                                                   //   int v2min = 0;
-                                                                   //   if (!((v1max >= 0) && (v1min<=0)))
-                                                                   //     v2min = std::min(std::abs(v1min), std::abs(v1max));
-                                                                   //   int v2max = std::max(std::abs(v1min), std::abs(v1max));
-                                                                   //   v3min = std::max(_z->min(), v2min);
-                                                                   //   v3max = std::min(_z->max(), v2max);
-  
-                                                                   //   // Down-propagate for v1, v2, v3 (their bounds will be used for x, y, z):
-                                                                   //   v2min = std::max(v2min, v3min);
-                                                                   //   v2max = std::min(v2max, v3max);
-                                                                   //   v1min = std::max(v1min, -v2max);
-                                                                   //   v1max = std::min(v1max, v2max);
-  
-                                                                   //   if ((v1max < v1min) || (v2max < v2min) || (v3max < v3min))
-                                                                   //     return false;
-                                                                   //   return true;
-                                                                   // }

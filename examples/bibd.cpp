@@ -40,7 +40,7 @@ void showMatrix(Matrix<var<bool>::Ptr,2>& M)
 int main(int argc,char* argv[])
 {
    using namespace Factory;
-   int a = atoi(argv[1]);
+   int a = (argc >= 2 && strncmp(argv[1],"-n",2)==0) ? atoi(argv[1]+2) : 1;
    int instances[14][3] = {
       {7,3,1},{6,3,2},{8,4,3},{7,3,20},{7,3,30},
       {7,3,40},{7,3,45},{7,3,50},{7,3,55},{7,3,60},

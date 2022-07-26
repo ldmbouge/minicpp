@@ -260,8 +260,6 @@ void Minimize::tighten()
    failNow();
 }
 
-int NBT = 0;
-
 Maximize::Maximize(var<int>::Ptr& x)
    : _obj(x),_primal(0x80000001)
 {
@@ -271,7 +269,6 @@ Maximize::Maximize(var<int>::Ptr& x)
          _obj->removeBelow(_primal);
          //std::cout << "1-----> after:" << _obj << std::endl;
       ONFAIL
-         NBT += 1;
          failNow();
       ENDFAIL
    });
@@ -287,7 +284,6 @@ void Maximize::tighten()
 {
    assert(_obj->isBound());
    _primal = _obj->min() + 1;
-   NBT += 1;
    failNow();
 }
 

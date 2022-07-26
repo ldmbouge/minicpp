@@ -33,8 +33,7 @@ int main(int argc,char* argv[])
    auto x = Factory::intVarArray(cp, 5, 0, 1);
    auto z = Factory::makeIntVar(cp,0,10000);
    auto mdd = Factory::makeMDDRelax(cp,2);
-   std::vector<int> coef = {5,4,2,6,8};
-   mdd->post(sum(x,coef,z));
+   mdd->post(sum(x,{5,4,2,6,8},z));
    mdd->post(sum({x[0],x[1]},0, 1));
    mdd->post(sum({x[0],x[4]},0, 1));
    mdd->post(sum({x[1],x[2]},0, 1));
@@ -49,25 +48,6 @@ int main(int argc,char* argv[])
       return indomain_max(cp,selectFirst(x,[](const auto& xi) { return xi->size() > 1;}));
    });
 
-   // DFSearch search(cp,[=]() {
-   //    //auto xk = selectFirst(x,[](const auto& xi) { return xi->size() > 1;});
-   //    auto k = selectMax(Range<int>(0,4),
-   //                       [&](const auto& i) { return x[i]->size() > 1;},
-   //                       [&](const auto& i) { return coef[i];},-1); // largest coefficient first
-   //    auto xk = k!=-1 ? x[k] : nullptr;
-   //    //return indomain_max(cp,xk);
-   //    if (xk) {
-   //       int c = xk->max();
-   //       return  [=] {
-   //          std::cout << "choice  <" << xk << " == " << c << ">" << std::endl;
-   //          cp->post(xk == c);
-   //       }
-   //          | [=] {
-   //             std::cout << "choice  <" << xk << " != " << c << ">" << std::endl;
-   //             cp->post(xk != c);
-   //          };
-   //    } else return Branches({});
-   // });   
    search.onSolution([&x,&z]() {
       std::cout << "Assignment:" << x << "\t OBJ:" << z << "\n";
    });        
