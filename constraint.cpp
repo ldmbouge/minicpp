@@ -1129,3 +1129,119 @@ void Element1DVar::filterY()
       }
    }
 }
+
+
+/*** Domain (bounds) propagation for AbsDiff constraint ***/
+bool propagateExpression(const interval* _x, const interval* _y,
+                         const interval* _z, interval &v1, interval &v3)
+{
+
+  /*** 
+   * Apply interval propagation to expression [z] = [Abs[ [[x] - [y]] ]] :
+   * First propagate x, y, z bounds 'up' to intersect [z] == [v3]
+   * Then propagate the intervals 'down' back to x, y, z: this done in 
+   * constraint, based on v1 and v3.
+   ***/
+  
+  // Up-propagate:
+  v1.min = _x->min - _y->max;
+  v1.max = _x->max - _y->min;
+  interval v2(-INT_MAX,INT_MAX);
+  if (!((v1.max >= 0) && (v1.min<=0)))
+    v2.min = std::min(std::abs(v1.min), std::abs(v1.max));
+  v2.max = std::max(std::abs(v1.min), std::abs(v1.max));
+  v3.min = std::max(_z->min, v2.min);
+  v3.max = std::min(_z->max, v2.max);
+  
+  // Down-propagate for v1, v2, v3 (their bounds will be used for x, y, z):
+  v2.min = std::max(v2.min, v3.min);
+  v2.max = std::min(v2.max, v3.max);
+  v1.min = std::max(v1.min, -(v2.max));
+  v1.max = std::min(v1.max, v2.max);
+  
+  if ((v1.max < v1.min) || (v2.max < v2.min) || (v3.max < v3.min))
+    return false;
+  return true;
+}
+
+void EQAbsDiffBC::post()
+{
+   // z == |x - y|
+   if (_x->isBound() && _y->isBound()) {
+     _z->assign(std::abs(_x->min()-_y->min()));
+   }
+   else {
+     interval v1(-INT_MAX,INT_MAX);
+     interval v3(-INT_MAX,INT_MAX);
+     interval X(_x->min(), _x->max());
+     interval Y(_y->min(), _y->max());
+     interval Z(_z->min(), _z->max());
+     bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+     if (!check) { failNow(); }
+
+     _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+     _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+     _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
+      
+     _x->whenBoundsChange([this] {
+       interval v1(-INT_MAX,INT_MAX);
+       interval v3(-INT_MAX,INT_MAX);
+       interval X(_x->min(), _x->max());
+       interval Y(_y->min(), _y->max());
+       interval Z(_z->min(), _z->max());
+       bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+       if (!check)  failNow();
+       _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+       _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
+     });
+     
+     _y->whenBoundsChange([this] {
+       interval v1(-INT_MAX,INT_MAX);
+       interval v3(-INT_MAX,INT_MAX);
+       interval X(_x->min(), _x->max());
+       interval Y(_y->min(), _y->max());
+       interval Z(_z->min(), _z->max());
+       bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+       if (!check) { failNow(); }
+       _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+       _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+      });
+     
+     // Applying domain consistency to x and y when Dom(z) changes seems to mimick the Puget&Regin approach.
+     _z->whenDomainChange([this] {
+       for (int x=_x->min(); x<=_x->max(); x++) {
+         if (_x->contains(x)) {
+           bool support = false;
+           for (int y=_y->min(); y<=_y->max() && !support; y++) {
+             if (_y->contains(y)) {
+               for (int z=_z->min(); z<=_z->max() && !support; z++) {
+                 if (_z->contains(z) && (z==std::abs(x-y))){
+                   support = true;
+                   break;
+                 }
+               }
+             }
+           }
+           if (!support) { _x->remove(x); }
+         }
+       }
+       for (int y=_y->min(); y<=_y->max(); y++) {
+         if (_y->contains(y)) {
+           bool support = false;
+           for (int x=_x->min(); x<=_x->max() && !support; x++) {
+             if (_x->contains(x)) {
+               for (int z=_z->min(); z<=_z->max() && !support; z++) {
+                 if (_z->contains(z) && (z==std::abs(x-y))){
+                   support = true;
+                   break;
+                 }
+               }
+             }
+           }
+           if (!support) { _y->remove(y); }
+         }
+       }
+     });
+   }
+}
+/***/

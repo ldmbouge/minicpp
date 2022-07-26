@@ -400,6 +400,21 @@ public:
    void propagate() override;
 };
 
+class EQAbsDiffBC : public Constraint { // z == |x - y|
+  var<int>::Ptr _z,_x,_y;
+public:
+  EQAbsDiffBC(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y)
+       : Constraint(x->getSolver()),_z(z),_x(x),_y(y) {}
+   void post() override;
+};
+
+
+class interval {
+public:
+  int min, max;
+   interval(int min_,int max_) : min(min_),max(max_) {}
+};
+
 namespace Factory
 {
    inline Constraint::Ptr equal(var<int>::Ptr x,var<int>::Ptr y,int c=0) {
@@ -719,6 +734,9 @@ namespace Factory
       auto z = makeIntVar(y->getSolver(),min,max);
       y->getSolver()->post(new (y->getSolver()) Element1DVar(flat,y,z));
       return z;
+   }
+   inline Constraint::Ptr equalAbsDiff(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y) {
+      return new (x->getSolver()) EQAbsDiffBC(z,x,y);
    }
 };
 
