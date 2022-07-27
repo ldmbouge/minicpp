@@ -136,7 +136,7 @@ int bestValue(MDD* m,var<int>::Ptr theVar)
 {
    auto& layers = m->getLayers();
    auto& layer = layers[m->layerAbove(theVar)];
-   int bestFound;
+   int bestFound = theVar->min();
    int bestFun = INT_MAX;
    for(auto& node : layer) {
       for(auto& edge : node->getChildren()) {
