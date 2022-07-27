@@ -15,6 +15,7 @@
 
 #include <iostream>
 #include <iomanip>
+#include <functional>
 #include <string.h>
 #include "solver.hpp"
 #include "trailable.hpp"
@@ -25,6 +26,7 @@
 #include "table.hpp"
 #include "range.hpp"
 
+using namespace std;
 int main(int argc,char* argv[]) {
    using namespace Factory;
    int N     = (argc >= 2 && strncmp(argv[1],"-n",2)==0) ? atoi(argv[1]+2) : 8;
