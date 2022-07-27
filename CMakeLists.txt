@@ -89,7 +89,10 @@ add_library(fzl
 		fz_parser/registry.cpp
 		)
 
-file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
+#This is the full list of exapmles for miniCPP		
+################################################################################
+#file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
+file(GLOB files "examples/tutorial/*.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/fz.cpp")
 message("${files}")
@@ -103,11 +106,17 @@ foreach (file ${files})
 	add_dependencies(${base} copl)
 endforeach()
 
+# This is to compile the minizinc interface to miniCPP
+################################################################################
 add_executable(fzn-minicpp examples/fz.cpp)
 target_link_libraries(fzn-minicpp copl fzl)
 
+# Data files for the benchmarks
+################################################################################
 file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
+# Python3 bindings (Experimental)
+################################################################################
 #[[ add_subdirectory(pybind11)  ]]
 #find_package(pybind11 REQUIRED)
 #pybind11_add_module(minicpp pybridge.cpp)
