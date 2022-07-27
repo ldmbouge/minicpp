@@ -28,17 +28,6 @@ void printSet(const MDDIntSet& s) {
 
 
 namespace Factory {
-   MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
-   {
-      MDDProperty::Ptr rv;
-      if (max == 1)
-         rv = new MDDPBit(id,ofs,init,rw);
-      else if (max <= 127)
-         rv = new MDDPByte(id,ofs,init,max,rw);
-      else
-         rv = new MDDPInt(id,ofs,init,max,rw);
-      return rv;
-   }
    MDDPInt::Ptr makePInt(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
    {
       MDDPInt::Ptr rv = new MDDPInt(id,ofs,init,max,rw);

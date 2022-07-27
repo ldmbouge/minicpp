@@ -19,6 +19,9 @@
 #include "mddstate.hpp"
 #include "mdd.hpp"
 
+/**
+ * Struct to convey options for MDD LTS.
+ */
 struct MDDOpts {
    int nodeP; // node priority
    int candP; // candidate priority
@@ -34,6 +37,13 @@ namespace Factory {
    MDDCstrDesc::Ptr amongMDD2(MDD::Ptr m, const Factory::Vecb& x, int lb, int ub, std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3});
    MDDCstrDesc::Ptr upToOneMDD(MDD::Ptr m, const Factory::Vecb& x, std::set<int> rawValues,MDDOpts opts = {.eqThreshold = 3});
 
+   /**
+    * @brief Posting stub.
+    *
+    * This is for internal use only. It is meant to avoid repeating the MDD argument twice on the same line of code.
+    * It uses let-polymorphism to bundle arguments in a short-lived object and _feed_ the factory function which does the real work.
+    * There is one such small stub for each factory function.
+    */
    struct AMStub0 {
       const Factory::Veci& _vars;
       int _lb,_ub;
@@ -90,6 +100,13 @@ namespace Factory {
    MDDCstrDesc::Ptr allDiffMDD(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts = {.cstrP = 0});
    MDDCstrDesc::Ptr allDiffMDD2(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts = {.eqThreshold = 4});
 
+   /**
+    * @brief Posting stub.
+    *
+    * This is for internal use only. It is meant to avoid repeating the MDD argument twice on the same line of code.
+    * It uses let-polymorphism to bundle arguments in a short-lived object and _feed_ the factory function which does the real work.
+    * There is one such small stub for each factory function.
+    */
    struct ADStub {
       const Factory::Veci& _vars;
       MDDOpts              _opts;
@@ -113,7 +130,17 @@ namespace Factory {
    MDDCstrDesc::Ptr seqMDD(MDD::Ptr m,const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues);
    MDDCstrDesc::Ptr seqMDD2(MDD::Ptr m,const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues);
    MDDCstrDesc::Ptr seqMDD3(MDD::Ptr m,const Factory::Veci& vars,int len, int lb, int ub, std::set<int> rawValues);
+   /**
+    * Convenience type meant to capture a pointer to the sequence factory function
+    */
    using seqFact = MDDCstrDesc::Ptr(*)(MDD::Ptr,const Factory::Veci&,int,int,int,std::set<int>);
+   /**
+    * @brief Posting stub.
+    *
+    * This is for internal use only. It is meant to avoid repeating the MDD argument twice on the same line of code.
+    * It uses let-polymorphism to bundle arguments in a short-lived object and _feed_ the factory function which does the real work.
+    * There is one such small stub for each factory function.
+    */
    template <typename Fun> struct SQStub1 {
       const Factory::Veci& _vars;
       int           _len,_lb,_ub;
@@ -139,6 +166,14 @@ namespace Factory {
    
    MDDCstrDesc::Ptr gccMDD(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub);
    MDDCstrDesc::Ptr gccMDD2(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& lb, const std::map<int,int>& ub);
+
+   /**
+    * @brief Posting stub.
+    *
+    * This is for internal use only. It is meant to avoid repeating the MDD argument twice on the same line of code.
+    * It uses let-polymorphism to bundle arguments in a short-lived object and _feed_ the factory function which does the real work.
+    * There is one such small stub for each factory function.
+    */
    struct GCCStub1 {
       const Factory::Veci&   _vars;
       const std::map<int,int>& _ub;      
@@ -170,6 +205,13 @@ namespace Factory {
    MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z);
    MDDCstrDesc::Ptr sum(MDD::Ptr m,const Factory::Vecb& vars, var<int>::Ptr z);
    
+   /**
+    * @brief Posting stub.
+    *
+    * This is for internal use only. It is meant to avoid repeating the MDD argument twice on the same line of code.
+    * It uses let-polymorphism to bundle arguments in a short-lived object and _feed_ the factory function which does the real work.
+    * There is one such small stub for each factory function.
+    */
    struct SumStub {
       const Factory::Veci& _vars;
       const std::vector<int>& _a;

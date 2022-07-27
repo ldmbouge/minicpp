@@ -21,8 +21,6 @@
 #include <functional>
 #include <stdlib.h>
 #include <setjmp.h>
-
-//#include "cont.hpp"
 #include "handle.hpp"
 #include "fail.hpp"
 #include "store.hpp"
@@ -91,6 +89,10 @@ public:
 };
 
 namespace Factory {
+   /**
+    * Factory method to allocate a new CP solver.
+    * @return a pointer to a solver.
+    */
    inline CPSolver::Ptr makeSolver() { return new CPSolver;}
 };
 

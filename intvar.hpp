@@ -392,8 +392,26 @@ namespace Factory {
     */
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps);
    var<bool>::Ptr makeBoolVar(CPSolver::Ptr cps, bool value);
+   /**
+    * Factory method. Creates an opposite view on the given integer variable `x`. Namely, it returns `-x`
+    * @param x the variable to be viewed
+    * @return -x the opposite of `x`
+    */
    inline var<int>::Ptr minus(var<int>::Ptr x)     { return new (x->getSolver()) IntVarViewOpposite(x);}
+   /**
+    * Factory operator. Creates an opposite view on the given integer variable `x`. Namely, it returns `-x`
+    * @param x the variable to be viewed
+    * @return -x the opposite of `x`
+    */
    inline var<int>::Ptr operator-(var<int>::Ptr x) { return minus(x);}
+   /**
+    * Factory operator. Creates a multiplicative view on the given integer variable `x`. Namely, it returns `a * x`
+    * @param x the variable to be viewed
+    * @param a the scaling coefficient
+    * @return `a * x` the scaled version of `x` by constant `a`
+    *
+    * Note: this can do simplifications based on the algebraic properties of `*` and the value of `a`.
+    */
    inline var<int>::Ptr operator*(var<int>::Ptr x,int a) {
       if (a == 0)
          return makeIntVar(x->getSolver(),0,0);
@@ -403,6 +421,14 @@ namespace Factory {
          return minus(new (x->getSolver()) IntVarViewMul(x,-a));
       else return new (x->getSolver()) IntVarViewMul(x,a);
    }
+   /**
+    * Factory operator. Creates a multiplicative view on the given integer variable `x`. Namely, it returns `a * x`
+    * @param a the scaling coefficient
+    * @param x the variable to be viewed
+    * @return `a * x` the scaled version of `x` by constant `a`
+    *
+    * Note: this can do simplifications based on the algebraic properties of `*` and the value of `a`.
+    */
    inline var<int>::Ptr operator*(int a,var<int>::Ptr x) { return x * a;}
    inline var<int>::Ptr operator*(var<bool>::Ptr x,int a)  { return Factory::operator*((var<int>::Ptr)x,a);}
    inline var<int>::Ptr operator*(int a,var<bool>::Ptr x)  { return x * a;}
@@ -410,22 +436,80 @@ namespace Factory {
    inline var<int>::Ptr operator+(int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(x,a);}
    inline var<int>::Ptr operator-(var<int>::Ptr x,const int a) { return new (x->getSolver()) IntVarViewOffset(x,-a);}
    inline var<int>::Ptr operator-(const int a,var<int>::Ptr x) { return new (x->getSolver()) IntVarViewOffset(-x,a);}
+   /**
+    * Factory method. Allocates an array of integer variables to be used on the solver
+    * @param cps the owner of the array
+    * @param sz the size of the array (from 0 to sz-1)
+    * @param min the smallest value for the domain of all variables in the array
+    * @param max the largest value for the domain of all variables in the array
+    * @return a subclass of std::vector<T> holding `var<int>::Ptr` instances to the newly
+    * created variables. The subclass is meant to support indexing the array with
+    * variables (element constraint) in addition to indexing with constants.
+    */
    Veci intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
+   /**
+    * Factory method. Allocates an array of integer variables to be used on the solver
+    * @param cps the owner of the array
+    * @param sz the size of the array (from 0 to sz-1)
+    * @param n the largest value for the domain of all variables in the array
+    * @return a subclass of std::vector<T> holding `var<int>::Ptr` instances to the newly
+    * created variables. The subclass is meant to support indexing the array with
+    * variables (element constraint) in addition to indexing with constants.
+    */   
    Veci intVarArray(CPSolver::Ptr cps,int sz,int n);
+   Veci intVarArray(CPSolver::Ptr cps,int sz,int min,int max);
+   /**
+    * Factory method. Allocates an array of integer variables to be used on the solver
+    * @param cps the owner of the array
+    * @param sz the size of the array (from 0 to sz-1)
+    * @return a subclass of std::vector<T> holding `var<int>::Ptr` instances that are
+    * initially equal to nullptr. The user of this method needs to fill the array with
+    * references to variables obtained some other way.
+    */   
    Veci intVarArray(CPSolver::Ptr cps,int sz);
+   /**
+    * Factory method. Allocates an array of Boolean variables to be used on the solver
+    * @param cps the owner of the array
+    * @param sz the size of the array (from 0 to sz-1)
+    * @param createVar tells the factory method to fill the array with nullptr references
+    * (`createVar` is false) or with actual fresh Boolean variables (`createVar` is true).
+    * @return a subclass of std::vector<T> holding `var<bool>::Ptr` instances.
+    */   
    Vecb boolVarArray(CPSolver::Ptr cps,int sz,bool createVar = true);
+   /**
+    * Factory method. Allocates an array of integer variables of the specified size and
+    * populate each entry by calling the first-order function body.
+    * @param cps the owner of the array
+    * @param sz the size of the array to create (from 0 to sz-1)
+    * @param body a first-order function with type `int -> var<int>::Ptr` to obtain pointers
+    * to each element to be stored in the array.
+    */
    template<typename Fun> Veci intVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = intVarArray(cps,sz);
       for(auto i=0u;i < x.size();i++)
          x[i] = body(i);
       return x;
    }
+   /**
+    * Factory method. Allocates an array of Boolean variables of the specified size and
+    * populate each entry by calling the first-order function body.
+    * @param cps the owner of the array
+    * @param sz the size of the array to create (from 0 to sz-1)
+    * @param body a first-order function with type `int -> var<bool>::Ptr` to obtain pointers
+    * to each element to be stored in the array.
+    */
    template<typename Fun> Vecb boolVarArray(CPSolver::Ptr cps,int sz,Fun body) {
       auto x = boolVarArray(cps,sz,false);
       for(auto i=0u;i < x.size();i++)
          x[i] = body(i);
       return x;
    }
+   /**
+    * Convenience function to sum up the number of values in an list of vectors (template)
+    * provided as argument.
+    * @param v the list of vectors
+    * @return the sum of the vector sizes.
+    */    
    template <class Vec>             size_t count(Vec& v) { return v.size();}
    template <class Vec,class ...Ts> size_t count(Vec& v,Ts... vecs) {
       return v.size() + count(vecs...);
@@ -440,6 +524,12 @@ namespace Factory {
          dest[from++]=v;
       return fill(dest,from,vecs...);
    }
+   /**
+    * Convenience function to allocate an array of integer variables that holds _all_
+    * the variables appearing in the arrays provided (as a variable length) argument list.
+    * @param a variadic list of vectors (of interger variables or Boolean variables)
+    * @return a newly allocated array holding all the variables
+    */
    template <class Vec,class ...Ts> Vec collect(Vec& v,Ts... vecs) {
       auto nbv = count(v,vecs...);
       auto cps = (*v.cbegin())->getSolver();
@@ -450,7 +540,15 @@ namespace Factory {
 
 };
 
+/**
+ * Convenience function callable from the debugger to print an integer variable
+ * @param x a C pointer to a `var<int>`
+ */ 
 void printVar(var<int>* x);
+/**
+ * Convenience function callable from the debugger to print an integer variable
+ * @param x a handle pointer to a `var<int>`, i.e., a `var<int>::Ptr`
+ */ 
 void printVar(var<int>::Ptr x);
 
 #endif

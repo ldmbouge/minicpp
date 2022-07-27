@@ -33,6 +33,11 @@
 #define XXH_INLINE_ALL
 #include "xxhash.h"
 
+/**
+ * @brief Representation for a set of integers.
+ *
+ * The class treats singletons slightly differently (for speed).
+ */
 class MDDIntSet {
    short  _mxs,_sz;
    bool  _isSingle;
@@ -41,6 +46,11 @@ class MDDIntSet {
       int    _single;
    };
 public:
+   /**
+    * Copy Constructor with allocator
+    * @param p the allocator to use
+    * @param s the set to copy
+    */
    template <class Allocator>
    MDDIntSet(Allocator p,const MDDIntSet& s) {
       if (s._isSingle) {
@@ -55,24 +65,54 @@ public:
          memcpy(_buf,s._buf,sizeof(int)*_mxs);
       }
    }
+   /**
+    * Default constructor. Creates an empty set.
+    */
    MDDIntSet() { _buf = 0;_mxs=_sz=0;_isSingle=false;}
+   /**
+    * Singleton constructor. It creates a singleton (can't add afterwards)
+    * @param v the value in the set
+    */
    MDDIntSet(int v) : _mxs(1),_sz(1),_isSingle(true) {
       _single = v;
    }
+   /**
+    * List constructor. It creates a set from the provided list of values and grabs memory from the given buffer
+    * @param buf a pointer to a buffer large enough to accommodate all the values in `val`
+    * @param vals the list of values to populate the set.
+    * 
+    */
    MDDIntSet(char* buf,int mxs,std::initializer_list<int> vals)
       : _mxs(mxs),_sz(0),_isSingle(false) {
       _buf = reinterpret_cast<int*>(buf);
       for(int v : vals) 
          _buf[_sz++] = v;
    }
+   /**
+    * Basic constructor. It creates an empty set capable to hold up to `mxs` values.
+    * @param buf a pointer to a buffer large enough to accommodate `mxs` integers (32-bit wide each)
+    * @param mxs the maximum size of the array
+    */
    MDDIntSet(char* buf,int mxs) : _mxs(mxs),_sz(0),_isSingle(false) {
       _buf = reinterpret_cast<int*>(buf);
    }
+   /**
+    * Empties the set of all values.
+    */     
    void clear() noexcept { _sz = 0;_isSingle=false;}
+   /**
+    * Adds a value to the set (not checking for duplicates)
+    * @param v the value to add.
+    * Notes: the storage must be sufficient to add an element. There is no duplicate check.
+    */
    constexpr void add(int v) noexcept {
       assert(_sz < _mxs);
       _buf[_sz++] = v;
    }
+   /**
+    * Adds a value to the set (if the value is already present, nothing is done)
+    * @param v the value to add
+    */
    void insert(int v) noexcept {
       if (contains(v)) return;
       if(_sz >= _mxs) {
@@ -81,6 +121,11 @@ public:
       }
       _buf[_sz++] = v;
    }
+   /**
+    * Checks membership
+    * @param v the value to check
+    * @return true if and only if \f$v \in this\f$
+    */
    constexpr const bool contains(int v) const noexcept {
       if (_isSingle)
          return _single == v;
@@ -90,6 +135,11 @@ public:
          return false;
       }
    }
+   /**
+    * Checks whether a member  of this set is *NOT* in S (is therefore outside of S)
+    * @param S the set to check against
+    * @return \f$ \exists v \in this : v \notin S\f$
+    */
    const bool memberOutside(const ValueSet& S) const noexcept {
       if (_isSingle) return !S.member(_single);
       else {
@@ -98,6 +148,11 @@ public:
          return false;
       }
    }
+   /**
+    * Checks whether *all* members of this set are in S (all inside of S)
+    * @param S the set to check against
+    * @return \f$ this \subseteq S\f$
+    */
    const bool allInside(const ValueSet& S) const noexcept {
       if (_isSingle) return S.member(_single);
       else {
@@ -106,6 +161,11 @@ public:
          return true;
       }
    }
+   /**
+    * Checks whether there is at least one member of this set in S (one inside of S)
+    * @param S the set to check against
+    * @return \f$ this \cap S \neq \emptyset\f$
+    */
    const bool memberInside(const ValueSet& S) const noexcept {
       if (_isSingle) return S.member(_single);
       else {
@@ -114,6 +174,10 @@ public:
          return false;
       }
    }
+   /**
+    * Compute and returns the smallest element in the set
+    * @return the smallest element
+    */
    const int min() const noexcept {
       if (_isSingle) return _single;
       else {
@@ -123,6 +187,10 @@ public:
          return min;
       }
    }
+   /**
+    * Compute and returns the largest element in the set
+    * @return the largest element
+    */
    const int max() const noexcept {
       if (_isSingle) return _single;
       else {
@@ -132,6 +200,12 @@ public:
          return max;
       }
    }
+   /**
+    * Equality test.
+    * @param a a set of integers
+    * @param b a set of integers
+    * @return true if and only if both sets are equal.
+    */   
    friend bool operator==(const MDDIntSet& a,const MDDIntSet& b) {
       if (a._isSingle == b._isSingle) {
          if (a._isSingle) return a._single == b._single;
@@ -144,6 +218,11 @@ public:
          }
       } else return false;
    }
+   /**
+    * Computes a 32-bit hash value for the set.
+    * @param a hash
+    * Note : This is a very naive hash. (not that is matters much)
+    */
    int hash() const noexcept {
       if (_isSingle) return _single;
       else {
@@ -153,6 +232,10 @@ public:
          return ttl * _sz;
       }
    }
+   /**
+    * Returns the number of elements in the set
+    * @return number of values in the set
+    */
    constexpr const short size() const { return _sz;}
    constexpr const bool isEmpty() const { return _sz == 0;}
    constexpr const bool isSingleton() const { return _isSingle || _sz == 1;}
@@ -164,7 +247,13 @@ public:
          return _buf[0];
       }
    }
-   class iterator { //: public std::iterator<std::input_iterator_tag,int,short> {
+   /**
+    * @brief C++ STL style iterator.
+    *
+    * This returns an open range `[begin()..end() )` thas is usable with C++ for loops.
+    * One obtains iterator instances with the convenience function begin/end provided below
+    */
+   class iterator { 
       union {
          int*    _data;
          int     _val;
@@ -188,10 +277,24 @@ public:
       int operator*() const   { return _single ? _val : _data[_num];}
       friend class MDDIntSet;
    };
+   /** 
+    * Iterator pointing to the first element of the set
+    * @return the start iterator
+    */   
    iterator begin() const { return _isSingle ? iterator(_single,0) : iterator(_buf,0);}
+   /** 
+    * Iterator pointing just past the last element of the set
+    * @return the end iterator
+    */   
    iterator end()   const { return _isSingle ? iterator(_single,_sz) : iterator(_buf,_sz);}
    iterator cbegin() const noexcept { return begin();}
    iterator cend()   const noexcept { return end();}
+   /**
+    * Convenience operator to print a set
+    * @param os the stream to print to
+    * @param s the set to print
+    * @return the stream after printing (for chaining sake)
+    */
    friend std::ostream& operator<<(std::ostream& os,const MDDIntSet& s) {
       os << '{';
       for(int v : s)
@@ -219,6 +322,12 @@ typedef std::function<double(const MDDState&, void*, int)> CandidateFun;
 typedef std::function<int(const MDDState&,const MDDState&)> EquivalenceValueFun;
 class MDDStateSpec;
 
+/**
+ * @brief Memory zone descriptor
+ *
+ * Instances of this class are used to describe consecutive "blocks" of memory  within MDDState instances.
+ * Internal use only.
+ */
 class Zone {
    unsigned short _startOfs;
    unsigned short _length;
@@ -231,7 +340,12 @@ public:
    void copy(char* dst,char* src) const noexcept { memcpy(dst+_startOfs,src+_startOfs,_length);}
 };
 
-
+/**
+ * @brief MDD Constraint Descriptor class.
+ *
+ * Each MDD LTS added to a propagator is associated to one such descriptor.
+ * Its purpose is to track everything to model this LTS in the propagator.
+ */
 class MDDCstrDesc {
    Factory::Veci          _vars;
    ValueSet               _vset;
@@ -287,6 +401,12 @@ public:
    void print (std::ostream& os) const { os << _name << "(" << _vars << ")\n";}
 };
 
+/**
+ * @brief A Bit Sequence _value_. 
+ *
+ * This class is used to represent values in MDDState that hold a 0-based sequence of bits (of a given length)
+ * @see MDDState, MDDProperty, MDDPBitSequence
+ */ 
 class MDDBSValue {
    unsigned long long* _buf;
    const  short        _nbw;
@@ -357,7 +477,7 @@ public:
          _buf[i] = ~_buf[i];
       return *this;
    }
-   class iterator { // : public std::iterator<std::input_iterator_tag,short,short> {
+   class iterator { 
       unsigned long long* _t;
       const short _nbw;
       short _cwi;    // current word index
@@ -404,6 +524,12 @@ public:
    }
 };
 
+/**
+ * @brief A sliding window _value_. 
+ *
+ * This class is used to represent values in MDDState
+ * @see MDDState, MDDProperty, MDDPSWindow<T>
+ */ 
 template <class ET>
 class MDDSWin {
    ET* _buf;
@@ -440,8 +566,19 @@ public:
    }
 };
 
+/**
+ * Indicate the direction for a state.
+ */
 enum Direction { None=0,Down=1,Up=2,Bi=3};
 
+/**
+ * @brief Abstract class representing a property to be held in an MDDState
+ *
+ * It is subclassed for each type of property one could store in an MDD.
+ * The abstract class only handles very generic aspect such as storage size and layout along with remembering
+ * how to relax  values of this property.
+ * @see MDDPInt, MDDPBit, MDDPByte, MDDPBitSequence, MDDPSWin<T> 
+ */ 
 class MDDProperty {
 protected:
    short _id;
@@ -513,10 +650,16 @@ public:
    friend class MDDStateSpec;
 };
 
-namespace Factory {
-   inline MDDProperty::Ptr makeProperty(short id,unsigned short ofs,int init,int max=0x7fffffff);
-}
-
+/**
+ * @brief MDD State 32-bit Signed Integer Property
+ *
+ * This is a concrete proprety that refers to a specific integer property within an MDD State.
+ * Since an MDD State is a block of bytes, a property _value_ is held at a specific offset within
+ * this block of bytes. The `_ofs` attribute inherited from MDDProperty holds the offset.
+ * The class provides a few methods to read/write to this relative location within an MDDState.
+ * Those are use *internally* only and the user-level API is more abstract (but uses those).
+ * @see MDDPropValue<MDDPInt>
+ */
 class MDDPInt :public MDDProperty {
    int _init;
    int _max;
@@ -557,6 +700,16 @@ public:
    friend class MDDStateSpec;
 };
 
+/**
+ * @brief MDD State 1-bit Boolean Property
+ *
+ * This is a concrete proprety that refers to a specific bit property within an MDD State.
+ * Since an MDD State is a block of bytes, a property _value_ is held at a specific offset within
+ * this block of bytes. The `_ofs` attribute inherited from MDDProperty holds the offset.
+ * The class provides a few methods to read/write to this relative location within an MDDState.
+ * Those are use *internally* only and the user-level API is more abstract (but uses those).
+ * @see MDDPropValue<MDDPBit>
+ */
 class MDDPBit :public MDDProperty {
    bool _init;
    char _bitmask;
@@ -608,6 +761,16 @@ public:
    friend class MDDStateSpec;
 };
 
+/**
+ * @brief MDD State 8-bit signed integer Property
+ *
+ * This is a concrete proprety that refers to a specific bit property within an MDD State.
+ * Since an MDD State is a block of bytes, a property _value_ is held at a specific offset within
+ * this block of bytes. The `_ofs` attribute inherited from MDDProperty holds the offset.
+ * The class provides a few methods to read/write to this relative location within an MDDState.
+ * Those are use *internally* only and the user-level API is more abstract (but uses those).
+ * @see MDDPropValue<MDDPByte>
+ */
 class MDDPByte :public MDDProperty {
    char _init;
    char  _max;
@@ -642,6 +805,16 @@ public:
    friend class MDDStateSpec;
 };
 
+/**
+ * @brief MDD State bit sequence Property
+ *
+ * This is a concrete proprety that refers to a specific bit sequence property within an MDD State.
+ * Since an MDD State is a block of bytes, a property _value_ is held at a specific offset within
+ * this block of bytes. The `_ofs` attribute inherited from MDDProperty holds the offset.
+ * The class provides a few methods to read/write to this relative location within an MDDState.
+ * Those are use *internally* only and the user-level API is more abstract (but uses those).
+ * @see MDDPropValue<MDDPBitSequence>
+ */
 class MDDPBitSequence : public MDDProperty {
    const int    _nbBits;
    unsigned char  _init;
@@ -715,6 +888,16 @@ class MDDPBitSequence : public MDDProperty {
    friend class MDDStateSpec;
 };
 
+/**
+ * @brief MDD State Sliding Window Properties
+ *
+ * This is a concrete proprety that refers to a specific sliding window property within an MDD State.
+ * Since an MDD State is a block of bytes, a property _value_ is held at a specific offset within
+ * this block of bytes. The `_ofs` attribute inherited from MDDProperty holds the offset.
+ * The class provides a few methods to read/write to this relative location within an MDDState.
+ * Those are use *internally* only and the user-level API is more abstract (but uses those).
+ * @see MDDPropValue<MDDPSWindow<short>>
+ */
 template <class ET = unsigned char>
 class MDDPSWindow : public MDDProperty {
    ET    _eltInit;
@@ -775,6 +958,15 @@ public:
    friend class MDDStateSpec;
 };
 
+/**
+ * @brief This is the specification of an MDDState
+ *
+ * A state is <Down[,Up][,Combined]> (Both up and combined are optional, all three are MDDState instances)
+ * The class holds all the necessary attribute to compute all the properties via
+ * transitions and relaxations for any part of the state. It is intimately related
+ * to the MDDState and the properties they hold.
+ * @see MDDState, MDDProperty
+ */
 class MDDStateSpec {
 protected:
    MDDProperty::Ptr* _attrsDown;
@@ -883,12 +1075,17 @@ inline std::ostream& operator<<(std::ostream& os,MDDCstrDesc& p)
    p.print(os);return os;
 }
 
+/**
+ * @brief Abstract generic property value class.
+ *
+ * Template specializations provide concrete classes for concrete property types.
+ */
 template <typename Prop> class MDDPropValue {};
 
 template <> class MDDPropValue<MDDPBitSequence> {
    MDDBSValue         _lhs;
-public:
    MDDPropValue<MDDPBitSequence>(MDDPBitSequence::Ptr p,char* mem) : _lhs(p->getBS(mem)) {}
+public:
    MDDPropValue<MDDPBitSequence>& operator=(const MDDPropValue<MDDPBitSequence>& v) noexcept {
       _lhs = v._lhs; // this invokes the assignment operator on MDDBSValue that copies the bits to the destination
       return *this;
@@ -899,35 +1096,92 @@ public:
    constexpr int cardinality() const noexcept { return _lhs.cardinality();}
    inline void setBinOR(const MDDBSValue& a,const MDDBSValue& b) noexcept  { _lhs.setBinOR(a,b);}
    inline void setBinAND(const MDDBSValue& a,const MDDBSValue& b) noexcept { _lhs.setBinAND(a,b);}
+   friend class MDDState;
 };
 
+/**
+ * @brief Property value for a signed 32-bit integer
+ *
+ * One obtains an instance of this type from an MDDState.
+ * It has the necessary methods to safely _read_ and _write_ to the MDDState. Instances and methods of this class
+ * are used to implement transitions, relaxations and arc/node existence functions. They are the top-level end-user API.
+ * Note how one necessarily obtains a _constant_ MDDPropValue<T> by calling the []  operator on an MDDState. If the
+ * state happens to be constant, one obtains a constant MDDPropValue<T> that can only be used to _read_ the state.
+ * If, however, the state is mutable, then the MDDPropValue<T> is also mutable and can be use to _write_ to the state.
+ *
+ * For instance, consider this code in the among LTS
+ * ```
+ *     mdd.arcExist(d,[=] (const auto& parent,const auto& child,auto,const auto& val) {
+ *        bool vinS = values.member(val);
+ *        return (parent.down[minC] + vinS <= ub) &&
+ *              ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
+ *     });
+ * ```
+ * Note how the arc existence receives the parent,child and the value `val` on the arc.
+ * The `vinS` variable check whether the variable on the arc is one of the value among authorizes.
+ * Finally, the arc existence reads properties with the [] operator on the down state of the parent (`parent.down`)
+ * and accesses `minC`, `maxC` and `rem`  to validate against the lower (`lb`) and upper (`ub`)
+ * bounds. Transitions would _write_ to the properties as shown below
+ *
+ * ```
+ *      mdd.transitionDown(d,maxC,{maxC},{},[maxC,tv] (auto& out,const auto& parent,const auto&, const auto& val) {
+ *        out[maxC] = parent.down[maxC] + val.contains(tv);
+ *     });
+ * ```
+ * Indeed, `out` is the output (the down state of the child) while `parent` is the parent node and `val` the set
+ * of labels on arcs leading to this node. Clearly, the `out[maxC]` on the left-hand side accesses the `maxC`
+ * property and then uses the assignment operator to set a new value based on the expression on the right-hand side
+ * which _reads_ from the `maxC` property (`parent.down[maxC]`).
+ * 
+ * @see MDDState::operator[](MDDPInt::Ptr), MDDState::operator[](MDDPInt::Ptr) const
+ */
 template <> class MDDPropValue<MDDPInt> {
    MDDPInt::Ptr  _p;
    char*       _mem;
-public:
    MDDPropValue<MDDPInt>(MDDPInt::Ptr p,char* mem): _p(p),_mem(mem) {}
+public:
+   /**
+    * @brief Assignment operator to write the value held in another property into this location.
+    * @param v the property to read from
+    * @return ourselve
+    */
    MDDPropValue<MDDPInt>& operator=(const MDDPropValue<MDDPInt>& v) noexcept { _p->setInt(_mem,v);return *this;}
+   /**
+    * @brief Assignment operator to write the value `v` into this one.
+    * @param v the value to write into this location
+    * @return ourselve
+    */
    MDDPropValue<MDDPInt>& operator=(const int& v) noexcept { _p->setInt(_mem,v);return *this;}
+   /**
+    * @brief Casting operator to _read_ the value held at the location denoted by this class.
+    * @param value held in the MDDState at this location
+    */
    operator int() const { return _p->getInt(_mem);}
+   /**
+    * The MDDState must befriend this class to call its constructor.
+    * @see MDDState::operator[](MDDPInt::Ptr), MDDState::operator[](MDDPInt::Ptr) const
+    */
+   friend class MDDState;
 };
 
 template <> class MDDPropValue<MDDPByte> {
    MDDPByte::Ptr  _p;
    char*        _mem;
-public:
    MDDPropValue<MDDPByte>(MDDPByte::Ptr p,char* mem): _p(p),_mem(mem) {}
+public:
    MDDPropValue<MDDPByte>& operator=(const MDDPropValue<MDDPByte>& v) noexcept { _p->setInt(_mem,v);return *this;}
    MDDPropValue<MDDPByte>& operator=(const char v) noexcept { _p->setByte(_mem,v);return *this;}
    MDDPropValue<MDDPByte>& operator=(const int& v) noexcept { _p->setByte(_mem,v);return *this;}
    operator char() const { return _p->getByte(_mem);}
    operator int()  const { return _p->getByte(_mem);}
+   friend class MDDState;
 };
 
 template <> class MDDPropValue<MDDPSWindow<short>> {
    MDDSWin<short>         _lhs;
-public:
    MDDPropValue<MDDPSWindow<short>>(MDDPSWindow<short>::Ptr p,char* mem)
       : _lhs(p->getSW<short>(mem)) {}
+public:
    MDDPropValue<MDDPSWindow<short>>& operator=(const MDDPropValue<MDDPSWindow<short>>& v) noexcept {
       _lhs = v._lhs;
       return *this;
@@ -936,6 +1190,7 @@ public:
    short get(int ofs) const noexcept { return _lhs.get(ofs);}
    short last() const noexcept  { return _lhs.last();}
    short first() const noexcept { return _lhs.first();}
+   friend class MDDState;
 };
 
 class MDDState {  // An actual state of an MDDNode.
@@ -1029,7 +1284,17 @@ public:
    void init(MDDProperty::Ptr i) const  noexcept                   { i->init(_mem); }
    auto operator[](MDDPBitSequence::Ptr i) noexcept                { return MDDPropValue<MDDPBitSequence>(i,_mem);}
    const auto operator[](MDDPBitSequence::Ptr i) const noexcept    { return MDDPropValue<MDDPBitSequence>(i,_mem);}
+   /**
+    * @brief Mutable access operator.
+    * @param i an integer property
+    * @return an instance of MDDPropValue<MDDPInt> referring to property `i` within this state.
+    */
    auto operator[](MDDPInt::Ptr i) noexcept                        { return MDDPropValue<MDDPInt>(i,_mem);}
+   /**
+    * @brief Immutable access operator.
+    * @param i an integer property
+    * @return a constant instance of MDDPropValue<MDDPInt> referring to property `i` within this state.
+    */
    const auto operator[](MDDPInt::Ptr i) const noexcept            { return MDDPropValue<MDDPInt>(i,_mem);}
    auto operator[](MDDPByte::Ptr i) noexcept                       { return MDDPropValue<MDDPByte>(i,_mem);}
    const auto operator[](MDDPByte::Ptr i) const noexcept           { return MDDPropValue<MDDPByte>(i,_mem);}
