@@ -15,6 +15,7 @@
 
 #include "constraint.hpp"
 #include <string.h>
+#include <limits>
 
 void printCstr(Constraint::Ptr c) {
    c->print(std::cout);
