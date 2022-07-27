@@ -1142,7 +1142,7 @@ bool propagateExpression(const interval* _x, const interval* _y,
   // Up-propagate:
   v1.min = _x->min - _y->max;
   v1.max = _x->max - _y->min;
-  interval v2(-INT_MAX,INT_MAX);
+  interval v2(std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
   if (!((v1.max >= 0) && (v1.min<=0)))
     v2.min = std::min(std::abs(v1.min), std::abs(v1.max));
   v2.max = std::max(std::abs(v1.min), std::abs(v1.max));
@@ -1167,40 +1167,40 @@ void EQAbsDiffBC::post()
      _z->assign(std::abs(_x->min()-_y->min()));
    }
    else {
-     interval v1(-INT_MAX,INT_MAX);
-     interval v3(-INT_MAX,INT_MAX);
-     interval X(_x->min(), _x->max());
-     interval Y(_y->min(), _y->max());
-     interval Z(_z->min(), _z->max());
-     bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-     if (!check) { failNow(); }
-
-     _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
-     _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
-     _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
+      interval v1(std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+      interval v3(std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+      interval X(_x->min(), _x->max());
+      interval Y(_y->min(), _y->max());
+      interval Z(_z->min(), _z->max());
+      bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+      if (!check) { failNow(); }
       
-     _x->whenBoundsChange([this] {
-       interval v1(-INT_MAX,INT_MAX);
-       interval v3(-INT_MAX,INT_MAX);
-       interval X(_x->min(), _x->max());
-       interval Y(_y->min(), _y->max());
-       interval Z(_z->min(), _z->max());
-       bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-       if (!check)  failNow();
-       _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
-       _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
-     });
-     
-     _y->whenBoundsChange([this] {
-       interval v1(-INT_MAX,INT_MAX);
-       interval v3(-INT_MAX,INT_MAX);
-       interval X(_x->min(), _x->max());
-       interval Y(_y->min(), _y->max());
-       interval Z(_z->min(), _z->max());
-       bool check = propagateExpression(&X, &Y, &Z, v1, v3);
-       if (!check) { failNow(); }
-       _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
-       _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+      _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+      _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
+      _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
+      
+      _x->whenBoundsChange([this] {
+         interval v1(std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+         interval v3(std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+         interval X(_x->min(), _x->max());
+         interval Y(_y->min(), _y->max());
+         interval Z(_z->min(), _z->max());
+         bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+         if (!check)  failNow();
+         _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+         _y->updateBounds(std::max(_y->min(),_x->min()-v1.max), std::min(_y->max(),_x->max()-v1.min));
+      });
+      
+      _y->whenBoundsChange([this] {
+         interval v1(std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+         interval v3(std::numeric_limits<int>::min(),std::numeric_limits<int>::max());
+         interval X(_x->min(), _x->max());
+         interval Y(_y->min(), _y->max());
+         interval Z(_z->min(), _z->max());
+         bool check = propagateExpression(&X, &Y, &Z, v1, v3);
+         if (!check) { failNow(); }
+         _z->updateBounds(std::max(_z->min(),v3.min), std::min(_z->max(),v3.max));
+         _x->updateBounds(std::max(_x->min(),_y->min()+v1.min), std::min(_x->max(),_y->max()+v1.max));
       });
      
      // Applying domain consistency to x and y when Dom(z) changes seems to mimick the Puget&Regin approach.
