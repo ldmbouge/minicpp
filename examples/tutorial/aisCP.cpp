@@ -15,7 +15,7 @@
 
 #include <iostream>
 #include <iomanip>
-#include <functional>
+#include <limits>
 #include <string.h>
 #include "solver.hpp"
 #include "trailable.hpp"
@@ -46,7 +46,7 @@ int main(int argc,char* argv[]) {
       return indomain_min(cp,selectFirst(x,[](const auto& x) { return x->size() > 1;}));
    });
    SearchStatistics stat = search.solve([](const SearchStatistics& stats) {
-      return stats.numberOfSolutions() > INT_MAX;
+      return stats.numberOfSolutions() > std::numeric_limits<int>::max();
    });
    std::cout << stat << "\n";
    return 0;
