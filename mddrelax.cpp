@@ -75,18 +75,18 @@ void MDDRelax::buildDiagram()
    for(auto i=0u;i < _width;i++)
       _afp[i] = MDDIntSet((char*)mem->allocate(sizeof(int) * sz),sz);
 
-   auto rootDownState = _mddspec.rootState(mem);
-   MDDState rootUpState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
-   MDDState rootCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
+   auto rootDownState = _mddspec.rootState(trail,mem);
+   MDDState rootUpState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
+   MDDState rootCombinedState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    rootDownState.computeHash();
    root = _nf->makeNode(rootDownState,rootUpState,rootCombinedState,x[0]->size(),0,0);
    _mddspec.updateNode(root->getCombinedState(),MDDPack(rootDownState,rootUpState,rootCombinedState));
    layers[0].push_back(root,mem);
 
 
-   MDDState sinkDownState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
-   auto sinkUpState = _mddspec.sinkState(mem);
-   MDDState sinkCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
+   MDDState sinkDownState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
+   auto sinkUpState = _mddspec.sinkState(trail,mem);
+   MDDState sinkCombinedState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    sinkUpState.computeHash();
    sink = _nf->makeNode(sinkDownState,sinkUpState,sinkCombinedState,0,(int)numVariables,0);
    layers[numVariables].push_back(sink,mem);
@@ -112,9 +112,9 @@ void MDDRelax::buildNextLayer(unsigned int i)
    assert(layers[i].size() == 1);
    auto parent = layers[i][0];
    if (i < numVariables - 1) {
-      MDDState downState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
-      MDDState upState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
-      MDDState combinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
+      MDDState downState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
+      MDDState upState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
+      MDDState combinedState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
       _sf->createStateDown(downState,parent->pack(),i,x[i],xv,false);
       MDDNode* child = _nf->makeNode(downState,upState,combinedState,x[i]->size(),i+1,(int)layers[i+1].size());
       _mddspec.updateNode(child->getCombinedState(),MDDPack(downState,upState,combinedState));
@@ -278,8 +278,8 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    char* psDBL = msBL+stateSZInBytes;
    char* psCBL = psDBL+cDownSZInBytes;
    char* outBL = psCBL+cCombSZInBytes;
-   MDDState cs(&_mddspec,csBL,Down);
-   MDDState ms(&_mddspec,msBL,Down);
+   MDDState cs(trail,&_mddspec,csBL,Down);
+   MDDState ms(trail,&_mddspec,msBL,Down);
    // Causes of "parentsChanged":
    // (1) arc removal, (2) arc addition to an existing parent, (3) arc addition to a new parent node.
    // Causes of changes != empty:
@@ -537,7 +537,6 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
    MDDState* ms = nullptr;
    const int nbParents = (int) n->getNumParents();
    auto last = n->getParents().rend();
-   MDDState upState = n->getUpState();
    for(auto pit = n->getParents().rbegin(); pit != last;pit++) {
       auto a = *pit;                // a is the arc p --(v)--> n
       auto p = a->getParent();      // p is the parent
@@ -569,12 +568,13 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
                delSupport(l-1,v);
                removeArc(l-1,l,a.get());
                if (_mddspec.usesUp() && p->isActive()) _bwd->enQueue(p);
-               if ((autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance) && lowest < l) return lowest; // do not go on splitting. We've been told to reboot. Cut to the chase.
+               if ((autoRebootDistance ? _mddspec.rebootFor(l-1) : _maxDistance) && lowest < l)
+                  return lowest; // do not go on splitting. We've been told to reboot. Cut to the chase.
             } else {
                MDDState* combined = _sf->createCombinedState();
                if (_mddspec.usesCombined()) {
                   combined->copyState(n->getCombinedState());
-                  MDDPack pack(*ms, upState, *combined);
+                  MDDPack pack(*ms, n->getUpState(), *combined);
                   _mddspec.updateNode(*combined, pack);
                   if (!_mddspec.consistent(pack)) {
                      foundNonviableCandidate = true;
@@ -596,7 +596,6 @@ int MDDRelax::splitNode(MDDNode* n,int l,MDDSplitter& splitter)
    if (splitter.size() == 1 && !foundNonviableCandidate) {
       splitter.clear();
    }
-
    _fwd->enQueue(n);
    //_bwd->enQueue(n);
    return lowest;
@@ -858,7 +857,7 @@ void MDDRelax::splitLayers(bool approximate, int constraintPriority) // this can
             splitter.process(layer,_width,trail,mem,
                              [this,l,&layer](MDDNode* n,MDDNode* p,const MDDState& ms,const MDDState& combined,int val,int nbk,bool* kk) {
                                 potEXEC++;
-                                MDDState up(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
+                                MDDState up(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
                                 up.copyState(n->getUpState());
                                 MDDNode* nc = _nf->makeNode(ms,up,combined,x[l-1]->size(),l,(int)layer.size());
                                 layer.push_back(nc,mem);
@@ -1015,8 +1014,8 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
    }
    const bool childrenChanged = n->childrenChanged();
 
-   MDDState cs(&_mddspec,(char*)alloca(_mddspec.layoutSizeUp()),Up);
-   MDDState ms(&_mddspec,(char*)alloca(_mddspec.layoutSizeUp()),Up);
+   MDDState cs(trail,&_mddspec,(char*)alloca(_mddspec.layoutSizeUp()),Up);
+   MDDState ms(trail,&_mddspec,(char*)alloca(_mddspec.layoutSizeUp()),Up);
 
    MDDPropSet out;
 
@@ -1050,7 +1049,7 @@ bool MDDRelax::processNodeUp(MDDNode* n,int i) // i is the layer number
 bool MDDRelax::fullStateCombined(MDDNode* n)
 {
    if (!_mddspec.usesCombined()) return false;
-   MDDState state(&_mddspec,(char*)alloca(_mddspec.layoutSizeCombined()),Bi);
+   MDDState state(trail,&_mddspec,(char*)alloca(_mddspec.layoutSizeCombined()),Bi);
    state.copyState(n->getCombinedState());
    _mddspec.updateNode(state,n->pack());
 
@@ -1072,7 +1071,7 @@ void MDDRelax::incrStateCombined(const MDDPropSet& out,MDDState& state,MDDNode* 
 bool MDDRelax::updateCombinedIncrDown(MDDNode* n)
 {
    if (!_mddspec.usesCombined()) return false;
-   MDDState state(&_mddspec,(char*)alloca(_mddspec.layoutSizeCombined()),Bi);
+   MDDState state(trail,&_mddspec,(char*)alloca(_mddspec.layoutSizeCombined()),Bi);
 
    MDDPropSet out;
 
@@ -1094,7 +1093,7 @@ bool MDDRelax::updateCombinedIncrDown(MDDNode* n)
 bool MDDRelax::updateCombinedIncrUp(MDDNode* n)
 {
    if (!_mddspec.usesCombined()) return false;
-   MDDState state(&_mddspec,(char*)alloca(_mddspec.layoutSizeCombined()),Bi);
+   MDDState state(trail,&_mddspec,(char*)alloca(_mddspec.layoutSizeCombined()),Bi);
 
    MDDPropSet out;
 

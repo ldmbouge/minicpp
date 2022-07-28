@@ -1176,7 +1176,6 @@ public:
    MDDPropValue<MDDPByte>& operator=(const char v) noexcept { _p->setByte(_mem,v);return *this;}
    bool operator==(char v) const noexcept { return _p->getByte(_mem) == v;}
    bool operator==(int v) const noexcept  { return _p->getByte(_mem) == (char)v;}   
-   //operator char() const { return _p->getByte(_mem);}
    operator int()  const { return _p->getByte(_mem);}
    friend int operator+(const MDDPropValue<MDDPByte>& p,int v) { return p.operator int() + v;}
    friend class MDDState;
@@ -1202,6 +1201,7 @@ class MDDState {  // An actual state of an MDDNode.
    MDDStateSpec*     _spec;
    char*              _mem;
    mutable int       _hash;
+   int  _magic;
    enum Direction     _dir;        // State knows whether up / down / combined
    struct Flags {
       bool           _relax:1;
@@ -1225,24 +1225,22 @@ class MDDState {  // An actual state of an MDDNode.
       }
    };
 public:
-   MDDState() : _spec(nullptr),_mem(nullptr),_hash(0),_dir(Down),_flags({false,false,false}) {}
-   MDDState(MDDStateSpec* s,char* b,enum Direction dir,bool relax=false) 
-      : _spec(s),_mem(b),_hash(0),_dir(dir),_flags({relax,false,false})
+   MDDState(Trailer::Ptr trail,MDDStateSpec* s,char* b,enum Direction dir,bool relax=false) 
+      : _spec(s),_mem(b),_hash(0),_magic(trail->magic()),_dir(dir),_flags({relax,false,false})
    {
-      auto sz = _spec->layoutSize(_dir);
-      memset(b,0,sz);
+      memset(b,0,_spec->layoutSize(_dir));
    }
-   MDDState(MDDStateSpec* s,char* b,int hash,enum Direction dir,const Flags& f) 
-      : _spec(s),_mem(b),_hash(hash),_dir(dir),_flags(f)
-   {
-   }
+   MDDState(Trailer::Ptr trail,MDDStateSpec* s,char* b,int hash,enum Direction dir,const Flags& f) 
+      : _spec(s),_mem(b),_hash(hash),_magic(trail->magic()),_dir(dir),_flags(f)
+   {}
    MDDState(const MDDState& s) 
-      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_dir(s._dir),_flags(s._flags) {}
+      : _spec(s._spec),_mem(s._mem),_hash(s._hash),_magic(s._magic),_dir(s._dir),_flags(s._flags) {}
    void initState(const MDDState& s) {
       _spec = s._spec;
       _mem = s._mem;
       _flags = s._flags;
       _hash = s._hash;
+      _magic = s._magic;
       _dir = s._dir;
    }
    void copyState(const MDDState& s) {
@@ -1251,13 +1249,17 @@ public:
       _flags = s._flags;
       _hash = s._hash;
       _dir = s._dir;
+      _magic = s._magic;
    }
    MDDStateSpec* getSpec() const noexcept { return _spec;}
    MDDState& assign(const MDDState& s,Trailer::Ptr t,Storage::Ptr mem) {
       auto sz = _spec->layoutSize(_dir);
       if (sz) {
-         char* block = (char*)mem->allocate(sizeof(char)* sz);
-         t->trail(new (t) TrailState(this,block,(int)sz));
+         if (_magic != t->magic()) {
+            char* block = (char*)mem->allocate(sizeof(char)* sz);
+            t->trail(new (t) TrailState(this,block,(int)sz));
+            _magic = t->magic();
+         }
          assert(_mem != nullptr);
          memcpy(_mem,s._mem,sz);
       }
@@ -1275,14 +1277,15 @@ public:
       _hash = std::move(s._hash);
       _flags = std::move(s._flags);
       _dir = std::move(s._dir);
+      _magic = std::move(s._magic);
       return *this;
    }
    template <class Allocator>
-   MDDState clone(Allocator pool) const {
+   MDDState clone(Trailer::Ptr trail,Allocator pool) const {
       const size_t sz = _spec ? _spec->layoutSize(_dir) : 0;
       char* block = sz ? new (pool) char[sz] : nullptr;
       if (sz)  memcpy(block,_mem,sz);
-      return MDDState(_spec,block,_hash,_dir,_flags);
+      return MDDState(trail,_spec,block,_hash,_dir,_flags);
    }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize(_dir);}
@@ -1452,8 +1455,8 @@ public:
    void relaxationUp(MDDState& a,const MDDState& b) const noexcept;
    void relaxationDownIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
    void relaxationUpIncr(const MDDPropSet& out,MDDState& a,const MDDState& b) const noexcept;
-   MDDState rootState(Storage::Ptr& mem);
-   MDDState sinkState(Storage::Ptr& mem);
+   MDDState rootState(Trailer::Ptr t,Storage::Ptr& mem);
+   MDDState sinkState(Trailer::Ptr t,Storage::Ptr& mem);
    bool usesUp() const { return _upTransition.size() > 0;}
    bool usesCombined() const { return _updates.size() > 0;}
    void useApproximateEquivalence() { _approximateSplitting = true;}
@@ -1537,6 +1540,7 @@ class MDDStateFactory {
          return key._s0->hash() ^ key._v;
       }
    };
+   Trailer::Ptr    _trail;
    MDDSpec*      _mddspec;
    Pool::Ptr         _mem;
    Hashtable<MDDSKey,MDDState*,HashMDDSKey,EQtoMDDSKey> _downHash;
@@ -1544,7 +1548,7 @@ class MDDStateFactory {
    PoolMark         _mark;
    bool          _enabled;
 public:
-   MDDStateFactory(MDDSpec* spec);
+   MDDStateFactory(Trailer::Ptr trail,MDDSpec* spec);
    MDDState* createCombinedState();
    void createStateDown(MDDState& result,const MDDPack& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
    void createStateUp(MDDState& result,const MDDPack& child,int layer,const var<int>::Ptr x,const MDDIntSet& vals);

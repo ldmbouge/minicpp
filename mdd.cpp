@@ -80,7 +80,7 @@ void MDD::post()
    _mddspec.varOrder();
    x = _mddspec.getVars();
    z = _mddspec.getGlobals();
-   _sf = new (mem) MDDStateFactory(&_mddspec);
+   _sf = new (mem) MDDStateFactory(trail,&_mddspec);
 
    numVariables = (unsigned int) x.size();
    layers = std::vector<TVec<MDDNode*>>(numVariables+1);
@@ -198,9 +198,9 @@ struct MDDStateEqual {
 void MDD::buildNextLayer(unsigned int i)
 {
    std::unordered_map<MDDState*,MDDNode*,MDDStateHash,MDDStateEqual> umap(2999);
-   MDDState downState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
-   MDDState upState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
-   MDDState combinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
+   MDDState downState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
+   MDDState upState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
+   MDDState combinedState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    for(int v = x[i]->min(); v <= x[i]->max(); v++) {
       if(!x[i]->contains(v)) continue;
       for(auto parent : layers[i]) { 
@@ -285,16 +285,16 @@ void MDD::buildDiagram()
    _mddspec.compile();
    std::cout << _mddspec << std::endl;
 
-   auto rootDownState = _mddspec.rootState(mem);
-   MDDState rootUpState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
-   MDDState rootCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
+   auto rootDownState = _mddspec.rootState(trail,mem);
+   MDDState rootUpState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up);
+   MDDState rootCombinedState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    root = _nf->makeNode(rootDownState,rootUpState,rootCombinedState,x[0]->size(),0,0);
    layers[0].push_back(root,mem);
    _mddspec.updateNode(rootCombinedState,MDDPack(rootDownState,rootUpState,rootCombinedState));
 
-   MDDState sinkDownState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Up);
-   auto sinkUpState = _mddspec.sinkState(mem);
-   MDDState sinkCombinedState(&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
+   MDDState sinkDownState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Up);
+   auto sinkUpState = _mddspec.sinkState(trail,mem);
+   MDDState sinkCombinedState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi);
    sink = _nf->makeNode(sinkDownState,sinkUpState,sinkCombinedState,0,(int)numVariables,0);
    layers[numVariables].push_back(sink,mem);
 

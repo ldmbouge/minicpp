@@ -49,7 +49,11 @@ MDDNode* MDDNodeFactory::makeNode(const MDDState& down,const MDDState& up,const 
       n->activate();
       return n;
    } else {
-      MDDNode* retVal = new (_mem) MDDNode(_lastID++,_mem,_trailer,down.clone(_mem),up.clone(_mem),combined.clone(_mem),domSize,layer,layerSize);
+      MDDNode* retVal = new (_mem) MDDNode(_lastID++,_mem,_trailer,
+                                           down.clone(_trailer,_mem),
+                                           up.clone(_trailer,_mem),
+                                           combined.clone(_trailer,_mem),
+                                           domSize,layer,layerSize);
       _peakID = std::max(_peakID,_lastID.value());
       return retVal;
    }

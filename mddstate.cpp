@@ -523,24 +523,23 @@ void MDDSpec::transitionUp(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,
    }
 }
 
-MDDState MDDSpec::rootState(Storage::Ptr& mem)
+MDDState MDDSpec::rootState(Trailer::Ptr t,Storage::Ptr& mem)
 {
-   MDDState rootState(this,(char*)mem->allocate(layoutSizeDown()),Down);   
+   MDDState rootState(t,this,(char*)mem->allocate(layoutSizeDown()),Down);   
    for(size_t k=0;k < sizeDown();k++)
       rootState.init(_attrsDown[k]);
    //std::cout << "ROOT:" << rootState << std::endl;
    return rootState;
 }
 
-MDDState MDDSpec::sinkState(Storage::Ptr& mem)
+MDDState MDDSpec::sinkState(Trailer::Ptr t,Storage::Ptr& mem)
 {
-   MDDState sinkState;
    if (layoutSizeUp()) {
-     sinkState = MDDState(this,(char*)mem->allocate(layoutSizeUp()),Up);
+      MDDState sinkState(t,this,(char*)mem->allocate(layoutSizeUp()),Up);
      for(size_t k=0;k < sizeUp();k++)
         sinkState.init(_attrsUp[k]);
-   } else sinkState = MDDState(this, nullptr, Up);
-   return sinkState;
+     return sinkState;
+   } else return MDDState(t,this, nullptr, Up);
 }
 
 
@@ -928,8 +927,9 @@ int hitCSDown = 0;
 int nbCSUp  = 0;
 int hitCSUp = 0;
 
-MDDStateFactory::MDDStateFactory(MDDSpec* spec)
-   : _mddspec(spec),
+MDDStateFactory::MDDStateFactory(Trailer::Ptr trail,MDDSpec* spec)
+   : _trail(trail),
+     _mddspec(spec),
      _mem(new Pool()),
      _downHash(_mem,spec->nodeUB()*100),
      _upHash(_mem,spec->nodeUB()*100),
@@ -942,7 +942,7 @@ MDDState* MDDStateFactory::createCombinedState()
 {
   size_t lSz = _mddspec->layoutSizeCombined();
   char* block = (lSz==0) ? nullptr : (char*)_mem->allocate(lSz);
-  MDDState* cs = new (_mem) MDDState(_mddspec,block,Bi);
+  MDDState* cs = new (_mem) MDDState(_trail,_mddspec,block,Bi);
   return cs;
 }
 
@@ -966,10 +966,10 @@ void MDDStateFactory::createStateDown(MDDState& result,const MDDPack& parent,int
          nbCSDown++;
          _mddspec->fullStateDown(result,parent,layer,x,vals);
          result.computeHash();
-         MDDState* pdc = new (_mem) MDDState(parent.down.clone(_mem));
-         MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_mem));
+         MDDState* pdc = new (_mem) MDDState(parent.down.clone(_trail,_mem));
+         MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_trail,_mem));
          MDDSKey ikey { pdc, pcc, layer, vals.singleton() };
-         _downHash.insert(ikey,new (_mem) MDDState(result.clone(_mem)));
+         _downHash.insert(ikey,new (_mem) MDDState(result.clone(_trail,_mem)));
       }
    } else {
       nbCSDown++;
@@ -990,10 +990,10 @@ void MDDStateFactory::createStateUp(MDDState& result,const MDDPack& child,int la
          nbCSUp++;
          _mddspec->fullStateUp(result,child,layer,x,vals);
          result.computeHash();
-         MDDState* cuc = new (_mem) MDDState(child.up.clone(_mem));
-         MDDState* ccc = new (_mem) MDDState(child.comb.clone(_mem));
+         MDDState* cuc = new (_mem) MDDState(child.up.clone(_trail,_mem));
+         MDDState* ccc = new (_mem) MDDState(child.comb.clone(_trail,_mem));
          MDDSKey ikey { cuc, ccc, layer, vals.singleton() };
-         _upHash.insert(ikey,new (_mem) MDDState(result.clone(_mem)));
+         _upHash.insert(ikey,new (_mem) MDDState(result.clone(_trail,_mem)));
       }
    } else {
       nbCSUp++;
@@ -1005,24 +1005,23 @@ void MDDStateFactory::createStateUp(MDDState& result,const MDDPack& child,int la
 void MDDStateFactory::splitState(MDDState*& result,MDDNode* n,const MDDPack& parent,int layer,const var<int>::Ptr x,int val)
 {
    // vanilla version (no caching)
-   //result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
+   //result = new (_mem) MDDState(_trail,_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
    //_mddspec->fullStateDown(*result,parent,layer,x,MDDIntSet(val));
-
    // caching version
    MDDSKey key { &parent.down, &parent.comb, layer, val };
    auto loc = _downHash.get(key,result);
    if (loc) {
       ++hitCSDown;
-      result = new (_mem) MDDState(result->clone(_mem));
+      result = new (_mem) MDDState(result->clone(_trail,_mem));
    } else {
       nbCSDown++;
-      result = new (_mem) MDDState(_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
+      result = new (_mem) MDDState(_trail,_mddspec,new (_mem) char[_mddspec->layoutSizeDown()],Down);
       _mddspec->fullStateDown(*result,parent,layer,x,MDDIntSet(val));
       result->computeHash();
-      MDDState* pdc = new (_mem) MDDState(parent.down.clone(_mem));
-      MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_mem));
+      MDDState* pdc = new (_mem) MDDState(parent.down.clone(_trail,_mem));
+      MDDState* pcc = new (_mem) MDDState(parent.comb.clone(_trail,_mem));
       MDDSKey ikey { pdc, pcc, layer, val };
-      _downHash.insert(ikey,new (_mem) MDDState(result->clone(_mem)));
+      _downHash.insert(ikey,new (_mem) MDDState(result->clone(_trail,_mem)));
    }  
 }
 

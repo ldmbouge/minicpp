@@ -155,7 +155,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode,int maxRebootDistance)
      }
    }
    if ((mode == 2) || (mode==3)) {
-     std::cout << "MDD-AllDiff" << std::endl;      
+      std::cout << "MDD-AllDiff "  << relaxSize << " " << avgSz << std::endl;      
      mdd = new MDDRelax(cp,relaxSize,avgSz);
      for (int i=0; i<NbCliques; i++) {
        auto adv = all(cp, Cliques[i], [&vars](int i) {return vars[i];});
