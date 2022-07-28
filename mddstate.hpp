@@ -1024,12 +1024,15 @@ public:
    unsigned short startOfsUp(int p) const noexcept { return _attrsUp[p]->startOfs();}
    unsigned short endOfsDown(int p) const noexcept { return _attrsDown[p]->endOfs();}
    unsigned short endOfsUp(int p) const noexcept { return _attrsUp[p]->endOfs();}
+   virtual MDDPByte::Ptr downByteState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0);
    virtual MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0);
    virtual MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External,int cPriority=0);
    virtual MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPByte::Ptr upByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority=0);
    virtual MDDPInt::Ptr upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority=0);
    virtual MDDPBitSequence::Ptr upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External, int cPriority=0);
    virtual MDDPSWindow<short>::Ptr upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPByte::Ptr combinedByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0);   
    virtual MDDPInt::Ptr combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0);   
    virtual MDDPBitSequence::Ptr combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External,int cPriority=0);
    virtual MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
@@ -1171,9 +1174,11 @@ template <> class MDDPropValue<MDDPByte> {
 public:
    MDDPropValue<MDDPByte>& operator=(const MDDPropValue<MDDPByte>& v) noexcept { _p->setInt(_mem,v);return *this;}
    MDDPropValue<MDDPByte>& operator=(const char v) noexcept { _p->setByte(_mem,v);return *this;}
-   MDDPropValue<MDDPByte>& operator=(const int& v) noexcept { _p->setByte(_mem,v);return *this;}
-   operator char() const { return _p->getByte(_mem);}
+   bool operator==(char v) const noexcept { return _p->getByte(_mem) == v;}
+   bool operator==(int v) const noexcept  { return _p->getByte(_mem) == (char)v;}   
+   //operator char() const { return _p->getByte(_mem);}
    operator int()  const { return _p->getByte(_mem);}
+   friend int operator+(const MDDPropValue<MDDPByte>& p,int v) { return p.operator int() + v;}
    friend class MDDState;
 };
 
@@ -1393,6 +1398,9 @@ public:
    MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
    MDDPBitSequence::Ptr upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
    MDDPBitSequence::Ptr combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
+   MDDPByte::Ptr downByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
+   MDDPByte::Ptr upByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
+   MDDPByte::Ptr combinedByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
    MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
    MDDPInt::Ptr upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
    MDDPInt::Ptr combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;

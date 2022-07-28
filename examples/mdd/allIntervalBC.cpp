@@ -49,16 +49,16 @@ namespace Factory {
       //   |vars[0]-vars[1]| = vars[2]
       // referred to below as |x-y| = z.
       auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");    
-      const auto xMin = mdd.downIntState(d,0,-INT_MAX,MinFun);
-      const auto xMax = mdd.downIntState(d,0,INT_MAX,MaxFun);
-      const auto yMin = mdd.downIntState(d,0,-INT_MAX,MinFun);
-      const auto yMax = mdd.downIntState(d,0,INT_MAX,MaxFun);
-      const auto yMinUp = mdd.upIntState(d,0,-INT_MAX,MinFun);
-      const auto yMaxUp = mdd.upIntState(d,0,INT_MAX,MaxFun);
-      const auto zMinUp = mdd.upIntState(d,0,-INT_MAX,MinFun);
-      const auto zMaxUp = mdd.upIntState(d,0,INT_MAX,MaxFun);
-      const auto N = mdd.downIntState(d,0,INT_MAX,MinFun); // layer index
-      const auto NUp = mdd.upIntState(d,0,INT_MAX,MinFun); // layer index
+      const auto xMin = mdd.downByteState(d,0,-127,MinFun);
+      const auto xMax = mdd.downByteState(d,0,127,MaxFun);
+      const auto yMin = mdd.downByteState(d,0,-127,MinFun);
+      const auto yMax = mdd.downByteState(d,0,127,MaxFun);
+      const auto yMinUp = mdd.upByteState(d,0,-127,MinFun);
+      const auto yMaxUp = mdd.upByteState(d,0,127,MaxFun);
+      const auto zMinUp = mdd.upByteState(d,0,-127,MinFun);
+      const auto zMaxUp = mdd.upByteState(d,0,127,MaxFun);
+      const auto N = mdd.downByteState(d,0,127,MinFun); // layer index
+      const auto NUp = mdd.upByteState(d,0,127,MinFun); // layer index
       mdd.transitionDown(d,xMin,{xMin,N},{},[xMin,N](auto& out,const auto& parent,auto x, const auto& val) {
          out[xMin] = (parent.down[N]==0) ? val.min() : parent.down[xMin];
       });
@@ -92,38 +92,64 @@ namespace Factory {
         switch(parent.down[N]) {
           case 0: {
             // filter x variable
-            const int lb = child.up[zMinUp], ub = child.up[zMaxUp];
-            for (int y=child.up[yMinUp]; y<=child.up[yMaxUp]; y++) {
-              if (y == val) continue;
-              const int z=std::abs(val-y);
-              if (lb <= z && z <= ub)
-                return true;
-            }
-            return false;
+            const int lz = child.up[zMinUp], uz = child.up[zMaxUp];
+            const int ly = child.up[yMinUp], uy = child.up[yMaxUp];
+            const int v0 = std::abs(val - ly), v1 = std::abs(val - uy);
+            const int tL = ((val - ly)*(val - uy) < 0) ? 1 : std::min(v0,v1),tU = std::max(v0,v1);
+            bool keep = !(tU < lz || tL > uz);
+            return keep;
+            // for (int y=ly; y<=uy; y++) {
+            //   if (y == val) continue;
+            //   const int z=std::abs(val-y);
+            //   if (lz <= z && z <= uz) {
+            //      assert(keep==true);
+            //      return true;
+            //   }
+            // }
+            // assert(keep==false);
+            // return false;
           }break;
           case 1: {
             // filter y variable
-            const int lb = child.up[zMinUp], ub = child.up[zMaxUp];
-            for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
-              if (x==val) continue;
-              const int z = std::abs(x-val);
-              if (lb <= z && z <= ub)
-                return true;
-            }
-            return false;
+            const int lz = child.up[zMinUp], uz = child.up[zMaxUp];
+            const int lx = parent.down[xMin], ux = parent.down[xMax];
+            const int v0 = std::abs(lx - val), v1 = std::abs(ux - val);
+            const int tL = ((lx - val) *(ux - val) < 0) ? 1 : std::min(v0,v1),tU = std::max(v0,v1);
+            bool keep = !(tU < lz || tL > uz);
+            return keep;
+            // for (int x=lx; x<=ux; x++) {
+            //   if (x==val) continue;
+            //   const int z = std::abs(x-val);
+            //   if (lz <= z && z <= uz) {
+            //      assert(keep==true);
+            //      return true;
+            //   }
+            // }
+            // assert(keep==false);
+            // return false;
           }break;
           case 2: {
             // filter z variable
-            const int lb = parent.down[yMin], ub = parent.down[yMax];
-            for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
-              const int y0 = x - val;
-              const int y1 = x + val;
-              bool y0In = lb <= y0 && y0 <= ub;
-              bool y1In = lb <= y1 && y1 <= ub;
-              if (y0In || y1In) return true;
-            }
-            return false;
+            const int ly = parent.down[yMin], uy = parent.down[yMax];
+            const int lx = parent.down[xMin], ux = parent.down[xMax];
+            const int s0[2] = {lx-val,ux - val},s1[2] = {lx + val,ux + val};
+            bool empty0 = (s0[1] < ly || s0[0] > uy);
+            bool empty1 = (s1[1] < ly || s1[0] > uy);
+            bool keep = !empty0 || !empty1;
+            return keep;
           }break;
+          // case 2: {
+          //   // filter z variable
+          //   const int lb = parent.down[yMin], ub = parent.down[yMax];
+          //   for (int x=parent.down[xMin]; x<=parent.down[xMax]; x++) {
+          //     const int y0 = x - val;
+          //     const int y1 = x + val;
+          //     bool y0In = lb <= y0 && y0 <= ub;
+          //     bool y1In = lb <= y1 && y1 <= ub;
+          //     if (y0In || y1In) return true;
+          //   }
+          //   return false;
+          // }break;
           default: return true;
         }
       });
@@ -232,13 +258,13 @@ int main(int argc,char* argv[])
       mdd->post(Factory::absDiffMDD(mdd,{vars[0],vars[1],vars[2]}));
       for (int i=1; i<N-1; i++) 
          mdd->post(Factory::absDiffMDD(mdd,{vars[2*i-1],vars[2*i+1],vars[2*i+2]}));      
-      mdd->post(Factory::allDiffMDD(mdd,xVars));
-      mdd->post(Factory::allDiffMDD(mdd,yVars));
+      mdd->post(Factory::allDiffMDD2(mdd,xVars));
+      mdd->post(Factory::allDiffMDD2(mdd,yVars));
       cp->post(mdd);
       //mdd->saveGraph();
-      cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;
-      cp->post(Factory::allDifferentAC(xVars));
-      cp->post(Factory::allDifferentAC(yVars));
+      // cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;
+      // cp->post(Factory::allDifferentAC(xVars));
+      // cp->post(Factory::allDifferentAC(yVars));
    }
    if ((mode < 0) || (mode > 3)) {
       cout << "Exit: specify a mode in {0,1,2,3}:" << endl;

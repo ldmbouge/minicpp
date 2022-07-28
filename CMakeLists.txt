@@ -91,8 +91,8 @@ add_library(fzl
 
 #This is the full list of exapmles for miniCPP		
 ################################################################################
-#file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
-file(GLOB files "examples/tutorial/*.cpp")
+file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
+#file(GLOB files "examples/tutorial/*.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/fz.cpp")
 message("${files}")

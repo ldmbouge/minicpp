@@ -28,6 +28,11 @@ void printSet(const MDDIntSet& s) {
 
 
 namespace Factory {
+   MDDPByte::Ptr makePByte(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
+   {
+      MDDPByte::Ptr rv = new MDDPByte(id,ofs,init,max,rw);
+      return rv;
+   }
    MDDPInt::Ptr makePInt(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
    {
       MDDPInt::Ptr rv = new MDDPInt(id,ofs,init,max,rw);
@@ -215,6 +220,14 @@ MDDPBitSequence::Ptr MDDStateSpec::combinedBSState(MDDCstrDesc::Ptr d,int nbb,un
    d->addCombinedProperty(aid);
    return p;
 }
+MDDPByte::Ptr MDDStateSpec::downByteState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority)
+{
+   int aid = (int)_nbpDown;
+   MDDPByte::Ptr p = Factory::makePByte(aid, 0, init, max,rw);
+   addDownProperty(p);
+   d->addDownProperty(aid);
+   return p;
+}
 MDDPInt::Ptr MDDStateSpec::downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority)
 {
    int aid = (int)_nbpDown;
@@ -223,12 +236,28 @@ MDDPInt::Ptr MDDStateSpec::downIntState(MDDCstrDesc::Ptr d, int init,int max,enu
    d->addDownProperty(aid);
    return p;
 }
+MDDPByte::Ptr MDDStateSpec::upByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw,int cPriority)
+{
+   int aid = (int)_nbpUp;
+   MDDPByte::Ptr p = Factory::makePByte(aid, 0, init, max,rw);
+   addUpProperty(p);
+   d->addUpProperty(aid);
+   return p;
+}
 MDDPInt::Ptr MDDStateSpec::upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw,int cPriority)
 {
    int aid = (int)_nbpUp;
    MDDPInt::Ptr p = Factory::makePInt(aid, 0, init, max,rw);
    addUpProperty(p);
    d->addUpProperty(aid);
+   return p;
+}
+MDDPByte::Ptr MDDStateSpec::combinedByteState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority)
+{
+   int aid = (int)_nbpCombined;
+   MDDPByte::Ptr p = Factory::makePByte(aid, 0, init, max,rw);
+   addCombinedProperty(p);
+   d->addCombinedProperty(aid);
    return p;
 }
 MDDPInt::Ptr MDDStateSpec::combinedIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority)
@@ -274,6 +303,12 @@ MDDPBitSequence::Ptr MDDSpec::downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned ch
    _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;   
 }
+MDDPByte::Ptr MDDSpec::downByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::downByteState(d,init,max,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;
+}
 MDDPInt::Ptr MDDSpec::downIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::downIntState(d,init,max,rw,cPriority);
@@ -283,6 +318,12 @@ MDDPInt::Ptr MDDSpec::downIntState(MDDCstrDesc::Ptr d,int init,int max,enum Rela
 MDDPBitSequence::Ptr MDDSpec::upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::upBSState(d,nbb,init,rw);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;
+}
+MDDPByte::Ptr MDDSpec::upByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::upByteState(d,init,max,rw,cPriority);
    _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
@@ -297,6 +338,12 @@ MDDPBitSequence::Ptr MDDSpec::combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigne
    auto rv = MDDStateSpec::combinedBSState(d,nbb,init,rw,cPriority);
    _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;   
+}
+MDDPByte::Ptr MDDSpec::combinedByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
+{
+   auto rv = MDDStateSpec::combinedByteState(d,init,max,rw,cPriority);
+   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   return rv;
 }
 MDDPInt::Ptr MDDSpec::combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
 {

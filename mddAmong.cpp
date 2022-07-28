@@ -28,7 +28,8 @@ namespace Factory {
       const auto rem  = mdd.downIntState(d,(int)x.size(),INT_MAX,MaxFun);
       mdd.arcExist(d,[=] (const auto& parent,const auto& child,auto,const auto& val) {
          bool vinS = tv == val;
-         return (parent.down[minC] + vinS <= ub) && ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
+         return (parent.down[minC] + vinS <= ub) &&
+            ((parent.down[maxC] + vinS +  parent.down[rem] - 1) >= lb);
       });
       
       mdd.transitionDown(d,minC,{minC},{},[minC,tv] (auto& out,const auto& parent,const auto& x, const auto& val) {

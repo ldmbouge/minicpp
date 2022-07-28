@@ -138,9 +138,9 @@ int main(int argc,char* argv[])
       mdd->post(allDiffMDD(yVars));
       cp->post(mdd);
       //mdd->saveGraph();
-      cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;
-      cp->post(allDifferentAC(xVars));
-      cp->post(allDifferentAC(yVars));
+      // cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;
+      // cp->post(allDifferentAC(xVars));
+      // cp->post(allDifferentAC(yVars));
    }
    if ((mode < 0) || (mode > 3)) {
      cout << "Exit: specify a mode in {0,1,2,3}:" << endl;
