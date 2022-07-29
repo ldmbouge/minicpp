@@ -19,6 +19,7 @@
 enum Status { Failure,Success,Suspend };
 
 //#define CPPFAIL 1
+
 #if defined(CPPFAIL)
 static inline void failNow() {
     throw Failure;
