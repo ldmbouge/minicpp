@@ -15,6 +15,8 @@
 
 #include <iostream>
 #include <iomanip>
+#include <string.h>
+#include <limits.h>
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"
