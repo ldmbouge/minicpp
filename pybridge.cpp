@@ -228,10 +228,6 @@ PYBIND11_MODULE(minicpp,m) {
                       DFSearch search(cp,firstFail(cp,vars));
                       return search;
                    });
-   m.def("selectMin",&selectMin<Factory::Veci,std::function<bool(var<int>::Ptr)>,std::function<int(var<int>::Ptr)>>,
-         py::arg("c"),
-         py::arg("test"),
-         py::arg("f"),
-         py::arg("def") = Factory::Veci::value_type()
-         );
+   m.def("selectMin",static_cast<var<int>::Ptr (*)(const Factory::Veci&,std::function<bool(var<int>::Ptr)>,std::function<int(var<int>::Ptr)>)>(&selectMin3));
+   m.def("indomain_min",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_min));
 }

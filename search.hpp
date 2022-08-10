@@ -187,6 +187,11 @@ typename Container::value_type selectMin(const Container& c,Predicate test, Fun 
       return *min;
 }
 
+template<class Container,typename Predicate, typename Fun>
+typename Container::value_type selectMin3(const Container& c,Predicate test, Fun f) {
+   return selectMin(c,test,f,typename Container::value_type());
+}
+
 template<class Container,typename Predicate>
 typename Container::value_type selectFirst(const Container& c,Predicate test)
 {

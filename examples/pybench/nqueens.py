@@ -15,13 +15,7 @@ print("Starting search...")
 search = minicpp.DFSearch(cp,minicpp.firstFail(cp,q))
 def doIt():
     sx = minicpp.selectMin(q,lambda x : x.size > 1,lambda x : x.size)
-    print("Chose:" + str(sx))
-    if sx is not None:
-        c = sx.min
-        return minicpp.Branches(lambda : cp.post(sx == c),
-                                lambda : cp.post(sx != c))
-    else:
-        return minicpp.Branches()
+    return minicpp.indomain_min(cp,sx)
         
 search = minicpp.DFSearch(cp,doIt)
 search.onSolution(lambda : print(q))
