@@ -86,7 +86,7 @@ int main(int argc,char* argv[])
 
    for (auto i=0u; i<y.size(); i++) 
       cp->post(y[i] != 0);
-   auto mdd = Factory::makeMDDRelax(cp,width,maxReboot);
+   auto mdd = Factory::makeMDDRelax(cp,width,maxReboot,10,0,0);
    mdd->post(Factory::allDiffMDD(x));
    mdd->post(Factory::allDiffMDD(y));
    for(int i=0; i < N-1;i++)
@@ -96,9 +96,7 @@ int main(int argc,char* argv[])
    DFSearch search(cp,[=]() { 
       return indomain_min(cp,selectFirst(x,[](const auto& x) { return x->size() > 1;}));
    });
-   SearchStatistics stat = search.solve([](const SearchStatistics& stats) {
-      return stats.numberOfSolutions() > std::numeric_limits<int>::max();
-   });
+   SearchStatistics stat = search.solve();
    std::cout << stat << "\n";
    return 0;
 }

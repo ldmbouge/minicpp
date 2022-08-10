@@ -36,7 +36,7 @@ namespace  Factory {
          pd[i] = spec.downIntState(desc,0,INT_MAX,MinFun);
 
       for(int i=minFDom; i <= minLDom;++i)
-         spec.transitionDown(desc,pd[i],{pd[i]},{},[=](auto& out,const auto& parent,auto x, const auto& val) {
+         spec.transitionDown(desc,pd[i],{pd[i]},{},[=](auto& out,const auto& parent,auto, const auto& val) {
             out[pd.at(i)] = parent.down[pd.at(i)] + (val.isSingleton() ? val.contains(i) : 0);
          });
 

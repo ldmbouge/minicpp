@@ -14,9 +14,8 @@ for i in range(0,n):
 print("Starting search...")
 search = minicpp.DFSearch(cp,minicpp.firstFail(cp,q))
 def doIt():
-    sx = minicpp.selectMin(q,
-                           lambda x : x.size > 1,
-                           lambda x : x.size)
+    sx = minicpp.selectMin(q,lambda x : x.size > 1,lambda x : x.size)
+    print("Chose:" + str(sx))
     if sx is not None:
         c = sx.min
         return minicpp.Branches(lambda : cp.post(sx == c),
@@ -26,5 +25,5 @@ def doIt():
         
 search = minicpp.DFSearch(cp,doIt)
 search.onSolution(lambda : print(q))
-stat = search.solve(lambda s : s.numberOfSolutions() > 10)
+stat = search.solve(lambda s : s.numberOfSolutions() > 100000)
 print(stat)

@@ -929,6 +929,12 @@ namespace Factory
       auto sv = Factory::makeIntVar(xs[0]->getSolver(),s,s);
       return new (xs[0]->getSolver()) Sum(xs,sv);
    }
+   inline Constraint::Ptr sum(const std::vector<var<int>::Ptr>& xs,var<int>::Ptr s) {
+      return new (xs[0]->getSolver()) Sum(xs,s);
+   }
+   inline Constraint::Ptr sum(const std::vector<var<bool>::Ptr>& xs,var<int>::Ptr s) {
+      return new (xs[0]->getSolver()) Sum(xs,s);
+   }
    inline Constraint::Ptr sum(const Factory::Vecb& xs,int s) {
       return new (xs[0]->getSolver()) SumBool(xs,s);
    }

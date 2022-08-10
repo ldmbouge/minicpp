@@ -12,7 +12,11 @@ cp = makeSolver()
 x  = intVarArray(cp,n,n)
 
 cp.post(allDifferent(x))
-wDist = [w[i][j] * element(d,x[i],x[j]) for i in range(0,n) for j in range(0,n)]     
+wDist = [w[i][j] * element(d,x[i],x[j]) for i in range(0,n) for j in range(0,n)]
+
+print(type(wDist))
+print(wDist)
+
 obj = minimize(sum(wDist))
 
 print("Starting search...")

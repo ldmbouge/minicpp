@@ -44,6 +44,7 @@ int main(int argc,char* argv[])
    auto obj = Factory::maximize(z);
    std::cout << "VARS: " << x << "\t Z=" << z <<  "\n";
    
+   //DFSearch search(cp,firstFail(cp,x));
    DFSearch search(cp,[=]() {
       return indomain_max(cp,selectFirst(x,[](const auto& xi) { return xi->size() > 1;}));
    });

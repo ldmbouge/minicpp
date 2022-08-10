@@ -14,8 +14,10 @@ qi = q[1]
 print(qi)
 print(len(q))
 
+print("PRIOR Loop")
 for x in q:
     print(x)
+print("HERE")
 
 q[0]=a0
 print(q)

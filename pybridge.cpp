@@ -119,8 +119,8 @@ PYBIND11_MODULE(minicpp,m) {
 
    
    py::class_<CPSolver,CPSolver::Ptr>(m,"CPSolver")
-      .def("incrNbChoices",&CPSolver::incrNbChoices)
-      .def("incrNbSol",&CPSolver::incrNbSol)
+      //.def("incrNbChoices",&CPSolver::incrNbChoices)
+      //.def("incrNbSol",&CPSolver::incrNbSol)
       .def("fixpoint",&CPSolver::fixpoint)
       .def("post",&CPSolver::post,py::arg("c"),py::arg("enforceFixPoint")=true,"Post the constraint `c` and runs the fixpoint as required.")
       .def("__repr__",[](const CPSolver& s) {
@@ -157,11 +157,11 @@ PYBIND11_MODULE(minicpp,m) {
       .def("incrFailures",&SearchStatistics::incrFailures)
       .def("incrNodes",&SearchStatistics::incrNodes)
       .def("incrSolutions",&SearchStatistics::incrSolutions)
-      .def("setCompleted",&SearchStatistics::setCompleted)
+      .def("setNotCompleted",&SearchStatistics::setNotCompleted)
       .def("numberOfFailures",&SearchStatistics::numberOfFailures)
       .def("numberOfNodes",&SearchStatistics::numberOfNodes)
       .def("numberOfSolutions",&SearchStatistics::numberOfSolutions)
-      .def("isCompleted",&SearchStatistics::isCompleted)
+      .def("getCompleted",&SearchStatistics::getCompleted)
       .def("__repr__",[](const SearchStatistics& s) {
                          std::ostringstream str;
                          str << s << std::ends;
@@ -188,7 +188,7 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("intVarArray",(Factory::Veci (*)(CPSolver::Ptr,int,int,int))(&Factory::intVarArray),"factory method var<int>[]");
    m.def("intVarArray",(Factory::Veci (*)(CPSolver::Ptr,int,int))(&Factory::intVarArray),"factory method var<int>[]");
    m.def("intVarArray",(Factory::Veci (*)(CPSolver::Ptr,int))(&Factory::intVarArray),"factory method var<int>[]");
-   m.def("boolVarArray",(Factory::Vecb (*)(CPSolver::Ptr,int))(&Factory::boolVarArray),"factory method var<bool>[]");
+   m.def("boolVarArray",(Factory::Vecb (*)(CPSolver::Ptr,int,bool))(&Factory::boolVarArray),"factory method var<bool>[]");
 
    m.def("equal",py::overload_cast<var<int>::Ptr,var<int>::Ptr,int>(&Factory::equal));
    m.def("notEqual",&Factory::notEqual);
@@ -198,13 +198,15 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("isLessOrEqual",&Factory::isLessOrEqual);
    m.def("isLargerOrEqual",&Factory::isLargerOrEqual);
    
-   m.def("sum",py::overload_cast<const Factory::Veci&,var<int>::Ptr>(&Factory::sum<Factory::Veci>));
-   m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&,var<int>::Ptr>(&Factory::sum<std::vector<var<int>::Ptr>>));
-   m.def("sum",py::overload_cast<const std::vector<var<bool>::Ptr>&,var<int>::Ptr>(&Factory::sum<std::vector<var<bool>::Ptr>>));
-   m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&,int>(&Factory::sum<std::vector<var<int>::Ptr>>));
-   m.def("sum",py::overload_cast<const std::vector<var<bool>::Ptr>&,int>(&Factory::sum<std::vector<var<bool>::Ptr>>));
-  // m.def("sum",py::overload_cast<const Factory::Veci&>(&Factory::sum<Factory::Veci>));
-  // m.def("sum",py::overload_cast<const std::vector<var<int>::Ptr>&>(&Factory::sum<std::vector<var<int>::Ptr>>));
+   m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,var<int>::Ptr)>(&Factory::sum));
+   m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<int>::Ptr>&,var<int>::Ptr)>(&Factory::sum));
+   m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,var<int>::Ptr)>(&Factory::sum));
+   m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<int>::Ptr>&,int)>(&Factory::sum));
+   m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,int)>(&Factory::sum));
+
+
+   m.def("sum",static_cast<var<int>::Ptr (*)(Factory::Veci&)>(&Factory::sum<Factory::Veci>));
+   m.def("sum",static_cast<var<int>::Ptr (*)(std::vector<var<int>::Ptr>&)>(&Factory::sum<std::vector<var<int>::Ptr>>));
    
    m.def("allDifferent",&Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
@@ -226,5 +228,10 @@ PYBIND11_MODULE(minicpp,m) {
                       DFSearch search(cp,firstFail(cp,vars));
                       return search;
                    });
-   m.def("selectMin",&selectMin<Factory::Veci,std::function<bool(var<int>::Ptr)>,std::function<int(var<int>::Ptr)>>);
+   m.def("selectMin",&selectMin<Factory::Veci,std::function<bool(var<int>::Ptr)>,std::function<int(var<int>::Ptr)>>,
+         py::arg("c"),
+         py::arg("test"),
+         py::arg("f"),
+         py::arg("def") = Factory::Veci::value_type()
+         );
 }
