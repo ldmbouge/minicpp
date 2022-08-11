@@ -23,6 +23,8 @@ typedef std::function<void(void)> VVFun;
 
 SearchStatistics DFSearch::solve(SearchStatistics& stats,Limit limit)
 {
+    stats.setIntVars(_cp->getNbVars());
+    stats.setPropagators(_cp->getNbProp());
     _sm->withNewState(VVFun([this,&stats,&limit]() {
                                try {
                                   dfs(stats,limit);
@@ -31,19 +33,22 @@ SearchStatistics DFSearch::solve(SearchStatistics& stats,Limit limit)
                                }
                             }));
     stats.setSolveTime();
+    stats.setPropagations(_cp->getPropagations());
     return stats;
 }
 
 SearchStatistics DFSearch::solve(Limit limit)
 {
     SearchStatistics stats;
-    return solve(stats,limit);
+    solve(stats,limit);
+    return stats;
 }
 
 SearchStatistics DFSearch::solve()
 {
     SearchStatistics stats;
-    return solve(stats,[](const SearchStatistics& ss) { return false;});
+    solve(stats,[](const SearchStatistics& ss) { return false;});
+    return stats;
 }
 
 SearchStatistics DFSearch::solveSubjectTo(Limit limit,std::function<void(void)> subjectTo)
@@ -96,14 +101,15 @@ SearchStatistics DFSearch::optimizeSubjectTo(Objective::Ptr obj,Limit limit,std:
 
 void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
 {
+   //static int nS = 0;
     Branches branches = _branching();
-    if (branches.size() == 0)
-    {
-        stats.incrSolutions();
-        notifySolution();
+    if (branches.size() == 0) {
+       //nS++;
+       //std::cout<< "DFSFail -> sol " << nS << std::endl;
+       stats.incrSolutions();
+       notifySolution();
     }
-    else
-    {
+    else {
        // if (branches.size() > 1)
        //    stats.incrNodes();
        auto last = std::prev(branches.end()); // for proper counting of choices.
@@ -111,16 +117,24 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
        {
           const auto& alt = *cur;
           _sm->saveState();
-          TRYFAIL
-             if (cur != last)
-                stats.incrNodes();
-              alt();
-              dfs(stats, limit);
-          ONFAIL
+          try {
+             TRYFAIL {
+                if (cur != last)
+                   stats.incrNodes();
+                alt();
+                dfs(stats, limit);
+             } ONFAIL {
+                stats.incrFailures();
+                notifyFailure();
+             }
+             ENDFAIL {
+                _sm->restoreState();
+             }
+          } catch(...) {  // the C++ exception catching is to stay compatible with python interfaces. 0-cost for C++
              stats.incrFailures();
              notifyFailure();
-          ENDFAIL
              _sm->restoreState();
+          }
        }
        if (limit(stats)) {
           throw StopException();

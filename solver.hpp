@@ -54,22 +54,25 @@ public:
 };
 
 class CPSolver {
-    Trailer::Ptr                  _sm;
-    Storage::Ptr               _store;
-    std::list<AVar::Ptr>       _iVars;
-    DEPQueue                   _queue;
-    std::list<std::function<void(void)>>  _onFix;
-    long                  _afterClose;
-    int                        _varId;
-    unsigned long long  _propagations;
+   Trailer::Ptr                  _sm;
+   Storage::Ptr               _store;
+   std::list<AVar::Ptr>       _iVars;
+   DEPQueue                   _queue;
+   std::list<std::function<void(void)>>  _onFix;
+   long                  _afterClose;
+   int                        _varId;
+   unsigned long long  _propagations;
+   size_t                    _nbProp;
 public:
-    template<typename T> friend class var;
-    typedef handle_ptr<CPSolver> Ptr;
-    CPSolver();
-    ~CPSolver();
-    Trailer::Ptr getStateManager()       { return _sm;}
-    Storage::Ptr getStore()              { return _store;}
-    unsigned long long getPropagations() {return _propagations;};
+   template<typename T> friend class var;
+   typedef handle_ptr<CPSolver> Ptr;
+   CPSolver();
+   ~CPSolver();
+   Trailer::Ptr getStateManager()       { return _sm;}
+   Storage::Ptr getStore()              { return _store;}
+   unsigned long long getPropagations() {return _propagations;};
+   size_t getNbVars() noexcept { return _iVars.size();}
+   size_t getNbProp() noexcept { return _nbProp;}
     void registerVar(AVar::Ptr avar);
     void schedule(Constraint::Ptr& c) {
         if (c->isActive() && !c->isScheduled()) {

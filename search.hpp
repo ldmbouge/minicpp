@@ -78,8 +78,8 @@ public:
    void incrFailures()  noexcept {failures += 1; extern int __nbf; __nbf = failures; }
    void incrNodes()     noexcept {nodes += 1; extern int __nbn; __nbn = nodes;}
    void incrSolutions() noexcept {solutions += 1;}
-   void setIntVars(int count) noexcept {intVariables = count;}
-   void setBoolVars(int count) noexcept {boolVariables = count;}
+   void setIntVars(int count) noexcept { intVariables = count;}
+   void setBoolVars(int count) noexcept { boolVariables = count;}
    void setPropagators(int count) noexcept {propagators = count;}
    void setInitTime() noexcept { _initTime = RuntimeMonitor::now();}
    void setSolveTime() noexcept { _solveTime = RuntimeMonitor::now();}
@@ -111,19 +111,20 @@ typedef std::function<bool(const SearchStatistics&)> Limit;
 
 class DFSearch {
    StateManager::Ptr                      _sm;
+   CPSolver::Ptr                          _cp;
    std::function<Branches(void)>   _branching;
    std::vector<std::function<void(void)>>    _solutionListeners;
    std::vector<std::function<void(void)>>    _failureListeners;
    void dfs(SearchStatistics& stats,const Limit& limit);
 public:
    DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b)
-      : _sm(cp->getStateManager()),_branching(std::move(b)) {
+      : _sm(cp->getStateManager()),_cp(cp),_branching(std::move(b)) {
       _sm->enable();
    }
-   DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b)
-      : _sm(sm),_branching(std::move(b)) {
-      _sm->enable();
-   }
+   // DFSearch(StateManager::Ptr sm,std::function<Branches(void)>&& b)
+   //    : _sm(sm),_branching(std::move(b)) {
+   //    _sm->enable();
+   // }
    template <class B> void onSolution(B c) { _solutionListeners.emplace_back(std::move(c));}
    template <class B> void onFailure(B c)  { _failureListeners.emplace_back(std::move(c));}
    void notifySolution() { for_each(_solutionListeners.begin(),_solutionListeners.end(),[](std::function<void(void)>& c) { c();});}

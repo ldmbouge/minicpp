@@ -93,8 +93,22 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__sub__",[](const var<int>::Ptr& s,int a)  { return Factory::operator-(s,a);},py::is_operator())
       .def("__ne__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::operator!=(a,b);},py::is_operator())
       .def("__eq__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::equal(a,b,0);},py::is_operator())
-      .def("__ne__",[](const var<int>::Ptr& a,int b) { return Factory::operator!=(a,b);},py::is_operator())
-      .def("__eq__",[](const var<int>::Ptr& a,int b) { return Factory::operator==(a,b);},py::is_operator())
+      .def("__ne__",[](const var<int>::Ptr& a,int b) {
+         TRYFAIL {
+            return Factory::operator!=(a,b);
+         } ONFAIL {
+            //std::cout << "failure in x!=" << b << std::endl;
+            throw Failure; // convert longjmp/setjmp back to C++ exception to go through pybind layer
+         } ENDFAIL
+      },py::is_operator())
+      .def("__eq__",[](const var<int>::Ptr& a,int b) {
+         TRYFAIL {
+            return Factory::operator==(a,b);
+         } ONFAIL {
+            //std::cout << "failure in x==" << b << std::endl;
+            throw Failure; // convert longjmp/setjmp back to C++ exception to go through pybind layer
+         } ENDFAIL
+      },py::is_operator())
       .def("__le__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::operator<=(a,b);},py::is_operator())
       .def("__ge__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::operator>=(a,b);},py::is_operator())
       .def("__le__",[](const var<int>::Ptr& a,int b) { return Factory::operator<=(a,b);},py::is_operator())
@@ -119,10 +133,17 @@ PYBIND11_MODULE(minicpp,m) {
 
    
    py::class_<CPSolver,CPSolver::Ptr>(m,"CPSolver")
-      //.def("incrNbChoices",&CPSolver::incrNbChoices)
-      //.def("incrNbSol",&CPSolver::incrNbSol)
       .def("fixpoint",&CPSolver::fixpoint)
-      .def("post",&CPSolver::post,py::arg("c"),py::arg("enforceFixPoint")=true,"Post the constraint `c` and runs the fixpoint as required.")
+      .def("post",[](CPSolver::Ptr cp,Constraint::Ptr c,bool enforceFixPoint) {
+         TRYFAIL {
+            cp->post(c,enforceFixPoint);
+         } ONFAIL {
+            std::cout << "failure caught ..." << std::endl;            
+         } ENDFAIL         
+      },
+         py::arg("c"),
+         py::arg("enforceFixPoint")=true,
+         "Post the constraint `c` and runs the fixpoint as required.")
       .def("__repr__",[](const CPSolver& s) {
                          std::ostringstream str;
                          str << s << std::ends;
@@ -174,6 +195,10 @@ PYBIND11_MODULE(minicpp,m) {
       .def("onFailure",&DFSearch::onFailure<std::function<void(void)>>)
       .def("solve",py::overload_cast<>(&DFSearch::solve))
       .def("solve",py::overload_cast<std::function<bool(const SearchStatistics&)>>(&DFSearch::solve))
+      // .def("solve",[](DFSearch& s,std::function<bool(const SearchStatistics&)> lim) {
+      //    auto stat = s.solve(lim); // this was for debugging purposes.
+      //    return stat;
+      // })
       .def("solve",py::overload_cast<SearchStatistics&,std::function<bool(const SearchStatistics&)>>(&DFSearch::solve))
       .def("solveSubjectTo",&DFSearch::solveSubjectTo)
       .def("optimize",py::overload_cast<Objective::Ptr>(&DFSearch::optimize))
@@ -203,8 +228,6 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,var<int>::Ptr)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<int>::Ptr>&,int)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,int)>(&Factory::sum));
-
-
    m.def("sum",static_cast<var<int>::Ptr (*)(Factory::Veci&)>(&Factory::sum<Factory::Veci>));
    m.def("sum",static_cast<var<int>::Ptr (*)(std::vector<var<int>::Ptr>&)>(&Factory::sum<std::vector<var<int>::Ptr>>));
    
@@ -228,6 +251,9 @@ PYBIND11_MODULE(minicpp,m) {
                       DFSearch search(cp,firstFail(cp,vars));
                       return search;
                    });
-   m.def("selectMin",static_cast<var<int>::Ptr (*)(const Factory::Veci&,std::function<bool(var<int>::Ptr)>,std::function<int(var<int>::Ptr)>)>(&selectMin3));
+   using FVInt2Bool = std::function<bool(var<int>::Ptr)>;
+   using FVInt2Int  = std::function<int(var<int>::Ptr)>;
+   m.def("selectMin",static_cast<var<int>::Ptr (*)(const Factory::Veci&,FVInt2Bool,FVInt2Int)>(&selectMin3));
    m.def("indomain_min",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_min));
+   m.def("indomain_max",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_max));
 }

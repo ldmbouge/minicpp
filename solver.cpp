@@ -25,6 +25,7 @@ CPSolver::CPSolver()
 {
     _varId  = 0;
     _propagations = 0;
+    _nbProp = 0;
 }
 
 CPSolver::~CPSolver()
@@ -39,6 +40,7 @@ void CPSolver::post(Constraint::Ptr c, bool enforceFixPoint)
 {
     if (!c)
         return;
+    ++_nbProp;
     c->post();
     if (enforceFixPoint)
         fixpoint();
