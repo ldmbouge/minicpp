@@ -1013,7 +1013,7 @@ namespace Factory
       std::vector<int> flat(array.size());
       for(int i=0;i < (int)array.size();i++)
          flat[i] = array[i];
-      return new (y->getSolver()) Element1DDC(flat,y,z);
+      return new (y->getSolver()) Element1D(flat,y,z);
    }
    /**
     * Factory function that returns a global constraint requiring \f$z = xs[y]\f$
