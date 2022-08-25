@@ -271,8 +271,8 @@ namespace Factory {
       return seqMDD3(m,v2,len,lb,ub,rawValues);
    }
 
-   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars);
-   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars);
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts = {});
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,MDDOpts opts = {});
 }
 
 #endif

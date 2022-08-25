@@ -241,6 +241,7 @@ public:
    void propagate() override;
    void trimLayer(unsigned int layer) override;
    void removeNode(MDDNode* node) override;
+   int selectValueFor(var<int>::Ptr);
    void debugGraph() override;
 };
 

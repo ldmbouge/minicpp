@@ -340,7 +340,33 @@ namespace Factory {
          z->updateBounds(sink.down[minW],sink.down[maxW]);
       });
 
-      mdd.splitOnLargest([minW](const auto& in) { return in.getDownState()[minW];});
+      mdd.splitOnLargest([maxW](const auto& in) { return in.getDownState()[maxW];});
+      mdd.candidateByLargest([maxW](const auto& state, void* arcs, int numArcs) {
+         return state[maxW];
+      });
+
+      mdd.bestValue([=](auto layer) {
+         int bestValue = 0;
+         int bestWeight = 0;
+         int bestArcWeight = 0;
+         for (auto& node : *layer) {
+            for (auto& childArc : node->getChildren()) {
+               auto child = childArc->getChild();
+               //int childWeight = child->getDownState()[maxW];
+               //int childWeight = child->getDownState()[minW];
+               int childWeight = child->getDownState()[maxW] + child->getUpState()[maxWup];
+               //int childWeight = child->getDownState()[minW] + child->getUpState()[minWup];
+               int arcWeight = matrix[node->getDownState()[len]][childArc->getValue()];
+               if (childWeight > bestWeight || (childWeight == bestWeight && arcWeight > bestArcWeight)) {
+                  bestWeight = childWeight;
+                  bestValue = childArc->getValue();
+                  bestArcWeight = arcWeight;
+               }
+            }
+         }
+         return bestValue;
+      });
+
       return d;
    }
 }

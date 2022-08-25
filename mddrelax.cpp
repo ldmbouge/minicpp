@@ -270,14 +270,15 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    const int stateSZInBytes = _mddspec.layoutSizeDown();
    const int cDownSZInWords = propNbWords(_mddspec.sizeDown());
    const int cCombSZInWords = propNbWords(_mddspec.sizeCombined());
-   const int cDownSZInBytes = cDownSZInWords * sizeof(long long);
-   const int cCombSZInBytes = cCombSZInWords * sizeof(long long);
+   const int cDownSZInBytes = (cDownSZInWords & 0x15 ? (cDownSZInWords | 0x15) + 1 : cDownSZInWords) * sizeof(long long);
+   const int cCombSZInBytes = (cCombSZInWords & 0x15 ? (cCombSZInWords | 0x15) + 1 : cCombSZInWords) * sizeof(long long);
+   //Ensure that cDownSZInBytes and cCombSZInBytes are aligned to 16-bytes since MDDPropSet uses __m128i
    char* block = (char*)alloca(stateSZInBytes*2 + cDownSZInBytes * 2 + cCombSZInBytes);
-   char* csBL = block;
-   char* msBL = block+stateSZInBytes;
-   char* psDBL = msBL+stateSZInBytes;
+   char* outBL = block;
+   char* psDBL = block+cDownSZInBytes;
    char* psCBL = psDBL+cDownSZInBytes;
-   char* outBL = psCBL+cCombSZInBytes;
+   char* csBL = psCBL+cCombSZInBytes;
+   char* msBL = csBL+stateSZInBytes;
    MDDState cs(trail,&_mddspec,csBL,Down);
    MDDState ms(trail,&_mddspec,msBL,Down);
    // Causes of "parentsChanged":
@@ -1245,6 +1246,11 @@ void MDDRelax::refreshAll()
       }
    }
    propagate();
+}
+
+int MDDRelax::selectValueFor(var<int>::Ptr theVar)
+{
+  return _mddspec.bestValueFor(&layers[layerAbove(theVar)]);
 }
 
 void MDDRelax::checkGraph()

@@ -19,6 +19,7 @@
 #include "handle.hpp"
 #include "intvar.hpp"
 #include "utilities.hpp"
+#include "trailVec.hpp"
 #include <set>
 #include <cstring>
 #include <map>
@@ -320,6 +321,8 @@ typedef std::function<double(const MDDState&,const MDDState&)> lambdaSim;
 typedef std::function<double(const MDDNode&)> SplitFun;
 typedef std::function<double(const MDDState&, void*, int)> CandidateFun;
 typedef std::function<int(const MDDState&,const MDDState&)> EquivalenceValueFun;
+//typedef std::function<int*(TVec<MDDNode*>*)> ValueScoreFun;
+typedef std::function<int(TVec<MDDNode*>*)> BestValueFun;
 class MDDStateSpec;
 
 /**
@@ -1441,6 +1444,8 @@ public:
    void splitOnLargest(SplitFun onSplit, int cPriority = 0);
    void candidateByLargest(CandidateFun candidateSplit, int cPriority = 0);
    void equivalenceClassValue(EquivalenceValueFun equivalenceValue, int cPriority = 0);
+   //void valueScoring(ValueScoreFun valueSelection);
+   void bestValue(BestValueFun bestValue);
    int numEquivalenceClasses();
    // Internal methods.
    void varOrder() override;
@@ -1479,6 +1484,8 @@ public:
    double nodeSplitPriority(const MDDNode& n, int cPriority) const;
    double candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int cPriority) const;
    std::vector<int> equivalenceValue(const MDDState& downState, const MDDState& upState, int cPriority = 0);
+   int bestValueFor(TVec<MDDNode*>* layer);
+   //int valueScoreFor(TVec<MDDNode*>* layer);
    bool hasNodeSplitRule() const noexcept { return _onSplit.size() > 0;}
    bool hasCandidateSplitRule() const noexcept { return _candidateSplit.size() > 0;}
    bool equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int cPriority) const;
@@ -1503,6 +1510,8 @@ private:
    std::vector<FixFun>        _onFix;
    std::vector<SplitFun>      _onSplit;
    std::vector<CandidateFun>      _candidateSplit;
+   //std::vector<ValueScoreFun>      _valueScore;
+   BestValueFun      _bestValue;
    std::vector<EquivalenceValueFun> _equivalenceValue;
    std::vector<std::vector<lambdaTrans>> _transLayer;
    std::vector<std::vector<lambdaTrans>> _uptransLayer;

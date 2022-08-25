@@ -61,12 +61,34 @@ int main(int argc,char* argv[])
    int mode  = (argc >= 4 && strncmp(argv[3],"-m",2)==0) ? atoi(argv[3]+2) : 0;
    int maxRebootDistance  = (argc >= 5 && strncmp(argv[4],"-r",2)==0) ? atoi(argv[4]+2) : 0;
    int maxSplitIter = (argc >= 6 && strncmp(argv[5],"-i",2)==0) ? atoi(argv[5]+2) : INT_MAX;
+   int splitByMDD = (argc >= 7 && strncmp(argv[6],"-s",2)==0) ? atoi(argv[6]+2) : 0;
+   int nodePriority = (argc >= 8 && strncmp(argv[7],"-y",2)==0) ? atoi(argv[7]+2) : 0;
+   int candidatePriority = (argc >= 9 && strncmp(argv[8],"-w",2)==0) ? atoi(argv[8]+2) : 0;
+   int approxEquivMode = (argc >= 10 && strncmp(argv[9],"-e",2)==0) ? atoi(argv[9]+2) : 0;
+   int equivThreshold = (argc >= 11 && strncmp(argv[10],"-t",2)==0) ? atoi(argv[10]+2) : 0;
 
    cout << "N = " << N << endl;   
    cout << "width = " << width << endl;   
    cout << "mode = " << mode << endl;
    cout << "max reboot distance = " << maxRebootDistance << endl;
    cout << "max split iterations = " << maxSplitIter << endl;
+   cout << "split by MDD = " << (splitByMDD ? "true" : "false") << endl;
+   cout << "node priority = " << nodePriority << endl;
+   cout << "candidate priority = " << candidatePriority << endl;
+   cout << "approx equiv mode = " << approxEquivMode << endl;
+   cout << "equiv threshold = " << equivThreshold << endl;
+
+   MDDOpts allDiffOpts = {
+      .nodeP = nodePriority,
+      .candP = candidatePriority,
+      .appxEQMode = 0
+   };
+   MDDOpts absDiffOpts = {
+      .nodeP = nodePriority,
+      .candP = candidatePriority,
+      .appxEQMode = approxEquivMode,
+      .eqThreshold = equivThreshold
+   };
 
    auto start = RuntimeMonitor::cputime();
 
@@ -96,9 +118,9 @@ int main(int argc,char* argv[])
    std::cout << "x = " << xVars << endl;
    std::cout << "y = " << yVars << endl;
    
-   
-   auto mdd = Factory::makeMDDRelax(cp,width,maxRebootDistance,maxSplitIter);
-   //mdd->getSpec().useApproximateEquivalence();
+   MDDRelax* cstr = nullptr;
+   auto mdd = Factory::makeMDDRelax(cp,width,maxRebootDistance,maxSplitIter,true);
+   if (approxEquivMode) mdd->getSpec().useApproximateEquivalence();
 
    if (mode == 0) {
      cout << "domain encoding with equalAbsDiff constraint" << endl;
@@ -131,12 +153,13 @@ int main(int argc,char* argv[])
    }
    if ((mode == 2) || (mode == 3)) {
       cout << "MDD encoding" << endl;     
-      mdd->post(Factory::absDiffMDD(mdd,{vars[0],vars[1],vars[2]}));
+      mdd->post(Factory::absDiffMDD(mdd,{vars[0],vars[1],vars[2]},absDiffOpts));
       for (int i=1; i<N-1; i++) 
-         mdd->post(Factory::absDiffMDD(mdd,{vars[2*i-1],vars[2*i+1],vars[2*i+2]}));      
-      mdd->post(allDiffMDD(xVars));
-      mdd->post(allDiffMDD(yVars));
+         mdd->post(Factory::absDiffMDD(mdd,{vars[2*i-1],vars[2*i+1],vars[2*i+2]},absDiffOpts));      
+      mdd->post(allDiffMDD(xVars,allDiffOpts));
+      mdd->post(allDiffMDD(yVars,allDiffOpts));
       cp->post(mdd);
+      cstr = mdd;
       //mdd->saveGraph();
       // cout << "For testing purposes: adding domain consistent AllDiffs MDD encoding" << endl;
       // cp->post(allDifferentAC(xVars));
@@ -156,7 +179,8 @@ int main(int argc,char* argv[])
       // Lex order
       auto x = selectFirst(xVars,[](const auto& x) { return x->size() > 1;});
       if (x) {	
-         int c = x->min();          
+         int c = (splitByMDD && cstr) ? bestValue(cstr,x) : x->min();
+         //int c = x->min();          
          return  [=] {
            //std::string tabs(cp->getStateManager()->depth(),'\t');
            //cout << tabs <<  "->choose: " << x << " == " << c << endl; 
@@ -222,7 +246,8 @@ int main(int argc,char* argv[])
    std::cout << "\t\t\"splitCS\" : " << splitCS << ",\n";
    std::cout << "\t\t\"pruneCS\" : " << pruneCS << ",\n";
    std::cout << "\t\t\"pot\" : " << potEXEC << ",\n";  
-   std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << "\n";
+   std::cout << "\t\t\"time\" : " << RuntimeMonitor::milli(start,end) << ",\n";
+   std::cout << "\t\t\"solns\" : " << stat.numberOfSolutions() << "\n";
    std::cout << "\t}\n";  
    std::cout << "}\n}";
 }

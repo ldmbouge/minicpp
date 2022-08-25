@@ -34,14 +34,14 @@ using namespace Factory;
 
 
 namespace Factory {
-   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars) {
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,MDDOpts opts) {
       CPSolver::Ptr cp = (*vars.begin())->getSolver();
       auto theVars = Factory::intVarArray(cp,vars.size(),[&vars](int i) {
          return std::data(vars)[i];
       });
-      return absDiffMDD(m,theVars);
+      return absDiffMDD(m,theVars,opts);
    }
-   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,const Factory::Veci& vars)
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,const Factory::Veci& vars,MDDOpts opts)
    {
       MDDSpec& mdd = m->getSpec();
       assert(vars.size()==3);    

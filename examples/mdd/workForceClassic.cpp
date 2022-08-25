@@ -247,22 +247,27 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             largest = std::max(largest,compat[i][v]);           
          }
          return  [=] {
-                    // cout << tab(depth) << "?x(" << i << ") == " << bool_vars << " " <<  x << endl;
+                     //cout << tab(depth) << "?x(" << i << ") == " << bool_vars << " " <<  x << endl;
+                     //cout << tab << "?x(" << i << ") == " << bv << " -- " << x << endl;
                     cp->post(x == bv);
-                    // cout << tab(depth) << "!x(" << i << ") == " << bool_vars << endl;
+                     //cout << tab << "?x(" << i << ") == " << bv << endl;
+                     //cout << tab(depth) << "!x(" << i << ") == " << bool_vars << endl;
                  }
             | [=] {
-                 // cout << tab(depth) << "?x(" << i << ") != " << bool_vars << " FAIL" << endl;
+                  //cout << tab(depth) << "?x(" << i << ") != " << bool_vars << " FAIL" << endl;
+                  //cout << tab << "?x(" << i << ") != " << bv << " FAIL" << endl;
                  cp->post(x != bv);
-                 // cout << tab(depth) << "!x(" << i << ") != " << bool_vars << endl;
+                  //cout << tab << "!x(" << i << ") != " << bv << endl;
+                  //cout << tab(depth) << "!x(" << i << ") != " << bool_vars << endl;
               };
       } else return Branches({});
    });
 
    SearchStatistics stat;
-   search.onSolution([&emp,obj,&stat]() {
+   search.onSolution([&emp,obj,&stat,start]() {
                         cout << "obj : " << obj->value() << " " << emp << endl;
                         cout << "#F  : " << stat.numberOfFailures() << endl;
+                        cout << "Time  : " << RuntimeMonitor::elapsedSince(start) << endl;
                      });   
    search.optimize(obj,stat);   
    auto dur = RuntimeMonitor::elapsedSince(start);
@@ -276,8 +281,8 @@ int main(int argc,char* argv[])
    int mode = (argc >= 2 && strncmp(argv[1],"-m",2)==0) ? atoi(argv[1]+2) : 1;  
    cout << "mode = " << mode << endl;
    
-   const char* jobsFile = "data/workforce50-jobs.csv";
-   const char* compatFile = "data/workforce50.csv";
+   const char* jobsFile = "data/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce100.csv";
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);

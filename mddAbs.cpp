@@ -29,7 +29,7 @@ namespace Factory {
     *
     * The constraint is described in the talk. 
     */
-   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars) {
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts) {
      MDDSpec& mdd = m->getSpec();
      assert(vars.size()==3);     
      // Filtering rules based the following constraint:  |vars[0]-vars[1]| = vars[2]
@@ -37,6 +37,8 @@ namespace Factory {
      auto d = mdd.makeConstraintDescriptor(vars,"absDiffMDD");
      const auto udom  = domRange(vars);
      const int minDom = udom.first;
+     const int maxDom = udom.second;
+     const int domSize = maxDom - minDom + 1;
     
     const auto xSome  = mdd.downBSState(d,udom.second - udom.first + 1,0,MinFun);
     const auto ySome  = mdd.downBSState(d,udom.second - udom.first + 1,0,MinFun);
@@ -140,6 +142,50 @@ namespace Factory {
     mdd.addRelaxationUp(d,zSomeUp,[zSomeUp](auto& out,const auto& l,const auto& r)  noexcept      {
        out[zSomeUp].setBinOR(l[zSomeUp],r[zSomeUp]);
     });
+    switch (opts.appxEQMode) {
+       case 1:
+          mdd.equivalenceClassValue([=](const auto& down, const auto& up){
+             MDDBSValue xVals = down[xSome], yVals = down[ySome];
+             switch(down[N]) {
+                case 1:
+                   for (int i = domSize - 1; i >= 0; i--)
+                      if (xVals.getBit(i)) return i;
+                   break;
+                case 2:
+                   int minX = domSize, minY = domSize;
+                   int maxX = 0, maxY = 0;
+                   for (int i = domSize - 1; i >= 0; i--) {
+                      if (xVals.getBit(i)) {
+                         maxX = i;
+                         break;
+                      }
+                   }
+                   for (int i = domSize - 1; i >= 0; i--) {
+                      if (yVals.getBit(i)) {
+                         maxY = i;
+                         break;
+                      }
+                   }
+                   for (int i = 0; i < domSize; i++) {
+                      if (xVals.getBit(i)) {
+                         minX = i;
+                         break;
+                      }
+                   }
+                   for (int i = 0; i < domSize; i++) {
+                      if (yVals.getBit(i)) {
+                         minY = i;
+                         break;
+                      }
+                   }
+                   return std::max(std::abs(maxX - minY), std::abs(maxY - minX));
+             }
+             return 0;
+          }, opts.cstrP);
+          break;
+       default:
+          break;
+    }
     return d;
   }
    /**
@@ -147,11 +193,11 @@ namespace Factory {
     * It uses an initializer_list and converts to an array to call the function above
     * that does the real work.
     */
-   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars) {
+   MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,MDDOpts opts) {
       CPSolver::Ptr cp = (*vars.begin())->getSolver();
       auto theVars = Factory::intVarArray(cp,vars.size(),[&vars](int i) {
          return std::data(vars)[i];
       });
-      return absDiffMDD(m,theVars);
+      return absDiffMDD(m,theVars,opts);
    }
 }

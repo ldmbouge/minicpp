@@ -463,8 +463,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
    if (mdd && sameMDD) {
       cp->post(mdd);
    }
-  
-  
+
+
    DFSearch search(cp,[=]() {
       unsigned i = 0u;
       for(i=0u;i < vars.size();i++)
@@ -477,7 +477,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
       
       if (x) {
          //bool c = x->min();
-         int c = x->min();
+         //int c = x->min()
+         int c = mdd->selectValueFor(x);
 	
          return  [=] {
             cp->post(x == c);}

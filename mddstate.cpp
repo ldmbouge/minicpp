@@ -387,6 +387,14 @@ void MDDSpec::candidateByLargest(CandidateFun candidateSplit, int constraintPrio
    _candidateSplit.emplace_back(candidateSplit);
    _candidateSplitByPriorities[constraintPriority].emplace_back(candidateSplit);
 }
+//void MDDSpec::valueScoring(ValueScoreFun valueScore)
+//{
+//   _valueScore.emplace_back(std::move(valueScore));
+//}
+void MDDSpec::bestValue(BestValueFun bestValue)
+{
+   _bestValue = std::move(bestValue);
+}
 void MDDSpec::equivalenceClassValue(EquivalenceValueFun equivalenceValue, int constraintPriority)
 {
    _equivalenceValue.emplace_back(equivalenceValue);
@@ -455,6 +463,18 @@ void MDDSpec::arcExist(MDDCstrDesc::Ptr d,ArcFun a)
 {
    _exists.emplace_back(std::make_pair<MDDCstrDesc::Ptr,ArcFun>(std::move(d),std::move(a)));
 }
+
+//int MDDSpec::valueScoreFor(TVec<MDDNode*>* layer)
+//{
+//   for(const auto& valueScore : _valueScore) {
+//      valueScore(layer);
+//   }
+//}
+int MDDSpec::bestValueFor(TVec<MDDNode*>* layer)
+{
+   return _bestValue(layer);
+}
+
 void MDDSpec::updateNode(MDDCstrDesc::Ptr cd,MDDProperty::Ptr p,std::set<MDDProperty::Ptr> spDown,std::set<MDDProperty::Ptr> spUp,UpdateFun nf)
 {
    if (cd->ownsCombinedProperty(p->getId())) {

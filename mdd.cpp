@@ -116,7 +116,7 @@ unsigned long MDD::layerBelow(var<int>::Ptr theVar)
 
 int minCostDown(MDD* m,MDDNode* from,int depth)
 {
-   if (depth == 0)
+   if (depth == 0 || from->getNumChildren() == 0)
       return 1;
    else {
       int bestCost = INT_MAX;

@@ -31,9 +31,23 @@ private:
    int _start;
    int _end;
    int _duration;
+   int _numConflicts;
+   int _numConflictsDynamic;
+   int _jobID;
+   int _largest;
+   int _sum;
 public:
-   Job(int start, int end, int duration) : _start(start), _end(end), _duration(duration) {}
-   Job(vector<int> vec) : _start(vec[0]), _end(vec[1]), _duration(vec[2]) {}
+   Job(int start, int end, int duration) : _start(start), _end(end), _duration(duration) { _numConflicts = _numConflictsDynamic = 0; }
+   Job(vector<int> vec) : _start(vec[0]), _end(vec[1]), _duration(vec[2]) { _numConflicts = _numConflictsDynamic = 0; }
+   void setID(int id) { _jobID = id; }
+   int jobID() { return _jobID; }
+   void setLargest(int largest) { _largest = largest; }
+   void setSum(int sum) { _sum = sum; }
+   void addConflict() { _numConflicts++; }
+   int numConflicts() { return _numConflicts; }
+   void addConflictDynamic() { _numConflictsDynamic++; }
+   int numConflictsDynamic() { return _numConflictsDynamic; }
+   static int SortMethod;
    friend std::ostream &operator<<(std::ostream &output, const Job& j){
       return output << "{s:"<< j._start << ",e:" << j._end << ",d:" << j._duration << "}";
    }
@@ -41,7 +55,30 @@ public:
    inline int end() {return _end;}
    inline int duration() {return _duration;}
    inline bool overlap(const Job& j) {return max(_start,j._start) < min(_end,j._end);}
+   friend bool operator<(const Job& j1, const Job& j2);
 };
+int Job::SortMethod = 0;
+bool operator<(const Job& j1, const Job& j2) { 
+   switch (Job::SortMethod) {
+      case 1:
+         return (j1._start < j2._start) || (j1._start == j2._start && j1._end < j2._end);
+      case 2:
+         return (j1._end < j2._end) || (j1._end == j2._end && j1._start < j2._start);
+      case 3:
+         return (j1._numConflicts < j2._numConflicts) || (j1._numConflicts == j2._numConflicts && ((j1._start < j2._start) || (j1._start == j2._start && j1._end < j2._end)));
+      case 4:
+         return (j1._numConflicts > j2._numConflicts) || (j1._numConflicts == j2._numConflicts && ((j1._start < j2._start) || (j1._start == j2._start && j1._end < j2._end)));
+      case 5:
+         return (j1._largest > j2._largest) || (j1._largest == j2._largest && ((j1._start < j2._start) || (j1._start == j2._start && j1._end < j2._end)));
+      case 6:
+         return (j1._largest < j2._largest) || (j1._largest == j2._largest && ((j1._start < j2._start) || (j1._start == j2._start && j1._end < j2._end)));
+      case 7:
+         return (j1._sum > j2._sum) || (j1._sum == j2._sum && ((j1._start < j2._start) || (j1._start == j2._start && j1._end < j2._end)));
+      case 8:
+         return (j1._sum < j2._sum) || (j1._sum == j2._sum && ((j1._start < j2._start) || (j1._start == j2._start && j1._end < j2._end)));
+   }
+   return j1._jobID < j2._jobID;
+}
 
 bool is_number(const std::string& s)
 {
@@ -194,15 +231,61 @@ std::string tab(int d) {
    return s;
 }
 
-void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int relaxSize,int over)
+void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat, int mode, int relaxSize, int over, MDDOpts opts, int variableSearchHeuristic, int valueSearchHeuristic)
 {
    using namespace std;
-   //int nbJ = (int) compat.size();
+   auto numJobs = jobs.size();
    int nbE = (int) compat[0].size();
+
+   for (auto i = 0u; i < numJobs; i++) {
+      jobs[i].setID(i);
+      int largest = compat[i][0];
+      int sum = largest;
+      for(int v=1;v < nbE;v++) {
+         largest = std::max(largest,compat[i][v]);
+         sum += compat[i][v];
+      }
+      jobs[i].setLargest(largest);
+      jobs[i].setSum(sum);
+      for (auto j = i+1; j < numJobs; j++) {
+         if (jobs[i].end() >= jobs[j].start() && jobs[j].end() >= jobs[i].start()) {
+            jobs[i].addConflict();
+            jobs[j].addConflict();
+         }
+      }
+   }
+
+   if (Job::SortMethod == 9) {
+      auto numSorted = 0u;
+      while (numSorted < numJobs) {
+         auto bestNextVar = numSorted;
+         for (auto i = numSorted + 1; i < numJobs; i++) {
+            if (jobs[i].numConflictsDynamic() > jobs[bestNextVar].numConflictsDynamic() || (jobs[i].numConflictsDynamic() == jobs[bestNextVar].numConflictsDynamic() && (jobs[i].numConflicts() > jobs[bestNextVar].numConflicts() || (jobs[i].numConflicts() == jobs[bestNextVar].numConflicts() && jobs[i].start() < jobs[bestNextVar].start())))) {
+               bestNextVar = i;
+            }
+         }
+         for (auto i = numSorted; i < numJobs; i++) {
+            if (i == bestNextVar) continue;
+            if (jobs[i].end() >= jobs[bestNextVar].start() && jobs[bestNextVar].end() >= jobs[i].start())
+               jobs[i].addConflictDynamic();
+         }
+         iter_swap(jobs.begin() + numSorted, jobs.begin() + bestNextVar);
+         numSorted++;
+      }
+   } else {
+      std::sort(jobs.begin(),jobs.end());
+   }
+
+   vector<vector<int>> sortedCompat;
+   for (auto i = 0u; i < numJobs; i++) {
+      sortedCompat.push_back(compat[jobs[i].jobID()]);
+   }
+
+   //int nbJ = (int) compat.size();
    set<set<int>> cliques = sweep(jobs);
    vector<set<int>> cv;
    std::copy(cliques.begin(),cliques.end(),std::inserter(cv,cv.end()));
-   auto emp = Factory::intVarArray(cp,(int) jobs.size(), 0, nbE-1);
+   auto emp = Factory::intVarArray(cp,(int) numJobs, 0, nbE-1);
    vector<bool> taken(cv.size()); // for each clique a boolean saying whether it was already picked up.
    vector<set<unsigned>> cid; // identifiers of cliques to bundle in the same MDD (identifiers refer to index within cv)
 
@@ -235,7 +318,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    for (unsigned int i=0; i<emp.size(); i++) {
      int tmpMax = 0;
      for (int j=emp[i]->min(); j<=emp[i]->max(); j++) {
-        tmpMax = std::max(tmpMax,compat[i][j]);
+        tmpMax = std::max(tmpMax,sortedCompat[i][j]);
      }
      zUB += tmpMax;
    }
@@ -246,34 +329,57 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    for (unsigned int i=0; i<emp.size(); i++) {
       cout << "R" << setw(2) << i << ": ";
      for (int j=emp[i]->min(); j<=emp[i]->max(); j++) {
-        std::cout << setw(2) << compat[i][j] << " ";
+        std::cout << setw(2) << sortedCompat[i][j] << " ";
      }
      std::cout << "\n";
    }
+
+   Objective::Ptr obj;
 
    //assert(ss == cv.size());
    cout << "CID.size():" << cid.size() << "\n";
    //int k = 0;
    MDDRelax* theOne = nullptr;
-   for(auto& ctm : cid) {
-      //if (k++ < 10) continue;
-      //auto mdd = new MDD(cp);
-      auto mdd = Factory::makeMDDRelax(cp,relaxSize);
-      for(auto theClique : ctm) {  // merge on cliques if normal alldiff.
-         auto c = cv[theClique];
-         std::cout << "Clique: " << c << '\n';
+   if (mode == 0) {
+      for(auto& c : cliques) {
          auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-         mdd->post(Factory::allDiffMDD(adv));
-         //cp->post(Factory::allDifferent(adv));
+         cp->post(Factory::allDifferent(adv));
       }
-      // add objective to MDD
-      mdd->post(sum(emp, compat, z));
-      cp->post(mdd);
-      theOne = mdd;
-      //mdd->saveGraph();
+      auto sm = Factory::intVarArray(cp,numJobs,[&](int i) { return Factory::element(sortedCompat[i],emp[i]);});
+      cp->post(z == sum(sm));
+      obj = Factory::maximize(Factory::sum(sm));
+   }
+   if (mode == 1) {
+      for(auto& c : cliques) {
+         auto adv = all(cp, c, [&emp](int i) {return emp[i];});
+         cp->post(Factory::allDifferentAC(adv));
+      }
+      auto sm = Factory::intVarArray(cp,numJobs,[&](int i) { return Factory::element(sortedCompat[i],emp[i]);});
+      cp->post(z == sum(sm));
+      obj = Factory::maximize(Factory::sum(sm));
+   }
+   if (mode == 2) {
+      for(auto& ctm : cid) {
+         //if (k++ < 10) continue;
+         //auto mdd = new MDD(cp);
+         auto mdd = Factory::makeMDDRelax(cp,relaxSize);
+         for(auto theClique : ctm) {  // merge on cliques if normal alldiff.
+            auto c = cv[theClique];
+            std::cout << "Clique: " << c << '\n';
+            auto adv = all(cp, c, [&emp](int i) {return emp[i];});
+            mdd->post(Factory::allDiffMDD(adv,opts));
+            //cp->post(Factory::allDifferent(adv));
+         }
+         // add objective to MDD
+         mdd->post(sum(emp, sortedCompat, z));
+         cp->post(mdd);
+         theOne = mdd;
+         //mdd->saveGraph();
+      }
+      obj = Factory::maximize(z);
    }
 
-     // auto sm = Factory::intVarArray(cp,nbJ,[&](int i) { return Factory::element(compat[i],emp[i]);});
+     // auto sm = Factory::intVarArray(cp,nbJ,[&](int i) { return Factory::element(sortedCompat[i],emp[i]);});
      // Objective::Ptr obj = Factory::maximize(Factory::sum(sm));
 
         // obj: 981
@@ -288,24 +394,45 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    // Factory::sumMDD(mddSum->getSpec(), emp, compat, z);
    // cp->post(mddSum);
 
-   Objective::Ptr obj = Factory::maximize(z);
+   //Objective::Ptr obj = Factory::maximize(z);
    
    auto start = RuntimeMonitor::now();
    DFSearch search(cp,[=]() {
-      //auto x = selectFirst(emp,[](const auto& x) { return x->size() > 1;});
-      auto x = selectMin(emp,
-                         [](const auto& x) { return x->size() > 1;},
-                         [](const auto& x) { return x->size();});
-                               
+      var<int>::Ptr x;
+      switch (variableSearchHeuristic) {
+         case 0:
+            x = selectFirst(emp,[](const auto& x) { return x->size() > 1;});
+            break;
+         case 1:
+            x = selectMin(emp,
+                          [](const auto& x) { return x->size() > 1;},
+                          [](const auto& x) { return x->size();});
+            break;
+      }
+
       if (x) {
+         int bv;
          int i = x->getId();
-         int largest = std::numeric_limits<int>::min();
-         int bv = -1;
-         for(auto v=0u;v < compat[i].size();v++) {
-            if (!emp[i]->contains(v))
-               continue;
-            bv = compat[i][v] > largest ? v : bv;
-            largest = std::max(largest,compat[i][v]);           
+         int largest;
+         switch (valueSearchHeuristic) {
+            case 0:
+               largest = std::numeric_limits<int>::min();
+               for(auto v=0u;v < sortedCompat[i].size();v++) {
+                  if (!emp[i]->contains(v))
+                     continue;
+                  bv = sortedCompat[i][v] > largest ? v : bv;
+                  largest = std::max(largest,sortedCompat[i][v]);     
+               }
+               break;
+            case 1:
+               bv = bestValue(theOne,x);
+               break;
+            case 2:
+               bv = theOne->selectValueFor(x);
+               break;
+            case 3:
+               bv = x->min();
+               break;
          }
          //string tab(cp->getStateManager()->depth(),' ');
          return  [=] {
@@ -321,14 +448,15 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    });
 
    SearchStatistics stat;
-   search.onSolution([&emp,obj,z,&stat,theOne/*,&cliques,&compat*/]() {
+   search.onSolution([&emp,obj,z,&stat,theOne,start/*,&cliques,&sortedCompat*/]() {
        cout << "z->min() : " << z->min() << ", z->max() : " << z->max() << endl;
        cout << "obj : " << obj->value() << " " << emp << endl;
        cout << "#C  : " << stat.numberOfNodes() << "\n";
        cout << "#F  : " << stat.numberOfFailures() << endl;
+       cout << "Time  : " << RuntimeMonitor::elapsedSince(start) << endl;
        //theOne->saveGraph();
        //exit(1);
-       //checkSolution(obj,emp,cliques,compat);
+       //checkSolution(obj,emp,cliques,sortedCompat);
    });   
    search.optimize(obj,stat);   
    auto dur = RuntimeMonitor::elapsedSince(start);
@@ -344,20 +472,20 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
    std::cout << "I/C  : " << (double)iterMDD/stat.numberOfNodes() << '\n';
    std::cout << "#CS  : " << nbCSDown << '\n';
-   std::cout << "#L   : " << theOne->nbLayers() << '\n';
+   if (theOne) std::cout << "#L   : " << theOne->nbLayers() << '\n';
 
    extern int splitCS,pruneCS,potEXEC;
    std::cout << "SPLIT:" << splitCS << " \tpruneCS:" << pruneCS << " \tpotEXEC:" << potEXEC << '\n';
 
    std::cout << "{ \"JSON\" :\n {";
    std::cout << "\n\t\"workForce\" :" << "{\n";
-   std::cout << "\t\t\"m\" : " << 0 << ",\n";
+   std::cout << "\t\t\"m\" : " << mode << ",\n";
    std::cout << "\t\t\"w\" : " << relaxSize << ",\n";
    std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
    std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
    std::cout << "\t\t\"iter\" : " << iterMDD << ",\n";
    std::cout << "\t\t\"nbCSDown\" : " << nbCSDown << ",\n";
-   std::cout << "\t\t\"layers\" : " << theOne->nbLayers() << ",\n";
+   if (theOne) std::cout << "\t\t\"layers\" : " << theOne->nbLayers() << ",\n";
    std::cout << "\t\t\"splitCS\" : " << splitCS << ",\n";
    std::cout << "\t\t\"pruneCS\" : " << pruneCS << ",\n";
    std::cout << "\t\t\"pot\" : " << potEXEC << ",\n";  
@@ -369,11 +497,34 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "./data/workforce50-jobs.csv";
-   const char* compatFile = "./data/workforce50.csv";
-   int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 2;
-   int over  = (argc >= 3 && strncmp(argv[2],"-o",2)==0) ? atoi(argv[2]+2) : 60;
-   std::cout << "overlap = " << over << "\twidth=" << width << '\n';
+   const char* jobsFile = "./data/workforce400-jobs.csv";
+   const char* compatFile = "./data/workforce400.csv";
+   int mode = (argc >= 2 && strncmp(argv[1],"-m",2)==0) ? atoi(argv[1]+2) : 1;
+   int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 2;
+   int over  = (argc >= 4 && strncmp(argv[3],"-o",2)==0) ? atoi(argv[3]+2) : 60;
+   int nodePriority = (argc >= 5 && strncmp(argv[4],"-y",2)==0) ? atoi(argv[4]+2) : 0;
+   int candidatePriority = (argc >= 6 && strncmp(argv[5],"-w",2)==0) ? atoi(argv[5]+2) : 0;
+   int approxEquivMode = (argc >= 7 && strncmp(argv[6],"-e",2)==0) ? atoi(argv[6]+2) : 0;
+   int equivThreshold = (argc >= 8 && strncmp(argv[7],"-t",2)==0) ? atoi(argv[7]+2) : 0;
+   int varOrdering  = (argc >= 9 && strncmp(argv[8],"-v",2)==0) ? atoi(argv[8]+2) : -1;
+   int variableSearchHeuristic  = (argc >= 10 && strncmp(argv[9],"-var",4)==0) ? atoi(argv[9]+4) : 0;
+   int valueSearchHeuristic  = (argc >= 11 && strncmp(argv[10],"-val",4)==0) ? atoi(argv[10]+4) : 0;
+   std::cout << "mode = " << mode << "\n";
+   std::cout << "width = " << width << "\n";
+   std::cout << "over = " << over << "\n";
+   std::cout << "nodePriority = " << nodePriority << "\n";
+   std::cout << "candidatePriority = " << candidatePriority << "\n";
+   std::cout << "approxEquivMode = " << approxEquivMode << "\n";
+   std::cout << "equivThreshold = " << equivThreshold << "\n";
+   std::cout << "varOrdering = " << varOrdering << "\n";
+   std::cout << "variableSearchHeuristic = " << variableSearchHeuristic << "\n";
+   std::cout << "valueSearchHeuristic = " << valueSearchHeuristic << "\n";
+   MDDOpts opts = {
+      .nodeP = nodePriority,
+      .candP = candidatePriority,
+      .appxEQMode = approxEquivMode,
+      .eqThreshold = equivThreshold
+   };
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);
@@ -381,7 +532,8 @@ int main(int argc,char* argv[])
       for (auto& j : jobs)
          cout << j << '\n';
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp,jobs,compat,width,over);
+      Job::SortMethod = varOrdering;
+      buildModel(cp,jobs,compat,mode,width,over,opts,variableSearchHeuristic,valueSearchHeuristic);
    } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << '\n';
    }
