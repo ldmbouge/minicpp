@@ -267,12 +267,14 @@ bool MDDRelax::refreshNodeIncr(MDDNode* n,int l)
    }
    aggregateValueSet(n);
    const bool parentsChanged = n->parentsChanged();
-   const int stateSZInBytes = _mddspec.layoutSizeDown();
+   const int stateSZUnadjusted = _mddspec.layoutSizeDown();
+   const int stateSZInBytes = stateSZUnadjusted & 0xF ? (stateSZUnadjusted | 0xF) + 1 : stateSZUnadjusted;
    const int cDownSZInWords = propNbWords(_mddspec.sizeDown());
    const int cCombSZInWords = propNbWords(_mddspec.sizeCombined());
-   const int cDownSZInBytes = (cDownSZInWords & 0x15 ? (cDownSZInWords | 0x15) + 1 : cDownSZInWords) * sizeof(long long);
-   const int cCombSZInBytes = (cCombSZInWords & 0x15 ? (cCombSZInWords | 0x15) + 1 : cCombSZInWords) * sizeof(long long);
+   const int cDownSZInBytes = (cDownSZInWords & 0xF ? (cDownSZInWords | 0xF) + 1 : cDownSZInWords) * sizeof(long long);
+   const int cCombSZInBytes = (cCombSZInWords & 0xF ? (cCombSZInWords | 0xF) + 1 : cCombSZInWords) * sizeof(long long);
    //Ensure that cDownSZInBytes and cCombSZInBytes are aligned to 16-bytes since MDDPropSet uses __m128i
+   //Also ensure others are as well since at least mddAllDiff makes use of __m128i and others might too
    char* block = (char*)alloca(stateSZInBytes*2 + cDownSZInBytes * 2 + cCombSZInBytes);
    char* outBL = block;
    char* psDBL = block+cDownSZInBytes;
