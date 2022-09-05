@@ -21,6 +21,7 @@
 #include <functional>
 #include <iostream>
 #include <iomanip>
+#include <queue>
 
 #include "solver.hpp"
 #include "constraint.hpp"
@@ -138,6 +139,48 @@ public:
    SearchStatistics optimize(Objective::Ptr obj,Limit limit);
    SearchStatistics optimize(Objective::Ptr obj);
    SearchStatistics optimizeSubjectTo(Objective::Ptr obj,Limit limit,std::function<void(void)> subjectTo);
+};
+
+class BFSNode {
+   //TODO: Need stuff to store state of search at node (in objcp, this is NSCont and ORCheckpoint)
+public:
+   int _objectiveValue;
+   BFSNode(int objectiveValue)
+      : _objectiveValue(objectiveValue) { }
+};
+
+struct LargerObjective
+{
+   bool operator()(const BFSNode& lhs, const BFSNode& rhs) const {
+      return lhs._objectiveValue > rhs._objectiveValue;
+   }
+};
+
+class BFSearch {
+   std::priority_queue<BFSNode, std::vector<BFSNode>, LargerObjective> _frontier;
+   StateManager::Ptr                      _sm;
+   CPSolver::Ptr                          _cp;
+   std::function<Branches(void)>   _branching;
+   std::vector<std::function<void(void)>>    _solutionListeners;
+   std::vector<std::function<void(void)>>    _failureListeners;
+   Objective::Ptr _objective;
+   void bfs(SearchStatistics& stats,const Limit& limit);
+public:
+   BFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b,Objective::Ptr objective)
+      : _sm(cp->getStateManager()),_cp(cp),_branching(std::move(b)),_objective(objective) {
+      _sm->enable();
+   }
+   SearchStatistics solve(SearchStatistics& stat,Limit limit);
+   SearchStatistics solve(Limit limit);
+   SearchStatistics solve();
+   template <class B> void onSolution(B c) { _solutionListeners.emplace_back(std::move(c));}
+   template <class B> void onFailure(B c)  { _failureListeners.emplace_back(std::move(c));}
+   void notifySolution() { for_each(_solutionListeners.begin(),_solutionListeners.end(),[](std::function<void(void)>& c) { c();});}
+   void notifyFailure()  { for_each(_failureListeners.begin(),_failureListeners.end(),[](std::function<void(void)>& c) { c();});}
+   SearchStatistics optimize(Objective::Ptr obj,SearchStatistics& stat,Limit limit);
+   SearchStatistics optimize(Objective::Ptr obj,SearchStatistics& stat);
+   SearchStatistics optimize(Objective::Ptr obj,Limit limit);
+   SearchStatistics optimize(Objective::Ptr obj);
 };
 
 template<class B>

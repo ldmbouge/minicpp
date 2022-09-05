@@ -141,3 +141,109 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
        }
     }
 }
+
+SearchStatistics BFSearch::solve(SearchStatistics& stats,Limit limit)
+{
+    stats.setIntVars(_cp->getNbVars());
+    stats.setPropagators(_cp->getNbProp());
+    _sm->withNewState(VVFun([this,&stats,&limit]() {
+                               try {
+                                  bfs(stats,limit);
+                               } catch(StopException& sx) {
+                                  stats.setNotCompleted();
+                               }
+                            }));
+    stats.setSolveTime();
+    stats.setPropagations(_cp->getPropagations());
+    return stats;
+}
+
+SearchStatistics BFSearch::solve(Limit limit)
+{
+    SearchStatistics stats;
+    solve(stats,limit);
+    return stats;
+}
+
+SearchStatistics BFSearch::solve()
+{
+    SearchStatistics stats;
+    solve(stats,[](const SearchStatistics& ss) { return false;});
+    return stats;
+}
+
+SearchStatistics BFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats,Limit limit)
+{
+   onSolution([obj] { obj->tighten();});
+   return solve(stats,limit);
+}
+
+SearchStatistics BFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats)
+{
+   onSolution([obj] { obj->tighten();});
+   return solve(stats,[](const SearchStatistics& ss) { return false;});
+}
+
+SearchStatistics BFSearch::optimize(Objective::Ptr obj,Limit limit)
+{
+   SearchStatistics stats;
+   onSolution([obj] { obj->tighten();});
+   return solve(stats,limit);
+}
+
+SearchStatistics BFSearch::optimize(Objective::Ptr obj)
+{
+   return optimize(obj,[](const SearchStatistics& ss) { return false;});
+}
+
+void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
+{
+   //static int nS = 0;
+   while (true) {
+      Branches branches = _branching();
+      if (branches.size() == 0) {
+         //nS++;
+         //std::cout<< "BFSFail -> sol " << nS << std::endl;
+         stats.incrSolutions();
+         notifySolution();
+      } else {
+         // if (branches.size() > 1)
+         //    stats.incrNodes();
+         auto last = std::prev(branches.end()); // for proper counting of choices.
+         for(auto cur = branches.begin(); cur != branches.end() and !limit(stats); cur++)
+         {
+            const auto& alt = *cur;
+            _sm->saveState();
+            try {
+               TRYFAIL {
+                  if (cur != last)
+                     stats.incrNodes();
+                  alt();
+                  //TODO: Record this node
+                  _frontier.push(BFSNode(_objective->value()));
+               } ONFAIL {
+                  stats.incrFailures();
+                  notifyFailure();
+               }
+               ENDFAIL {
+                  _sm->restoreState();
+               }
+            } catch(...) {  // the C++ exception catching is to stay compatible with python interfaces. 0-cost for C++
+               stats.incrFailures();
+               notifyFailure();
+               _sm->restoreState();
+            }
+         }
+         if (limit(stats)) {
+            throw StopException();
+         }
+      }
+      if (!_frontier.empty()) {
+         BFSNode node = _frontier.top();
+         _frontier.pop();
+         //TODO: Reset to this node
+      } else {
+         return;
+      }
+   }
+}
