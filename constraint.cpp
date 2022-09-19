@@ -28,6 +28,11 @@ void EQc::post()
    _x->assign(_c);  
 }
 
+EQc* EQcDesc::create()
+{
+   return new (_x->getSolver()) EQc(_x,_c);
+}
+
 void NEQc::post()
 {
    _x->remove(_c);
@@ -660,7 +665,7 @@ void AllDifferentBinary::post()
    const long n = _x.size();
    for(int i=0;i < n;i++) 
       for(int j=i+1;j < n;j++)
-         cp->post(new (cp) NEQBinBCLight(_x[i],_x[j]));    
+         cp->post((Constraint::Ptr)new (cp) NEQBinBCLight(_x[i],_x[j]));    
 }
 
 
@@ -1066,7 +1071,7 @@ void Element1D::post()
       t2[0][j] = _t[j];
    auto x = Factory::makeIntVar(_y->getSolver(),0,0);
    auto c = new (_y->getSolver()) Element2D(t2,x,_y,_z);
-   _y->getSolver()->post(c,false);
+   _y->getSolver()->post((Constraint::Ptr)c,false);
 }
 
 

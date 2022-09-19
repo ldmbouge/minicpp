@@ -19,6 +19,7 @@
 #include <memory>
 #include <stack>
 #include <tuple>
+#include <vector>
 #include "state.hpp"
 
 class Entry {
@@ -78,5 +79,21 @@ inline void* operator new(std::size_t sz,Trailer::Ptr& e) noexcept
    } else return nullptr;
 }
 
+class CommandList;
+class MemoryTrail : public StateManager {
+   std::vector<void*> _trail;
+   typedef handle_ptr<MemoryTrail> Ptr;
+public:
+   MemoryTrail();
+   ~MemoryTrail();
+   void enable()  override { }
+   void clear();
+   void saveState() override;
+   void restoreState() override;
+   void withNewState(const std::function<void(void)>& body) override;
+   unsigned int trailSize();
+   void comply(MemoryTrail* other, CommandList* list);
+   void* at(unsigned int index);
+};
 
 #endif

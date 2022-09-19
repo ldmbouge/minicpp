@@ -38,6 +38,14 @@ public:
    void post() override;
 };
 
+class EQcDesc : public ConstraintDesc {
+   var<int>::Ptr _x;
+   int           _c;
+public:
+   EQcDesc(var<int>::Ptr x,int c) : _x(x), _c(c) {}
+   EQc* create() override;
+};
+
 class NEQc : public Constraint { // x != c
    var<int>::Ptr _x;
    int           _c;
@@ -718,7 +726,7 @@ namespace Factory
     */
    inline var<bool>::Ptr operator*(var<bool>::Ptr x,var<bool>::Ptr y) { // x * y (bool) meaning x && y
       var<bool>::Ptr z = makeBoolVar(x->getSolver());
-      x->getSolver()->post(new (x->getSolver()) Conjunction(z,x,y));
+      x->getSolver()->post((Constraint::Ptr)new (x->getSolver()) Conjunction(z,x,y));
       return z;
    }
    /**
@@ -729,7 +737,7 @@ namespace Factory
     */
    inline var<bool>::Ptr operator&&(var<bool>::Ptr x,var<bool>::Ptr y) { // x * y (bool) meaning x && y
       var<bool>::Ptr z = makeBoolVar(x->getSolver());
-      x->getSolver()->post(new (x->getSolver()) Conjunction(z,x,y));
+      x->getSolver()->post((Constraint::Ptr)new (x->getSolver()) Conjunction(z,x,y));
       return z;
    }
    /**
@@ -741,7 +749,7 @@ namespace Factory
    inline var<bool>::Ptr isEqual(var<int>::Ptr x,const int c) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       TRYFAIL
-         x->getSolver()->post(new (x->getSolver()) IsEqual(b,x,c));
+         x->getSolver()->post((Constraint::Ptr)new (x->getSolver()) IsEqual(b,x,c));
       ONFAIL
       ENDFAIL
       return b;
@@ -754,7 +762,7 @@ namespace Factory
     */
    inline var<bool>::Ptr xOR(var<bool>::Ptr x,var<bool>::Ptr y) {
       var<bool>::Ptr z = makeBoolVar(x->getSolver());
-      x->getSolver()->post(new (x->getSolver()) XOR(z, x, y));
+      x->getSolver()->post((Constraint::Ptr)new (x->getSolver()) XOR(z, x, y));
       return z;
    }
    /**
@@ -778,7 +786,7 @@ namespace Factory
    inline var<bool>::Ptr isMember(var<int>::Ptr x,const std::set<int> S) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       TRYFAIL
-         x->getSolver()->post(new (x->getSolver()) IsMember(b,x,S));
+         x->getSolver()->post((Constraint::Ptr)new (x->getSolver()) IsMember(b,x,S));
       ONFAIL
       ENDFAIL
       return b;
@@ -793,7 +801,7 @@ namespace Factory
    inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x,const int c) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       TRYFAIL
-         x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b,x,c));
+         x->getSolver()->post((Constraint::Ptr)new (x->getSolver()) IsLessOrEqual(b,x,c));
       ONFAIL
       ENDFAIL
       return b;
@@ -860,7 +868,7 @@ namespace Factory
       }
       auto cp = xs[0]->getSolver();
       auto s = Factory::makeIntVar(cp,sumMin,sumMax);
-      cp->post(new (cp) Sum(xs,s));
+      cp->post((Constraint::Ptr)new (cp) Sum(xs,s));
       return s;
    }
    /**
@@ -878,7 +886,7 @@ namespace Factory
       }
       auto s = Factory::makeIntVar(cp,sumMin,sumMax);
       if (xs.size() > 0)
-         cp->post(new (cp) Sum(xs,s));
+         cp->post((Constraint::Ptr)new (cp) Sum(xs,s));
       return s;
    }
    /**
@@ -1047,7 +1055,7 @@ namespace Factory
             max = max > d[i][j] ? max : d[i][j];
          }
       auto z = makeIntVar(x->getSolver(),min,max);
-      x->getSolver()->post(new (x->getSolver()) Element2D(d,x,y,z));
+      x->getSolver()->post((Constraint::Ptr)new (x->getSolver()) Element2D(d,x,y,z));
       return z;
    }
    /**
@@ -1074,7 +1082,7 @@ namespace Factory
          max = max > v ? max : v;
       }
       auto z = makeIntVar(y->getSolver(),min,max);
-      y->getSolver()->post(new (y->getSolver()) Element1DDC(flat,y,z));
+      y->getSolver()->post((Constraint::Ptr)new (y->getSolver()) Element1DDC(flat,y,z));
       return z;
    }
    template <class Vec> var<int>::Ptr elementVar(const Vec& xs,var<int>::Ptr y) {
@@ -1086,7 +1094,7 @@ namespace Factory
          max = max > v->max() ? max : v->max();
       }
       auto z = makeIntVar(y->getSolver(),min,max);
-      y->getSolver()->post(new (y->getSolver()) Element1DVar(flat,y,z));
+      y->getSolver()->post((Constraint::Ptr)new (y->getSolver()) Element1DVar(flat,y,z));
       return z;
    }
    /**

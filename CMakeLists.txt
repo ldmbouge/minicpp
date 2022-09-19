@@ -34,6 +34,7 @@ add_library(copl
 	fail.cpp
 	acstr.cpp
 	bitset.cpp
+        commandList.cpp
 	constraint.cpp
 	domain.cpp
 	fz_constraints/bool_array.cpp
@@ -70,6 +71,7 @@ add_library(copl
 	solver.cpp
 	store.cpp
 	table.cpp
+        tracer.cpp
 	trail.cpp
 	trailable.cpp)
 

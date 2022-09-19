@@ -96,6 +96,13 @@ public:
    bool isActive() const     { return _active;}
 };
 
+class ConstraintDesc {
+public:
+   typedef handle_ptr<ConstraintDesc> Ptr;
+   ConstraintDesc();
+   virtual Constraint* create() = 0;
+};
+
 /**
  * @brief This is an abstract Objective function. It is subclassed for `min` and `max`.
  *

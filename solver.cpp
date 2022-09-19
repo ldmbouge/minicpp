@@ -18,6 +18,7 @@
 #include <iostream>
 #include <iomanip>
 #include <typeindex>
+#include "tracer.hpp"
 
 CPSolver::CPSolver()
     : _sm(new Trailer),
@@ -44,6 +45,10 @@ void CPSolver::post(Constraint::Ptr c, bool enforceFixPoint)
     c->post();
     if (enforceFixPoint)
         fixpoint();
+}
+
+void CPSolver::post(ConstraintDesc::Ptr c, bool enforceFixpoint)
+{
 }
 
 void CPSolver::registerVar(AVar::Ptr avar)
@@ -79,4 +84,13 @@ void CPSolver::fixpoint()
       assert(_queue.size() == 0);
       failNow();
    ENDFAIL
+}
+
+
+CPSemSolver::CPSemSolver()
+   : _memoryTrail(new MemoryTrail), _tracer(new Tracer((Trailer::Ptr)_sm,_memoryTrail)) { }
+
+CPSemSolver::~CPSemSolver()
+{
+   delete _tracer;
 }

@@ -16,6 +16,7 @@
 #include "trail.hpp"
 #include <assert.h>
 #include <iostream>
+#include "commandList.hpp"
 
 #define TSIZE (1 << 28)
 
@@ -113,4 +114,43 @@ void Trailer::withNewState(const std::function<void(void)>& body)
    long lvl = push();
    body();
    popToNode(lvl);
+}
+
+MemoryTrail::MemoryTrail()
+{
+}
+MemoryTrail::~MemoryTrail()
+{
+}
+void MemoryTrail::clear()
+{
+   return;
+}
+void MemoryTrail::saveState()
+{
+   return;
+}
+void MemoryTrail::restoreState()
+{
+   return;
+}
+void MemoryTrail::withNewState(const std::function<void(void)>& body)
+{
+   return;
+}
+unsigned int MemoryTrail::trailSize()
+{
+   return _trail.size();
+}
+void MemoryTrail::comply(MemoryTrail* other, CommandList* list)
+{
+   unsigned int from = list->memoryFrom();
+   unsigned int to = list->memoryTo();
+   for (auto i = from; i < to; i++) {
+      assert(other->at(i) != nullptr);
+      _trail.push_back(other->at(i));
+   }
+}
+void* MemoryTrail::at(unsigned int index) {
+   return _trail[index];
 }

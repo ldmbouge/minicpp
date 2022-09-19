@@ -30,6 +30,7 @@
 
 typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
+class Tracer;
 
 class DEPQueue {
    std::deque<Constraint::Ptr>  _q[2];
@@ -54,6 +55,7 @@ public:
 };
 
 class CPSolver {
+protected:
    Trailer::Ptr                  _sm;
    Storage::Ptr               _store;
    std::list<AVar::Ptr>       _iVars;
@@ -84,11 +86,20 @@ public:
     void notifyFixpoint();
     void fixpoint();
     void post(Constraint::Ptr c,bool enforceFixPoint=true);
+    void post(ConstraintDesc::Ptr c,bool enforceFixPoint=true);
     friend void* operator new(std::size_t sz,CPSolver::Ptr e);
     friend void* operator new[](std::size_t sz,CPSolver::Ptr e);
     friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {
        return os << "CPSolver(" << &s << ")" << std::endl;
     }
+};
+
+class CPSemSolver : public CPSolver {
+    MemoryTrail* _memoryTrail;
+    Tracer* _tracer;
+public:
+    CPSemSolver();
+    ~CPSemSolver();
 };
 
 namespace Factory {
