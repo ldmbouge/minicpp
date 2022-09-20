@@ -192,7 +192,7 @@ void addCumulSeq(CPSolver::Ptr cp, const Veci& vars, int N, int L, int U, const 
   }
 }
 
-void solveModel(CPSolver::Ptr cp,const Veci& line,Instance& in,MDDRelax* mdd,int variableSearchHeuristic,int valueSearchHeuristic)
+void solveModel(CPSolver::Ptr cp,const Veci& line,Instance& in,MDDRelax::Ptr mdd,int variableSearchHeuristic,int valueSearchHeuristic)
 {
    // Following [Puget&Regin, 1997] calculate slack for each option:
    //
@@ -399,7 +399,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int mode, int width, int variabl
    using namespace std;
    cout << line << endl;
 
-   MDDRelax* cstr = nullptr;
+   MDDRelax::Ptr cstr = nullptr;
    if (mode == 0) {
       //Demand of each config is met
       for(int o = 0; o < nbO;o++) {

@@ -83,7 +83,7 @@ protected:
    MDDStateFactory* _sf;
 };
 
-int bestValue(const MDD* m,var<int>::Ptr theVar);
+int bestValue(const MDD::Ptr m,var<int>::Ptr theVar);
 int optProperty(const MDD* m,int p,var<int>::Ptr theVar);
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
@@ -102,7 +102,7 @@ class MDDStats {
    std::pair<std::size_t,std::size_t> _nbIEdges;
    std::pair<std::size_t,std::size_t> _nbOEdges;
 public :
-   MDDStats(MDD* mdd);
+   MDDStats(MDD::Ptr mdd);
    friend inline std::ostream& operator<<(std::ostream& os,const MDDStats& s)
    {
       os << "#nbLayers:" << s._nbLayers << " ";

@@ -339,7 +339,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
    //assert(ss == cv.size());
    cout << "CID.size():" << cid.size() << "\n";
    //int k = 0;
-   MDDRelax* theOne = nullptr;
+   MDDRelax::Ptr theOne = nullptr;
    if (mode == 0) {
       for(auto& c : cliques) {
          auto adv = all(cp, c, [&emp](int i) {return emp[i];});
@@ -367,7 +367,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             auto c = cv[theClique];
             std::cout << "Clique: " << c << '\n';
             auto adv = all(cp, c, [&emp](int i) {return emp[i];});
-            mdd->post(Factory::allDiffMDD(adv,opts));
+            mdd->post(Factory::allDiffMDD2(adv,opts));
             //cp->post(Factory::allDifferent(adv));
          }
          // add objective to MDD
@@ -376,6 +376,51 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          theOne = mdd;
          //mdd->saveGraph();
       }
+      obj = Factory::maximize(z);
+   }
+   if (mode == 3) {
+      for(auto& ctm : cid) {
+         auto mdd = Factory::makeMDDRelax(cp,relaxSize);
+         for(auto theClique : ctm) {  // merge on cliques if normal alldiff.
+            auto c = cv[theClique];
+            std::cout << "Clique: " << c << '\n';
+            auto adv = all(cp, c, [&emp](int i) {return emp[i];});
+            mdd->post(Factory::allDiffMDD2(adv,opts));
+         }
+         // add objective to MDD
+         auto vars = mdd->getSpec().getVars();
+         auto mddVars = Factory::intVarArray(cp, (int) vars.size());
+         auto otherVars = Factory::intVarArray(cp, (int) numJobs - vars.size());
+         vector<vector<int>> mddCompat;
+         vector<vector<int>> otherCompat;
+         int mddUB = 0;
+         int otherUB = 0;
+         int mddVarCount = 0;
+         int otherVarCount = 0;
+         for(auto i = 0u; i < numJobs; i++) {
+            int tmpMax = 0;
+            for (int j=emp[i]->min(); j<=emp[i]->max(); j++) {
+               tmpMax = std::max(tmpMax,sortedCompat[i][j]);
+            }
+            if(std::find(vars.cbegin(),vars.cend(),emp[i]) == vars.cend()) {
+               otherVars[otherVarCount++] = emp[i];
+               otherCompat.push_back(sortedCompat[i]);
+               otherUB += tmpMax;
+            } else {
+               mddVars[mddVarCount++] = emp[i];
+               mddCompat.push_back(sortedCompat[i]);
+               mddUB += tmpMax;
+            }
+         }
+         auto mddVarsSum = Factory::makeIntVar(cp, 0, mddUB);
+         mdd->post(sum(mddVars, mddCompat, mddVarsSum));
+         auto sm = Factory::intVarArray(cp,otherVars.size(),[&](int i) { return Factory::element(otherCompat[i],otherVars[i]);});
+         cp->post(z == mddVarsSum + sum(sm));
+         cp->post(mdd);
+         theOne = mdd;
+      }
+      auto sm = Factory::intVarArray(cp,numJobs,[&](int i) { return Factory::element(sortedCompat[i],emp[i]);});
+      cp->post(z == sum(sm));
       obj = Factory::maximize(z);
    }
 
@@ -497,8 +542,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "./data/workforce400-jobs.csv";
-   const char* compatFile = "./data/workforce400.csv";
+   const char* jobsFile = "./data/workforce100-jobs.csv";
+   const char* compatFile = "./data/workforce100.csv";
    int mode = (argc >= 2 && strncmp(argv[1],"-m",2)==0) ? atoi(argv[1]+2) : 1;
    int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 2;
    int over  = (argc >= 4 && strncmp(argv[3],"-o",2)==0) ? atoi(argv[3]+2) : 60;

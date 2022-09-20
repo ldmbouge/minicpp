@@ -42,7 +42,7 @@ int main(int argc,char* argv[])
    vector<int> vals1 {1, 2, 3, 4, 5};
    vector<int> vals2 {5, 4, 3, 2, 1};
    vector<int> vals3 {7, 8, 11, 15, 4};
-   MDDRelax* cstr = nullptr;
+   MDDRelax::Ptr cstr = nullptr;
    if (mode == 0) {
       cout << "Using domain encoding of  lb <= sum_i w[i]x[i] <= ub" << endl;
       auto sum1 = Factory::intVarArray(cp,5,[&](int i) { return vals1[i]*vars[i];});

@@ -114,7 +114,7 @@ unsigned long MDD::layerBelow(var<int>::Ptr theVar) const
    return numVariables;
 }
 
-int minCostDown(const MDD* m,MDDNode* from,int depth)
+int minCostDown(const MDD::Ptr m,MDDNode* from,int depth)
 {
    if (depth == 0 || from->getNumChildren() == 0)
       return 1;
@@ -132,7 +132,7 @@ int minCostDown(const MDD* m,MDDNode* from,int depth)
    }
 }
 
-int bestValue(const MDD* m,var<int>::Ptr theVar)
+int bestValue(const MDD::Ptr m,var<int>::Ptr theVar)
 {
    auto& layers = m->getLayers();
    auto& layer = layers[m->layerAbove(theVar)];
@@ -412,7 +412,7 @@ void MDD::saveGraph()
    }
 }
 
-MDDStats::MDDStats(MDD* mdd) : _nbLayers((unsigned int)mdd->nbLayers()) {
+MDDStats::MDDStats(MDD::Ptr mdd) : _nbLayers((unsigned int)mdd->nbLayers()) {
    _width = std::make_pair (INT_MAX,0);
    _nbIEdges = std::make_pair (INT_MAX,0);
    _nbOEdges = std::make_pair (INT_MAX,0);
