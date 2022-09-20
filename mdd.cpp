@@ -99,14 +99,14 @@ void MDD::post()
    _posting = false;
 }
 
-unsigned long MDD::layerAbove(var<int>::Ptr theVar)
+unsigned long MDD::layerAbove(var<int>::Ptr theVar) const
 {
    for(auto i = 0u; i < numVariables+1; i++) 
       if (x[i] == theVar)
          return i;
    return 0;
 }
-unsigned long MDD::layerBelow(var<int>::Ptr theVar)
+unsigned long MDD::layerBelow(var<int>::Ptr theVar) const
 {
    for(auto i = 0u; i < numVariables+1; i++) 
       if (x[i] == theVar)
@@ -114,7 +114,7 @@ unsigned long MDD::layerBelow(var<int>::Ptr theVar)
    return numVariables;
 }
 
-int minCostDown(MDD* m,MDDNode* from,int depth)
+int minCostDown(const MDD* m,MDDNode* from,int depth)
 {
    if (depth == 0 || from->getNumChildren() == 0)
       return 1;
@@ -132,7 +132,7 @@ int minCostDown(MDD* m,MDDNode* from,int depth)
    }
 }
 
-int bestValue(MDD* m,var<int>::Ptr theVar)
+int bestValue(const MDD* m,var<int>::Ptr theVar)
 {
    auto& layers = m->getLayers();
    auto& layer = layers[m->layerAbove(theVar)];
@@ -154,7 +154,7 @@ int bestValue(MDD* m,var<int>::Ptr theVar)
    return bestFound;
 }
 
-int optProperty(MDD* m,int p,var<int>::Ptr theVar)
+int optProperty(const MDD* m,int p,var<int>::Ptr theVar)
 {
    auto& layers = m->getLayers();
    auto& layer = layers[m->layerAbove(theVar)];

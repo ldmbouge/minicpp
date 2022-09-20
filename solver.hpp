@@ -54,6 +54,8 @@ public:
    }
 };
 
+class Silly {};
+
 class CPSolver {
 protected:
    Trailer::Ptr                  _sm;

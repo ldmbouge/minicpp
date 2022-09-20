@@ -39,12 +39,12 @@ CPSolver::~CPSolver()
 
 void CPSolver::post(Constraint::Ptr c, bool enforceFixPoint)
 {
-    if (!c)
-        return;
-    ++_nbProp;
-    c->post();
-    if (enforceFixPoint)
-        fixpoint();
+   if (!c)
+      return;
+   ++_nbProp;
+   c->post();
+   if (enforceFixPoint)
+      fixpoint();
 }
 
 void CPSolver::post(ConstraintDesc::Ptr c, bool enforceFixpoint)

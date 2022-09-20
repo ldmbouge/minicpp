@@ -50,11 +50,11 @@ public:
    virtual void refreshAll() {}
    std::size_t usage() const { return mem->usage();}
    unsigned long nbLayers() const { return numVariables;}
-   std::vector<TVec<MDDNode*>>& getLayers() {return layers;}
-   unsigned long layerSize(const int layer) {return layers[layer].size();}
+   const std::vector<TVec<MDDNode*>>& getLayers() const {return layers;}
+   unsigned long layerSize(const int layer) const { return layers[layer].size();}
    virtual void removeArc(int outL,int inL,MDDEdge* arc) {}
-   unsigned long layerAbove(var<int>::Ptr theVar);
-   unsigned long layerBelow(var<int>::Ptr theVar);
+   unsigned long layerAbove(var<int>::Ptr theVar) const;
+   unsigned long layerBelow(var<int>::Ptr theVar) const;
    MDD(CPSolver::Ptr cp);
 protected:
    virtual bool trimDomains();
@@ -83,8 +83,8 @@ protected:
    MDDStateFactory* _sf;
 };
 
-int bestValue(MDD* m,var<int>::Ptr theVar);
-int optProperty(MDD* m,int p,var<int>::Ptr theVar);
+int bestValue(const MDD* m,var<int>::Ptr theVar);
+int optProperty(const MDD* m,int p,var<int>::Ptr theVar);
 
 class MDDTrim : public Constraint { //Trims layer when D(_var) changes.
    MDD* _mdd;

@@ -98,8 +98,8 @@ public:
 
 class ConstraintDesc {
 public:
-   typedef handle_ptr<ConstraintDesc> Ptr;
-   ConstraintDesc();
+   typedef strict_ptr<ConstraintDesc> Ptr;
+   ConstraintDesc() {}
    virtual Constraint* create() = 0;
 };
 

@@ -118,7 +118,7 @@ int main(int argc,char* argv[])
    std::cout << "x = " << xVars << endl;
    std::cout << "y = " << yVars << endl;
    
-   MDDRelax* cstr = nullptr;
+   MDDRelax::Ptr cstr = nullptr;
    auto mdd = Factory::makeMDDRelax(cp,width,maxRebootDistance,maxSplitIter,true);
    if (approxEquivMode) mdd->getSpec().useApproximateEquivalence();
 
@@ -179,7 +179,7 @@ int main(int argc,char* argv[])
       // Lex order
       auto x = selectFirst(xVars,[](const auto& x) { return x->size() > 1;});
       if (x) {	
-         int c = (splitByMDD && cstr) ? bestValue(cstr,x) : x->min();
+         int c = (splitByMDD && cstr) ? bestValue(cstr.get(),x) : x->min();
          //int c = x->min();          
          return  [=] {
            //std::string tabs(cp->getStateManager()->depth(),'\t');

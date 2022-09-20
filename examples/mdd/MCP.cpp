@@ -51,7 +51,7 @@ Vec all(CPSolver::Ptr cp,const set<int>& over,const Vec& t)
    return res;
 }
 
-MDDRelax* newMDDRelax(CPSolver::Ptr cp, int relaxSize, int maxRebootDistance, int maxSplitIter, int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact) {
+MDDRelax::Ptr newMDDRelax(CPSolver::Ptr cp, int relaxSize, int maxRebootDistance, int maxSplitIter, int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact) {
   auto mdd = new MDDRelax(cp,relaxSize,maxRebootDistance, relaxSize * maxSplitIter, approxThenExact);
   if (useApproxEquiv) {
     mdd->getSpec().useApproximateEquivalence();
@@ -62,7 +62,7 @@ MDDRelax* newMDDRelax(CPSolver::Ptr cp, int relaxSize, int maxRebootDistance, in
 }
 
 template <typename F>
-void addMDDConstraint(CPSolver::Ptr cp, MDDRelax* mdd, int relaxSize, int maxRebootDistance, int maxSplitIter, int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact, bool sameMDD, F&& constraint) {
+void addMDDConstraint(CPSolver::Ptr cp, MDDRelax::Ptr mdd, int relaxSize, int maxRebootDistance, int maxSplitIter, int nodePriorityAggregateStrategy, int candidatePriorityAggregateStrategy, bool useApproxEquiv, bool approxThenExact, bool sameMDD, F&& constraint) {
   if (!sameMDD) {
     mdd = newMDDRelax(cp, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact);
   }
@@ -84,7 +84,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
 
   auto start = RuntimeMonitor::cputime();
 
-  MDDRelax* mdd = nullptr;
+  MDDRelax::Ptr mdd = nullptr;
 
   std::mt19937 rnG(randSeed);
   std::uniform_real_distribution<double> sampler(0,100);
@@ -137,7 +137,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     set<int> allVars;
     for (int i = 0; i < H; i++) allVars.insert(i);
     auto adv = all(cp, allVars, vars);
-    addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, weights, objective,opts](MDDRelax* mdd) { 
+    addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, weights, objective,opts](MDDRelax::Ptr mdd) { 
        mdd->post(Factory::maxCutObjectiveMDD(mdd, adv, weights, objective,opts));
       //Factory::allDiffMDD(mdd->getSpec(), adv, 0);
     });
