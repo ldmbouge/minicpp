@@ -114,6 +114,10 @@ bool operator==(const CommandList& left, const CommandList& right) {
    return left._nodeID == right._nodeID;// && left._from == right._from && left._to == right._to;
 }
 
+CommandStack::~CommandStack() {
+   for (int i = 0; i < _size; i++) _table[i]->letgo();
+   free(_table);
+}
 void CommandStack::pushList(unsigned int nodeID) {//, unsigned int memoryHead) {
    if (_size >= _maxSize) {
       _table = (CommandList**)realloc(_table, sizeof(CommandList*)*_maxSize*2);
@@ -192,13 +196,13 @@ CommandStack* Checkpoint::commands() {
 unsigned int Checkpoint::level() {
    return _level;
 }
-Checkpoint* Checkpoint::grab() {
-   _refCount++;
-   return this;
-}
-void Checkpoint::letgo() {
-   assert(_refCount > 0);
+//Checkpoint* Checkpoint::grab() {
+//   _refCount++;
+//   return this;
+//}
+//void Checkpoint::letgo() {
+//   assert(_refCount > 0);
 //   if (--_refCount == 0) {
 //      _memoryTrail->clear();
 //   }
-}
+//}

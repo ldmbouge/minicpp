@@ -69,10 +69,11 @@ class CommandStack {
 public:
   CommandStack(unsigned int maxSize) :
     _table((CommandList**)malloc(sizeof(CommandList*)*maxSize)), _size(0), _maxSize(maxSize) { }
+  ~CommandStack();
   void pushList(unsigned int nodeID);//, unsigned int memoryHead);
   void pushCommandList(CommandList* list);
   void addCommand(ConstraintDesc::Ptr constraint);
-  void setMemoryTail(unsigned int memoryTail);
+  //void setMemoryTail(unsigned int memoryTail);
   CommandList* popList();
   CommandList* peekAt(unsigned int index);
   int size();
@@ -83,12 +84,12 @@ public:
 class Checkpoint {
   CommandStack* _path;
   unsigned int _nodeID;
-  unsigned int _refCount;
+  //unsigned int _refCount;
   //MemoryTrail* _memoryTrail;
   unsigned int _level;
 public:
   Checkpoint(CommandStack* commands) : //, MemoryTrail* memoryTrail) :
-    _nodeID(-1), _refCount(1)/*, _memoryTrail(memoryTrail)*/, _level(-1) {
+    _nodeID(-1)/*, _refCount(1), _memoryTrail(memoryTrail)*/, _level(-1) {
     _path = new CommandStack(64);
     unsigned int stackSize = commands->size();
     for (unsigned int i = 0; i < stackSize; i++) {
@@ -99,6 +100,7 @@ public:
       _path->pushCommandList(list);
     }
   }
+  ~Checkpoint() { delete _path; }
   //MemoryTrail* memoryTrail();
   unsigned int size();
   void setNodeID(unsigned int nodeID);
@@ -106,8 +108,8 @@ public:
   void setLevel(unsigned int level);
   unsigned int level();
   CommandStack* commands();
-  Checkpoint* grab();
-  void letgo();
+//  Checkpoint* grab();
+//  void letgo();
 };
 
 #endif
