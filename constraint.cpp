@@ -22,6 +22,11 @@ void printCstr(Constraint::Ptr c) {
    std::cout << std::endl;
 }
 
+void printCstrDesc(ConstraintDesc::Ptr c) {
+   c->print(std::cout);
+   std::cout << std::endl;
+}
+
 
 void EQc::post()
 {
@@ -32,10 +37,31 @@ EQc* EQcDesc::create()
 {
    return new (_x->getSolver()) EQc(_x,_c);
 }
+EQcDesc* EQcDesc::clone()
+{
+   return new EQcDesc(_x,_c);
+}
+void EQcDesc::print(std::ostream& os) const
+{
+   os << _x << " == " << _c;
+}
 
 void NEQc::post()
 {
    _x->remove(_c);
+}
+
+NEQc* NEQcDesc::create()
+{
+   return new (_x->getSolver()) NEQc(_x,_c);
+}
+NEQcDesc* NEQcDesc::clone()
+{
+   return new NEQcDesc(_x,_c);
+}
+void NEQcDesc::print(std::ostream& os) const
+{
+   os << _x << " != " << _c;
 }
 
 void EQBinBC::post()
@@ -249,7 +275,7 @@ Minimize::Minimize(var<int>::Ptr& x)
    : _obj(x),_primal(0x7FFFFFFF)
 {
    auto todo = std::function<void(void)>([this]() {
-      _obj->removeAbove(_primal);
+      _obj->removeAbove(_primal - 1);
    });
    _obj->getSolver()->onFixpoint(todo);
 }
@@ -262,7 +288,7 @@ void Minimize::print(std::ostream& os) const
 void Minimize::tighten()
 {
     //assert(_obj->isBound());
-   _primal = _obj->max() - 1;
+   _primal = _obj->max();
    failNow();
 }
 
@@ -272,7 +298,7 @@ Maximize::Maximize(var<int>::Ptr& x)
    auto todo = std::function<void(void)>([this]() {
       TRYFAIL
          //std::cout << "1=====> objective primal:" << _primal << "  z = " << _obj << std::endl;
-         _obj->removeBelow(_primal);
+         _obj->removeBelow(_primal + 1);
          //std::cout << "1-----> after:" << _obj << std::endl;
       ONFAIL
          failNow();
@@ -289,7 +315,7 @@ void Maximize::print(std::ostream& os) const
 void Maximize::tighten()
 {
    assert(_obj->isBound());
-   _primal = _obj->min() + 1;
+   _primal = _obj->min();
    failNow();
 }
 

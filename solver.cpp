@@ -47,8 +47,15 @@ void CPSolver::post(Constraint::Ptr c, bool enforceFixPoint)
       fixpoint();
 }
 
-void CPSolver::post(ConstraintDesc::Ptr c, bool enforceFixpoint)
+void CPSolver::post(ConstraintDesc::Ptr c, bool enforceFixPoint)
 {
+   if (!c)
+      return;
+   ++_nbProp;
+   auto constraint = c->create();
+   constraint->post();
+   if (enforceFixPoint)
+      fixpoint();
 }
 
 void CPSolver::registerVar(AVar::Ptr avar)
@@ -88,9 +95,46 @@ void CPSolver::fixpoint()
 
 
 CPSemSolver::CPSemSolver()
-   : _memoryTrail(new MemoryTrail), _tracer(new Tracer((Trailer::Ptr)_sm,_memoryTrail)) { }
+   : _tracer(new Tracer(_sm)),
+     _inSearch(false) { }
 
 CPSemSolver::~CPSemSolver()
 {
    delete _tracer;
+}
+
+//If it calls post with a constraint, we trust that this is not in the search, and so we don't need to add it to the memoryTrail
+void CPSemSolver::post(Constraint::Ptr c, bool enforceFixPoint)
+{
+   if (!c)
+      return;
+   ++_nbProp;
+   c->post();
+   if (enforceFixPoint)
+      fixpoint();
+}
+void CPSemSolver::post(ConstraintDesc::Ptr c, bool enforceFixPoint)
+{
+   if (!c)
+      return;
+   ++_nbProp;
+   if (_inSearch) {
+      auto saved = c->clone();
+      _tracer->addCommand(saved);
+   }
+   auto constraint = c->create();
+   constraint->post();
+   if (enforceFixPoint)
+      fixpoint();
+}
+Tracer* CPSemSolver::tracer()
+{
+   return _tracer;
+}
+void CPSemSolver::startSearch()
+{
+   _inSearch = true;
+   _rootCheckpoint = _tracer->captureCheckpoint();
+   _tracer->restoreCheckpoint(_rootCheckpoint,this);
+   //Restore immediately otherwise will have an empty list at the start which we don't really want
 }

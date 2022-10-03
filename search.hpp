@@ -26,6 +26,7 @@
 #include "solver.hpp"
 #include "constraint.hpp"
 #include "RuntimeMonitor.hpp"
+#include "commandList.hpp"
 #include <utils.hpp>
 
 class Branches {
@@ -142,32 +143,41 @@ public:
 };
 
 class BFSNode {
-   //TODO: Need stuff to store state of search at node (in objcp, this is NSCont and ORCheckpoint)
 public:
+   std::shared_ptr<Checkpoint> _checkpoint;
    int _objectiveValue;
-   BFSNode(int objectiveValue)
-      : _objectiveValue(objectiveValue) { }
+   int _depth;
+   BFSNode() { }
+   BFSNode(std::shared_ptr<Checkpoint> checkpoint, int objectiveValue, int depth)
+      : _checkpoint(checkpoint), _objectiveValue(objectiveValue), _depth(depth) { }
 };
 
 struct LargerObjective
 {
    bool operator()(const BFSNode& lhs, const BFSNode& rhs) const {
-      return lhs._objectiveValue > rhs._objectiveValue;
+      return lhs._objectiveValue > rhs._objectiveValue || (lhs._objectiveValue == rhs._objectiveValue && lhs._depth < rhs._depth);
+   }
+};
+struct SmallerObjective
+{
+   bool operator()(const BFSNode& lhs, const BFSNode& rhs) const {
+      return lhs._objectiveValue < rhs._objectiveValue || (lhs._objectiveValue == rhs._objectiveValue && lhs._depth < rhs._depth);
    }
 };
 
 class BFSearch {
    std::priority_queue<BFSNode, std::vector<BFSNode>, LargerObjective> _frontier;
-   StateManager::Ptr                      _sm;
-   CPSolver::Ptr                          _cp;
+   Trailer::Ptr                      _sm;
+   CPSemSolver::Ptr                          _cp;
    std::function<Branches(void)>   _branching;
    std::vector<std::function<void(void)>>    _solutionListeners;
    std::vector<std::function<void(void)>>    _failureListeners;
    Objective::Ptr _objective;
    void bfs(SearchStatistics& stats,const Limit& limit);
+   std::shared_ptr<Checkpoint> _before;
 public:
-   BFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b,Objective::Ptr objective)
-      : _sm(cp->getStateManager()),_cp(cp),_branching(std::move(b)),_objective(objective) {
+   BFSearch(CPSemSolver::Ptr cp,std::function<Branches(void)>&& b)
+      : _sm(cp->getStateManager()),_cp(cp),_branching(std::move(b)) {
       _sm->enable();
    }
    SearchStatistics solve(SearchStatistics& stat,Limit limit);

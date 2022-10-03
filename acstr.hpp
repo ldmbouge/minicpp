@@ -101,6 +101,8 @@ public:
    typedef strict_ptr<ConstraintDesc> Ptr;
    ConstraintDesc() {}
    virtual Constraint* create() = 0;
+   virtual ConstraintDesc* clone() = 0;
+   virtual void print(std::ostream& os) const {}
 };
 
 /**
@@ -119,6 +121,10 @@ public:
     * @return the current value of the objective.
     */
    virtual int value() const = 0;
+   /**
+    * Returns whether the passed value is "better" than the primal (less than primal for min, greater than primal for max)
+    */
+   virtual bool betterThanPrimal(int value) const = 0;
 };;
 
 #endif

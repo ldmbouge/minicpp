@@ -44,6 +44,8 @@ class EQcDesc : public ConstraintDesc {
 public:
    EQcDesc(var<int>::Ptr x,int c) : _x(x), _c(c) {}
    EQc* create() override;
+   EQcDesc* clone() override;
+   void print(std::ostream& os) const override;
 };
 
 class NEQc : public Constraint { // x != c
@@ -52,6 +54,16 @@ class NEQc : public Constraint { // x != c
 public:
    NEQc(var<int>::Ptr x,int c) : Constraint(x->getSolver()),_x(x),_c(c) {}
    void post() override;
+};
+
+class NEQcDesc : public ConstraintDesc {
+   var<int>::Ptr _x;
+   int           _c;
+public:
+   NEQcDesc(var<int>::Ptr x,int c) : _x(x), _c(c) {}
+   NEQc* create() override;
+   NEQcDesc* clone() override;
+   void print(std::ostream& os) const override;
 };
 
 class EQBinBC : public Constraint { // x == y + c
@@ -300,6 +312,7 @@ public:
    Minimize(var<int>::Ptr& x);
    void tighten() override;
    int value() const override { return _obj->min();}
+   bool betterThanPrimal(int value) const override { return value < _primal;}
 };
 
 class Maximize : public Objective {
@@ -310,6 +323,7 @@ public:
    Maximize(var<int>::Ptr& x);
    void tighten() override;
    int value() const override { return _obj->max();}
+   bool betterThanPrimal(int value) const override { return value > _primal;}
 };
 
 class Element2D : public Constraint {
@@ -449,11 +463,11 @@ namespace Factory
     * Note: this does not really allocate a constraint. It does the job inline on the variable.
     * @see EQc
     */
-   inline Constraint::Ptr operator==(var<int>::Ptr x,const int c) {
-      auto cp = x->getSolver();
-      x->assign(c);
-      cp->fixpoint();
-      return nullptr;
+   inline ConstraintDesc::Ptr operator==(var<int>::Ptr x,const int c) {
+      //auto cp = x->getSolver();
+      //x->assign(c);
+      //cp->fixpoint();
+      return new (x->getSolver()) EQcDesc(x,c);
    }
    /**
     * Factory operator to create the constraint `x!=c`
@@ -463,11 +477,12 @@ namespace Factory
     * Note: this does not really allocate a constraint. It does the job inline on the variable.
     * @see NEQc
     */
-   inline Constraint::Ptr operator!=(var<int>::Ptr x, const int c) {
-      auto cp = x->getSolver();
-      x->remove(c);
-      cp->fixpoint();
-      return nullptr;
+   inline ConstraintDesc::Ptr operator!=(var<int>::Ptr x, const int c) {
+      //auto cp = x->getSolver();
+      //x->remove(c);
+      //cp->fixpoint();
+      return new (x->getSolver()) NEQcDesc(x,c);
+      //return nullptr;
    }
    /**
     * Factory function to create the constraint \f$x \in S\f$
@@ -509,8 +524,8 @@ namespace Factory
     * @return the constraint `x==c`
     * @see EQc
     */
-   inline Constraint::Ptr operator==(var<bool>::Ptr x,const bool c) {
-      return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
+   inline ConstraintDesc::Ptr operator==(var<bool>::Ptr x,const bool c) {
+      return new (x->getSolver()) EQcDesc((var<int>::Ptr)x,c);
    }
    /**
     * Factory operator to create the constraint `x==c`
@@ -519,8 +534,8 @@ namespace Factory
     * @return the constraint `x==c`
     * @see EQc
     */
-   inline Constraint::Ptr operator==(var<bool>::Ptr x,const int c) {
-      return new (x->getSolver()) EQc((var<int>::Ptr)x,c);
+   inline ConstraintDesc::Ptr operator==(var<bool>::Ptr x,const int c) {
+      return new (x->getSolver()) EQcDesc((var<int>::Ptr)x,c);
    }
    /**
     * Factory operator to create the constraint `x==y`
@@ -551,8 +566,8 @@ namespace Factory
     * @return the constraint \f$x \neq c\f$
     * @see NEQc
     */
-   inline Constraint::Ptr operator!=(var<bool>::Ptr x,const bool c) {
-      return new (x->getSolver()) NEQc((var<int>::Ptr)x,c);
+   inline ConstraintDesc::Ptr operator!=(var<bool>::Ptr x,const bool c) {
+      return new (x->getSolver()) NEQcDesc((var<int>::Ptr)x,c);
    }
    /**
     * Factory operator to create the constraint `x!=c`
@@ -561,8 +576,8 @@ namespace Factory
     * @return the constraint \f$x \neq c\f$
     * @see NEQc
     */
-   inline Constraint::Ptr operator!=(var<bool>::Ptr x,const int c) {
-      return new (x->getSolver()) NEQc((var<int>::Ptr)x,c);
+   inline ConstraintDesc::Ptr operator!=(var<bool>::Ptr x,const int c) {
+      return new (x->getSolver()) NEQcDesc((var<int>::Ptr)x,c);
    }
    /**
     * Factory operator to create the constraint `x!=y`
@@ -1115,5 +1130,6 @@ namespace Factory
  * @param c the constraint to print
  */
 void printCstr(Constraint::Ptr c);
+void printCstrDesc(ConstraintDesc::Ptr c);
 
 #endif

@@ -21,25 +21,21 @@
 
 class Tracer {
    Trailer::Ptr _trail;
-   MemoryTrail* _memoryTrail;
    unsigned int _lastNodeID;
    CommandStack* _commands;
    unsigned int _level;
 public:
-   Tracer(Trailer::Ptr trail, MemoryTrail* memoryTrail);
+   Tracer(Trailer::Ptr trail);//, MemoryTrail* memoryTrail);
    unsigned int currentNode();
    void fail();
    unsigned int pushNode();
    CommandList* popNode();
-   void popToNode(unsigned int nodeID);
    void trust();
    unsigned int level();
-   void reset();
    Trailer::Ptr trail();
-   MemoryTrail* memoryTrail();
    void addCommand(ConstraintDesc::Ptr command);
-   Checkpoint* captureCheckpoint();
-   bool restoreCheckpoint(Checkpoint* checkpoint, CPSolver* solver);
+   std::shared_ptr<Checkpoint> captureCheckpoint();
+   bool restoreCheckpoint(std::shared_ptr<Checkpoint> checkpoint, CPSemSolver::Ptr solver);
 };
 
 #endif

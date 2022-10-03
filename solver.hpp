@@ -31,6 +31,7 @@
 typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
 class Tracer;
+class Checkpoint;
 
 class DEPQueue {
    std::deque<Constraint::Ptr>  _q[2];
@@ -53,8 +54,6 @@ public:
       }
    }
 };
-
-class Silly {};
 
 class CPSolver {
 protected:
@@ -97,11 +96,18 @@ public:
 };
 
 class CPSemSolver : public CPSolver {
-    MemoryTrail* _memoryTrail;
+    //MemoryTrail* _memoryTrail;
     Tracer* _tracer;
+    bool _inSearch;
 public:
+    std::shared_ptr<Checkpoint> _rootCheckpoint;
+    typedef handle_ptr<CPSemSolver> Ptr;
     CPSemSolver();
     ~CPSemSolver();
+    void post(Constraint::Ptr c,bool enforceFixPoint=true);
+    void post(ConstraintDesc::Ptr c,bool enforceFixPoint=true);
+    Tracer* tracer();
+    void startSearch();
 };
 
 namespace Factory {
@@ -110,6 +116,7 @@ namespace Factory {
     * @return a pointer to a solver.
     */
    inline CPSolver::Ptr makeSolver() { return new CPSolver;}
+   inline CPSemSolver::Ptr makeSemSolver() { return new CPSemSolver;}
 };
 
 inline void* operator new(std::size_t sz,CPSolver::Ptr e)

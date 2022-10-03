@@ -16,8 +16,13 @@
 #include "tracer.hpp"
 #include "fail.hpp"
 
-Tracer::Tracer(Trailer::Ptr trail, MemoryTrail* memoryTrail)
-   : _trail(trail), _memoryTrail(memoryTrail) { }
+Tracer::Tracer(Trailer::Ptr trail/*, MemoryTrail* memoryTrail*/)
+   : _trail(trail)/*, _memoryTrail(memoryTrail)*/ {
+   _commands = new CommandStack(32);
+   _commands->pushList(_lastNodeID);
+   _lastNodeID++;
+   _level++;
+}
 unsigned int Tracer::currentNode() {
    return _lastNodeID;
 }
@@ -25,26 +30,19 @@ void Tracer::fail() {
    _lastNodeID++;
 }
 unsigned int Tracer::pushNode() {
-//   assert(_commands->size() == _trailStack->size());
-//   _trailStack->pushNode(_lastNodeID);
-   _commands->pushList(_lastNodeID, _memoryTrail->trailSize());
-   _trail->incMagic();
+   _commands->pushList(_lastNodeID);/*, _memoryTrail->trailSize()*/
    _lastNodeID++;
-
-//   assert(_commands->size() == _trailStack->size());
+   _trail->push();
+   assert(_trail->depth() <= 1 || _commands->size() == _trail->depth());
    _level += 1;
    return _lastNodeID - 1;
 }
 CommandList* Tracer::popNode() {
-//   _trailStack->popNode();
+   _trail->pop();
+   _trail->incMagic();
    CommandList* list = _commands->popList();
-   _trail->incMagic();
-//   assert(_commands->size() == _trailStack->size());
+   assert(_commands->size() == _trail->depth());
    return list;
-}
-void Tracer::popToNode(unsigned int nodeID) {
-//   _trailStack->popNode(nodeID);
-   _trail->incMagic();
 }
 void Tracer::trust() {
    _level += 1;
@@ -52,66 +50,51 @@ void Tracer::trust() {
 unsigned int Tracer::level() {
    return _level;
 }
-void Tracer::reset() {
-//   assert(_commands->size() == _trailStack->size());
-//   while (!_trailStack->empty()) {
-//      _trailStack->popNode();
-      CommandList* list = _commands->popList();
-      list->letgo();
-//   }
-   assert(_level == 0);
-   pushNode();
-}
 Trailer::Ptr Tracer::trail() {
    return _trail;
 }
-MemoryTrail* Tracer::memoryTrail() {
-   return _memoryTrail;
-}
+//MemoryTrail* Tracer::memoryTrail() {
+//   return _memoryTrail;
+//}
 void Tracer::addCommand(ConstraintDesc::Ptr command) {
    _commands->addCommand(command);
 }
-Checkpoint* Tracer::captureCheckpoint() {
-   _commands->setMemoryTail(_memoryTrail->trailSize());
-   Checkpoint* checkpoint = new Checkpoint(_commands, _memoryTrail);
+std::shared_ptr<Checkpoint> Tracer::captureCheckpoint() {
+   std::shared_ptr<Checkpoint> checkpoint (new Checkpoint(_commands));//, _memoryTrail);
    checkpoint->setLevel(_level);
    checkpoint->setNodeID(pushNode());
    return checkpoint;
 }
-bool Tracer::restoreCheckpoint(Checkpoint* checkpoint, CPSolver* solver) {
-//   assert(_commands->size() == _trailStack->size());
+bool Tracer::restoreCheckpoint(std::shared_ptr<Checkpoint> checkpoint, CPSemSolver::Ptr solver) {
    CommandStack* restoreStack = checkpoint->commands();
    unsigned int currentSize = _commands->size();
    unsigned int restoreToSize = restoreStack->size();
    unsigned int i = _commands->sharedPrefixSize(restoreStack);
    while (i != currentSize--) {
-//      _trailStack->pop();
+      _trail->pop();
       CommandList* list = _commands->popList();
-//      assert(_commands->size() == _trailStack->size());
       list->letgo();
    }
-   bool failed = false;
-   if (failed) return false; //TODO: How do we do this here?
 
    _trail->incMagic();
    for (; i < restoreToSize; i++) {
-//      assert(_commands->size() == _trailStack->size());
+      assert(_commands->size() == _trail->depth());
       CommandList* list = restoreStack->peekAt(i);
-//      _trailStack->pushNode(list->nodeID());
-      _memoryTrail->comply(checkpoint->memoryTrail(), list);
-      _trail->incMagic();
+      _trail->push(list->nodeID());
+      _commands->pushList(list->nodeID());
       TRYFAIL
          struct CommandNode* node = list->head();
          while (node != nullptr) {
             solver->post(node->_constraint);
             node = node->_next;
          }
-         _commands->pushCommandList(list->grab());
       ONFAIL
-//         _trailStack->popNode();
+         _trail->pop();
+         _commands->popList();
+         assert(_trail->depth() <= 1 || _commands->size() == _trail->depth());
          return false;
       ENDFAIL
    }
    _level = checkpoint->level();
-//   return enforceObjective();
+   return true;
 }

@@ -65,6 +65,11 @@ long Trailer::push()
     _tops.emplace(std::make_tuple(_trail.size(),_btop,rv));
     return rv;
 }
+void Trailer::push(long nodeID)
+{
+    ++_magic;
+    _tops.emplace(std::make_tuple(_trail.size(),_btop,nodeID));
+}
 void Trailer::popToNode(long node)
 {
   while (true) {
@@ -116,41 +121,41 @@ void Trailer::withNewState(const std::function<void(void)>& body)
    popToNode(lvl);
 }
 
-MemoryTrail::MemoryTrail()
-{
-}
-MemoryTrail::~MemoryTrail()
-{
-}
-void MemoryTrail::clear()
-{
-   return;
-}
-void MemoryTrail::saveState()
-{
-   return;
-}
-void MemoryTrail::restoreState()
-{
-   return;
-}
-void MemoryTrail::withNewState(const std::function<void(void)>& body)
-{
-   return;
-}
-unsigned int MemoryTrail::trailSize()
-{
-   return _trail.size();
-}
-void MemoryTrail::comply(MemoryTrail* other, CommandList* list)
-{
-   unsigned int from = list->memoryFrom();
-   unsigned int to = list->memoryTo();
-   for (auto i = from; i < to; i++) {
-      assert(other->at(i) != nullptr);
-      _trail.push_back(other->at(i));
-   }
-}
-void* MemoryTrail::at(unsigned int index) {
-   return _trail[index];
-}
+//MemoryTrail::MemoryTrail()
+//{
+//}
+//MemoryTrail::~MemoryTrail()
+//{
+//}
+//void MemoryTrail::clear()
+//{
+//   return;
+//}
+//void MemoryTrail::saveState()
+//{
+//   return;
+//}
+//void MemoryTrail::restoreState()
+//{
+//   return;
+//}
+//void MemoryTrail::withNewState(const std::function<void(void)>& body)
+//{
+//   return;
+//}
+//unsigned int MemoryTrail::trailSize()
+//{
+//   return _trail.size();
+//}
+//void MemoryTrail::comply(MemoryTrail* other, CommandList* list)
+//{
+//   unsigned int from = list->memoryFrom();
+//   unsigned int to = list->memoryTo();
+//   for (auto i = from; i < to; i++) {
+//      assert(other->at(i) != nullptr);
+//      _trail.push_back(other->at(i));
+//   }
+//}
+//void* MemoryTrail::at(unsigned int index) {
+//   return _trail[index];
+//}

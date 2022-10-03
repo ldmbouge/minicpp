@@ -16,6 +16,7 @@
 #include "search.hpp"
 #include "intvar.hpp"
 #include "constraint.hpp"
+#include "tracer.hpp"
 
 class StopException {};
 
@@ -146,7 +147,9 @@ SearchStatistics BFSearch::solve(SearchStatistics& stats,Limit limit)
 {
     stats.setIntVars(_cp->getNbVars());
     stats.setPropagators(_cp->getNbProp());
-    _sm->withNewState(VVFun([this,&stats,&limit]() {
+    _cp->startSearch();
+    Trailer::Ptr trail = _sm;
+    trail->withNewState(VVFun([this,&stats,&limit]() {
                                try {
                                   bfs(stats,limit);
                                } catch(StopException& sx) {
@@ -174,18 +177,21 @@ SearchStatistics BFSearch::solve()
 
 SearchStatistics BFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats,Limit limit)
 {
+   _objective = obj;
    onSolution([obj] { obj->tighten();});
    return solve(stats,limit);
 }
 
 SearchStatistics BFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats)
 {
+   _objective = obj;
    onSolution([obj] { obj->tighten();});
    return solve(stats,[](const SearchStatistics& ss) { return false;});
 }
 
 SearchStatistics BFSearch::optimize(Objective::Ptr obj,Limit limit)
 {
+   _objective = obj;
    SearchStatistics stats;
    onSolution([obj] { obj->tighten();});
    return solve(stats,limit);
@@ -193,19 +199,25 @@ SearchStatistics BFSearch::optimize(Objective::Ptr obj,Limit limit)
 
 SearchStatistics BFSearch::optimize(Objective::Ptr obj)
 {
+   _objective = obj;
    return optimize(obj,[](const SearchStatistics& ss) { return false;});
 }
 
 void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
 {
-   //static int nS = 0;
+   Tracer* tracer = _cp->tracer();
    while (true) {
       Branches branches = _branching();
       if (branches.size() == 0) {
          //nS++;
          //std::cout<< "BFSFail -> sol " << nS << std::endl;
          stats.incrSolutions();
-         notifySolution();
+         //Catch fail from tightening objective
+         TRYFAIL {
+            notifySolution();
+         } ONFAIL {
+         } ENDFAIL {
+         }
       } else {
          // if (branches.size() > 1)
          //    stats.incrNodes();
@@ -213,37 +225,46 @@ void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
          for(auto cur = branches.begin(); cur != branches.end() and !limit(stats); cur++)
          {
             const auto& alt = *cur;
-            _sm->saveState();
+            _before = tracer->captureCheckpoint();
             try {
                TRYFAIL {
                   if (cur != last)
                      stats.incrNodes();
                   alt();
-                  //TODO: Record this node
-                  _frontier.push(BFSNode(_objective->value()));
+                  _frontier.push(BFSNode(tracer->captureCheckpoint(), _objective ? _objective->value() : 0, tracer->level()));
                } ONFAIL {
                   stats.incrFailures();
                   notifyFailure();
                }
                ENDFAIL {
-                  _sm->restoreState();
+                  tracer->restoreCheckpoint(_before,_cp);
                }
             } catch(...) {  // the C++ exception catching is to stay compatible with python interfaces. 0-cost for C++
                stats.incrFailures();
                notifyFailure();
-               _sm->restoreState();
+               tracer->restoreCheckpoint(_before,_cp);
             }
          }
          if (limit(stats)) {
             throw StopException();
          }
       }
-      if (!_frontier.empty()) {
-         BFSNode node = _frontier.top();
-         _frontier.pop();
-         //TODO: Reset to this node
-      } else {
-         return;
+      BFSNode node;
+      bool feasibleNodeFound = false;
+      bool successfulRestore = false;
+      while (!successfulRestore) {
+         while (!_frontier.empty()) {
+            node = _frontier.top();
+            _frontier.pop();
+            if (!_objective || _objective->betterThanPrimal(node._objectiveValue)) {
+               feasibleNodeFound = true;
+               break;
+            }
+         }
+         if (feasibleNodeFound)
+            successfulRestore = tracer->restoreCheckpoint(node._checkpoint,_cp);
+         else
+            return;
       }
    }
 }
