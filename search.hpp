@@ -152,21 +152,16 @@ public:
       : _checkpoint(checkpoint), _objectiveValue(objectiveValue), _depth(depth) { }
 };
 
-struct LargerObjective
+struct BFSNodeCompare
 {
+   bool _minimize;
+   BFSNodeCompare(bool minimize = 0) : _minimize(minimize) {}
    bool operator()(const BFSNode& lhs, const BFSNode& rhs) const {
-      return lhs._objectiveValue > rhs._objectiveValue || (lhs._objectiveValue == rhs._objectiveValue && lhs._depth < rhs._depth);
-   }
-};
-struct SmallerObjective
-{
-   bool operator()(const BFSNode& lhs, const BFSNode& rhs) const {
-      return lhs._objectiveValue < rhs._objectiveValue || (lhs._objectiveValue == rhs._objectiveValue && lhs._depth < rhs._depth);
+      return (_minimize ? lhs._objectiveValue > rhs._objectiveValue : lhs._objectiveValue < rhs._objectiveValue) || (lhs._objectiveValue == rhs._objectiveValue && lhs._depth < rhs._depth);
    }
 };
 
 class BFSearch {
-   std::priority_queue<BFSNode, std::vector<BFSNode>, LargerObjective> _frontier;
    Trailer::Ptr                      _sm;
    CPSemSolver::Ptr                          _cp;
    std::function<Branches(void)>   _branching;

@@ -189,6 +189,7 @@ class MDDRelax : public MDD {
    const int    _maxSplitIter;
    const bool _approxThenExact;
    const int _maxConstraintPriority;
+   const bool _useRestricted;
    ::trail<unsigned> _lowest;
    std::mt19937 _rnG;
    std::uniform_real_distribution<double> _sampler;
@@ -203,7 +204,14 @@ class MDDRelax : public MDD {
    MDDDelta* _deltaCombinedDown;
    MDDDelta*   _deltaCombinedUp;
    int _domMin,_domMax;
+   std::vector<TVec<MDDNode*>> restrictedLayers;
    //const MDDState& pickReference(int layer,int layerSize);
+   void buildNextRestrictedLayer(unsigned int i);
+   void splitRestrictedNode(MDDNode* n, int l, MDDSplitter& splitter);
+   bool splitRestrictedLayers();
+   void refreshRestrictedNode(MDDNode* n,int l);
+   void delRestrictedState(MDDNode* node,int l);
+   void makeRestrictedMDD();
    void checkGraph();
    void fullStateDown(MDDState& ms,MDDState& cs,int l);
    void incrStateDown(const MDDPropSet& out,MDDState& ms,MDDState& cs,MDDNode* n,int l);

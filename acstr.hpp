@@ -125,6 +125,12 @@ public:
     * Returns whether the passed value is "better" than the primal (less than primal for min, greater than primal for max)
     */
    virtual bool betterThanPrimal(int value) const = 0;
+   virtual void foundPrimal(int primal) = 0;
+   virtual void setDual(int dual) = 0;
+   virtual int dual() const = 0;
+   virtual int primal() const = 0;
+   virtual double optimalityGap() const = 0;
+   virtual bool isMin() const = 0;
 };;
 
 #endif

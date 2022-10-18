@@ -332,6 +332,7 @@ namespace Factory {
          const int ofs = val - minDom;
          const bool notOk = parent.down[all].getBit(ofs) || (sbs.getBit(ofs) && parent.down[numInSome] == parent.down[len]);
          if (notOk) return false;
+         if (child.up.unused()) return true;
          bool upNotOk = false,mixNotOk = false;
          MDDBSValue subs = child.up[someu];
          upNotOk = child.up[allu].getBit(ofs) || (subs.getBit(ofs) && child.up[numInSomeUp] == n - parent.down[len] - 1);
@@ -341,6 +342,14 @@ namespace Factory {
          mixNotOk = both.cardinality() < n;
          return !mixNotOk;
       });
+      //mdd.nodeExist([=](const auto& node) {
+      //   if (node.down[numInSome] < node.down[len]) return false;
+      //   MDDBSValue subs = node.up[someu];
+      //   if (node.up[numInSomeUp] < n - node.down[len] - 1) return false;
+      //   MDDBSValue both((char*)alloca(sizeof(unsigned long long)*subs.nbWords()),subs.nbWords());
+      //   both.setBinOR(subs,node.down[some]);
+      //   return both.cardinality() >= n;
+      //});
       int blockSize;
       int firstBlockMin, secondBlockMin, thirdBlockMin, fourthBlockMin;
       switch (opts.appxEQMode) {

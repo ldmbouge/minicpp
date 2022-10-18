@@ -195,7 +195,7 @@ void MDDStateSpec::layout()
    //std::cout << "Combined State requires:" << _lszCombined << " bytes" << std::endl;
 }
 
-MDDPBitSequence::Ptr MDDStateSpec::downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority)
+MDDPBitSequence::Ptr MDDStateSpec::downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority, bool restrictedReducedInclude)
 {
    int aid = (int)_nbpDown;
    MDDPBitSequence::Ptr p = Factory::makeBSProperty(aid,0,nbb,init,rw); 
@@ -220,7 +220,7 @@ MDDPBitSequence::Ptr MDDStateSpec::combinedBSState(MDDCstrDesc::Ptr d,int nbb,un
    d->addCombinedProperty(aid);
    return p;
 }
-MDDPByte::Ptr MDDStateSpec::downByteState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority)
+MDDPByte::Ptr MDDStateSpec::downByteState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority, bool restrictedReducedInclude)
 {
    int aid = (int)_nbpDown;
    MDDPByte::Ptr p = Factory::makePByte(aid, 0, init, max,rw);
@@ -228,7 +228,7 @@ MDDPByte::Ptr MDDStateSpec::downByteState(MDDCstrDesc::Ptr d, int init,int max,e
    d->addDownProperty(aid);
    return p;
 }
-MDDPInt::Ptr MDDStateSpec::downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority)
+MDDPInt::Ptr MDDStateSpec::downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw, int cPriority, bool restrictedReducedInclude)
 {
    int aid = (int)_nbpDown;
    MDDPInt::Ptr p = Factory::makePInt(aid, 0, init, max,rw);
@@ -268,7 +268,7 @@ MDDPInt::Ptr MDDStateSpec::combinedIntState(MDDCstrDesc::Ptr d, int init,int max
    d->addCombinedProperty(aid);
    return p;
 }
-MDDPSWindow<short>::Ptr MDDStateSpec::downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
+MDDPSWindow<short>::Ptr MDDStateSpec::downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority, bool restrictedReducedInclude)
 {
    int aid = (int)_nbpDown;
    MDDPSWindow<short>::Ptr p =Factory::makeWinProperty(aid,0,len,init,finit,rw);
@@ -297,76 +297,72 @@ MDDPSWindow<short>::Ptr MDDStateSpec::combinedSWState(MDDCstrDesc::Ptr d,int len
 // MDDSpec
 // --------------------------------------------------------------------------------
 
-MDDPBitSequence::Ptr MDDSpec::downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw,int cPriority)
+MDDPBitSequence::Ptr MDDSpec::downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw,int cPriority, bool restrictedReducedInclude)
 {
    auto rv = MDDStateSpec::downBSState(d,nbb,init,rw,cPriority);
    _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   if (restrictedReducedInclude) _restrictedReducedProperties.emplace_back(rv->getId());
    return rv;   
 }
-MDDPByte::Ptr MDDSpec::downByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
+MDDPByte::Ptr MDDSpec::downByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority, bool restrictedReducedInclude)
 {
    auto rv = MDDStateSpec::downByteState(d,init,max,rw,cPriority);
    _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   if (restrictedReducedInclude) _restrictedReducedProperties.emplace_back(rv->getId());
    return rv;
 }
-MDDPInt::Ptr MDDSpec::downIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
+MDDPInt::Ptr MDDSpec::downIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority, bool restrictedReducedInclude)
 {
    auto rv = MDDStateSpec::downIntState(d,init,max,rw,cPriority);
    _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   if (restrictedReducedInclude) _restrictedReducedProperties.emplace_back(rv->getId());
    return rv;
 }
 MDDPBitSequence::Ptr MDDSpec::upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::upBSState(d,nbb,init,rw);
-   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
 MDDPByte::Ptr MDDSpec::upByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::upByteState(d,init,max,rw,cPriority);
-   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
 MDDPInt::Ptr MDDSpec::upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::upIntState(d,init,max,rw,cPriority);
-   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
 MDDPBitSequence::Ptr MDDSpec::combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw,int cPriority)
 {
    auto rv = MDDStateSpec::combinedBSState(d,nbb,init,rw,cPriority);
-   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;   
 }
 MDDPByte::Ptr MDDSpec::combinedByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::combinedByteState(d,init,max,rw,cPriority);
-   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
 MDDPInt::Ptr MDDSpec::combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::combinedIntState(d,init,max,rw,cPriority);
-   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
-MDDPSWindow<short>::Ptr MDDSpec::downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
+MDDPSWindow<short>::Ptr MDDSpec::downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority, bool restrictedReducedInclude)
 {
    auto rv = MDDStateSpec::downSWState(d,len,init,finit,rw,cPriority);
    _propertiesByPriorities[cPriority].emplace_back(rv->getId());
+   if (restrictedReducedInclude) _restrictedReducedProperties.emplace_back(rv->getId());
    return rv;
 }
 MDDPSWindow<short>::Ptr MDDSpec::upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::upSWState(d,len,init,finit,rw,cPriority);
-   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
 MDDPSWindow<short>::Ptr MDDSpec::combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int cPriority)
 {
    auto rv = MDDStateSpec::combinedSWState(d,len,init,finit,rw,cPriority);
-   _propertiesByPriorities[cPriority].emplace_back(rv->getId());
    return rv;
 }
 
@@ -376,6 +372,10 @@ MDDPSWindow<short>::Ptr MDDSpec::combinedSWState(MDDCstrDesc::Ptr d,int len,int 
 void MDDSpec::onFixpoint(FixFun onFix)
 {
    _onFix.emplace_back(onFix);
+}
+void MDDSpec::onRestrictedFixpoint(FixFun onFix)
+{
+   _restrictedFix.emplace_back(onFix);
 }
 void MDDSpec::splitOnLargest(SplitFun onSplit, int constraintPriority)
 {
@@ -407,6 +407,13 @@ int MDDSpec::numEquivalenceClasses()
 bool MDDSpec::equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int constraintPriority) const
 {
    for (int p : _propertiesByPriorities[constraintPriority])
+      if (_attrsDown[p]->diff(left._mem, right._mem))
+         return false;
+   return true;
+}
+bool MDDSpec::equivalentForRestricted(const MDDState& left, const MDDState& right) const
+{
+   for (int p : _restrictedReducedProperties)
       if (_attrsDown[p]->diff(left._mem, right._mem))
          return false;
    return true;
@@ -566,6 +573,11 @@ MDDState MDDSpec::sinkState(Trailer::Ptr t,Storage::Ptr& mem)
 void MDDSpec::reachedFixpoint(const MDDPack& sink)
 {
    for(auto& fix : _onFix)
+     fix(sink);
+}
+void MDDSpec::restrictedFixpoint(const MDDPack& sink)
+{
+   for(auto& fix : _restrictedFix)
      fix(sink);
 }
 
@@ -803,7 +815,7 @@ void MDDSpec::compile()
 void MDDSpec::fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
    result.clear();
-   //result.zero(); // [ldm] We are doing the full state. Why reset to zero?
+   //result.zero(); // [ldm] We are doing the full state. Why reset to zero? [becca] State needs to be set to 0 because there may be "empty" spots in the state corresponding to no properties which would mess with places where the memory of states are compared.  Additionallly, some transitoin functions assume that it's been zeroed (see allDiff where we set bits to 1, but assume rest are 0).  That said, I think the state is properly being set to 0 in the MDDState constructor, so this is probably unneeded.
    _frameLayer[l].frameDown(result,parent.down);
    for(const auto& t : _transLayer[l])
       t(result,parent,var,v);
@@ -958,11 +970,11 @@ MDDStateFactory::MDDStateFactory(Trailer::Ptr trail,MDDSpec* spec)
 {
 }
 
-MDDState* MDDStateFactory::createCombinedState()
+MDDState* MDDStateFactory::createCombinedState(bool forRestricted)
 {
   size_t lSz = _mddspec->layoutSizeCombined();
   char* block = (lSz==0) ? nullptr : (char*)_mem->allocate(lSz);
-  MDDState* cs = new (_mem) MDDState(_trail,_mddspec,block,Bi);
+  MDDState* cs = new (_mem) MDDState(_trail,_mddspec,block,Bi,false,forRestricted);
   return cs;
 }
 

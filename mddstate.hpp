@@ -1027,10 +1027,10 @@ public:
    unsigned short startOfsUp(int p) const noexcept { return _attrsUp[p]->startOfs();}
    unsigned short endOfsDown(int p) const noexcept { return _attrsDown[p]->endOfs();}
    unsigned short endOfsUp(int p) const noexcept { return _attrsUp[p]->endOfs();}
-   virtual MDDPByte::Ptr downByteState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0);
-   virtual MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0);
-   virtual MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External,int cPriority=0);
-   virtual MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0);
+   virtual MDDPByte::Ptr downByteState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0, bool restrictedReducedInclude=true);
+   virtual MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0, bool restrictedReducedInclude=true);
+   virtual MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External,int cPriority=0, bool restrictedReducedInclude=true);
+   virtual MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0, bool restrictedReducedInclude=true);
    virtual MDDPByte::Ptr upByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority=0);
    virtual MDDPInt::Ptr upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority=0);
    virtual MDDPBitSequence::Ptr upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External, int cPriority=0);
@@ -1228,8 +1228,8 @@ class MDDState {  // An actual state of an MDDNode.
       }
    };
 public:
-   MDDState(Trailer::Ptr trail,MDDStateSpec* s,char* b,enum Direction dir,bool relax=false) 
-      : _spec(s),_mem(b),_hash(0),_magic(trail->magic()),_dir(dir),_flags({relax,false,false})
+   MDDState(Trailer::Ptr trail,MDDStateSpec* s,char* b,enum Direction dir,bool relax=false,bool unused=false) 
+      : _spec(s),_mem(b),_hash(0),_magic(trail->magic()),_dir(dir),_flags({relax,false,unused})
    {
       memset(b,0,_spec->layoutSize(_dir));
    }
@@ -1290,6 +1290,7 @@ public:
       if (sz)  memcpy(block,_mem,sz);
       return MDDState(trail,_spec,block,_hash,_dir,_flags);
    }
+   bool unused() const noexcept        { return _flags._unused; }
    bool valid() const noexcept         { return _mem != nullptr;}
    auto layoutSize() const noexcept    { return _spec->layoutSize(_dir);}
    void init(MDDProperty::Ptr i) const  noexcept                   { i->init(_mem); }
@@ -1401,16 +1402,16 @@ public:
       append(v);
       return constraints.emplace_back(new MDDCstrDesc(v,n));
    }
-   MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
+   MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0, bool restrictedReducedInclude=true) override;
    MDDPBitSequence::Ptr upBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
    MDDPBitSequence::Ptr combinedBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw = External, int cPriority = 0) override;
-   MDDPByte::Ptr downByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
+   MDDPByte::Ptr downByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0, bool restrictedReducedInclude=true) override;
    MDDPByte::Ptr upByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
    MDDPByte::Ptr combinedByteState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
-   MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
+   MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0, bool restrictedReducedInclude=true) override;
    MDDPInt::Ptr upIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
    MDDPInt::Ptr combinedIntState(MDDCstrDesc::Ptr d,int init,int max,enum RelaxWith rw=External,int cPriority = 0) override;
-   MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
+   MDDPSWindow<short>::Ptr downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0, bool restrictedReducedInclude=true) override;
    MDDPSWindow<short>::Ptr upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
    MDDPSWindow<short>::Ptr combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw=External, int cPriority=0) override;
    size_t nodeUB() const override { return x.size() * getWidth() * 2;}
@@ -1441,6 +1442,7 @@ public:
    void addSimilarity(int,lambdaSim);
    double similarity(const MDDState& a,const MDDState& b);
    void onFixpoint(FixFun onFix);
+   void onRestrictedFixpoint(FixFun onFix);
    void splitOnLargest(SplitFun onSplit, int cPriority = 0);
    void candidateByLargest(CandidateFun candidateSplit, int cPriority = 0);
    void equivalenceClassValue(EquivalenceValueFun equivalenceValue, int cPriority = 0);
@@ -1481,6 +1483,7 @@ public:
             z.push_back(e);
    }
    void reachedFixpoint(const MDDPack& sink);
+   void restrictedFixpoint(const MDDPack& sink);
    double nodeSplitPriority(const MDDNode& n, int cPriority) const;
    double candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int cPriority) const;
    std::vector<int> equivalenceValue(const MDDState& downState, const MDDState& upState, int cPriority = 0);
@@ -1489,6 +1492,7 @@ public:
    bool hasNodeSplitRule() const noexcept { return _onSplit.size() > 0;}
    bool hasCandidateSplitRule() const noexcept { return _candidateSplit.size() > 0;}
    bool equivalentForConstraintPriority(const MDDState& left, const MDDState& right, int cPriority) const;
+   bool equivalentForRestricted(const MDDState& left, const MDDState& right) const;
    int rebootFor(int l) const noexcept { return _rebootByLayer[l]; }
    void compile();
    std::vector<var<int>::Ptr>& getVars(){ return x; }
@@ -1508,6 +1512,7 @@ private:
    std::vector<lambdaSim>   _similarity;
    std::vector<lambdaTrans> _upTransition;
    std::vector<FixFun>        _onFix;
+   std::vector<FixFun>        _restrictedFix;
    std::vector<SplitFun>      _onSplit;
    std::vector<CandidateFun>      _candidateSplit;
    //std::vector<ValueScoreFun>      _valueScore;
@@ -1528,6 +1533,7 @@ private:
    std::vector<std::vector<CandidateFun>> _candidateSplitByPriorities;
    std::vector<std::vector<EquivalenceValueFun>> _equivalenceValueByPriorities;
    std::vector<std::vector<int>> _propertiesByPriorities;
+   std::vector<int> _restrictedReducedProperties; //Properties used in restricted MDD to reduce.  Mainly doesn't include properties for objective
    std::vector<int> _rebootByLayer;
 };
 
@@ -1558,7 +1564,7 @@ class MDDStateFactory {
    bool          _enabled;
 public:
    MDDStateFactory(Trailer::Ptr trail,MDDSpec* spec);
-   MDDState* createCombinedState();
+   MDDState* createCombinedState(bool forRestricted=false);
    void createStateDown(MDDState& result,const MDDPack& parent,int layer,const var<int>::Ptr x,const MDDIntSet& vals,bool up);
    void createStateUp(MDDState& result,const MDDPack& child,int layer,const var<int>::Ptr x,const MDDIntSet& vals);
    void splitState(MDDState*& result,MDDNode* n,const MDDPack& parent,int layer,const var<int>::Ptr x,int val);

@@ -21,7 +21,7 @@ Tracer::Tracer(Trailer::Ptr trail/*, MemoryTrail* memoryTrail*/)
    _commands = new CommandStack(32);
    _commands->pushList(_lastNodeID);
    _lastNodeID++;
-   _level++;
+   _level = 1;
 }
 unsigned int Tracer::currentNode() {
    return _lastNodeID;

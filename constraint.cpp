@@ -292,6 +292,14 @@ void Minimize::tighten()
    failNow();
 }
 
+void Minimize::foundPrimal(int primal)
+{
+   if (primal < _primal) {
+      _primal = primal;
+      _obj->removeAbove(_primal - 1);
+   }
+} 
+
 Maximize::Maximize(var<int>::Ptr& x)
    : _obj(x),_primal(0x80000001)
 {
@@ -318,6 +326,14 @@ void Maximize::tighten()
    _primal = _obj->min();
    failNow();
 }
+
+void Maximize::foundPrimal(int primal)
+{
+   if (primal > _primal) {
+      _primal = primal;
+      _obj->removeBelow(_primal + 1);
+   }
+} 
 
 void IsEqual::post() 
 {

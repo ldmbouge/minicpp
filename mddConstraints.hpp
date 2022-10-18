@@ -273,6 +273,44 @@ namespace Factory {
 
    MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts = {});
    MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m,std::initializer_list<var<int>::Ptr> vars,MDDOpts opts = {});
+
+   MDDCstrDesc::Ptr precedenceMDD(MDD::Ptr m,const Factory::Veci& vars, int before, int after);
+   MDDCstrDesc::Ptr requiredPrecedenceMDD(MDD::Ptr m,const Factory::Veci& vars, int before, int after);
+   struct PrecedenceStub {
+      const Factory::Veci& _vars;
+      int _before;
+      int _after;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return precedenceMDD(m,_vars,_before,_after);}
+   };
+   inline PrecedenceStub precedenceMDD(const Factory::Veci& vars, int before, int after)
+   {
+      return PrecedenceStub {vars,before,after};
+   }
+   struct RequiredPrecedenceStub {
+      const Factory::Veci& _vars;
+      int _before;
+      int _after;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return requiredPrecedenceMDD(m,_vars,_before,_after);}
+   };
+   inline RequiredPrecedenceStub requiredPrecedenceMDD(const Factory::Veci& vars, int before, int after)
+   {
+      return RequiredPrecedenceStub {vars,before,after};
+   }
+
+   MDDCstrDesc::Ptr tspSumMDD(MDD::Ptr m, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z, Objective::Ptr objective, MDDOpts opts);
+
+   struct TSPStub {
+      const Factory::Veci& _vars;
+      std::vector<std::vector<int> > _matrix;
+      var<int>::Ptr _z;
+      Objective::Ptr _objective;
+      MDDOpts _opts;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return tspSumMDD(m,_vars,_matrix,_z,_objective,_opts);}
+   };
+   inline TSPStub tspSumMDD(const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z, Objective::Ptr objective = nullptr, MDDOpts opts = {.cstrP = 0})
+   {
+      return TSPStub {vars,matrix,z,objective,opts};
+   }
 }
 
 #endif

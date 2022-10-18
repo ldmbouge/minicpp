@@ -307,23 +307,37 @@ public:
 class Minimize : public Objective {
    var<int>::Ptr _obj;
    int        _primal;
+   int        _dual;
    void print(std::ostream& os) const;
 public:
    Minimize(var<int>::Ptr& x);
    void tighten() override;
    int value() const override { return _obj->min();}
    bool betterThanPrimal(int value) const override { return value < _primal;}
+   void foundPrimal(int primal) override;
+   void setDual(int dual) override { _dual = dual; }
+   int dual() const override { return _dual; }
+   int primal() const override { return _primal; }
+   double optimalityGap() const override { return static_cast<double>(_primal-_dual)/_primal; }
+   bool isMin() const override { return true; }
 };
 
 class Maximize : public Objective {
    var<int>::Ptr _obj;
    int        _primal;
+   int        _dual;
    void print(std::ostream& os) const;
 public:
    Maximize(var<int>::Ptr& x);
    void tighten() override;
    int value() const override { return _obj->max();}
    bool betterThanPrimal(int value) const override { return value > _primal;}
+   void foundPrimal(int primal) override;
+   void setDual(int dual) override { _dual = dual; }
+   int dual() const override { return _dual; }
+   int primal() const override { return _primal; }
+   double optimalityGap() const override { return static_cast<double>(_dual-_primal)/_dual; }
+   bool isMin() const override { return false; }
 };
 
 class Element2D : public Constraint {

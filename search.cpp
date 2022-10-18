@@ -205,6 +205,7 @@ SearchStatistics BFSearch::optimize(Objective::Ptr obj)
 
 void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
 {
+   std::priority_queue<BFSNode, std::vector<BFSNode>, BFSNodeCompare> _frontier(BFSNodeCompare(_objective && _objective->isMin()));
    Tracer* tracer = _cp->tracer();
    while (true) {
       Branches branches = _branching();
@@ -245,14 +246,17 @@ void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
                tracer->restoreCheckpoint(_before,_cp);
             }
          }
-         if (limit(stats)) {
-            throw StopException();
-         }
       }
       BFSNode node;
-      bool feasibleNodeFound = false;
+      if (limit(stats)) {
+         if (_objective)
+            _objective->setDual(_frontier.top()._objectiveValue);
+         throw StopException();
+      }
+      bool feasibleNodeFound;
       bool successfulRestore = false;
       while (!successfulRestore) {
+         feasibleNodeFound = false;
          while (!_frontier.empty()) {
             node = _frontier.top();
             _frontier.pop();
@@ -263,8 +267,11 @@ void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
          }
          if (feasibleNodeFound)
             successfulRestore = tracer->restoreCheckpoint(node._checkpoint,_cp);
-         else
+         else {
+            if (_objective)
+               _objective->setDual(_objective->primal());
             return;
+         }
       }
    }
 }

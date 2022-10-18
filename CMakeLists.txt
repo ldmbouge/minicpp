@@ -60,8 +60,10 @@ add_library(copl
 	mddGcc.cpp
 	mddAbs.cpp
 	mddMaximumCutObjective.cpp
+        mddPrecedence.cpp
 	mddSeq.cpp
 	mddSum.cpp
+        mddTSPSum.cpp
 	mdddelta.cpp
 	mddnode.cpp
 	mddrelax.cpp
