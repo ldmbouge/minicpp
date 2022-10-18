@@ -1206,7 +1206,7 @@ void MDDRelax::buildNextRestrictedLayer(unsigned int i)
    MDDIntSet xv(buf,nbVals);
    for(int v = x[i]->min(); v <= x[i]->max(); v++) 
       if(x[i]->contains(v)) xv.add(v);
-   assert(_restrictedLayers[i].size() == 1);
+   assert(restrictedLayers[i].size() == 1);
    auto parent = restrictedLayers[i][0];
    MDDState downState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
    MDDState upState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Up,false,true);

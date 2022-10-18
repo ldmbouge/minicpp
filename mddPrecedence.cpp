@@ -57,9 +57,9 @@ namespace Factory {
          out[visitedAfter] = child.up[visitedAfter] || hasAfter;
       });
 
-      spec.candidateByLargest([visitedBefore](const auto& state, void* arcs, int numArcs) {
-         return state[visitedBefore]*25;
-      });
+//      spec.candidateByLargest([visitedBefore](const auto& state, void* arcs, int numArcs) {
+//         return state[visitedBefore]*25;
+//      });
 
       return desc;
    }
