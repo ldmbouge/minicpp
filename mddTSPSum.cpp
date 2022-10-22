@@ -20,7 +20,7 @@
 #include <numeric>
 
 namespace Factory {
-   MDDCstrDesc::Ptr tspSumMDD(MDD::Ptr m, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, var<int>::Ptr z, Objective::Ptr objective, MDDOpts opts) {
+   MDDCstrDesc::Ptr tspSumMDD(MDD::Ptr m, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, MDDPBitSequence::Ptr all, MDDPBitSequence::Ptr allup, var<int>::Ptr z, Objective::Ptr objective, MDDOpts opts) {
       MDDSpec& mdd = m->getSpec();
       mdd.addGlobal({z});
       auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
@@ -28,48 +28,131 @@ namespace Factory {
       int minDom = udom.first;
       const int domSize = udom.second - udom.first + 1;
 
+      std::vector<std::vector<std::pair<int, int>>> sortedIncomingConnections(domSize);
+      std::vector<std::vector<std::pair<int, int>>> sortedOutgoingConnections(domSize);
+      for (int i = 0; i < domSize; i++) {
+         auto row = matrix[i];
+         for (int j = 0; j < domSize; j++) {
+            if (i == j || matrix[i][j] < 0) continue;
+            sortedIncomingConnections[j].push_back(std::make_pair(i,row[j]));
+            sortedOutgoingConnections[i].push_back(std::make_pair(j,row[j]));
+         }
+      }
+      for (int i = 0; i < domSize; i++) {
+         sort(sortedIncomingConnections[i].begin(), sortedIncomingConnections[i].end(), [=](const std::pair<int,int> &a, const std::pair<int, int> &b) { return a.second < b.second; });
+         sort(sortedOutgoingConnections[i].begin(), sortedOutgoingConnections[i].end(), [=](const std::pair<int,int> &a, const std::pair<int, int> &b) { return a.second < b.second; });
+      }
+
       // Define the states
       const auto minW = mdd.downIntState(d, 0, INT_MAX,MinFun,opts.cstrP,false);
       const auto maxW = mdd.downIntState(d, 0, INT_MAX,MaxFun,opts.cstrP,false);
       const auto minWup = mdd.upIntState(d, 0, INT_MAX,MinFun);
       const auto maxWup = mdd.upIntState(d, 0, INT_MAX,MaxFun);
-      const auto prev  = mdd.downBSState(d,domSize,0,External,opts.cstrP,true);
+      const auto prev  = mdd.downBSState(d,domSize,0,External,opts.cstrP);
       const auto next  = mdd.upBSState(d,domSize,0,External);
-      const auto firstDown = mdd.downIntState(d, 1, 1, MinFun,opts.cstrP,false);
-      const auto firstUp = mdd.upIntState(d, 1, 1, MinFun);
+      const auto len   = mdd.downIntState(d,0,vars.size(),MinFun,opts.cstrP);
+      const auto lenup   = mdd.upIntState(d,0,vars.size(),MinFun,opts.cstrP);
 
       mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) {
          if (child.up.unused()) {
-            if (parent.down[firstDown]) return true;
+            if (parent.down[len] == 0) return true;
             int minArcWeightFromPrev = std::numeric_limits<int>::max();
             auto previous = parent.down[prev];
-            for (int i = 0; i < domSize; i++)
-               if (previous.getBit(i))
-                  minArcWeightFromPrev = std::min(minArcWeightFromPrev, matrix[i][val]);
-            return parent.down[minW] + minArcWeightFromPrev <= z->max();
+            for (auto p : sortedIncomingConnections[val]) {
+               if (previous.getBit(p.first)) {
+                  minArcWeightFromPrev = p.second;
+                  break;
+               }
+            }
+            int lowerBoundBelow = 0;
+            if (all) {
+               for (int i = 0; i < domSize; i++) {
+                  if (i != val && !parent.down[all].getBit(i)) {
+                     for (auto connection : sortedIncomingConnections[i]) {
+                        if (!parent.down[all].getBit(connection.first)) {
+                           lowerBoundBelow += connection.second;
+                           break;
+                        }
+                     }
+                  }
+               }
+            }
+            return parent.down[minW] + minArcWeightFromPrev + lowerBoundBelow <= z->max();
          }
-         if (parent.down[firstDown] || child.up[firstUp]) return true;
+         if (parent.down[len] == 0 || child.up[lenup] == 0) return true;
          int minArcWeightFromPrev = std::numeric_limits<int>::max();
          int maxArcWeightFromPrev = std::numeric_limits<int>::min();
          int minArcWeightFromNext = std::numeric_limits<int>::max();
          int maxArcWeightFromNext = std::numeric_limits<int>::min();
          auto previous = parent.down[prev];
          auto nextVals = child.up[next];
-         for (int i = 0; i < domSize; i++) {
-            if (previous.getBit(i)) {
-               minArcWeightFromPrev = std::min(minArcWeightFromPrev, matrix[i][val]);
-               maxArcWeightFromPrev = std::max(maxArcWeightFromPrev, matrix[i][val]);
-            }
-            if (nextVals.getBit(i)) {
-               minArcWeightFromNext = std::min(minArcWeightFromNext, matrix[val][i]);
-               maxArcWeightFromNext = std::max(maxArcWeightFromNext, matrix[val][i]);
+         for (auto p : sortedIncomingConnections[val]) {
+            if (previous.getBit(p.first)) {
+               minArcWeightFromPrev = p.second;
+               break;
             }
          }
-         return ((parent.down[minW] + minArcWeightFromPrev + minArcWeightFromNext + child.up[minWup] <= z->max()) &&
+         for (auto p = sortedIncomingConnections[val].rbegin(); p != sortedIncomingConnections[val].rend(); ++p) {
+            if (previous.getBit(p->first)) {
+               maxArcWeightFromPrev = p->second;
+               break;
+            }
+         }
+         for (auto p : sortedOutgoingConnections[val]) {
+            if (nextVals.getBit(p.first)) {
+               minArcWeightFromNext = p.second;
+               break;
+            }
+         }
+         for (auto p = sortedOutgoingConnections[val].rbegin(); p != sortedOutgoingConnections[val].rend(); ++p) {
+            if (nextVals.getBit(p->first)) {
+               maxArcWeightFromNext = p->second;
+               break;
+            }
+         }
+         int lowerBoundBelow = 0;
+         int lowerBoundAbove = 0;
+         if (all) {
+            std::vector<int> possibleValues;
+            for (int i = 0; i < domSize; i++) {
+               if (i != val && !parent.down[all].getBit(i)) {
+                  for (auto connection : sortedIncomingConnections[i]) {
+                     if (!parent.down[all].getBit(connection.first)) {
+                        possibleValues.push_back(connection.second);
+                        break;
+                     }
+                  }
+               }
+            }
+            std::sort(possibleValues.begin(), possibleValues.end());
+            for (int i = 0; i < child.up[lenup] - 1; i++) {
+               lowerBoundBelow += possibleValues[i];
+            }
+         }
+         //if (allup) {
+         //   std::vector<int> possibleValues;
+         //   for (int i = 0; i < domSize; i++) {
+         //      if (i != val && !child.up[allup].getBit(i)) {
+         //         for (auto connection : sortedOutgoingConnections[i]) {
+         //            if (!child.up[allup].getBit(connection.first)) {
+         //               possibleValues.push_back(connection.second);
+         //               break;
+         //            }
+         //         }
+         //      }
+         //   }
+         //   std::sort(possibleValues.begin(), possibleValues.end());
+         //   for (int i = 0; i < parent.down[len] - 1; i++) {
+         //      lowerBoundAbove += possibleValues[i];
+         //   }
+         //}
+         lowerBoundBelow = std::max(lowerBoundBelow,(int)child.up[minWup]);
+         lowerBoundAbove = std::max(lowerBoundAbove,(int)parent.down[minW]);
+         return ((lowerBoundAbove + minArcWeightFromPrev + minArcWeightFromNext + lowerBoundBelow <= z->max()) &&
                  (parent.down[maxW] + maxArcWeightFromPrev + maxArcWeightFromNext + child.up[maxWup] >= z->min()));
       });
       mdd.nodeExist([=](const auto& n) {
-        if (n.down[firstDown] || n.up[firstUp]) return true;
+         if (n.down[len] == 0 || n.up[lenup] == 0) return true;
         int minWeightConnection = std::numeric_limits<int>::max();
         int maxWeightConnection = std::numeric_limits<int>::min();
         auto previous = n.down[prev];
@@ -88,8 +171,8 @@ namespace Factory {
       });
 
 
-      mdd.transitionDown(d,minW,{minW,prev},{},[domSize,minW,matrix,prev,firstDown] (auto& out,const auto& parent,const auto&, const auto& val) {
-         if (!parent.down[firstDown]) {
+      mdd.transitionDown(d,minW,{minW,prev},{},[domSize,minW,matrix,prev,len] (auto& out,const auto& parent,const auto&, const auto& val) {
+         if (parent.down[len]) {
             int minArcWeight = std::numeric_limits<int>::max();
             auto previous = parent.down[prev];
             for (int i = 0; i < domSize; i++)
@@ -99,8 +182,8 @@ namespace Factory {
             out[minW] = parent.down[minW] + minArcWeight;
          }
       });
-      mdd.transitionDown(d,maxW,{maxW,prev},{},[domSize,maxW,matrix,prev,firstDown] (auto& out,const auto& parent,const auto&,const auto& val) {
-         if (!parent.down[firstDown]) {
+      mdd.transitionDown(d,maxW,{maxW,prev},{},[domSize,maxW,matrix,prev,len] (auto& out,const auto& parent,const auto&,const auto& val) {
+         if (parent.down[len]) {
             int maxArcWeight = std::numeric_limits<int>::min();
             auto previous = parent.down[prev];
             for (int i = 0; i < domSize; i++)
@@ -110,8 +193,8 @@ namespace Factory {
             out[maxW] = parent.down[maxW] + maxArcWeight;
          }
       });
-      mdd.transitionUp(d,minWup,{minWup,next},{},[domSize,minWup,matrix,next,firstUp](auto& out,const auto& child,const auto&,const auto& val) {
-         if (!child.up[firstUp]) {
+      mdd.transitionUp(d,minWup,{minWup,next},{},[domSize,minWup,matrix,next,lenup](auto& out,const auto& child,const auto&,const auto& val) {
+         if (child.up[lenup]) {
             int minArcWeight = std::numeric_limits<int>::max();
             auto nextVals = child.up[next];
             for (int i = 0; i < domSize; i++)
@@ -121,8 +204,8 @@ namespace Factory {
             out[minWup] = child.up[minWup] + minArcWeight;
          }
       });
-      mdd.transitionUp(d,maxWup,{maxWup,next},{},[domSize,maxWup,matrix,next,firstUp](auto& out,const auto& child,const auto&,const auto& val) {
-         if (!child.up[firstUp]) {
+      mdd.transitionUp(d,maxWup,{maxWup,next},{},[domSize,maxWup,matrix,next,lenup](auto& out,const auto& child,const auto&,const auto& val) {
+         if (child.up[lenup]) {
             int maxArcWeight = std::numeric_limits<int>::min();
             auto nextVals = child.up[next];
             for (int i = 0; i < domSize; i++)
@@ -144,11 +227,12 @@ namespace Factory {
             sv.set(v - minDom);
       });
 
-      mdd.transitionDown(d,firstDown,{firstDown},{},[firstDown](auto& out,const auto& parent,const auto&, const auto& val) {
-         out[firstDown] = 0;
+
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+         out[len] = in.down[len] + 1;
       });
-      mdd.transitionUp(d,firstUp,{firstUp},{},[firstUp](auto& out,const auto& child,const auto&, const auto& val) {
-         out[firstUp] = 0;
+      mdd.transitionUp(d,lenup,{lenup},{},[lenup](auto& out,const auto& in,const auto&,const auto& val) noexcept {
+         out[lenup] = in.up[lenup] + 1;
       });
 
       mdd.addRelaxationDown(d,prev,[prev](auto& out,const auto& l,const auto& r) noexcept  {

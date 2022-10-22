@@ -169,7 +169,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
         for (int cliqueIndex = 0; cliqueIndex < (int)cliquesByConstraint[constraintIndex].size(); cliqueIndex++) { 
           auto adv = all(cp, cliquesByConstraint[constraintIndex][cliqueIndex], vars);
           addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, maxConstraintPriority, sameMDD, [adv,opts](MDDRelax* mdd) {
-             mdd->post(Factory::allDiffMDD2(mdd, adv,opts));
+             mdd->post(Factory::allDiffMDD2(adv,opts));
           });
         }
       }

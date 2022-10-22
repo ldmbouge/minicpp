@@ -251,6 +251,8 @@ public:
    void removeNode(MDDNode* node) override;
    int selectValueFor(var<int>::Ptr);
    void debugGraph() override;
+   void debugRestrictedGraph();
+   void saveRestrictedGraph();
 };
 
 namespace Factory {

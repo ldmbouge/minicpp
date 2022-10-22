@@ -295,6 +295,7 @@ void Minimize::tighten()
 void Minimize::foundPrimal(int primal)
 {
    if (primal < _primal) {
+std::cout << "Primal: " << primal << "\n";
       _primal = primal;
       _obj->removeAbove(_primal - 1);
    }

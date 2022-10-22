@@ -38,7 +38,7 @@ int main(int argc,char* argv[])
    auto v = Factory::intVarArray(cp, nb, 0, nb-1);
    auto start = RuntimeMonitor::cputime();
    auto mdd = new MDDRelax(cp,width);
-   mdd->post(Factory::allDiffMDD2(mdd,v));
+   mdd->post(Factory::allDiffMDD2(v));
 
    cp->post(mdd);
    

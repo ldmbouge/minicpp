@@ -253,7 +253,7 @@ namespace Factory {
       }
       return d;
    }
-   MDDCstrDesc::Ptr allDiffMDD2(MDD::Ptr m, const Factory::Veci& vars,MDDOpts opts)
+   MDDCstrDesc::Ptr allDiffMDD2(MDD::Ptr m, const Factory::Veci& vars, MDDPBitSequence::Ptr& all, MDDPBitSequence::Ptr& allu, MDDOpts opts)
    {
       MDDSpec& mdd = m->getSpec();
       auto d = mdd.makeConstraintDescriptor(vars,"allDiffMdd");
@@ -262,11 +262,11 @@ namespace Factory {
       int domSize = udom.second - udom.first + 1;
       const auto n    = (int)vars.size();
       
-      const auto all  = mdd.downBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
+      all  = mdd.downBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
       const auto some = mdd.downBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
       const auto numInSome = mdd.downIntState(d,0,vars.size(),External,opts.cstrP);
       const auto len  = mdd.downIntState(d,0,vars.size(),MinFun,opts.cstrP);
-      const auto allu = mdd.upBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
+      allu = mdd.upBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
       const auto someu = mdd.upBSState(d,udom.second - udom.first + 1,0,External,opts.cstrP);
       const auto numInSomeUp = mdd.upIntState(d,0,vars.size(),External,opts.cstrP);
 

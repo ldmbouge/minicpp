@@ -99,8 +99,10 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width) {
       cout << "MDD encoding" << endl;
       mdd = new MDDRelax(cp,width);
       mdd->getSpec().setCandidatePriorityAggregateStrategy(1);
-      mdd->post(Factory::allDiffMDD2(vars));
-      mdd->post(Factory::tspSumMDD(vars,matrix,z,obj));
+      MDDPBitSequence::Ptr all;
+      MDDPBitSequence::Ptr allup;
+      mdd->post(Factory::allDiffMDD2(vars,all,allup));
+      mdd->post(Factory::tspSumMDD(vars,matrix,all,allup,z,obj));
 
       int i = 0;
       for (auto row : matrix) {
@@ -127,18 +129,18 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width) {
    BFSearch search(cp,[=]() {
       auto x = selectFirst(vars,[](auto xk) { return xk->size() >1;});
       if (x) {
-         int c = x->min();
-         c = bestValue(mdd,x);
-         return  [=] {
-            cp->post(x == c);
-         } | [=] {
-            cp->post(x != c);
-         };
-         //std::vector<std::function<void(void)>> branches;
-         //for (int i = x->min(); i <= x->max(); i++) {
-         //   if (x->contains(i)) branches.push_back([=] { cp->post(x == i); });
-         //}
-         //return Branches(branches);
+         //int c = x->min();
+         //c = bestValue(mdd,x);
+         //return  [=] {
+         //   cp->post(x == c);
+         //} | [=] {
+         //   cp->post(x != c);
+         //};
+         std::vector<std::function<void(void)>> branches;
+         for (int i = x->min(); i <= x->max(); i++) {
+            if (x->contains(i)) branches.push_back([=] { cp->post(x == i); });
+         }
+         return Branches(branches);
       } else return Branches({});
    });
       
@@ -152,11 +154,14 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width) {
    });
 
    search.optimize(obj,stat,[](const SearchStatistics& stats) {
-      return RuntimeMonitor::elapsedSeconds(stats.startTime()) > 900;
+      return RuntimeMonitor::elapsedSeconds(stats.startTime()) > 3600;
    });
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << '\n';
    cout << stat << endl;
+   std::cout << "\t\t\"primal\" : " << obj->primal() << "\n";
+   std::cout << "\t\t\"dual\" : " << obj->dual() << "\n";
+   std::cout << "\t\t\"optimalityGap\" : " << obj->optimalityGap() << "\n";
       
    cp.dealloc();
 }

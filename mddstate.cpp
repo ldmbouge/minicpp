@@ -815,7 +815,7 @@ void MDDSpec::compile()
 void MDDSpec::fullStateDown(MDDState& result,const MDDPack& parent,unsigned l,const var<int>::Ptr& var,const MDDIntSet& v)
 {
    result.clear();
-   //result.zero(); // [ldm] We are doing the full state. Why reset to zero? [becca] State needs to be set to 0 because there may be "empty" spots in the state corresponding to no properties which would mess with places where the memory of states are compared.  Additionallly, some transitoin functions assume that it's been zeroed (see allDiff where we set bits to 1, but assume rest are 0).  That said, I think the state is properly being set to 0 in the MDDState constructor, so this is probably unneeded.
+   result.zero(); // [ldm] We are doing the full state. Why reset to zero? [becca] State needs to be set to 0 because there may be "empty" spots in the state corresponding to no properties which would mess with places where the memory of states are compared.  Additionallly, some transitoin functions assume that it's been zeroed (see allDiff where we set bits to 1, but assume rest are 0).  That said, I think the state is properly being set to 0 in the MDDState constructor, so this is probably unneeded.  Update:  Found a bug occuring when testing restricted MDDs.  Possible we are missing a spot we need to be zeroing and it is caught here.
    _frameLayer[l].frameDown(result,parent.down);
    for(const auto& t : _transLayer[l])
       t(result,parent,var,v);

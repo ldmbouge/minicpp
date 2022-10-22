@@ -1286,6 +1286,7 @@ bool MDDRelax::splitRestrictedLayers()
    MDDSplitter splitter(_pool,_mddspec,_width + 1); //Since we always delete the original node, we can just act like width is 1 greater for restricted
    for (int l = 1; l < (int)numVariables; l++) {
       auto& layer = restrictedLayers[l];
+      assert(layer.size() == 1);
       splitter.clear();
       MDDNode* n = layer[0];
       splitRestrictedNode(n,l,splitter);
@@ -1487,6 +1488,51 @@ void MDDRelax::debugGraph()
          cout << i << ":   " << layers[l][i]->getDownState()  << '\n';
       }
    }
+}
+
+void MDDRelax::debugRestrictedGraph()
+{
+   using namespace std;
+   for(unsigned l=0u;l < numVariables;l++) {
+      cout << "L[" << l <<"] = " << restrictedLayers[l].size() << endl;
+      for(unsigned i=0u;i < restrictedLayers[l].size();i++) {
+         cout << i << ":   " << restrictedLayers[l][i]->getDownState()  << '\n';
+      }
+   }
+}
+
+void MDDRelax::saveRestrictedGraph()
+{
+   std::string colors[2] = {"green","red"};
+   std::cout << "digraph MDD {" << std::endl;
+   std::cout << " node [style=filled gradientangle=270];\n"; 
+   for(auto l = 0u; l <= numVariables; l++){
+      for(auto i = 0u; i < restrictedLayers[l].size(); i++){
+         if(!restrictedLayers[l][i]->isActive()) continue;
+         auto n  = restrictedLayers[l][i];
+         auto nc = restrictedLayers[l][i]->getNumChildren();
+         const auto& ch = restrictedLayers[l][i]->getChildren();
+         bool dR = n->getDownState().isRelaxed();
+         bool uR = n->getUpState().isRelaxed();         
+         std::cout << "\"" << *(restrictedLayers[l][i]) << "\" [color=\"" << colors[dR] << ":" << colors[uR] << "\"];\n";
+         for(auto j = 0u; j < nc; j++){
+            int count = ch[j]->getChild()->getPosition();
+            assert(ch[j]->getParent() == restrictedLayers[l][i]);
+            if (l == 0)
+               std::cout << "\"" << *(restrictedLayers[l][i]) << "\"" << " ->" << "\"" << *(restrictedLayers[l+1][count]) <<"\"";
+            else if(l+1 == numVariables)
+               std::cout << "\"" << *(restrictedLayers[l][i]) << "\" ->" << "\"" << *(restrictedLayers[l+1][count]) << "\"";
+            else {
+               assert(restrictedLayers[l+1][count] == ch[j]->getChild());
+               std::cout << "\"" << *(restrictedLayers[l][i]) << "\" ->"
+                         << "\"" << *(restrictedLayers[l+1][count]) << "\"";
+            }
+            std::cout << " [ label=\"" << ch[j]->getValue() << "\" ];" << std::endl;
+
+         }
+      }
+   }
+   std::cout << "}" << std::endl;
 }
 
 
