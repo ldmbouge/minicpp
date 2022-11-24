@@ -66,6 +66,7 @@ std::shared_ptr<Checkpoint> Tracer::captureCheckpoint() {
    return checkpoint;
 }
 bool Tracer::restoreCheckpoint(std::shared_ptr<Checkpoint> checkpoint, CPSemSolver::Ptr solver) {
+   solver->startRestore();
    CommandStack* restoreStack = checkpoint->commands();
    unsigned int currentSize = _commands->size();
    unsigned int restoreToSize = restoreStack->size();
@@ -92,9 +93,11 @@ bool Tracer::restoreCheckpoint(std::shared_ptr<Checkpoint> checkpoint, CPSemSolv
          _trail->pop();
          _commands->popList();
          assert(_trail->depth() <= 1 || _commands->size() == _trail->depth());
+         solver->endRestore();
          return false;
       ENDFAIL
    }
    _level = checkpoint->level();
+   solver->endRestore();
    return true;
 }

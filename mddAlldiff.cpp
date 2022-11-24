@@ -351,7 +351,7 @@ namespace Factory {
       //   return both.cardinality() >= n;
       //});
       int blockSize;
-      int firstBlockMin, secondBlockMin, thirdBlockMin, fourthBlockMin;
+      int firstBlockMin, secondBlockMin, thirdBlockMin, fourthBlockMin, fifthBlockMin, sixthBlockMin, seventhBlockMin, eighthBlockMin;
       switch (opts.appxEQMode) {
          case 1:
             //Down only, ALL, 4 blocks
@@ -381,134 +381,182 @@ namespace Factory {
                   8* (fourthBlockCount > opts.eqThreshold);
             }, opts.cstrP);
             break;
-         default:
-            break;
-      }
-      switch (opts.nodeP) {
-         case 0:
-            mdd.splitOnLargest([](const auto& in) {
-               return in.getPosition();
-            }, opts.cstrP);
-            break;
-         case 1:
-            mdd.splitOnLargest([](const auto& in) {
-               return in.getNumParents();
-            }, opts.cstrP);
-            break;
          case 2:
-            mdd.splitOnLargest([](const auto& in) {
-               return -in.getNumParents();
-            }, opts.cstrP);
-            break;
-         case 3:
-            mdd.splitOnLargest([](const auto& in) {
-               return -in.getPosition();
-            }, opts.cstrP);
-            break;
-         case 4:
-            mdd.splitOnLargest([numInSome](const auto& in) {
-               return in.getDownState()[numInSome];
-            }, opts.cstrP);
-            break;
-         case 5:
-            mdd.splitOnLargest([numInSome](const auto& in) {
-               return -in.getDownState()[numInSome];
-            }, opts.cstrP);
-            break;
-         default:
-            break;
-      }
-      switch (opts.candP) {
-         case 0:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               return ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
-            }, opts.cstrP);
-            break;
-         case 1:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               return numArcs;
-            }, opts.cstrP);
-            break;
-         case 2:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               return -numArcs;
-            }, opts.cstrP);
-            break;
-         case 3:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               int minParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
-               for (int i = 1; i < numArcs; i++) {
-                  minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
-               }
-               return minParentIndex;
-            }, opts.cstrP);
-            break;
-         case 4:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               int maxParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
-               for (int i = 1; i < numArcs; i++) {
-                  maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
-               }
-               return maxParentIndex;
-            }, opts.cstrP);
-            break;
-         case 5:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               int sumParentIndex = 0;
-               for (int i = 0; i < numArcs; i++) {
-                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
-               }
-               return sumParentIndex;
-            }, opts.cstrP);
-            break;
-         case 6:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               int sumParentIndex = 0;
-               for (int i = 0; i < numArcs; i++) {
-                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
-               }
-               return sumParentIndex/numArcs;
-            }, opts.cstrP);
-            break;
-         case 7:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               int minParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
-               for (int i = 1; i < numArcs; i++) {
-                  minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
-               }
-               return -minParentIndex;
-            }, opts.cstrP);
-            break;
-         case 8:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               int maxParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
-               for (int i = 1; i < numArcs; i++) {
-                  maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
-               }
-               return -maxParentIndex;
-            }, opts.cstrP);
-            break;
-         case 9:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               int sumParentIndex = 0;
-               for (int i = 0; i < numArcs; i++) {
-                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
-               }
-               return -sumParentIndex;
-            }, opts.cstrP);
-            break;
-         case 10:
-            mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
-               int sumParentIndex = 0;
-               for (int i = 0; i < numArcs; i++) {
-                  sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
-               }
-               return -sumParentIndex/numArcs;
+            //Down only, ALL, 8 blocks
+            blockSize = domSize/8;
+            firstBlockMin = 0;
+            secondBlockMin = firstBlockMin + blockSize;
+            thirdBlockMin = secondBlockMin + blockSize;
+            fourthBlockMin = thirdBlockMin + blockSize;
+            fifthBlockMin = fourthBlockMin + blockSize;
+            sixthBlockMin = fifthBlockMin + blockSize;
+            seventhBlockMin = sixthBlockMin + blockSize;
+            eighthBlockMin = seventhBlockMin + blockSize;
+            mdd.equivalenceClassValue([=](const auto& down, const auto& up){
+               int firstBlockCount = 0;
+               int secondBlockCount = 0;
+               int thirdBlockCount = 0;
+               int fourthBlockCount = 0;
+               int fifthBlockCount = 0;
+               int sixthBlockCount = 0;
+               int seventhBlockCount = 0;
+               int eighthBlockCount = 0;
+               MDDBSValue checkBits = down[all];
+               int i = 0;
+               for (i = firstBlockMin; i < secondBlockMin; i++)
+                  if (checkBits.getBit(i)) firstBlockCount++;
+               for (i = secondBlockMin; i < thirdBlockMin; i++)
+                  if (checkBits.getBit(i)) secondBlockCount++;
+               for (i = thirdBlockMin; i < fourthBlockMin; i++)
+                  if (checkBits.getBit(i)) thirdBlockCount++;
+               for (i = fourthBlockMin; i < fifthBlockMin; i++)
+                  if (checkBits.getBit(i)) fourthBlockCount++;
+               for (i = fifthBlockMin; i < sixthBlockMin; i++)
+                  if (checkBits.getBit(i)) fifthBlockCount++;
+               for (i = sixthBlockMin; i < seventhBlockMin; i++)
+                  if (checkBits.getBit(i)) sixthBlockCount++;
+               for (i = seventhBlockMin; i < eighthBlockMin; i++)
+                  if (checkBits.getBit(i)) seventhBlockCount++;
+               for (i = eighthBlockMin; i < domSize; i++)
+                  if (checkBits.getBit(i)) eighthBlockCount++;
+               return (firstBlockCount > opts.eqThreshold) +
+                   2* (secondBlockCount > opts.eqThreshold) +
+                   4* (thirdBlockCount > opts.eqThreshold) +
+                   8* (fourthBlockCount > opts.eqThreshold) +
+                  16* (fifthBlockCount > opts.eqThreshold) +
+                  32* (sixthBlockCount > opts.eqThreshold) +
+                  64* (seventhBlockCount > opts.eqThreshold) +
+                 128* (eighthBlockCount > opts.eqThreshold);
             }, opts.cstrP);
             break;
          default:
             break;
       }
+      //switch (opts.nodeP) {
+      //   case 0:
+      //      mdd.splitOnLargest([](const auto& in) {
+      //         return in.getPosition();
+      //      }, opts.cstrP);
+      //      break;
+      //   case 1:
+      //      mdd.splitOnLargest([](const auto& in) {
+      //         return in.getNumParents();
+      //      }, opts.cstrP);
+      //      break;
+      //   case 2:
+      //      mdd.splitOnLargest([](const auto& in) {
+      //         return -in.getNumParents();
+      //      }, opts.cstrP);
+      //      break;
+      //   case 3:
+      //      mdd.splitOnLargest([](const auto& in) {
+      //         return -in.getPosition();
+      //      }, opts.cstrP);
+      //      break;
+      //   case 4:
+      //      mdd.splitOnLargest([numInSome](const auto& in) {
+      //         return in.getDownState()[numInSome];
+      //      }, opts.cstrP);
+      //      break;
+      //   case 5:
+      //      mdd.splitOnLargest([numInSome](const auto& in) {
+      //         return -in.getDownState()[numInSome];
+      //      }, opts.cstrP);
+      //      break;
+      //   default:
+      //      break;
+      //}
+      //switch (opts.candP) {
+      //   case 0:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         return ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+      //      }, opts.cstrP);
+      //      break;
+      //   case 1:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         return numArcs;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 2:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         return -numArcs;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 3:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         int minParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+      //         for (int i = 1; i < numArcs; i++) {
+      //            minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+      //         }
+      //         return minParentIndex;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 4:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         int maxParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+      //         for (int i = 1; i < numArcs; i++) {
+      //            maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+      //         }
+      //         return maxParentIndex;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 5:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         int sumParentIndex = 0;
+      //         for (int i = 0; i < numArcs; i++) {
+      //            sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+      //         }
+      //         return sumParentIndex;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 6:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         int sumParentIndex = 0;
+      //         for (int i = 0; i < numArcs; i++) {
+      //            sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+      //         }
+      //         return sumParentIndex/numArcs;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 7:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         int minParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+      //         for (int i = 1; i < numArcs; i++) {
+      //            minParentIndex = std::min(minParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+      //         }
+      //         return -minParentIndex;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 8:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         int maxParentIndex = ((MDDEdge::Ptr*)arcs)[0]->getParent()->getPosition();
+      //         for (int i = 1; i < numArcs; i++) {
+      //            maxParentIndex = std::max(maxParentIndex, ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition());
+      //         }
+      //         return -maxParentIndex;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 9:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         int sumParentIndex = 0;
+      //         for (int i = 0; i < numArcs; i++) {
+      //            sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+      //         }
+      //         return -sumParentIndex;
+      //      }, opts.cstrP);
+      //      break;
+      //   case 10:
+      //      mdd.candidateByLargest([](const auto& state, void* arcs, int numArcs) {
+      //         int sumParentIndex = 0;
+      //         for (int i = 0; i < numArcs; i++) {
+      //            sumParentIndex += ((MDDEdge::Ptr*)arcs)[i]->getParent()->getPosition();
+      //         }
+      //         return -sumParentIndex/numArcs;
+      //      }, opts.cstrP);
+      //      break;
+      //   default:
+      //      break;
+      //}
       return d;
    }
 }

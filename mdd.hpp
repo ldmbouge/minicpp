@@ -81,6 +81,7 @@ protected:
    bool    _posting;
    MDDNodeFactory* _nf;
    MDDStateFactory* _sf;
+   int _lastTrimmedLayer;
 };
 
 int bestValue(const MDD::Ptr m,var<int>::Ptr theVar);

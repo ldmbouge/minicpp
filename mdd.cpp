@@ -310,6 +310,7 @@ void MDD::buildDiagram()
 */
 void MDD::trimLayer(unsigned int layer)
 {
+   _lastTrimmedLayer = layer;
    if (_firstTime.fresh()) {
       _firstTime = false;
       queue.clear();

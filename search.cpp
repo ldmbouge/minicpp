@@ -220,6 +220,7 @@ void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
          } ENDFAIL {
          }
       } else {
+         _cp->startBranching();
          // if (branches.size() > 1)
          //    stats.incrNodes();
          auto last = std::prev(branches.end()); // for proper counting of choices.
@@ -246,6 +247,7 @@ void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
                tracer->restoreCheckpoint(_before,_cp);
             }
          }
+         _cp->endBranching();
       }
       BFSNode node;
       if (limit(stats)) {
@@ -265,9 +267,21 @@ void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
                break;
             }
          }
-         if (feasibleNodeFound)
-            successfulRestore = tracer->restoreCheckpoint(node._checkpoint,_cp);
-         else {
+         if (feasibleNodeFound) {
+            try {
+               TRYFAIL {
+                  successfulRestore = tracer->restoreCheckpoint(node._checkpoint,_cp);
+               } ONFAIL {
+                  stats.incrFailures();
+                  notifyFailure();
+                  successfulRestore = false;
+               } ENDFAIL {
+               }
+            } catch(...) {  // the C++ exception catching is to stay compatible with python interfaces. 0-cost for C++
+               stats.incrFailures();
+               notifyFailure();
+            }
+         } else {
             if (_objective)
                _objective->setDual(_objective->primal());
             return;

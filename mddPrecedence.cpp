@@ -35,15 +35,15 @@ namespace Factory {
       });
       return desc;
    }
-   MDDCstrDesc::Ptr requiredPrecedenceMDD(MDD::Ptr m,const Factory::Veci& vars, int before, int after)
+   MDDCstrDesc::Ptr requiredPrecedenceMDD(MDD::Ptr m,const Factory::Veci& vars, int before, int after, MDDOpts opts)
    {
       MDDSpec& spec = m->getSpec();
       auto desc = spec.makeConstraintDescriptor(vars,"requiredPrecedenceMDD");
 
-      const auto visitedBefore = spec.downIntState(desc,0,1,MaxFun);
+      const auto visitedBefore = spec.downIntState(desc,0,1,MaxFun,opts.cstrP);
       const auto visitedAfter = spec.upIntState(desc,0,1,MaxFun);
 
-      spec.arcExist(desc,[=](const auto& parent,const auto& child,const auto& x,int v) {
+      spec.arcExist(desc,[before,after,visitedBefore,visitedAfter](const auto& parent,const auto& child,const auto& x,int v) {
          if (v == after && !parent.down[visitedBefore]) return false;
          if (!child.up.unused() && v == before && !child.up[visitedAfter]) return false;
          return true;
@@ -57,9 +57,25 @@ namespace Factory {
          out[visitedAfter] = child.up[visitedAfter] || hasAfter;
       });
 
-//      spec.candidateByLargest([visitedBefore](const auto& state, void* arcs, int numArcs) {
-//         return state[visitedBefore]*25;
-//      });
+      switch (opts.candP) {
+         case 1:
+            spec.candidateByLargest([visitedBefore](const auto& state, void* arcs, int numArcs) {
+               return state[visitedBefore]*25;
+            });
+            break;
+         default:
+            break;
+      }
+
+      switch (opts.appxEQMode) {
+         case 1:
+            spec.equivalenceClassValue([=](const auto& down, const auto& up){
+               return down[visitedBefore];
+            }, opts.cstrP);
+            break;
+         default:
+            break;
+      }
 
       return desc;
    }

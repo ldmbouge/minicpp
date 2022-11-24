@@ -63,6 +63,10 @@ public:
       }
       _tab[_at++] = v;
    }
+   void insertHeap(const T& v) noexcept {
+      insert(v);
+      heapify(_at-1);
+   }
    void buildHeap() noexcept {
       for(int i = _at / 2;i > 0;--i)
          heapify(i);

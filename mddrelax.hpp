@@ -182,6 +182,7 @@ public:
 using MDDFQueue = MDDQueue<std::plus<int>>;
 using MDDBQueue = MDDQueue<std::minus<int>>;
 class MDDSplitter;
+class MDDSplitter2;
 
 class MDDRelax : public MDD {
    const unsigned int _width;
@@ -190,6 +191,7 @@ class MDDRelax : public MDD {
    const bool _approxThenExact;
    const int _maxConstraintPriority;
    const bool _useRestricted;
+   const bool _preComputeKeepKids;
    ::trail<unsigned> _lowest;
    std::mt19937 _rnG;
    std::uniform_real_distribution<double> _sampler;
@@ -204,6 +206,7 @@ class MDDRelax : public MDD {
    MDDDelta* _deltaCombinedDown;
    MDDDelta*   _deltaCombinedUp;
    int _domMin,_domMax;
+   bool _restrictedIsExact;
    std::vector<TVec<MDDNode*>> restrictedLayers;
    //const MDDState& pickReference(int layer,int layerSize);
    void buildNextRestrictedLayer(unsigned int i);
@@ -243,7 +246,8 @@ public:
    MDDRelax(CPSolver::Ptr cp,int width = 32,int maxDistance = std::numeric_limits<int>::max(),
             int maxSplitIter = 5,
             bool approxThenExact = true,
-            int maxConstraintPriority = 0);
+            int maxConstraintPriority = 0,
+            bool useRestricted = false);
    void buildDiagram() override;
    void buildNextLayer(unsigned int i) override;
    void propagate() override;

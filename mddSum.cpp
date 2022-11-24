@@ -107,7 +107,7 @@ namespace Factory {
       return d;
    }
 
-   MDDCstrDesc::Ptr sum(MDD::Ptr m, const Factory::Vecb& vars, var<int>::Ptr z) {
+   MDDCstrDesc::Ptr sum(MDD::Ptr m, const Factory::Vecb& vars, var<int>::Ptr z, Objective::Ptr objective) {
       // Enforce MDD bounds consistency on
       //   sum(i, vars[i]) == z
       MDDSpec& mdd = m->getSpec();
@@ -124,6 +124,7 @@ namespace Factory {
       const auto lenUp  = mdd.upIntState(d, 0, vars.size(),MaxFun);
 
       mdd.arcExist(d,[=] (const auto& parent,const auto& child, var<int>::Ptr var, const auto& val) -> bool {
+         if (child.up.unused()) return parent.down[maxW] + val + (nbVars - parent.down[len] - 1) >= z->min();
          return ((parent.down[minW] + val + child.up[minWup] <= z->max()) &&
                  (parent.down[maxW] + val + child.up[maxWup] >= z->min()));
       });
@@ -157,6 +158,17 @@ namespace Factory {
       mdd.onFixpoint([z,minW,maxW](const auto& sink) {
          z->updateBounds(sink.down[minW],sink.down[maxW]);
       });
+      if (objective) {
+         if (objective->isMin()) {
+            mdd.onRestrictedFixpoint([objective,minW,maxW](const auto& sink) {
+               objective->foundPrimal(sink.down[minW]);
+            });
+         } else {
+            mdd.onRestrictedFixpoint([objective,maxW](const auto& sink) {
+               objective->foundPrimal(sink.down[maxW]);
+            });
+         }
+      }
       return d;
    }
    MDDCstrDesc::Ptr sum(MDD::Ptr m, const Factory::Veci& vars, var<int>::Ptr z) {
@@ -266,6 +278,118 @@ namespace Factory {
 
       mdd.onFixpoint([z,minW,maxW](const auto& sink) {
          z->updateBounds(sink.down[minW],sink.down[maxW]);
+      });
+      return d;
+   }
+
+   MDDCstrDesc::Ptr sum(MDD::Ptr m, const Factory::Vecb& vars, const std::vector<int>& array, var<int>::Ptr z, Objective::Ptr objective) {
+      // Enforce MDD bounds consistency on
+      //   sum(i, array[i]*vars[i]) == z
+      MDDSpec& mdd = m->getSpec();
+      mdd.addGlobal({z});
+      const int nbVars = (int)vars.size();
+
+      auto d = mdd.makeConstraintDescriptor(vars,"sumMDD");
+
+      // Define the states
+      const auto minW = mdd.downIntState(d, 0, INT_MAX,MinFun);
+      const auto maxW = mdd.downIntState(d, 0, INT_MAX,MaxFun);
+      const auto minWup = mdd.upIntState(d, 0, INT_MAX,MinFun);
+      const auto maxWup = mdd.upIntState(d, 0, INT_MAX,MaxFun);
+      const auto len  = mdd.downIntState(d, 0, vars.size(),MaxFun); // captures the index i, to express array[i]*val when vars[i]=val.
+      const auto lenUp  = mdd.upIntState(d, 0, vars.size(),MaxFun);
+
+      std::vector<int> RUB(nbVars);
+      int sumUp = 0;
+      for (int i = nbVars - 1; i >= 0; i--) {
+         RUB[i] = sumUp;
+         sumUp += std::max(0, array[i]);
+      }
+
+      mdd.arcExist(d,[=] (const auto& parent,const auto& child,var<int>::Ptr var, const auto& val) {
+         if (child.up.unused()) {
+            return parent.down[maxW] + val*array[parent.down[len]] + RUB[parent.down[len]] >= z->min();
+         }
+         int upperBoundBelow = std::max((int)child.up[maxWup], RUB[parent.down[len]]);
+         return ((parent.down[minW] + val*array[parent.down[len]] + child.up[minWup] <= z->max()) &&
+                 (parent.down[maxW] + val*array[parent.down[len]] + upperBoundBelow >= z->min()));
+      });
+      mdd.nodeExist([=](const auto& n) {
+        return (n.down[minW] + n.up[minWup] <= z->max()) && (n.down[maxW] + n.up[maxWup] >= z->min());
+      });
+
+      mdd.transitionDown(d,minW,{len,minW},{},[minW,array,len] (auto& out,const auto& parent,const auto&, const auto& val) {
+         auto coef = array[parent.down[len]];
+         if (coef > 0) {
+            out[minW] = parent.down[minW] + coef * val.min();
+         } else if (coef < 0) {
+            out[minW] = parent.down[minW] + coef * val.max();
+         } else {
+            out[minW] = parent.down[minW];
+         }
+      });
+      mdd.transitionDown(d,maxW,{len,maxW},{},[maxW,array,len] (auto& out,const auto& parent,const auto&, const auto& val) {
+         auto coef = array[parent.down[len]];
+         if (coef > 0) {
+            out[maxW] = parent.down[maxW] + coef * val.max();
+         } else if (coef < 0) {
+            out[maxW] = parent.down[maxW] + coef * val.min();
+         } else {
+            out[maxW] = parent.down[maxW];
+         }
+      });
+
+      mdd.transitionUp(d,minWup,{lenUp,minWup},{},[nbVars,minWup,array,lenUp] (auto& out,const auto& child,const auto&, const auto& val) {
+         if (child.up[lenUp] < nbVars) {
+            auto coef = array[nbVars - child.up[lenUp]-1];
+            if (coef > 0) {
+               out[minWup] = child.up[minWup] + coef * val.min();
+            } else if (coef < 0) {
+               out[minWup] = child.up[minWup] + coef * val.max();
+            } else {
+               out[minWup] = child.up[minWup];
+            }
+         }
+      });
+      mdd.transitionUp(d,maxWup,{lenUp,maxWup},{},[nbVars,maxWup,array,lenUp] (auto& out,const auto& child,const auto&, const auto& val) {
+         if (child.up[lenUp] < nbVars) {
+            auto coef = array[nbVars - child.up[lenUp]-1];
+            if (coef > 0) {
+               out[maxWup] = child.up[maxWup] + coef * val.max();
+            } else if (coef < 0) {
+               out[maxWup] = child.up[maxWup] + coef * val.min();
+            } else {
+               out[maxWup] = child.up[maxWup];
+            }
+         }
+      });
+
+      mdd.transitionDown(d,len,{len},{},[len](auto& out,const auto& parent,const auto&, const auto& val) {
+         out[len] = parent.down[len] + 1;
+      });
+      mdd.transitionUp(d,lenUp,{lenUp},{},[lenUp](auto& out,const auto& child,const auto&, const auto& val) {
+         out[lenUp] = child.up[lenUp] + 1;
+      });
+
+      mdd.onFixpoint([z,minW,maxW](const auto& sink) {
+         z->updateBounds(sink.down[minW],sink.down[maxW]);
+      });
+
+      if (objective) {
+         if (objective->isMin()) {
+            mdd.onRestrictedFixpoint([objective,minW,maxW](const auto& sink) {
+               objective->foundPrimal(sink.down[minW]);
+            });
+         } else {
+            mdd.onRestrictedFixpoint([objective,maxW](const auto& sink) {
+               objective->foundPrimal(sink.down[maxW]);
+            });
+         }
+      }
+
+      mdd.splitOnLargest([maxW](const auto& in) { return in.getDownState()[maxW];});
+      mdd.candidateByLargest([maxW](const auto& state, void* arcs, int numArcs) {
+         return state[maxW];
       });
       return d;
    }

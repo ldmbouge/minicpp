@@ -1337,9 +1337,9 @@ public:
       return memcmp(_mem,b._mem,_spec->layoutSize(_dir))!=0;
    }
    bool operator==(const MDDState& s) const {
-      return (!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
+      return (_flags._unused && s._flags._unused) || ((!_flags._hashed || !s._flags._hashed || _hash == s._hash) &&
          _flags._relax == s._flags._relax &&
-         memcmp(_mem,s._mem,_spec->layoutSize(_dir))==0;
+         memcmp(_mem,s._mem,_spec->layoutSize(_dir))==0);
    }
    bool operator!=(const MDDState& s) const {
       return ! this->operator==(s);

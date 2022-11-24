@@ -76,7 +76,30 @@ vector<string> readData(const char* filename)
       throw;
 }
 
-void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width) {
+void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, int maxSplitIter, int maxRebootDistance, int nodePriorityMode, int nodePriorityAggregateStrategy, int candidatePriorityMode, int candidatePriorityAggregateStrategy, int approxThenExact, int allDiffPriority, int tspPriority, int precedencePriority, int allDiffApproxEquivMode, int tspApproxEquivMode, int precedenceApproxEquivMode) {
+   MDDOpts allDiffOpts = {
+      .nodeP = 0,
+      .candP = 0,
+      .cstrP = allDiffPriority,
+      .appxEQMode = allDiffApproxEquivMode,
+      .eqThreshold = 3
+   };
+   MDDOpts tspOpts = {
+      .nodeP = nodePriorityMode,
+      .candP = candidatePriorityMode,
+      .cstrP = tspPriority,
+      .appxEQMode = tspApproxEquivMode,
+      .eqThreshold = 0
+   };
+   MDDOpts precedenceOpts = {
+      .nodeP = nodePriorityMode,
+      .candP = candidatePriorityMode,
+      .cstrP = precedencePriority,
+      .appxEQMode = precedenceApproxEquivMode,
+      .eqThreshold = 0
+   };
+   int maxConstraintPriority = std::max(allDiffPriority, std::max(tspPriority, precedencePriority));
+
    CPSemSolver::Ptr cp  = Factory::makeSemSolver();
    auto vars = Factory::intVarArray(cp, numVars, 0, numVars - 1);
    int zUB = 0;
@@ -97,12 +120,40 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width) {
       cout << "Domain encoding" << endl;
    } else if (mode == 1) {
       cout << "MDD encoding" << endl;
-      mdd = new MDDRelax(cp,width);
+      mdd = new MDDRelax(cp,width,maxRebootDistance,maxSplitIter,approxThenExact,maxConstraintPriority,true);
+      if (allDiffApproxEquivMode || tspApproxEquivMode || precedenceApproxEquivMode)
+         mdd->getSpec().useApproximateEquivalence();
+      mdd->getSpec().setNodePriorityAggregateStrategy(nodePriorityAggregateStrategy);
+      mdd->getSpec().setCandidatePriorityAggregateStrategy(candidatePriorityAggregateStrategy);
+      MDDPBitSequence::Ptr all;
+      MDDPBitSequence::Ptr allup;
+      mdd->post(Factory::allDiffMDD2(vars,all,allup,allDiffOpts));
+      mdd->post(Factory::tspSumMDD(vars,matrix,all,allup,z,obj,tspOpts));
+
+//Since first and last variable values are set, we don't add precedence constraints for them
+      int i = 0;
+      for (auto row : matrix) {
+         if (i == numVars - 1) break;
+         int j = 0;
+         for (auto cell : row) {
+            if (j > 0 && cell < 0) {
+// -1 means it can't go from i to j because of precedence.  So require j before i
+               mdd->post(Factory::requiredPrecedenceMDD(vars,j,i,precedenceOpts));
+            }
+            j++;
+         }
+         i++;
+      }
+
+      cp->post(mdd);
+   } else if (mode == 2) {
+      cout << "MDD encoding" << endl;
+      mdd = new MDDRelax(cp,width,numVars,5,true,0,true);
       mdd->getSpec().setCandidatePriorityAggregateStrategy(1);
       MDDPBitSequence::Ptr all;
       MDDPBitSequence::Ptr allup;
       mdd->post(Factory::allDiffMDD2(vars,all,allup));
-      mdd->post(Factory::tspSumMDD(vars,matrix,all,allup,z,obj));
+      mdd->post(Factory::tspSumMDD(vars,matrix,z,obj));
 
       int i = 0;
       for (auto row : matrix) {
@@ -131,6 +182,7 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width) {
       if (x) {
          //int c = x->min();
          //c = bestValue(mdd,x);
+         //c = mdd->selectValueFor(x);
          //return  [=] {
          //   cp->post(x == c);
          //} | [=] {
@@ -159,31 +211,100 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width) {
    auto dur = RuntimeMonitor::elapsedSince(start);
    std::cout << "Time : " << dur << '\n';
    cout << stat << endl;
-   std::cout << "\t\t\"primal\" : " << obj->primal() << "\n";
-   std::cout << "\t\t\"dual\" : " << obj->dual() << "\n";
-   std::cout << "\t\t\"optimalityGap\" : " << obj->optimalityGap() << "\n";
+   std::cout << "{ \"JSON\" :\n {";
+   std::cout << "\n\t\"SOP\" :" << "{\n";
+   std::cout << "\t\t\"primal\" : " << obj->primal() << ",\n";
+   std::cout << "\t\t\"dual\" : " << obj->dual() << ",\n";
+   std::cout << "\t\t\"optimalityGap\" : " << obj->optimalityGap() << ",\n";
+   std::cout << "\t\t\"nodes\" : " << stat.numberOfNodes() << ",\n";
+   std::cout << "\t\t\"fails\" : " << stat.numberOfFailures() << ",\n";
+   std::cout << "\t\t\"time\" : " << dur << "\n";
+   std::cout << "\t}\n";
+   std::cout << "}\n}\n";
       
-   cp.dealloc();
+   //cp.dealloc();
 }
 
 int main(int argc,char* argv[])
 {
-   const char* matrixFile = (argc >= 2) ? argv[1] : "../data/esc12.sop";
+   int fileIndex = (argc >= 2 && strncmp(argv[1],"-f",2)==0) ? atoi(argv[1]+2) : 1;
    int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 64;
    int mode  = (argc >= 4 && strncmp(argv[3],"-m",2)==0) ? atoi(argv[3]+2) : 1;
+   int maxSplitIter = (argc >= 5 && strncmp(argv[4],"-i",2)==0) ? atoi(argv[4]+2) : 1;
+   int maxRebootDistance = (argc >= 6 && strncmp(argv[5],"-r",2)==0) ? atoi(argv[5]+2) : 0;
+   int nodePriorityMode = (argc >= 7 && strncmp(argv[6],"-n",2)==0) ? atoi(argv[6]+2) : 0;
+   int nodePriorityAggregateStrategy = (argc >= 8 && strncmp(argv[7],"-na",3)==0) ? atoi(argv[7]+3) : 0;
+   int candidatePriorityMode = (argc >= 9 && strncmp(argv[8],"-c",2)==0) ? atoi(argv[8]+2) : 0;
+   int candidatePriorityAggregateStrategy = (argc >= 10 && strncmp(argv[9],"-ca",3)==0) ? atoi(argv[9]+3) : 0;
+   int approxThenExact = (argc >= 11 && strncmp(argv[10],"-e",2)==0) ? atoi(argv[10]+2) : 0;
+   int allDiffPriority  = (argc >= 12 && strncmp(argv[11],"-alldiffP",9)==0) ? atoi(argv[11]+9) : 0;
+   int tspPriority  = (argc >= 13 && strncmp(argv[12],"-tspP",5)==0) ? atoi(argv[12]+5) : 0;
+   int precedencePriority  = (argc >= 14 && strncmp(argv[13],"-precP",6)==0) ? atoi(argv[13]+6) : 0;
+   int allDiffApproxEquivMode  = (argc >= 15 && strncmp(argv[14],"-alldiffEQ",10)==0) ? atoi(argv[14]+10) : 1;
+   int tspApproxEquivMode  = (argc >= 16 && strncmp(argv[15],"-tspEQ",6)==0) ? atoi(argv[15]+6) : 1;
+   int precedenceApproxEquivMode  = (argc >= 17 && strncmp(argv[16],"-precEQ",7)==0) ? atoi(argv[16]+7) : 1;
+
+   vector<string> matrixFiles = {"esc07.sop",     //0
+                                "esc11.sop",     //1
+                                "esc12.sop",     //2
+                                "esc25.sop",     //3
+                                "esc47.sop",     //4
+                                "esc63.sop",     //5
+                                "esc78.sop",     //6
+                                "br17.10.sop",   //7
+                                "br17.12.sop",   //8
+                                "ft53.1.sop",    //9
+                                "ft53.2.sop",    //10
+                                "ft53.3.sop",    //11
+                                "ft53.4.sop",    //12
+                                "ft70.1.sop",    //13
+                                "ft70.2.sop",    //14
+                                "ft70.3.sop",    //15
+                                "ft70.4.sop",    //16
+                                "kro124p.1.sop", //17
+                                "kro124p.2.sop", //18
+                                "kro124p.3.sop", //19
+                                "kro124p.4.sop", //20
+                                "p43.1.sop",     //21
+                                "p43.2.sop",     //22
+                                "p43.3.sop",     //23
+                                "p43.4.sop",     //24
+                                "prob.42.sop",   //25
+				"prob.100.sop",  //26
+                                "rbg048a.sop",   //27
+                                "rbg050c.sop",   //28
+                                "rbg109a.sop",   //29
+                                "rbg150a.sop",   //30
+                                "rbg174a.sop",   //31
+                                "rbg253a.sop",   //32
+                                "rbg323a.sop",   //33
+                                "rbg341a.sop",   //34
+                                "rbg358a.sop",   //35
+                                "rbg378a.sop",   //36
+                                "ry48p.1.sop",   //37
+                                "ry48p.2.sop",   //38
+                                "ry48p.3.sop",   //39
+                                "ry48p.4.sop"};  //40
+   const string matrixFile = "/Users/rebeccagentzel/minicpp/data/" + matrixFiles[fileIndex];
 
    cout << "width = " << width << endl;   
    cout << "mode = " << mode << endl;
+   cout << "allDiffPriority = " << allDiffPriority << endl;
+   cout << "tspPriority = " << tspPriority << endl;
+   cout << "precedencePriority = " << precedencePriority << endl;
+   cout << "allDiffApproxEquivMode = " << allDiffApproxEquivMode << endl;
+   cout << "tspApproxEquivMode = " << tspApproxEquivMode << endl;
+   cout << "precedenceApproxEquivMode = " << precedenceApproxEquivMode << endl;
 
    try {
-      vector<string> content(readData(matrixFile));
+      vector<string> content(readData(matrixFile.c_str()));
       auto it = content.begin();
       while (*(it++) != "EDGE_WEIGHT_SECTION");
       int numVars = std::stoi(*it);
       vector<vector<int> > matrix;
       while (*(++it) != "EOF")
          matrix.push_back(splitAsInt(*it, ' ', true));
-      buildModel(numVars, matrix, mode, width);
+      buildModel(numVars, matrix, mode, width, maxSplitIter, maxRebootDistance, nodePriorityMode, nodePriorityAggregateStrategy, candidatePriorityMode, candidatePriorityAggregateStrategy, approxThenExact, allDiffPriority, tspPriority, precedencePriority, allDiffApproxEquivMode, tspApproxEquivMode, precedenceApproxEquivMode);
    } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << '\n';
    }

@@ -433,16 +433,12 @@ bool MDDSpec::exist(const MDDPack& parent,
                     const MDDPack& child,
                     const var<int>::Ptr& x,int v) const noexcept
 {
-   ++nbAECall;
-   bool arcOk = true;
    for(const auto& exist : _scopedExists[x->getId()]) {
-      arcOk = exist(parent,child,x,v);
-      if (!arcOk) {
-         ++nbAEFail;
-         break;
+      if (!exist(parent,child,x,v)) {
+         return false;
       }
    }
-   return arcOk;
+   return true;
 }
 
 int nbCONSCall = 0;

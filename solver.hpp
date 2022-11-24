@@ -66,6 +66,8 @@ protected:
    int                        _varId;
    unsigned long long  _propagations;
    size_t                    _nbProp;
+   bool                   _inRestore;
+   bool                 _inBranching;
 public:
    template<typename T> friend class var;
    typedef handle_ptr<CPSolver> Ptr;
@@ -88,6 +90,12 @@ public:
     void fixpoint();
     void post(Constraint::Ptr c,bool enforceFixPoint=true);
     void post(ConstraintDesc::Ptr c,bool enforceFixPoint=true);
+    void startRestore() { _inRestore = true; }
+    void endRestore() { _inRestore = false; }
+    bool isInRestore() { return _inRestore; }
+    void startBranching() { _inBranching = true; }
+    void endBranching() { _inBranching = false; }
+    bool isInBranching() { return _inBranching; }
     friend void* operator new(std::size_t sz,CPSolver::Ptr e);
     friend void* operator new[](std::size_t sz,CPSolver::Ptr e);
     friend std::ostream& operator<<(std::ostream& os,const CPSolver& s) {
