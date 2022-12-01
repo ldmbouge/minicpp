@@ -119,7 +119,7 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, in
    if (mode == 0) {
       cout << "Domain encoding" << endl;
    } else if (mode == 1) {
-      cout << "MDD encoding" << endl;
+      cout << "MDD encoding w/ Precedences" << endl;
       mdd = new MDDRelax(cp,width,maxRebootDistance,maxSplitIter,approxThenExact,maxConstraintPriority,true);
       if (allDiffApproxEquivMode || tspApproxEquivMode || precedenceApproxEquivMode)
          mdd->getSpec().useApproximateEquivalence();
@@ -147,26 +147,32 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, in
 
       cp->post(mdd);
    } else if (mode == 2) {
-      cout << "MDD encoding" << endl;
-      mdd = new MDDRelax(cp,width,numVars,5,true,0,true);
-      mdd->getSpec().setCandidatePriorityAggregateStrategy(1);
+      cout << "MDD encoding with GOC" << endl;
+      mdd = new MDDRelax(cp,width,maxRebootDistance,maxSplitIter,approxThenExact,maxConstraintPriority,true);
+      if (allDiffApproxEquivMode || tspApproxEquivMode || precedenceApproxEquivMode)
+         mdd->getSpec().useApproximateEquivalence();
+      mdd->getSpec().setNodePriorityAggregateStrategy(nodePriorityAggregateStrategy);
+      mdd->getSpec().setCandidatePriorityAggregateStrategy(candidatePriorityAggregateStrategy);
       MDDPBitSequence::Ptr all;
       MDDPBitSequence::Ptr allup;
-      mdd->post(Factory::allDiffMDD2(vars,all,allup));
-      mdd->post(Factory::tspSumMDD(vars,matrix,z,obj));
+      mdd->post(Factory::allDiffMDD2(vars,all,allup,allDiffOpts));
+      mdd->post(Factory::tspSumMDD(vars,matrix,all,allup,z,obj,tspOpts));
 
+      std::vector<std::pair<int,int>> precedences;
       int i = 0;
       for (auto row : matrix) {
+         if (i == numVars - 1) break;
          int j = 0;
          for (auto cell : row) {
-            if (cell < 0) {
+            if (j > 0 && cell < 0) {
 // -1 means it can't go from i to j because of precedence.  So require j before i
-               mdd->post(Factory::requiredPrecedenceMDD(vars,j,i));
+               precedences.push_back(std::make_pair(j,i));
             }
             j++;
          }
          i++;
       }
+      mdd->post(Factory::gocMDD(vars,precedences,precedenceOpts));
 
       cp->post(mdd);
    } else {

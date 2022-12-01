@@ -307,6 +307,19 @@ namespace Factory {
       return RequiredPrecedenceStub {vars,before,after,opts};
    }
 
+   MDDCstrDesc::Ptr gocMDD(MDD::Ptr m,const Factory::Veci& vars, std::vector<std::pair<int,int>> requiredOrderings, MDDOpts opts);
+
+   struct GOCStub {
+      const Factory::Veci& _vars;
+      std::vector<std::pair<int,int>> _requiredOrderings;
+      MDDOpts _opts;
+      MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return gocMDD(m,_vars,_requiredOrderings,_opts);}
+   };
+   inline GOCStub gocMDD(const Factory::Veci& vars, std::vector<std::pair<int,int>> requiredOrderings, MDDOpts opts = {.cstrP = 0})
+   {
+      return GOCStub {vars,requiredOrderings,opts};
+   }
+
    MDDCstrDesc::Ptr tspSumMDD(MDD::Ptr m, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, MDDPBitSequence::Ptr all, MDDPBitSequence::Ptr allup, var<int>::Ptr z, Objective::Ptr objective, MDDOpts opts);
 
    struct TSPStub {
