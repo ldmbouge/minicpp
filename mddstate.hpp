@@ -584,8 +584,8 @@ enum Direction { None=0,Down=1,Up=2,Bi=3};
  */ 
 class MDDProperty {
 protected:
-   short _id;
-   unsigned short _ofs; // offset in bytes within block
+   int _id;
+   unsigned int _ofs; // offset in bytes within block
    unsigned short _bsz; // size in bytes.
    enum Direction _dir;
    enum RelaxWith _rw;
@@ -601,7 +601,7 @@ public:
       : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw),_tid(p._tid),_rid(p._rid) {}
    MDDProperty(MDDProperty&& p)
       : _id(p._id),_ofs(p._ofs),_bsz(p._bsz),_dir(p._dir),_rw(p._rw),_tid(p._tid),_rid(p._rid) {}
-   MDDProperty(short id,unsigned short ofs,unsigned short bsz,enum RelaxWith rw = External)
+   MDDProperty(int id,unsigned int ofs,unsigned short bsz,enum RelaxWith rw = External)
       : _id(id),_ofs(ofs),_bsz(bsz),_dir(Down),_rw(rw) { _tid = -1;_rid = -1;}
    MDDProperty& operator=(const MDDProperty& p) {
       _id = p._id;_ofs = p._ofs; _bsz = p._bsz;_dir = p._dir;_rw = p._rw;
@@ -609,10 +609,10 @@ public:
       _rid = p._rid;
       return *this;
    }
-   const short getId() const { return _id;}
+   const int getId() const { return _id;}
    enum RelaxWith relaxFun() const noexcept { return _rw;}
-   unsigned short startOfs() const noexcept { return _ofs;}
-   unsigned short endOfs() const noexcept   { return _ofs + _bsz;}
+   unsigned int startOfs() const noexcept { return _ofs;}
+   unsigned int endOfs() const noexcept   { return _ofs + _bsz;}
    size_t size() const noexcept { return storageSize() >> 3;}
    void setDirection(enum Direction d) { _dir = d;}
    void setAntecedents(const std::set<int>& sp,const std::set<int>& sp2) { _sp1 = sp; _sp2 = sp2; }
@@ -676,7 +676,7 @@ class MDDPInt :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPInt> Ptr;
-   MDDPInt(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
+   MDDPInt(int id,unsigned int ofs,int init,int max,enum RelaxWith rw)
       : MDDProperty(id,ofs,4,rw),_init(init),_max(max) {}
    void init(char* buf) const noexcept override      { *reinterpret_cast<int*>(buf+_ofs) = _init;}
    int getInt(char* buf) const noexcept                    { return *reinterpret_cast<int*>(buf+_ofs);}
@@ -725,7 +725,7 @@ class MDDPBit :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPBit> Ptr;
-   MDDPBit(short id,unsigned short ofs,int init,enum RelaxWith rw)
+   MDDPBit(int id,unsigned int ofs,int init,enum RelaxWith rw)
       : MDDProperty(id,ofs,1,rw),_init(init) {}
    void init(char* buf) const  noexcept override     {
       if (_init)
@@ -787,7 +787,7 @@ class MDDPByte :public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPByte> Ptr;
-   MDDPByte(short id,unsigned short ofs,char init,char max,enum RelaxWith rw)
+   MDDPByte(int id,unsigned int ofs,char init,char max,enum RelaxWith rw)
       : MDDProperty(id,ofs,1,rw),_init(init),_max(max) {}
    void init(char* buf) const  noexcept override     { buf[_ofs] = _init;}
    int getByte(char* buf) const  noexcept               { return buf[_ofs];}
@@ -838,7 +838,7 @@ class MDDPBitSequence : public MDDProperty {
    }
  public:
    typedef handle_ptr<MDDPBitSequence> Ptr;
-   MDDPBitSequence(short id,unsigned short ofs,int nbbits,unsigned char init,enum RelaxWith rw) // init = 0 | 1
+   MDDPBitSequence(int id,unsigned int ofs,int nbbits,unsigned char init,enum RelaxWith rw) // init = 0 | 1
       : MDDProperty(id,ofs,8 * ((nbbits % 64) ? nbbits/64 + 1 : nbbits/64),rw),_nbBits(nbbits),_init(init)
    {}   
    void init(char* buf) const noexcept override {
@@ -918,7 +918,7 @@ class MDDPSWindow : public MDDProperty {
    }
 public:
    typedef handle_ptr<MDDPSWindow<ET>> Ptr;
-   MDDPSWindow(short id,unsigned short ofs,int len,ET eInit,ET fInit,enum RelaxWith rw)
+   MDDPSWindow(int id,unsigned int ofs,int len,ET eInit,ET fInit,enum RelaxWith rw)
       : MDDProperty(id,ofs,len * sizeof(ET),rw),_eltInit(eInit),_fstInit(fInit),_len(len) {}
    void init(char* buf) const noexcept override {
       ET* ptr = reinterpret_cast<ET*>(buf + _ofs);
@@ -1023,10 +1023,10 @@ public:
          default: return (size_t)-1; break;
       }
    }
-   unsigned short startOfsDown(int p) const noexcept { return _attrsDown[p]->startOfs();}
-   unsigned short startOfsUp(int p) const noexcept { return _attrsUp[p]->startOfs();}
-   unsigned short endOfsDown(int p) const noexcept { return _attrsDown[p]->endOfs();}
-   unsigned short endOfsUp(int p) const noexcept { return _attrsUp[p]->endOfs();}
+   unsigned int startOfsDown(int p) const noexcept { return _attrsDown[p]->startOfs();}
+   unsigned int startOfsUp(int p) const noexcept { return _attrsUp[p]->startOfs();}
+   unsigned int endOfsDown(int p) const noexcept { return _attrsDown[p]->endOfs();}
+   unsigned int endOfsUp(int p) const noexcept { return _attrsUp[p]->endOfs();}
    virtual MDDPByte::Ptr downByteState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0, bool restrictedReducedInclude=true);
    virtual MDDPInt::Ptr downIntState(MDDCstrDesc::Ptr d, int init,int max,enum RelaxWith rw=External, int cPriority=0, bool restrictedReducedInclude=true);
    virtual MDDPBitSequence::Ptr downBSState(MDDCstrDesc::Ptr d,int nbb,unsigned char init,enum RelaxWith rw=External,int cPriority=0, bool restrictedReducedInclude=true);

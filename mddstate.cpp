@@ -28,22 +28,22 @@ void printSet(const MDDIntSet& s) {
 
 
 namespace Factory {
-   MDDPByte::Ptr makePByte(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
+   MDDPByte::Ptr makePByte(int id,unsigned int ofs,int init,int max,enum RelaxWith rw)
    {
       MDDPByte::Ptr rv = new MDDPByte(id,ofs,init,max,rw);
       return rv;
    }
-   MDDPInt::Ptr makePInt(short id,unsigned short ofs,int init,int max,enum RelaxWith rw)
+   MDDPInt::Ptr makePInt(int id,unsigned int ofs,int init,int max,enum RelaxWith rw)
    {
       MDDPInt::Ptr rv = new MDDPInt(id,ofs,init,max,rw);
       return rv;
    }
-   MDDPBitSequence::Ptr makeBSProperty(short id,unsigned short ofs,int nbb,unsigned char init,enum RelaxWith rw)
+   MDDPBitSequence::Ptr makeBSProperty(int id,unsigned int ofs,int nbb,unsigned char init,enum RelaxWith rw)
    {
       MDDPBitSequence::Ptr rv = new MDDPBitSequence(id,ofs,nbb,init,rw);
       return rv;
    }
-   MDDPSWindow<short>::Ptr makeWinProperty(short id,unsigned short ofs,int len,int init,int finit,enum RelaxWith rw)
+   MDDPSWindow<short>::Ptr makeWinProperty(int id,unsigned int ofs,int len,int init,int finit,enum RelaxWith rw)
    {
       MDDPSWindow<short>::Ptr rv = new MDDPSWindow<short>(id,ofs,len,init,finit,rw);
       return rv;
@@ -270,7 +270,7 @@ MDDPInt::Ptr MDDStateSpec::combinedIntState(MDDCstrDesc::Ptr d, int init,int max
 }
 MDDPSWindow<short>::Ptr MDDStateSpec::downSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority, bool restrictedReducedInclude)
 {
-   int aid = (int)_nbpDown;
+   int aid = _nbpDown;
    MDDPSWindow<short>::Ptr p =Factory::makeWinProperty(aid,0,len,init,finit,rw);
    addDownProperty(p);
    d->addDownProperty(aid);
@@ -278,7 +278,7 @@ MDDPSWindow<short>::Ptr MDDStateSpec::downSWState(MDDCstrDesc::Ptr d,int len,int
 }
 MDDPSWindow<short>::Ptr MDDStateSpec::upSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
 {
-   int aid = (int)_nbpUp;
+   int aid = _nbpUp;
    MDDPSWindow<short>::Ptr p = Factory::makeWinProperty(aid,0,len,init,finit,rw);
    addUpProperty(p);
    d->addUpProperty(aid);
@@ -286,7 +286,7 @@ MDDPSWindow<short>::Ptr MDDStateSpec::upSWState(MDDCstrDesc::Ptr d,int len,int i
 }
 MDDPSWindow<short>::Ptr MDDStateSpec::combinedSWState(MDDCstrDesc::Ptr d,int len,int init,int finit,enum RelaxWith rw, int constraintPriority)
 {
-   int aid = (int)_nbpCombined;
+   int aid = _nbpCombined;
    MDDPSWindow<short>::Ptr p = Factory::makeWinProperty(aid,0,len,init,finit,rw);
    addCombinedProperty(p);
    d->addCombinedProperty(aid);

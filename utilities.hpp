@@ -104,11 +104,11 @@ public:
    }
 };
 
-inline short propNbWords(short nb) { return (nb >> 6) + (((nb & 63) != 0) ? 1 : 0);}
+inline short propNbWords(int nb) { return (nb >> 6) + (((nb & 63) != 0) ? 1 : 0);}
 
 class MDDPropSet {
    short    _mxw;
-   short    _nbp;
+   int    _nbp;
    long long* _t;
 public:
    MDDPropSet() : _mxw(0),_nbp(0),_t(nullptr) {}
@@ -127,13 +127,13 @@ public:
       for(int i=0;i<_mxw;i++) _t[i]=0;
    }
    short nbWords() const noexcept { return _mxw;}
-   short nbProps() const noexcept { return _nbp;}
+   int nbProps() const noexcept { return _nbp;}
    void clear() noexcept {
       for(short i=0;i < _mxw;i++)
          _t[i] = 0;
    }
-   short size() const noexcept {
-      short ttl = 0;
+   int size() const noexcept {
+      int ttl = 0;
       for(short i=0;i < _mxw;++i)
          ttl += __builtin_popcountl(_t[i]);
       return ttl;
