@@ -1604,7 +1604,8 @@ void MDDRelax::propagate()
 
 void MDDRelax::refreshAll()
 {
-return;
+   return; // [LDM] To investigate
+   
    bool changed = false;
    _fwd->clear();
    _bwd->clear();

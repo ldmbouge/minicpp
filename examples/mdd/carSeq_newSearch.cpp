@@ -15,6 +15,7 @@
 
 
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <algorithm>
 #include <iterator>
@@ -23,6 +24,7 @@
 #include <iomanip>
 #include <iostream>
 #include <map>
+#include <cstring>
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"

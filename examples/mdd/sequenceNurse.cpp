@@ -14,6 +14,7 @@
  */
 
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <algorithm>
 #include <iterator>

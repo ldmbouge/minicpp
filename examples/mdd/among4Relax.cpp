@@ -25,6 +25,8 @@
 
 #include <iostream>
 #include <iomanip>
+#include <cstring>
+
 
 int main(int argc,char* argv[])
 {
