@@ -34,6 +34,7 @@
 #include "RuntimeMonitor.hpp"
 #include "matrix.hpp"
 #include <math.h>
+#include <cstring>
 
 using namespace std;
 using namespace Factory;
