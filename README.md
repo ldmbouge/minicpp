@@ -1,8 +1,11 @@
 # MiniCPP
-A *C++* CP Solver that implements the [MiniCP](https://bitbucket.org/minicp/minicp/src/master/) API.
-The architecture is identical to [that of MiniCP](http://minicp.org/) and can be found in the paper
-[MiniCP: A lightweight solver for constraint programming](https://link.springer.com/article/10.1007/s12532-020-00190-7)
-published in [Mathematical Programming Computation](https://www.springer.com/journal/12532) and best cited as
+A *C++* CP Solver that implements the
+[MiniCP](https://bitbucket.org/minicp/minicp/src/master/) API.  The
+architecture is identical to [that of MiniCP](http://minicp.org/) and
+can be found in the paper [MiniCP: A lightweight solver for constraint
+programming](https://link.springer.com/article/10.1007/s12532-020-00190-7)
+published in [Mathematical Programming
+Computation](https://www.springer.com/journal/12532) and best cited as
 
 	@article{cite-key,
         Author = {Michel, L. and Schaus, P. and Van Hentenryck, P.},
@@ -45,7 +48,6 @@ Multi-valued Decision Diagrams.
 # Requirements to get started
 
 You will need a recent `g++` / `clang` compiler as well as `cmake`. 
-
 
 ## Basic Compilation
 
