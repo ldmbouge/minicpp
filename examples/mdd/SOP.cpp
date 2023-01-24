@@ -18,6 +18,8 @@
 #include <fstream>
 #include <regex>
 #include <sstream>
+#include <cstring>
+
 #include "solver.hpp"
 #include "trailable.hpp"
 #include "intvar.hpp"

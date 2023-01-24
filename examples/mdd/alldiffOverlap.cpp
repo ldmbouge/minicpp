@@ -10,6 +10,8 @@
 #include <tuple>
 #include <limits>
 #include <iterator>
+#include <cstring>
+
 
 #include "solver.hpp"
 #include "trailable.hpp"

@@ -1,4 +1,5 @@
 #include <string>
+#include <cstring>
 #include <sstream>
 #include <algorithm>
 #include <iterator>
@@ -394,7 +395,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
          vector<vector<int>> mddCompat;
          vector<vector<int>> otherCompat;
          int mddUB = 0;
-         int otherUB = 0;
+         //int otherUB = 0;
          int mddVarCount = 0;
          int otherVarCount = 0;
          for(auto i = 0u; i < numJobs; i++) {
@@ -405,7 +406,7 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
             if(std::find(vars.cbegin(),vars.cend(),emp[i]) == vars.cend()) {
                otherVars[otherVarCount++] = emp[i];
                otherCompat.push_back(sortedCompat[i]);
-               otherUB += tmpMax;
+               //otherUB += tmpMax;
             } else {
                mddVars[mddVarCount++] = emp[i];
                mddCompat.push_back(sortedCompat[i]);

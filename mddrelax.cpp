@@ -1605,7 +1605,6 @@ void MDDRelax::propagate()
 
 void MDDRelax::refreshAll()
 {
-return;
    bool changed = false;
    _fwd->clear();
    _bwd->clear();
@@ -1620,8 +1619,8 @@ return;
          } else if (filterKids(n,l)) changed = true;
       }
    }
-   //if (changed) propagate();
-   propagate();
+   if (changed) propagate();
+   //propagate();
 }
 
 int MDDRelax::selectValueFor(var<int>::Ptr theVar)
