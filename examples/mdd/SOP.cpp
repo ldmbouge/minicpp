@@ -123,8 +123,10 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, in
    } else if (mode == 1) {
       cout << "MDD encoding w/ Precedences" << endl;
       mdd = new MDDRelax(cp,width,maxRebootDistance,maxSplitIter,approxThenExact,maxConstraintPriority,true);
-      if (allDiffApproxEquivMode || tspApproxEquivMode || precedenceApproxEquivMode)
+      if (allDiffApproxEquivMode || tspApproxEquivMode || precedenceApproxEquivMode) {
          mdd->getSpec().useApproximateEquivalence();
+         mdd->getSpec().onlyUseApproximateForFirstIteration();
+      }
       mdd->getSpec().setNodePriorityAggregateStrategy(nodePriorityAggregateStrategy);
       mdd->getSpec().setCandidatePriorityAggregateStrategy(candidatePriorityAggregateStrategy);
       MDDPBitSequence::Ptr all;
@@ -151,8 +153,10 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, in
    } else if (mode == 2) {
       cout << "MDD encoding with GOC" << endl;
       mdd = new MDDRelax(cp,width,maxRebootDistance,maxSplitIter,approxThenExact,maxConstraintPriority,true);
-      if (allDiffApproxEquivMode || tspApproxEquivMode || precedenceApproxEquivMode)
+      if (allDiffApproxEquivMode || tspApproxEquivMode || precedenceApproxEquivMode) {
          mdd->getSpec().useApproximateEquivalence();
+         mdd->getSpec().onlyUseApproximateForFirstIteration();
+      }
       mdd->getSpec().setNodePriorityAggregateStrategy(nodePriorityAggregateStrategy);
       mdd->getSpec().setCandidatePriorityAggregateStrategy(candidatePriorityAggregateStrategy);
       MDDPBitSequence::Ptr all;

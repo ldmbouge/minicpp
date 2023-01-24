@@ -1466,6 +1466,8 @@ public:
    MDDState sinkState(Trailer::Ptr t,Storage::Ptr& mem);
    bool usesUp() const { return _upTransition.size() > 0;}
    bool usesCombined() const { return _updates.size() > 0;}
+   void onlyUseApproximateForFirstIteration() { _onlyApproximateFirstIteration = true; }
+   void finishedFirstPropagate() { if (_onlyApproximateFirstIteration) _approximateSplitting = false; }
    void useApproximateEquivalence() { _approximateSplitting = true;}
    void dontUseApproximateEquivalence() { _approximateSplitting = false;}
    bool approxEquivalence() const { return _approximateSplitting;}
@@ -1527,6 +1529,7 @@ private:
    std::set<int>      _xUpRelax;
    std::vector<int>   _defaultDownRelax;
    std::vector<int>   _defaultUpRelax;
+   bool _onlyApproximateFirstIteration;
    bool _approximateSplitting;
    int _nodePriorityAggregateStrategy;
    int _candidatePriorityAggregateStrategy;
