@@ -454,6 +454,16 @@ namespace Factory {
                return (maxObj - (down[minW] + minWeightConnection + up[minWup]))/blockSize;
             }, opts.cstrP);
             break;
+         case 3:
+            mdd.equivalenceClassValue([=](const auto& down, const auto& up){
+               auto previous = down[prev];
+               int minVal = 0;
+               for (int i = 0; i < domSize; i++)
+                  if (previous.getBit(i)) minVal = domSize;
+               for (int i = domSize - 1; i >= 0; i--)
+                  if (previous.getBit(i)) return minVal * domSize + i;
+               return 0;
+            }, opts.cstrP);
          default:
             break;
       }

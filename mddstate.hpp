@@ -1467,6 +1467,7 @@ public:
    bool usesUp() const { return _upTransition.size() > 0;}
    bool usesCombined() const { return _updates.size() > 0;}
    void useApproximateEquivalence() { _approximateSplitting = true;}
+   void dontUseApproximateEquivalence() { _approximateSplitting = false;}
    bool approxEquivalence() const { return _approximateSplitting;}
    void setNodePriorityAggregateStrategy(int aggregateStrategy) { _nodePriorityAggregateStrategy = aggregateStrategy; }
    void setCandidatePriorityAggregateStrategy(int aggregateStrategy) { _candidatePriorityAggregateStrategy = aggregateStrategy; }

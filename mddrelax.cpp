@@ -105,6 +105,7 @@ void MDDRelax::buildDiagram()
          restrictedLayers[i] = TVec<MDDNode*>(trail,mem,32);
    }
    propagate();
+   _mddspec.dontUseApproximateEquivalence();
    hookupPropagators();
 }
 

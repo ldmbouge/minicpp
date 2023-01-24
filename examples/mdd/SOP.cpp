@@ -172,7 +172,7 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, in
          }
          i++;
       }
-      mdd->post(Factory::gocMDD(vars,precedences,precedenceOpts));
+      mdd->post(Factory::gocMDD2(vars,precedences,precedenceOpts));
 
       cp->post(mdd);
    } else {
@@ -211,7 +211,7 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, in
        cout << "Time  : " << RuntimeMonitor::elapsedSince(start) << endl;
    });
 
-   search.optimize(obj,stat,[](const SearchStatistics& stats) {
+   search.optimize(obj,stat,[obj](const SearchStatistics& stats) {
       return RuntimeMonitor::elapsedSeconds(stats.startTime()) > 3600;
    });
    auto dur = RuntimeMonitor::elapsedSince(start);
