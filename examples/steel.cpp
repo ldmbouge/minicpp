@@ -30,7 +30,7 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
 
-    ifstream data("data/steel/bench_19_10");
+    ifstream data("data/steel/bench_19_0");
     int nCapa;
     data >> nCapa;
     std::vector<int> capa(nCapa);

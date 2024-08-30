@@ -1448,7 +1448,7 @@ bool MDDRelax::splitRestrictedLayers()
                                       nc->addArc(mem,ca->getChild(),ca->getValue());
                                    }
                                 }
-if (nc->getNumChildren()) layer.push_back(nc,mem);
+                                if (nc->getNumChildren()) layer.push_back(nc,mem);
                                 return nc;
                              });
          }
