@@ -16,13 +16,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
+# experimental
+#set(CXX /opt/homebrew/Cellar/llvm/18.1.8/bin/clang)
+
 set(CMAKE_CXX_FLAGS "-Wall -Wsign-compare")
 #if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
 #   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
 #   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 #else()
    set(CMAKE_CXX_FLAGS_DEBUG "-g")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
+   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
 #endif()
 
 message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
