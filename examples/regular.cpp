@@ -15,7 +15,6 @@
  * Example Tim Curry
  */
 
-
 #include <iostream>
 #include <iomanip>
 #include "bitset.hpp"
@@ -37,7 +36,7 @@ int main() {
    auto tf = std::vector<Transition> {{1,1,2},{2,2,3},{3,2,4},{3,3,3},{4,1,5}};
    auto a = Factory::automaton(cp,1,10,1,5,1,{5},tf);
    
-   cp->post(q[1]!=2);
+   //cp->post(q[1]!=2); // that would make it infeasible.
    cp->post(Factory::regular(q,a));
    DFSearch search(cp,[=]() {
                          auto x = selectMin(q,

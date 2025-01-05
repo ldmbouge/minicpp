@@ -27,14 +27,23 @@ StaticBitSet::StaticBitSet(int sz)
       _words[nbWords - 1] = (_words[nbWords - 1] & ~(0xffffffff >> (sz % 32)));
 }
 
-bool StaticBitSet::contains(int pos) {
+void StaticBitSet::clear()
+{
+   int nbWords = (_sz >> 5) + ((_sz & 0x1f) != 0);
+   for (int i = 0; i < nbWords; i++)
+      _words[i] = 0x0;   
+}
+
+bool StaticBitSet::contains(int pos) const
+{
    int word = pos >> 5;  // find word for element to remove
    int shift = pos % 32;  // find pos (from left) within word
    int mask = 0x80000000 >> shift;
    return (_words[word] & mask) != 0;
 }
 
-void StaticBitSet::remove(int pos) {
+void StaticBitSet::remove(int pos)
+{
    int word = pos >> 5;  // find word for element to remove
    int shift = pos % 32;  // find pos (from left) within word
    int mask = 0x80000000 >> shift;
@@ -55,6 +64,23 @@ SparseBitSet::SparseBitSet(Trailer::Ptr eng, Storage::Ptr store, int sz)
    }
    if (_sz & 0x1f)
       _words[_nbWords - 1] = (_words[_nbWords - 1] & ~(0xffffffff >> (_sz % 32)));
+}
+
+void SparseBitSet::clearBit(int b)
+{
+   const int bIdx = b >> 5;
+   const int bOfs = b % 32;
+   if (bIdx <= _limit) {
+      int mask = 0x80000000 >> bOfs;
+      mask = ~mask;
+      const int at = _index[bIdx];
+      _words[at] = _words[at] & mask;
+      if (_words[at] == 0) {
+         _index[bIdx] = _index[_limit];
+         _index[_limit] = at;
+         _limit = _limit - 1;
+      }
+   }
 }
 
 void SparseBitSet::clearMask() {

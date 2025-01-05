@@ -42,9 +42,11 @@ int main() {
    table.emplace_back(std::vector<int> {2,31,9});
    table.emplace_back(std::vector<int> {4,36,9});
    table.emplace_back(std::vector<int> {5,36,9});
+   //cout << "TABLE:" << table.size() << "\n";
+   
    TRYFAIL {
-      cp->post(Factory::table(x, table)); 
       cp->post(x[1] >= 36);
+      cp->post(Factory::table(x, table)); 
       cp->post(x[0] != 5);
       cp->post(x[0] != 4);
       DFSearch search(cp,[=]() {

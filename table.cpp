@@ -20,6 +20,49 @@
 
 void TableCT::post()
 {
+   int currIndex = 0;
+   for (const auto& vp : _vars) {
+      _entries.emplace(vp->getId(), Entry(currIndex, vp->min(), vp->max()));  // build entries for each var
+      _lastSizes.push_back(trail<int>(vp->getSolver()->getStateManager(), vp->size()));  // record initial var domain size
+      _supports.emplace_back(std::vector<StaticBitSet>(0));  // init vector of bitsets for var's supports
+      _residues.emplace_back(std::vector<int>());
+      std::vector<StaticBitSet>& v = _supports.back();
+      std::vector<int>& r = _residues.back();
+      for (int val=vp->min(); val <= vp->max(); val++) {
+         v.emplace_back(StaticBitSet((int)_table.size()));  // make bitset for this value
+         // loop through table to see which table vectors support this value
+         if (vp->contains(val)) { // if the value is in the domain.... We need to collate all the tuples supporting it.
+            for (auto i=0u; i < _table.size(); i++) {
+               const std::vector<int>& row = _table[i];
+               if (row[currIndex] != val) // if the tuple in this row does not use the value, it does not support it. 
+                  v.back().remove(i);  // so remove the tuple fom the supports of this value (since we start with all supports)
+            }
+         } else { // [ldm] this was missing: val NOT IN  D(vp) => all tuples using val for this column must be removed.
+            for (auto i=0u; i < _table.size(); i++) {
+               const std::vector<int>& row = _table[i];
+               if (row[currIndex] == val)
+                  v.back().remove(i);
+            }
+            // v.back()_i == 0 iff tuple_i(vp) == val AND val NOT IN D(vp) 
+         }
+         r.push_back(_currTable.intersectIndex(v.back()));
+      }
+      currIndex++;
+   }
+   // [ldm] this was missing. We need to clear tuples that use values not in the domain of the variables.
+   // So loop over tuples in table. Check each var, its domain must contain the value appearing in the tuple
+   // Assuming D(x) = min..max, since we already cleared tuples for values between min..max, only clear outside now.
+   for (auto i=0u; i < _table.size(); i++) {
+      for (const auto& vp : _vars) {
+         const auto& rangeVP = _entries.at(vp->getId());
+         const auto rowVal = _table[i][rangeVP.getIndex()];
+         if (rowVal < rangeVP.getMin()  || rowVal > rangeVP.getMax()) {            
+            _currTable.clearBit(i);
+            //std::cout << "var " << rangeVP.getIndex() << " -> clear " << i << '/' << rowVal <<  " CT:" << _currTable << "\n";
+         }
+      }
+   }
+   //std::cout << "table::post \tCT:" << _currTable << "\n";
    propagate();
    for (const auto& vp : _vars)
       vp->propagateOnDomainChange(this); // for each variable, propagate on change to domain
@@ -28,11 +71,10 @@ void TableCT::post()
 void TableCT::propagate()  // enforceGAC
 {
    // calculate Sval
-   int varIndex;
    _Sval.clear();
    _Ssup.clear();
    for (const auto& vp : _vars) {
-      varIndex = _entries.at(vp->getId()).getIndex();
+      const int varIndex = _entries.at(vp->getId()).getIndex();
       if (vp->size() != _lastSizes[varIndex]) {
          _Sval.push_back(vp);
          _lastSizes[varIndex] = vp->size();  // update lastSizes for vars in Sval
@@ -41,36 +83,29 @@ void TableCT::propagate()  // enforceGAC
       if (vp->size() > 1)
          _Ssup.push_back(vp);
    }
-   // call updateTable
    updateTable();
-   // check size of currTable
    if (_currTable.isEmpty())
       failNow();
-   // call filterDomains
    filterDomains();
 }
 
 void TableCT::filterDomains()
 {
-   int varIndex, valIndex, wIndex, iMin;
    for (const auto& vp : _Ssup) {
-      varIndex = _entries.at(vp->getId()).getIndex();
-      iMin = _entries.at(vp->getId()).getMin();
+      const int varIndex = _entries.at(vp->getId()).getIndex();
+      const int iMin = _entries.at(vp->getId()).getMin();
       for (int val = vp->min(); val < vp->max() + 1; val++) {
-         valIndex = val - iMin;
-         wIndex = _residues[varIndex][valIndex];
-         if (wIndex == -1) {
-            vp->remove(val);
-         }
+         const int valIndex = val - iMin;
+         int wIndex = _residues[varIndex][valIndex];
+         if (wIndex == -1) 
+            vp->remove(val);         
          else {
             if ((_currTable[wIndex] & _supports[varIndex][valIndex][wIndex]) == 0) {
                wIndex = _currTable.intersectIndex(_supports[varIndex][valIndex]);
-               if (wIndex != -1) {
-                  _residues[varIndex][valIndex] = wIndex;
-               }
-               else {
-                  vp->remove(val);
-               }
+               if (wIndex != -1) 
+                  _residues[varIndex][valIndex] = wIndex;              
+               else 
+                  vp->remove(val);               
             }
          }
       }
@@ -80,13 +115,12 @@ void TableCT::filterDomains()
 
 void TableCT::updateTable()
 {
-   int varIndex, valIndex, iMin;
    for (const auto& vp : _Sval) {
-      varIndex = _entries.at(vp->getId()).getIndex();
-      iMin = _entries.at(vp->getId()).getMin();
+      const int varIndex = _entries.at(vp->getId()).getIndex();
+      const int iMin = _entries.at(vp->getId()).getMin();
       _currTable.clearMask();
       for (int val = vp->min(); val < vp->max() + 1; val++) {
-         valIndex = val - iMin;
+         const int valIndex = val - iMin;
          if (vp->contains(val))
             _currTable.addToMask(_supports[varIndex][valIndex]);
       }

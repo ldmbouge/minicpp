@@ -38,9 +38,9 @@ class TableCT : public Constraint {
          _min(min),
          _max(max)
       {}
-      int getIndex() { return _index;}
-      int getMin() { return _min;}
-      int getMax() {return _max;}
+      int getIndex() const noexcept  { return _index;}
+      int getMin() const noexcept    { return _min;}
+      int getMax() const noexcept    { return _max;}
    };
    std::map<int, Entry>                                _entries;
    std::vector<std::vector<StaticBitSet>>              _supports;
@@ -59,27 +59,8 @@ public:
         _table(table),
         _currTable(x[0]->getSolver()->getStateManager(), x[0]->getStore(), table.size())  // build SparseBitSet for vectors in table
    {
-      int currIndex = 0;
-      for (const auto& vp : x) {
+      for (const auto& vp : x) 
          _vars.push_back(vp);
-         _entries.emplace(vp->getId(), Entry(currIndex, vp->min(), vp->max()));  // build entries for each var
-         _lastSizes.push_back(trail<int>(x[0]->getSolver()->getStateManager(), vp->size()));  // record initial var domain size
-         _supports.emplace_back(std::vector<StaticBitSet>(0));  // init vector of bitsets for var's supports
-         _residues.emplace_back(std::vector<int>());
-         std::vector<StaticBitSet>& v = _supports.back();
-         std::vector<int>& r = _residues.back();
-         for (int val=vp->min(); val < vp->max()+1; val++) {
-            v.emplace_back(StaticBitSet((int)table.size()));  // make bitset for this value
-            // loop through table to see which table vectors support this value
-            for (auto i=0u; i < table.size(); i++) {
-               const std::vector<int>& tableEntry = table[i];
-               if (tableEntry[currIndex] != val)
-                  v.back().remove(i);  // this tableEntry is not a support for val
-            }
-            r.push_back(_currTable.intersectIndex(v.back()));
-         }
-         currIndex++;
-      }
    }
    ~TableCT() {}
    void post() override;

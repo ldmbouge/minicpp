@@ -22,6 +22,7 @@
 #include "handle.hpp"
 #include "store.hpp"
 #include <vector>
+#include <bitset>
 
 class StaticBitSet {
    std::vector<int>            _words;
@@ -31,8 +32,9 @@ public:
    StaticBitSet(int sz);
    StaticBitSet(StaticBitSet&& bs) : _words(std::move(bs._words)),_sz(bs._sz) {}
    int operator[] (int i) { return _words[i];}
+   void clear();
    void remove (int pos);
-   bool contains(int pos);
+   bool contains(int pos) const;
 };
 
 class SparseBitSet {
@@ -45,6 +47,7 @@ class SparseBitSet {
 public:
    SparseBitSet(Trailer::Ptr eng, Storage::Ptr store, int sz);
    bool isEmpty() { return _limit == -1;}
+   void clearBit(int b);
    void clearMask();
    void reverseMask();
    void addToMask(StaticBitSet& m);
@@ -52,6 +55,18 @@ public:
    int intersectIndex(StaticBitSet& m);
    trail<int>& operator[] (int i) { return _words[i];}
    int operator[] (int i) const { return _words[i].value();}
+   friend std::ostream& operator<<(std::ostream& os,const SparseBitSet& sbs) {
+      os << "L=" << sbs._limit << " S="<< sbs._sz << " #W=" << sbs._nbWords;
+      os << "\tIDX=[";
+      for(auto i=0;i<=sbs._limit;i++)
+         os << sbs._index[i] << ' ';
+      os << "] WORDS=[";
+      for(auto i=0;i<=sbs._limit;i++) {
+         std::bitset<32> wi(sbs._words[sbs._index[i]]);
+         os << wi << ' ';
+      }
+      return os << ']';
+   }
 };
 
 #endif
