@@ -481,6 +481,7 @@ namespace Factory
       //auto cp = x->getSolver();
       //x->assign(c);
       //cp->fixpoint();
+      std::cout << "EQcDesc(" << x << "," << c << ")" << "\n";
       return new (x->getSolver()) EQcDesc(x,c);
    }
    /**

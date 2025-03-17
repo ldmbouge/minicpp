@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 from minicpp import *
 
-with open("examples/data/qap.txt") as f:
+with open("../data/qap.txt") as f:
     n = int(f.readline())
     f.readline() # skip blank line
     data = [[int(v) for v in line.split()] for line in f.readlines()]

@@ -99,6 +99,7 @@ public:
 class ConstraintDesc {
 public:
    typedef strict_ptr<ConstraintDesc> Ptr;
+   virtual ~ConstraintDesc() {}
    ConstraintDesc() {}
    virtual Constraint* create() = 0;
    virtual ConstraintDesc* clone() = 0;

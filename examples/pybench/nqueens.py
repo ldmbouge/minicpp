@@ -12,13 +12,13 @@ for i in range(0,n):
        cp.post(q[i] != q[j] + j - i)
 
 print("Starting search...")
-search = minicpp.DFSearch(cp,minicpp.firstFail(cp,q))
 
 def doIt():
     sx = minicpp.selectMin(q,lambda x : x.size > 1,lambda x : x.size)
-    #return minicpp.indomain_min(cp,sx)
+    #return minicpp.indomain_min(cp,sx)    
     if sx is not None:
         c = sx.min
+        print(f"chosen {c} for {sx}")
         return minicpp.Branches(lambda : cp.post(sx == c),
                                 lambda : cp.post(sx != c))
     else:
@@ -26,5 +26,5 @@ def doIt():
         
 search = minicpp.DFSearch(cp,doIt)
 search.onSolution(lambda : print(q))
-stat = search.solve(lambda s : s.numberOfSolutions() > 100000)
+stat = search.solve(lambda s : s.numberOfSolutions() > 2)
 print(stat)

@@ -34,6 +34,7 @@
 namespace py = pybind11;
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, handle_ptr<T>,true);
+PYBIND11_DECLARE_HOLDER_TYPE(T, strict_ptr<T>,true);
 PYBIND11_MAKE_OPAQUE(Factory::Veci);
 //PYBIND11_MAKE_OPAQUE(std::vector<var<int>::Ptr>);
                      
@@ -56,6 +57,13 @@ PYBIND11_MODULE(minicpp,m) {
    
    //py::class_<Chooser>(m,"Chooser");
    py::class_<AVar,AVar::Ptr>(m,"AVar");
+   py::class_<ConstraintDesc,ConstraintDesc::Ptr>(m,"ConstraintDesc");
+      // .def("__repr__",[](const ConstraintDesc& s) {
+      //    std::ostringstream str;
+      //    s.print(str);
+      //    str << std::ends;
+      //    return str.str();         
+      // });
    py::class_<Constraint,Constraint::Ptr>(m,"Constraint")
       .def("post",&Constraint::post)
       .def("propagate",&Constraint::propagate)
@@ -103,9 +111,13 @@ PYBIND11_MODULE(minicpp,m) {
       },py::is_operator())
       .def("__eq__",[](const var<int>::Ptr& a,int b) {
          TRYFAIL {
-            return Factory::operator==(a,b);
+            auto rv =  Factory::operator==(a,b);
+            std::cout << "Got: ";
+            rv->print(std::cout);
+            std::cout << "\n";
+            return rv;
          } ONFAIL {
-            //std::cout << "failure in x==" << b << std::endl;
+            std::cout << "failure in x==" << b << std::endl;
             throw Failure; // convert longjmp/setjmp back to C++ exception to go through pybind layer
          } ENDFAIL
       },py::is_operator())
@@ -134,13 +146,24 @@ PYBIND11_MODULE(minicpp,m) {
    
    py::class_<CPSolver,CPSolver::Ptr>(m,"CPSolver")
       .def("fixpoint",&CPSolver::fixpoint)
-      .def("post",[](CPSolver::Ptr cp,Constraint::Ptr c,bool enforceFixPoint) {
-         TRYFAIL {
+      .def("post",static_cast<void (*)(CPSolver::Ptr,Constraint::Ptr,bool)>([](CPSolver::Ptr cp,Constraint::Ptr c,bool enforceFixPoint) {
+         TRYFAIL {            
             cp->post(c,enforceFixPoint);
          } ONFAIL {
             std::cout << "failure caught ..." << std::endl;            
          } ENDFAIL         
-      },
+              }),
+         py::arg("c"),
+         py::arg("enforceFixPoint")=true,
+         "Post the constraint `c` and runs the fixpoint as required.")
+      .def("post",static_cast<void(*)(CPSolver::Ptr,ConstraintDesc::Ptr,bool)>([](CPSolver::Ptr cp,ConstraintDesc::Ptr c,bool enforceFixPoint) {
+         std::cout << "post(ConstraintDesc::Ptr) " << c.get() << "\n";
+         TRYFAIL {            
+            cp->post(c,enforceFixPoint);
+         } ONFAIL {
+            std::cout << "failure caught ..." << std::endl;            
+         } ENDFAIL         
+              }),
          py::arg("c"),
          py::arg("enforceFixPoint")=true,
          "Post the constraint `c` and runs the fixpoint as required.")
