@@ -202,6 +202,12 @@ void NEQBinBCLight::propagate()
 
 void EQBinDC::post()
 {
+   _x->propagateOnDomainChange(this);
+   _y->propagateOnDomainChange(this);
+}
+
+void EQBinDC::propagate()
+{
    if (_x->isBound())
       _y->assign(_x->min() - _c);
    else if (_y->isBound())
@@ -217,8 +223,6 @@ void EQBinDC::post()
       for(int i= ly;i <= uy; i++)
          if (!_y->contains(i))
             _x->remove(i + _c);
-      _x->whenBind([this] { _y->assign(_x->min() - _c);});
-      _y->whenBind([this] { _x->assign(_y->min() + _c);});
    }
 }
 

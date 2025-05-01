@@ -122,6 +122,7 @@ public:
    EQBinDC(var<int>::Ptr& x,var<int>::Ptr& y,int c)
       : Constraint(x->getSolver()), _x(x),_y(y),_c(c) {}
    void post() override;
+   void propagate() override;
 };
 
 class Conjunction :public Constraint { // z == x && y
