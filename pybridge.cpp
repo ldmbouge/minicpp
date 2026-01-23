@@ -34,7 +34,7 @@
 namespace py = pybind11;
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, handle_ptr<T>,true);
-PYBIND11_MAKE_OPAQUE(Factory::Veci);
+//PYBIND11_MAKE_OPAQUE(Factory::Veci);
 //PYBIND11_MAKE_OPAQUE(std::vector<var<int>::Ptr>);
                      
 PYBIND11_MODULE(minicpp,m) {
@@ -231,6 +231,7 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("sum",static_cast<var<int>::Ptr (*)(Factory::Veci&)>(&Factory::sum<Factory::Veci>));
    m.def("sum",static_cast<var<int>::Ptr (*)(std::vector<var<int>::Ptr>&)>(&Factory::sum<std::vector<var<int>::Ptr>>));
    
+   m.def("allDifferent",&Factory::allDifferent<const Factory::Veci&>);
    m.def("allDifferent",&Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
    m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
