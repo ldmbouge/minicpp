@@ -19,7 +19,7 @@ option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 # experimental
 #set(CXX /opt/homebrew/Cellar/llvm/18.1.8/bin/clang)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wsign-compare")
+set(CMAKE_CXX_FLAGS "-Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unused-but-set-variable")
 #if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
 #   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
 #   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
@@ -127,8 +127,8 @@ file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 ################################################################################
 #[[ add_subdirectory(pybind11)  ]]
 
-#find_package(pybind11 REQUIRED)
-#pybind11_add_module(minicpp pybridge.cpp)
-#target_link_libraries(minicpp PRIVATE copl)
-#add_dependencies(minicpp copl)
+find_package(pybind11 REQUIRED)
+pybind11_add_module(minicpp pybridge.cpp)
+target_link_libraries(minicpp PRIVATE copl)
+add_dependencies(minicpp copl)
 

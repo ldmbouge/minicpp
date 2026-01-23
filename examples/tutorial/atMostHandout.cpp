@@ -37,7 +37,7 @@ namespace  Factory {
    MDDCstrDesc::Ptr atMostMDD(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       MDDSpec& spec = m->getSpec();
-      const auto [minFDom,minLDom] = domRange(vars); // the full range of values that can appear in vars (union of domains)
+      //const auto [minFDom,minLDom] = domRange(vars); // the full range of values that can appear in vars (union of domains)
       auto desc = spec.makeConstraintDescriptor(vars,"atMostMDD"); // the descriptor for the new LTS
 
       std::map<int,MDDPInt::Ptr> pd; // HINT: a map that associates values to properties
@@ -61,7 +61,7 @@ namespace  Factory {
    MDDCstrDesc::Ptr atMostMDD2(MDD::Ptr m,const Factory::Veci& vars,const std::map<int,int>& ub)
    {
       MDDSpec& spec = m->getSpec();
-      const auto [minFDom,minLDom] = domRange(vars);
+      //const auto [minFDom,minLDom] = domRange(vars);
       auto desc = spec.makeConstraintDescriptor(vars,"atMostMDD");
 
       std::map<int,MDDPInt::Ptr> pd; // HINT: a map that associates values to properties
