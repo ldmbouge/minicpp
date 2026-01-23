@@ -55,6 +55,7 @@ if(GPU)
 endif()
 
 set(GPU_CONSTR_SRC
+    gpu_constriants/cumulative.cu
 )
 
 set(GLB_CONSTR_SRC
