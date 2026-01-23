@@ -63,7 +63,6 @@ set(GLB_CONSTR_SRC
 )
 
 include_directories(.)
-include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
 add_library(copl
 	RuntimeMonitor.cpp
@@ -115,6 +114,12 @@ add_library(copl
 	trailable.cpp
     ${GLB_CONSTR_SRC}
 )
+
+if (GPU)
+    target_sources(copl PRIVATE ${GPU_CONSTR_SRC})
+    target_link_libraries(copl PRIVATE CUDA::cudart)
+    target_include_directories(copl PRIVATE {CUDAToolkit_INCLUDE_DIRS})
+endif()
 
 add_library(fzl
 		fz_constraints/bool_array.cpp
