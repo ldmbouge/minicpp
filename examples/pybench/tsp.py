@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 from minicpp import *
 
-with open("examples/data/tsp.txt") as f:
+with open("../data/tsp.txt") as f:
     n = int(f.readline())
     data = [[int(v) for v in line.split()] for line in f.readlines()]
         
