@@ -11,6 +11,6 @@ cp.post(sum(s,n))
 
 print("Starting search...")
 search = DFSearch(cp,firstFail(cp,s))
-search.onSolution(lambda : print(s))
+search.onSolution(lambda : print([s[i].min for i in range(0,len(s))]))
 stat = search.solve()
 print(stat)

@@ -16,8 +16,11 @@ cp.post(sum([x[i][i]     for i in range(0,n)],sumResult))
 cp.post(sum([x[n-i-1][i] for i in range(0,n)],sumResult))
 
 print("Starting search...")
+def sol(x):
+    return [[x[i][j].min for j in range(0,n)] for i in range(0,n)]
+
 search = DFSearch(cp,firstFail(cp,fx))
-search.onSolution(lambda : print(*x,sep = "\n"))
+search.onSolution(lambda : print(*sol(x),sep="\n"))
 stat = search.solve(lambda s : s.numberOfSolutions() > 0)
 print(stat)
 

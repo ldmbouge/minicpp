@@ -156,7 +156,7 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__getitem__",[](const Factory::Veci& s,size_t i) { return s[i];})
       .def("__setitem__",[](Factory::Veci& s,size_t i,var<int>::Ptr e) { s[i] = e;})
       .def("__len__",[](const Factory::Veci& s) { return s.size();})
-      .def("__iter__",[](const Factory::Veci& s) { return py::make_iterator(s.begin(),s.end());},py::keep_alive<0,1>())
+      .def("__iter__",[](const Factory::Veci& s) { return py::make_iterator(s.begin(),s.end(),pybind11::return_value_policy::reference_internal);},py::keep_alive<0,1>())
       .def("__repr__",[](const Factory::Veci& s) {
                          std::ostringstream str;
                          str << s << std::ends;
@@ -166,7 +166,7 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__getitem__",[](const Factory::Vecb& s,size_t i) { return s[i];})
       .def("__setitem__",[](Factory::Vecb& s,size_t i,var<bool>::Ptr e) { s[i] = e;})
       .def("__len__",[](const Factory::Vecb& s) { return s.size();})
-      .def("__iter__",[](const Factory::Vecb& s) { return py::make_iterator(s.begin(),s.end());},py::keep_alive<0,1>())
+      .def("__iter__",[](const Factory::Vecb& s) { return py::make_iterator(s.begin(),s.end(), pybind11::return_value_policy::reference_internal);},py::keep_alive<0,1>())
       .def("__repr__",[](const Factory::Vecb& s) {
                          std::ostringstream str;
                          str << s << std::ends;
@@ -224,6 +224,7 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("isLargerOrEqual",&Factory::isLargerOrEqual);
    
    m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,var<int>::Ptr)>(&Factory::sum));
+   m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,int)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<int>::Ptr>&,var<int>::Ptr)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,var<int>::Ptr)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<int>::Ptr>&,int)>(&Factory::sum));
@@ -234,6 +235,7 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("allDifferent",&Factory::allDifferent<const Factory::Veci&>);
    m.def("allDifferent",&Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
+   m.def("circuit",&Factory::circuit<const Factory::Veci&>);
    m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
    m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
