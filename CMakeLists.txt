@@ -57,6 +57,10 @@ endif()
 set(GPU_CONSTR_SRC
 )
 
+set(GLB_CONSTR_SRC
+    global_constraints/cumulative.cpp
+)
+
 include_directories(.)
 include_directories(${CUDAToolkit_INCLUDE_DIRS})
 
@@ -107,7 +111,9 @@ add_library(copl
 	table.cpp
         tracer.cpp
 	trail.cpp
-	trailable.cpp)
+	trailable.cpp
+    ${GLB_CONSTR_SRC}
+)
 
 add_library(fzl
 		fz_constraints/bool_array.cpp
