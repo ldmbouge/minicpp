@@ -31,7 +31,35 @@ set(CMAKE_CXX_FLAGS "-Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unused-but
 message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
 message("Build: ${CMAKE_BUILD_TYPE}")
 
+# GPU support
+option(GPU "Enable GPU support" OFF)
+message(STATUS "GPU support: ${GPU}")
+if(GPU)
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_ARCHITECTURES "native")
+    set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+
+    string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -g -G")
+    string(APPEND CMAKE_CUDA_FLAGS_RELWITHDEBINFO " -lineinfo")
+
+    # Suppress warnings
+    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 177")
+    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 550")
+    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 815")
+    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 830")
+    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 997")
+endif()
+
+set(GPU_CONSTR_SRC
+)
+
 include_directories(.)
+include_directories(${CUDAToolkit_INCLUDE_DIRS})
+
 add_library(copl
 	RuntimeMonitor.cpp
 	fail.cpp
