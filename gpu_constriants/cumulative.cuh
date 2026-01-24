@@ -4,8 +4,8 @@
 #include <libfca/Types.hpp>
 #include <libgpu/Memory.cuh>
 #include <libgpu/LinearAllocator.cuh>
-#include <libminicpp/varitf.hpp>
-#include <libminicpp/constraint.hpp>
+#include <varitf.hpp>
+#include <constraint.hpp>
 #include "global_constraints/cumulative.hpp"
 
 #define MAX_INTERVALS_PER_ACTIVITY_PAIR 12
