@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.28)
 
 project(miniCPP VERSION 1.1)
 
@@ -15,6 +15,22 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
+
+# Dependencies
+include(FetchContent)
+FetchContent_Declare(
+        json
+        GIT_REPOSITORY https://github.com/nlohmann/json
+        GIT_TAG        master
+)
+FetchContent_Declare(
+        fmt
+        GIT_REPOSITORY https://github.com/fmtlib/fmt
+        GIT_TAG        master
+)
+FetchContent_MakeAvailable(json)
+FetchContent_MakeAvailable(fmt)
+
 
 # experimental
 #set(CXX /opt/homebrew/Cellar/llvm/18.1.8/bin/clang)
@@ -115,11 +131,11 @@ add_library(copl
 	mddGcc.cpp
 	mddAbs.cpp
 	mddMaximumCutObjective.cpp
-        mddPrecedence.cpp
+    mddPrecedence.cpp
 	mddGoc.cpp
 	mddSeq.cpp
 	mddSum.cpp
-        mddTSPSum.cpp
+    mddTSPSum.cpp
 	mdddelta.cpp
 	mddnode.cpp
 	mddrelax.cpp
@@ -129,7 +145,7 @@ add_library(copl
 	solver.cpp
 	store.cpp
 	table.cpp
-        tracer.cpp
+    tracer.cpp
 	trail.cpp
 	trailable.cpp
     ${GLB_CONSTR_SRC}
@@ -140,7 +156,7 @@ if (GPU)
     target_link_libraries(copl PRIVATE CUDA::cudart)
     target_include_directories(copl PRIVATE {CUDAToolkit_INCLUDE_DIRS})
 
-    add_executables("examples_gpu" "*.cu" "copl")
+    add_executables("examples_gpu" "*.cu" "copl;nlohmann_json::nlohmann_json;fmt::fmt")
 endif()
 
 add_library(fzl

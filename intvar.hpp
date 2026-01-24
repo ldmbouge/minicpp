@@ -384,7 +384,10 @@ namespace Factory {
     * @return a smart pointer to a solver allocated integer variable.
     */
    var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::vector<int> const & vals);
-   /**
+
+    std::vector<var<int>::Ptr> makeIntVars(CPSolver::Ptr cps, int sz, int min, int max);
+
+    /**
     * Factory method to create a Boolean variable. Note that the variable is to be allocated
     * on the memory manager associated to the given solver.
     * @param cps the owning solver controlling the variable to be

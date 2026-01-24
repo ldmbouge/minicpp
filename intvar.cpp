@@ -249,4 +249,11 @@ namespace Factory {
       return a;
     }
 
+    std::vector<var<int>::Ptr> makeIntVars(CPSolver::Ptr cps, int sz, int min, int max) {
+        std::vector<var<int>::Ptr> a(sz);
+        for(int i=0;i<sz;i++)
+            a[i] = Factory::makeIntVar(cps,min,max);
+        return a;
+    }
+
 };
