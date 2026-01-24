@@ -62,6 +62,26 @@ set(GLB_CONSTR_SRC
     global_constraints/cumulative.cpp
 )
 
+set(GPU_EXAMPLES
+        gpu_examples/rcpsp.cu
+)
+
+# Auxiliary functions
+function(add_executables DIR FILTER LIBS)
+    string(TOUPPER "${DIR}" DIR_UPPER)
+    set(DIR_MSG "${DIR_UPPER}: ")
+    file(GLOB DIR_SRC "${PROJECT_SOURCE_DIR}/${DIR}/${FILTER}")
+    foreach (EXE_SRC ${DIR_SRC})
+        get_filename_component(EXE_NAME ${EXE_SRC} NAME_WE)
+        set(DIR_MSG "${DIR_MSG} ${EXE_NAME}")
+        add_executable(${EXE_NAME} ${EXE_SRC})
+        foreach (LIB ${LIBS})
+            target_link_libraries(${EXE_NAME} ${LIB})
+        endforeach()
+    endforeach()
+    message(STATUS ${DIR_MSG})
+endfunction()
+
 include_directories(.)
 
 add_library(copl
@@ -119,6 +139,8 @@ if (GPU)
     target_sources(copl PRIVATE ${GPU_CONSTR_SRC})
     target_link_libraries(copl PRIVATE CUDA::cudart)
     target_include_directories(copl PRIVATE {CUDAToolkit_INCLUDE_DIRS})
+
+    add_executables("examples_gpu" "*.cu" "copl")
 endif()
 
 add_library(fzl
