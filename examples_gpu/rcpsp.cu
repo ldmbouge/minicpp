@@ -78,12 +78,14 @@ int main(int argc,char* argv[])
     }
 
     // Search
-    DFSearch search(cp,[cp,st]() {
+    DFSearch search(cp,[&cp,&st,&makespan]() {
 
         // Variable selection
         auto const isNotBounded = [](const auto & x) {return x->size() > 1;};
         auto const smallestValue = [](const auto & x) {return x->min();};
-        auto const var = selectMin(st,isNotBounded, smallestValue);
+        auto vars = st;
+        vars.push_back(makespan);
+        auto const var = selectMin(vars,isNotBounded, smallestValue);
 
         if (var)
         {
@@ -99,7 +101,6 @@ int main(int argc,char* argv[])
     });
 
     search.onSolution([&st,&makespan]() {
-        println("---");
         println("Makespan = {}", makespan->min());
         print("Starting Times = [");
         for (int i = 0; i < st.size(); i += 1)
@@ -107,6 +108,7 @@ int main(int argc,char* argv[])
             print(i == 0 ? "{}" : ",{}", st[i]->min());
         }
         println("]");
+        println("---");
     });
 
     auto obj = minimize(makespan);

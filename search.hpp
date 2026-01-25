@@ -97,15 +97,14 @@ public:
    friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
       return os
          << std::fixed << std::setprecision(3)
-         << "%%%mzn-stat: initTime=" << RuntimeMonitor::elapsedSeconds(ss._startTime, ss._initTime) << std::endl
-         << "%%%mzn-stat: solveTime=" << RuntimeMonitor::elapsedSeconds(ss._initTime, ss._solveTime) << std::endl
-         << "%%%mzn-stat: solutions=" << ss.solutions << std::endl
-         << "%%%mzn-stat: variables=" << ss.intVariables + ss.boolVariables << std::endl
-         << "%%%mzn-stat: propagators=" << ss.propagators << std::endl
-         << "%%%mzn-stat: propagations=" << ss.propagations << std::endl
-         << "%%%mzn-stat: nodes=" << ss.nodes << std::endl
-         << "%%%mzn-stat: failures=" << ss.failures << std::endl
-         << "%%%mzn-stat-end" << std::endl;          
+         << "Init Time = " << RuntimeMonitor::elapsedSeconds(ss._startTime, ss._initTime) << std::endl
+         << "Solve Time = " << RuntimeMonitor::elapsedSeconds(ss._initTime, ss._solveTime) << std::endl
+         << "Solutions = " << ss.solutions << std::endl
+         << "Variables = " << ss.intVariables + ss.boolVariables << std::endl
+         << "Constraints = " << ss.propagators << std::endl
+         << "Propagations = " << ss.propagations << std::endl
+         << "Nodes = " << ss.nodes << std::endl
+         << "Failures = " << ss.failures << std::endl;
    }
 };
 
