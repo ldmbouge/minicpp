@@ -18,8 +18,9 @@ option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
 # experimental
 #set(CXX /opt/homebrew/Cellar/llvm/18.1.8/bin/clang)
+set(CMAKE_CXX_COMPILER /usr/bin/clang++)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unused-but-set-variable")
+set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unused-but-set-variable")
 #if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
 #   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
 #   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
