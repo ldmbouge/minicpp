@@ -48,15 +48,14 @@ int main(int argc,char* argv[])
     int const lst = t_max - 1;                                            // Latest starting time
 
     // Variables
-    CPSolver::Ptr const cp = makeSolver();
+    auto cp = makeSolver();
     auto st = makeIntVars(cp,n_tasks,est,lst);  // The tasks start time
     auto makespan = makeIntVar(cp,0,t_max);                            // The project duration
 
     // Precedence constraints
     for (int i = 0; i < n_tasks; i += 1)
     {
-        int const n_suc = suc[i].size();
-        for (int j = 0; j < n_suc; j += 1)
+        for (auto const & j : suc[i])
         {
             cp->post(st[i] + d[i]<= st[j]);
         }
@@ -107,10 +106,12 @@ int main(int argc,char* argv[])
         {
             print(i == 0 ? "{}" : ",{}", st[i]->min());
         }
+        println("]");
     });
 
     auto obj = minimize(makespan);
-    search.optimize(obj);
+    auto stat = search.optimize(obj);
+    cout << stat << endl;
 
     return 0;
 }
