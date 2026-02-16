@@ -1,20 +1,17 @@
 
 #include "cumulative.hpp"
 
-Cumulative::Cumulative(std::vector<var<int>::Ptr> & s, std::vector<int> const & p, std::vector<int> const & h, int c) :
-    Constraint(s[0]->getSolver()), nActivities(s.size()), c(c), s(s), p(p), h(h), si(s.size())
+Cumulative::Cumulative(std::vector<var<int>::Ptr> & s, std::vector<int> const & p, std::vector<int> const & h, int c)
+  : Constraint(s[0]->getSolver()), nActivities(s.size()), c(c), s(s),si(s.size()), p(p), h(h)
 {
-    setPriority(CLOW);
+  setPriority(CLOW);
 }
 
 void Cumulative::post()
 {
-    intervals.reserve(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities);
-
-    for (auto const & v : s)
-    {
-        v->propagateOnBoundChange(this);
-    }
+  intervals.reserve(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities);
+  for (auto const & v : s) 
+    v->propagateOnBoundChange(this);    
 }
 
 void Cumulative::initStartIntervals(int nActivities, var<int>::Ptr const * s, StartInterval * si)
@@ -35,15 +32,15 @@ void Cumulative::calcIntervals()
     for (auto i = 0; i < nActivities; i += 1)
     {
         int const pi = p.at(i);
-        bool siChanged = si.at(i).changed;
+        const bool siChanged = si.at(i).changed;
         int const siMin = si.at(i).min;
         int const siMax = si.at(i).max;
         int const eiMax = siMax + pi;
 
         for (int j = 0; j < nActivities; j += 1)
         {
-            bool sjChanged = si.at(j).changed;
-            //if (siChanged or sjChanged)
+   	    const bool sjChanged = si.at(j).changed;
+            if (siChanged or sjChanged)
             {
                 int const pj = p.at(j);
                 int const sjMin = si.at(j).min;
@@ -89,7 +86,7 @@ void Cumulative::propagate()
     calcIntervals();
 
     auto const nIntervals = intervals.size();
-    for (auto j = 0; j < nIntervals; j +=1)
+    for (std::size_t j = 0; j < nIntervals; j +=1)
     {
         int const t1 = intervals.at(j).t1;
         int const t2 = intervals.at(j).t2;
