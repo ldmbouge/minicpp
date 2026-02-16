@@ -64,6 +64,11 @@ void CumulativeGPU::propagate()
     initStartIntervals(nActivities, s.data(), si_h);
 
     // Propagation
+    // ----------------------------------------------------------------------
+    // We should normally call propagateBase. But it's slow to have CUDA do all
+    // these kernel transfers each time. So, instead, use the macro propagate_low_latency
+    // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
+    // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
     //propagateBase();
     cudaGraphLaunch(propagate_low_latency, cu_stream);
     cudaStreamSynchronize(cu_stream);
@@ -85,17 +90,40 @@ void CumulativeGPU::propagate()
 
 void CumulativeGPU::propagateBase()
 {
-    using namespace Fca;
-    cudaMemcpyAsync(si_d, si_h, Array<StartInterval>::getDataSize(s.size()), cudaMemcpyDefault, cu_stream);
-    resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
-    calcIntervalsKernel<<<sm_count, CUMULATIVE_BLOCK_SIZE, 0, cu_stream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
-    resetConsistencyKernel<<<1,1,0,cu_stream>>>(isConsistent_d);
-    updateBoundsKernel<<<sm_count, CUMULATIVE_BLOCK_SIZE, 0, cu_stream>>>(nActivities, h_d, p_d, c, nIntervals_d, i_d, si_d, isConsistent_d);
-    cudaMemcpyAsync(allocator_h->getMemory(), allocator_d->getMemory(), allocator_h->getUsedMemorySize(), cudaMemcpyDefault, cu_stream);
+  // This is the actual propagation recipe
+  // Note how it
+  // 1. transfer the data to the GPU memory
+  // 2. Run 4 distinct kernels back to back
+  // 3. Retrieve the results by copying memory back from GPU to host.
+  // FUNKY naming conventions
+  // xxx_d :: it's a variable xxx that is meant to be used on the device (GPU)
+  // xxx_h :: it's a variable xxx that is meant to be used on the HOST (CPU)
+  using namespace Fca;
+  cudaMemcpyAsync(si_d, si_h, Array<StartInterval>::getDataSize(s.size()), cudaMemcpyDefault, cu_stream);
+  resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
+  calcIntervalsKernel<<<sm_count, CUMULATIVE_BLOCK_SIZE, 0, cu_stream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
+  resetConsistencyKernel<<<1,1,0,cu_stream>>>(isConsistent_d);
+  updateBoundsKernel<<<sm_count, CUMULATIVE_BLOCK_SIZE, 0, cu_stream>>>(nActivities,
+									h_d, p_d, c,
+									nIntervals_d,
+									i_d,
+									si_d,
+									isConsistent_d);
+  cudaMemcpyAsync(allocator_h->getMemory(),
+		  allocator_d->getMemory(),
+		  allocator_h->getUsedMemorySize(),
+		  cudaMemcpyDefault, cu_stream);
 }
 
 void CumulativeGPU::initPropagateLowLatency()
 {
+  // Setup of the CUDA logic to _record_ the dependency graph between kernels to reuse it (faster)
+  // at each invocation of the top-level propagation
+  // 1. Begin the capture
+  // 2. Run the logic of the propagator (sending the kernels one by one)
+  // 3. End the capture
+  // 4. Ask CUDA to create a C callable (a macro kernel / function) that encodes the computation that was just recorded
+  // --> It goes into propagate_low_latency
     cudaStreamBeginCapture(cu_stream, cudaStreamCaptureModeGlobal);
     propagateBase();
     cudaStreamEndCapture(cu_stream, &cu_graph);
@@ -109,7 +137,11 @@ void resetIntervalsKernel(Fca::i32 * nIntervals_d)
 }
 
 __global__
-void calcIntervalsKernel(Fca::i32 nActivities, Cumulative::StartInterval const * si_d, Fca::i32 const * p_d, Fca::i32 * nIntervals_d, Cumulative::Interval * i_d)
+void calcIntervalsKernel(Fca::i32 nActivities,
+			 Cumulative::StartInterval const * si_d,
+			 Fca::i32 const * p_d,
+			 Fca::i32 * nIntervals_d,
+			 Cumulative::Interval * i_d)
 {
     using namespace Fca;
     using namespace Gpu::Utils::Parallel;
@@ -122,7 +154,7 @@ void calcIntervalsKernel(Fca::i32 nActivities, Cumulative::StartInterval const *
         u32 const j = ijIdx % nActivities;
         u32 nGoodIntervals = 0;
         Cumulative::Interval intervalsToTest[MAX_INTERVALS_PER_ACTIVITY_PAIR];
-        //if (s_d[i].changed or s_d[j].changed)
+	if (si_d[i].changed or si_d[j].changed)
         {
             i32 const pi = p_d[i];
             i32 const siMin = si_d[i].min;
@@ -180,8 +212,14 @@ void resetConsistencyKernel(bool * isConsistent_d)
     *isConsistent_d = true;
 }
 
-__global__
-void updateBoundsKernel(Fca::i32 nActivities, Fca::i32 const * h_d, Fca::i32 const * p_d, Fca::i32 c, Fca::i32 * nIntervals_d, Cumulative::Interval const * i_d, Cumulative::StartInterval * si_d, bool * isConsistent_d)
+__global__ void updateBoundsKernel(Fca::i32 nActivities,
+				   Fca::i32 const * h_d,
+				   Fca::i32 const * p_d,
+				   Fca::i32 c,
+				   Fca::i32 * nIntervals_d,
+				   Cumulative::Interval const * i_d,
+				   Cumulative::StartInterval * si_d,
+				   bool * isConsistent_d)
 {
     using namespace Fca;
     using namespace Gpu::Memory;
