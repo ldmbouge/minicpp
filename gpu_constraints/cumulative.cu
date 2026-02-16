@@ -1,7 +1,17 @@
 #include <libfca/Array.hpp>
 #include <libfca/Utils.hpp>
 #include <libgpu/Utils.cuh>
-#include "gpu_constriants/cumulative.cuh"
+#include "gpu_constraints/cumulative.cuh"
+
+__global__ void resetIntervalsKernel(Fca::i32 * nIntervals_d);
+__global__ void calcIntervalsKernel(Fca::i32 nActivities, Cumulative::StartInterval const * si_d, Fca::i32 const * p_d, Fca::i32 * nIntervals_d, Cumulative::Interval * i_d);
+__global__ void resetConsistencyKernel(bool * isConsistent_d);
+__global__ void updateBoundsKernel(Fca::i32 nActivities, Fca::i32 const * h_d,
+				   Fca::i32 const * p_d, Fca::i32 c, Fca::i32 * nIntervals_d,
+				   Cumulative::Interval const * i_d,
+				   Cumulative::StartInterval * si_d,
+				   bool * isConsistent_d);
+
 
 CumulativeGPU::CumulativeGPU(std::vector<var<int>::Ptr> & s, std::vector<int> const & p, std::vector<int> const & h, int c) :
         Cumulative(s,p,h,c)

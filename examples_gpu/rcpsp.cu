@@ -9,7 +9,7 @@
 #include <fmt/base.h>
 #include <fmt/ranges.h>
 
-#include "gpu_constriants/cumulative.cuh"
+#include "gpu_constraints/cumulative.cuh"
 
 int main(int argc,char* argv[])
 {
