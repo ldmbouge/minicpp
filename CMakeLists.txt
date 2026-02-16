@@ -28,13 +28,13 @@ FetchContent_Declare(
         GIT_REPOSITORY https://github.com/nlohmann/json
         GIT_TAG        master
 )
-FetchContent_Declare(
-        fmt
-        GIT_REPOSITORY https://github.com/fmtlib/fmt
-        GIT_TAG        master
-)
+#FetchContent_Declare(
+#        fmt
+#        GIT_REPOSITORY https://github.com/fmtlib/fmt
+#        GIT_TAG        master
+#)
 FetchContent_MakeAvailable(json)
-FetchContent_MakeAvailable(fmt)
+#FetchContent_MakeAvailable(fmt)
 
 
 # experimental
@@ -84,11 +84,11 @@ set(GPU_CONSTR_SRC
 )
 
 set(GLB_CONSTR_SRC
-    global_constraints/cumulative.cpp
+  global_constraints/cumulative.cpp
 )
 
 set(GPU_EXAMPLES
-        gpu_examples/rcpsp.cu
+  gpu_examples/rcpsp.cu
 )
 
 # Auxiliary functions
@@ -165,7 +165,7 @@ if (GPU)
     target_link_libraries(copl PRIVATE CUDA::cudart)
     target_include_directories(copl PRIVATE {CUDAToolkit_INCLUDE_DIRS})
 
-    add_executables("examples_gpu" "*.cu" "copl;nlohmann_json::nlohmann_json;fmt::fmt")
+    add_executables("gpu_examples" "*.cu" "copl;nlohmann_json::nlohmann_json")
 endif()
 
 add_library(fzl
