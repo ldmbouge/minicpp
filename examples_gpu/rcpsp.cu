@@ -64,8 +64,8 @@ int main(int argc,char* argv[])
     // Cumulative resource constraints
     for( int i = 0; i < n_res; i += 1)
     {
-        //cp->post(new (cp) Cumulative(st,d,rr[i],rc[i]));
-        cp->post(new (cp) CumulativeGPU(st,d,rr[i],rc[i]));
+      //cp->post(new (cp) Cumulative(st,d,rr[i],rc[i]));
+	cp->post(new (cp) CumulativeGPU(st,d,rr[i],rc[i]));
     }
 
     // Makespan constraints

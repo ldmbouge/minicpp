@@ -17,6 +17,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 
 # Dependencies
+# 3rd party open-source library to (header only!)
+# 1. Parse JSON Files
+# 2. Formatting of outputs (Will be in the C++ 26 version)
+# In use whether we use the GPU or not.
+# 
 include(FetchContent)
 FetchContent_Declare(
         json
@@ -69,6 +74,9 @@ if(GPU)
     string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 815")
     string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 830")
     string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 997")
+    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 68")
+    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 128")
+    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 2417")
 endif()
 
 set(GPU_CONSTR_SRC
