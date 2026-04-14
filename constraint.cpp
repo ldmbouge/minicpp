@@ -504,6 +504,49 @@ void IsLessOrEqual::post()
    }
 }
 
+void IsLessOrEqualVar::post()
+{
+    _b->propagateOnBind(this);
+    _x->propagateOnBoundChange(this);
+    _y->propagateOnBoundChange(this);
+    propagate();
+}
+
+void IsLessOrEqualVar::propagate()
+{
+    // b -> x,y
+    if (_b->isBound()) {
+        if (_b->isTrue()) {
+            // x <= y
+            _x->removeAbove(_y->max());
+            _y->removeBelow(_x->min());
+            setActive(false);
+        } else {
+            // x > y
+            if (_x->isBound()) {
+                _y->removeAbove(_x->min()-1);
+                setActive(false);
+            }
+            if (_y->isBound()) {
+                _x->removeBelow(_y->max()+1);
+                setActive(false);
+            }
+
+        }
+    } else { // b <- x,y
+        // x <= y
+        if (_x->max() <= _y->min()) {
+            _b->assign(true);
+            setActive(false);
+        }
+        // x > y
+        if (_x->min() > _y->max()) {
+            _b->assign(false);
+            setActive(false);
+        }
+    }
+}
+
 void Sum::post()
 {
    for(auto& var : _x)

@@ -383,8 +383,7 @@ namespace Factory {
     * @param vals the list of values to be included in the domain
     * @return a smart pointer to a solver allocated integer variable.
     */
-   var<int>::Ptr makeIntVar(CPSolver::Ptr cps,std::vector<int> const & vals);
-
+    var<int>::Ptr makeIntVar(CPSolver::Ptr cps, std::vector<int> const & vals);
     std::vector<var<int>::Ptr> makeIntVars(CPSolver::Ptr cps, int sz, int min, int max);
 
     /**

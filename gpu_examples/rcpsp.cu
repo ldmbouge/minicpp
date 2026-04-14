@@ -52,6 +52,24 @@ int main(int argc,char* argv[])
         }
     }
 
+    // Redundant non-overlapping constraints
+    for (int i = 0; i < n_tasks; i += 1)
+    {
+        for (int j = i+1; j < n_tasks; j += 1)
+        {
+            for (int r = 0; r < n_res; r += 1)
+            {
+                if (rr[r][i] + rr[r][j] > rc[r])
+                {
+                    auto ij = isLessOrEqual(st[i]+ d[i], st[j]);
+                    auto ji = isLessOrEqual(st[j]+ d[j], st[i]);
+                    cp->post(new (cp) Clause({ij,ji}));
+                }
+            }
+        }
+    }
+
+
     // Cumulative resource constraints
     for( int i = 0; i < n_res; i += 1)
     {
