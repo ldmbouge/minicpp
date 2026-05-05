@@ -107,7 +107,7 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
     //std::cout << "RECUR\n"; 
     if (branches.size() == 0) {
        nS++;
-       std::cout<< "DFSFail -> sol " << nS << std::endl;
+       //std::cout<< "DFSFail -> sol " << nS << std::endl;
        stats.incrSolutions();
        notifySolution();
     }
@@ -126,11 +126,11 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
                 if (cur != last)
                    stats.incrNodes();
                 //std::cout << "calling alt:" << "\n";
-                alt();
-		//std::cout << "back from alt. Recur" << "\n";
+		alt();
+		//std::cout << "DFS::back from alt. Recur?" << "\n";
                 dfs(stats, limit);
              } ONFAIL {
-	        //std::cout << "GOT A FAIL" << "\n";
+	        std::cout << "DFS::GOT A FAIL" << "\n";
                 stats.incrFailures();
                 notifyFailure();
              }
@@ -139,8 +139,8 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
                 _sm->restoreState();
              }
           } catch(...) {  // the C++ exception catching is to stay compatible with python interfaces. 0-cost for C++
- 	    //std::cout << "IN catch(...)\n"; 
-             stats.incrFailures();
+	    //std::cout << "DFS::IN catch(...)\n"; 
+	     stats.incrFailures();
              notifyFailure();
              _sm->restoreState();
           }

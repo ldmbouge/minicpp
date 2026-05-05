@@ -112,12 +112,12 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__eq__",[](const var<int>::Ptr& a,int b) {
          TRYFAIL {
             auto rv =  Factory::operator==(a,b);
-            std::cout << "Got: ";
-            rv->print(std::cout);
-            std::cout << "\n";
+            //std::cout << "Got: ";
+            //rv->print(std::cout);
+            //std::cout << "\n";
             return rv;
          } ONFAIL {
-            std::cout << "failure in x==" << b << std::endl;
+	    //std::cout << "failure in x==" << b << std::endl;
             throw Failure; // convert longjmp/setjmp back to C++ exception to go through pybind layer
          } ENDFAIL
       },py::is_operator())
@@ -150,18 +150,20 @@ PYBIND11_MODULE(minicpp,m) {
          TRYFAIL {            
             cp->post(c,enforceFixPoint);
          } ONFAIL {
-            std::cout << "failure caught ..." << std::endl;            
+	   //std::cout << "failure caught(1) ..." << std::endl;
+	   throw Failure; // rethrow C++ style to go across the python boundary
          } ENDFAIL         
               }),
          py::arg("c"),
          py::arg("enforceFixPoint")=true,
          "Post the constraint `c` and runs the fixpoint as required.")
       .def("post",static_cast<void(*)(CPSolver::Ptr,ConstraintDesc::Ptr,bool)>([](CPSolver::Ptr cp,ConstraintDesc::Ptr c,bool enforceFixPoint) {
-         std::cout << "post(ConstraintDesc::Ptr) " << c.get() << "\n";
+	//std::cout << "post(ConstraintDesc::Ptr) " << c.get() << "\n";
          TRYFAIL {            
             cp->post(c,enforceFixPoint);
          } ONFAIL {
-            std::cout << "failure caught ..." << std::endl;            
+	    //std::cout << "failure caught(2) ..." << std::endl;
+	    throw Failure; // rethrow C++ style
          } ENDFAIL         
               }),
          py::arg("c"),
