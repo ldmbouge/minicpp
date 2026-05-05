@@ -3,6 +3,10 @@ from minicpp import *
 n  = 6
 sumResult =  n * (n*n + 1)//2
 
+def printSquare(x):
+    for i in range(0,n):
+        print([x[i][j].min for j in range(0,n)])
+
 cp = makeSolver()
 x  = [[makeIntVar(cp,1,n**2) for j in range(0,n)] for i in range(0,n)]
 fx = [var for cols in x for var in cols]
@@ -17,7 +21,7 @@ cp.post(sum([x[n-i-1][i] for i in range(0,n)],sumResult))
 
 print("Starting search...")
 search = DFSearch(cp,firstFail(cp,fx))
-search.onSolution(lambda : print(*x,sep = "\n"))
+search.onSolution(lambda : printSquare(x))
 stat = search.solve(lambda s : s.numberOfSolutions() > 0)
 print(stat)
 

@@ -246,6 +246,7 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("isLessOrEqual",&Factory::isLessOrEqual);
    m.def("isLargerOrEqual",&Factory::isLargerOrEqual);
    
+   m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,int)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,var<int>::Ptr)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<int>::Ptr>&,var<int>::Ptr)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,var<int>::Ptr)>(&Factory::sum));

@@ -13,6 +13,6 @@ for i in range(0,n):
 
 print("Starting search...")
 search = minicpp.DFSearch(cp,minicpp.firstFail(cp,q))
-search.onSolution(lambda : print(q))
+search.onSolution(lambda : print([q[i].min for i in range(0,n)]))
 stat = search.solve()
 print(stat)
