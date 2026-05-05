@@ -253,8 +253,9 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,int)>(&Factory::sum));
    m.def("sum",static_cast<var<int>::Ptr (*)(Factory::Veci&)>(&Factory::sum<Factory::Veci>));
    m.def("sum",static_cast<var<int>::Ptr (*)(std::vector<var<int>::Ptr>&)>(&Factory::sum<std::vector<var<int>::Ptr>>));
-   
-   m.def("allDifferent",&Factory::allDifferent<std::vector<var<int>::Ptr>>);
+
+   m.def("allDifferent",(Constraint::Ptr (*)(const Factory::Veci&))&Factory::allDifferent<Factory::Veci>);   
+   m.def("allDifferent", &Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
    m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
