@@ -25,7 +25,7 @@ set(CMAKE_CXX_FLAGS "-Wall -Wsign-compare")
 #   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 #else()
    set(CMAKE_CXX_FLAGS_DEBUG "-g")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all")  #[[ comment  ]]
+   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -march=native -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 #endif()
 
 message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")

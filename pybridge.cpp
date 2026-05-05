@@ -257,6 +257,8 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("allDifferent",(Constraint::Ptr (*)(const Factory::Veci&))&Factory::allDifferent<Factory::Veci>);   
    m.def("allDifferent", &Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
+
+   m.def("circuit",(Constraint::Ptr (*)(const Factory::Veci&))&Factory::circuit<Factory::Veci>);
    m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
    m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
