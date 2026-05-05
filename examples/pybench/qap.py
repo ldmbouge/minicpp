@@ -10,12 +10,12 @@ with open("../data/qap.txt") as f:
         
 cp = makeSolver()
 x  = intVarArray(cp,n,n)
-
-print(type(x))
 print(x)
+print(type(x))
 
-#cp.post(allDifferent([x[i] for i in range(0,n)]))
-cp.post(allDifferent(x))
+cp.post(allDifferent([x[i] for i in range(0,n)]))
+
+#cp.post(allDifferent(x))
 wDist = [w[i][j] * element(d,x[i],x[j]) for i in range(0,n) for j in range(0,n)]
 
 print(type(wDist))

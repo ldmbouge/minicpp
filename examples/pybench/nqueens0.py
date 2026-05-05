@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 import minicpp
 
-n  = 8
+n  = 12
 cp = minicpp.makeSolver()
 q  = minicpp.intVarArray(cp,n,1,n)
 

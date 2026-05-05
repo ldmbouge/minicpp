@@ -130,7 +130,7 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
 		//std::cout << "DFS::back from alt. Recur?" << "\n";
                 dfs(stats, limit);
              } ONFAIL {
-	        std::cout << "DFS::GOT A FAIL" << "\n";
+ 	       //std::cout << "DFS::GOT A FAIL" << "\n";
                 stats.incrFailures();
                 notifyFailure();
              }

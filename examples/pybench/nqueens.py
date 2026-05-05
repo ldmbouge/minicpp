@@ -1,7 +1,8 @@
 #!/usr/bin/python3
 import minicpp
+#from python import minicpp
 
-n  = 8
+n  = 12
 cp = minicpp.makeSolver()
 q  = minicpp.intVarArray(cp,n,1,n)
 
@@ -24,5 +25,6 @@ def doIt():
         
 search = minicpp.DFSearch(cp,doIt)
 search.onSolution(lambda : print([q[i].min for i in range(0,n)]))
-stat = search.solve(lambda s : s.numberOfSolutions() > 1000)
+#stat = search.solve(lambda s : s.numberOfSolutions() > 1000)
+stat = search.solve()
 print(stat)
