@@ -123,8 +123,8 @@ void PGraph::SCCUtil(B body,int& time,int u, VTag tags[],int st[],int& top)
 
 template <typename B> void PGraph::SCC(B body)
 {
-   VTag tags[_V];
-   int st[_V];
+   VTag* tags = (VTag*)alloca(sizeof(VTag)*_V);
+   int* st = (int*)alloca(sizeof(int)*_V);
    int top = 0,time = 0;
    for (int i = 0; i < _V; i++) 
       tags[i] = {-1,-1,false};

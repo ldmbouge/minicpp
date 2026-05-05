@@ -104,7 +104,7 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
 {
    static int nS = 0;
     Branches branches = _branching();
-    std::cout << "RECUR\n"; 
+    //std::cout << "RECUR\n"; 
     if (branches.size() == 0) {
        nS++;
        std::cout<< "DFSFail -> sol " << nS << std::endl;
@@ -112,34 +112,34 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
        notifySolution();
     }
     else {
-       std::cout << "DFSSearch :: got branches:" << branches.size() << "\n";
+      //std::cout << "DFSSearch :: got branches:" << branches.size() << "\n";
        // if (branches.size() > 1)
        //    stats.incrNodes();
        auto last = std::prev(branches.end()); // for proper counting of choices.
        for(auto cur = branches.begin(); cur != branches.end() and !limit(stats); cur++)
        {
-          std::cout << "IN DFS branch iter:" << std::distance(branches.begin(),cur) << "\n";             
+	  //std::cout << "IN DFS branch iter:" << std::distance(branches.begin(),cur) << "\n";             
           const auto& alt = *cur;
           _sm->saveState();
           try {
              TRYFAIL {
                 if (cur != last)
                    stats.incrNodes();
-                std::cout << "calling alt:" << "\n";
+                //std::cout << "calling alt:" << "\n";
                 alt();
-                std::cout << "back from alt. Recur" << "\n";
+		//std::cout << "back from alt. Recur" << "\n";
                 dfs(stats, limit);
              } ONFAIL {
-                std::cout << "GOT A FAIL" << "\n";
+	        //std::cout << "GOT A FAIL" << "\n";
                 stats.incrFailures();
                 notifyFailure();
              }
              ENDFAIL {
-                std::cout << "END-FAIL" << "\n";
+	        //std::cout << "END-FAIL" << "\n";
                 _sm->restoreState();
              }
           } catch(...) {  // the C++ exception catching is to stay compatible with python interfaces. 0-cost for C++
-             std::cout << "IN catch(...)\n"; 
+ 	    //std::cout << "IN catch(...)\n"; 
              stats.incrFailures();
              notifyFailure();
              _sm->restoreState();

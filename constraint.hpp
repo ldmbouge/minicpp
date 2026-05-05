@@ -253,15 +253,22 @@ public:
 class AllDifferentBinary :public Constraint {
    Factory::Veci _x;
 public:
-   template <class Vec> AllDifferentBinary(const Vec& x)
-      : Constraint(x[0]->getSolver()),
-        _x(x.size(),Factory::alloci(x[0]->getStore()))
-   {
-      int i  = 0;
-      for(auto& xi : x)
-         _x[i++] = xi;
+  AllDifferentBinary(const Factory::Veci& x)
+    : Constraint(x[0]->getSolver()),
+      _x(x.size(),Factory::alloci(x[0]->getStore())) {
+    int i  = 0;
+    for(auto& xi : x)
+      _x[i++] = xi;
   }
-   void post() override;
+  template <class Vec> AllDifferentBinary(const Vec& x)
+    : Constraint(x[0]->getSolver()),
+      _x(x.size(),Factory::alloci(x[0]->getStore()))
+   {
+     int i  = 0;
+     for(auto& xi : x)
+       _x[i++] = xi;
+   }
+  void post() override;
 };
 
 class AllDifferentAC : public Constraint {
@@ -481,7 +488,7 @@ namespace Factory
       //auto cp = x->getSolver();
       //x->assign(c);
       //cp->fixpoint();
-      std::cout << "EQcDesc(" << x << "," << c << ")" << "\n";
+      //std::cout << "EQcDesc(" << x << "," << c << ")" << "\n";
       return new (x->getSolver()) EQcDesc(x,c);
    }
    /**
@@ -1014,10 +1021,16 @@ namespace Factory
     * @return a global constraint enforcing \f$\forall i,j \in Range(xs) \mbox{ s.t. } i\neq j : x_i \neq x_j\f$
     * Note: The constraint enforces value consistency
     */
-   template <class Vec> Constraint::Ptr allDifferent(const Vec& xs) {
+
+  template <class Vec> Constraint::Ptr allDifferent(const Vec& xs) {
       return new (xs[0]->getSolver()) AllDifferentBinary(xs);
    }
-   /**
+
+  inline Constraint::Ptr allDifferentv(const Factory::Veci& xs) {
+    return new (xs[0]->getSolver()) AllDifferentBinary(xs);
+  }
+
+  /**
     * Factory function that returns an allDifferent global constraint over the variables in `xs`
     * @param xs a vector of `n` variables
     * @return a global constraint enforcing \f$\forall i,j \in Range(xs) \mbox{ s.t. } i\neq j : x_i \neq x_j\f$
