@@ -35,6 +35,7 @@ private:
   cudaGraph_t cu_graph;   // object to represent a kernel graph
   cudaGraphExec_t propagate_low_latency; // The executable kernel graph
 public:
+  CumulativeGPU(Factory::Veci & sa, std::vector<int> const & p, std::vector<int> const & h, int c);
   CumulativeGPU(std::vector<var<int>::Ptr> & s, std::vector<int> const & p, std::vector<int> const & h, int c);
   void post() override;
   void propagate() override;

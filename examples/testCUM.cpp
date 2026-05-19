@@ -7,6 +7,7 @@
 #include <nlohmann/json.hpp>
 #include "ttable.hpp"
 #include "global_constraints/cumulative.hpp"
+#include "gpu_constraints/cumulative.cuh"
 
 int main(int argc,char* argv[])
 {
@@ -53,9 +54,9 @@ int main(int argc,char* argv[])
     // Cumulative resource constraints
     for( int i = 0; i < n_res; i += 1)
     {
-       //cp->post(new (cp) Cumulative(st,d,rr[i],rc[i]));
-       //cp->post(new (cp) CumulativeGPU(st, d, rr[i], rc[i]));
-       cp->post(new (cp) CumulativeTT(st,d,rr[i],rc[i]));       
+      //cp->post(new (cp) Cumulative(st,d,rr[i],rc[i]));
+      cp->post(new (cp) CumulativeGPU(st, d, rr[i], rc[i]));
+      //cp->post(new (cp) CumulativeTT(st,d,rr[i],rc[i]));       
     }
 
     // Makespan constraints

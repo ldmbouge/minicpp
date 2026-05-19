@@ -16,6 +16,7 @@
 #ifndef __PROFILE_HPP
 #define __PROFILE_HPP
 
+#include <vector>
 #include <handle.hpp>
 #include <iostream>
 

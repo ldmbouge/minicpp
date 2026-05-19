@@ -17,6 +17,7 @@
 #define __TIMETABLE_HPP
 
 #include <handle.hpp>
+#include <vector>
 #include "profile.hpp"
 #include "intvar.hpp"
 #include "acstr.hpp"

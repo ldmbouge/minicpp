@@ -25,7 +25,7 @@ int main(int argc,char* argv[])
 {
     using namespace std;
     using namespace Factory;
-    const int n = 12;
+    const int n = 8;
     CPSolver::Ptr cp  = Factory::makeSolver();
     auto q = Factory::intVarArray(cp,n,1,n);
     cp->post(Factory::allDifferentAC(q));

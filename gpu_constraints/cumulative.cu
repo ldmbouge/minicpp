@@ -13,6 +13,37 @@ __global__ void updateBoundsKernel(Fca::i32 nActivities, Fca::i32 const * h_d,
 				   bool * isConsistent_d);
 
 
+CumulativeGPU::CumulativeGPU(Factory::Veci & sa, std::vector<int> const & p, std::vector<int> const & h, int c)
+  : Cumulative(sa,p,h,c)
+{
+    using namespace std;
+    using namespace Fca;
+    using namespace Gpu::Memory;
+
+    //Constraints
+    setPriority(CLOW);
+
+    // Memory allocation
+    p_d = mallocDevice<i32>(Array<i32>::getDataSize(nActivities));
+    h_d = mallocDevice<i32>(Array<i32>::getDataSize(nActivities));
+    nIntervals_d = mallocDevice<i32>(sizeof(i32));
+    i_d = mallocDevice<Interval>(Array<Interval>::getDataSize(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities));
+    allocator_h = new Gpu::LinearAllocator(mallocHost<void>(INPUT_OUTPUT_MEMORY), INPUT_OUTPUT_MEMORY);
+    allocator_d = new Gpu::LinearAllocator(mallocDevice<void>(INPUT_OUTPUT_MEMORY), INPUT_OUTPUT_MEMORY);
+    isConsistent_h = allocator_h->allocate<bool>(sizeof(bool));
+    si_h = allocator_h->allocate<StartInterval>(Array<StartInterval>::getDataSize(nActivities));
+    isConsistent_d = allocator_d->allocate<bool>(sizeof(bool));
+    si_d = allocator_d->allocate<StartInterval>(Array<StartInterval>::getDataSize(nActivities));
+
+    // CUDA initialization
+    cudaDeviceProp cu_prop;
+    cudaGetDeviceProperties(&cu_prop, 0);
+    sm_count = cu_prop.multiProcessorCount;
+    cudaStreamCreate(&cu_stream);
+    initPropagateLowLatency();
+}
+
+
 CumulativeGPU::CumulativeGPU(std::vector<var<int>::Ptr> & s, std::vector<int> const & p, std::vector<int> const & h, int c) :
         Cumulative(s,p,h,c)
 {

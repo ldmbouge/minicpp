@@ -16,6 +16,7 @@
 #include <limits>
 #include "profile.hpp"
 #include <assert.h>
+#include <algorithm>
 
 Profile::Profile(const std::vector<Rectangle> &ar) {
     _profile = new Rectangle[ar.size() * 2 + 2];

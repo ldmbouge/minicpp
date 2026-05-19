@@ -30,6 +30,8 @@ void MaximumMatching::setup() {
    for(auto k=0u;k < _x.size();k++) _match[k] = INT32_MIN;
    _varSeen = new (_store) int[_x.size()];
    _valSeen = new (_store) int[_valSize];
+   for(unsigned i=0;i < _x.size();i++) _varSeen[i] =  -1 ;
+   for(int i=0;i < _valSize;i++) _valSeen[i] =  -1 ;
    findInitialMatching();
 }
 
