@@ -1,10 +1,21 @@
 
 #include "cumulative.hpp"
 
+Cumulative::Cumulative(Factory::Veci &sa,
+                       std::vector<int> const &p,
+                       std::vector<int> const &h, int c)
+   : Constraint(sa[0]->getSolver()), nActivities(sa.size()), c(c), si(sa.size()),
+     p(p), h(h)
+{
+   for (auto& v : sa)
+      s.push_back(v);
+   setPriority(CLOW);
+}  
+
 Cumulative::Cumulative(std::vector<var<int>::Ptr> & s, std::vector<int> const & p, std::vector<int> const & h, int c)
   : Constraint(s[0]->getSolver()), nActivities(s.size()), c(c), s(s),si(s.size()), p(p), h(h)
 {
-  setPriority(CLOW);
+   setPriority(CLOW);
 }
 
 void Cumulative::post()

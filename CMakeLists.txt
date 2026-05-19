@@ -157,6 +157,8 @@ add_library(copl
     tracer.cpp
 	trail.cpp
 	trailable.cpp
+    profile.cpp
+    ttable.cpp
     ${GLB_CONSTR_SRC}
 )
 
@@ -197,7 +199,7 @@ foreach (file ${files})
 	get_filename_component(dir ${file} DIRECTORY)
 	message("BASE IS: [${base}]")
 	add_executable(${base} ${dir}/${base}.cpp)
-	target_link_libraries(${base} copl)
+	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json") # copl)
 	add_dependencies(${base} copl)
 endforeach()
 
