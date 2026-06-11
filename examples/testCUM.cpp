@@ -5,15 +5,12 @@
 #include "constraint.hpp"
 #include "search.hpp"
 #include <nlohmann/json.hpp>
-#include "ttable.hpp"
-#include "global_constraints/cumulative.hpp"
-#include "gpu_constraints/cumulative.cuh"
+#include "scheduling.hpp"
 
 int main(int argc,char* argv[])
 {
     using namespace std;
     using namespace Factory;
-
     using json = nlohmann::json;
 
     // Model based on https://github.com/MiniZinc/minizinc-benchmarks/blob/master/rcpsp/rcpsp.mzn
@@ -44,44 +41,29 @@ int main(int argc,char* argv[])
 
     // Precedence constraints
     for (int i = 0; i < n_tasks; i += 1)
-    {
-        for (auto const & j : suc[i])
-        {
-            cp->post(st[i] + d[i]<= st[j]);
-        }
-    }
+       for (auto const & j : suc[i])
+          cp->post(st[i] + d[i]<= st[j]);
 
     // Cumulative resource constraints
     for( int i = 0; i < n_res; i += 1)
-    {
-      //cp->post(new (cp) Cumulative(st,d,rr[i],rc[i]));
-      cp->post(new (cp) CumulativeGPU(st, d, rr[i], rc[i]));
-      //cp->post(new (cp) CumulativeTT(st,d,rr[i],rc[i]));       
-    }
+       cp->post(cumulativeEN(st,d,rr[i],rc[i],GPU));          
 
     // Makespan constraints
     for (int i = 0; i < n_tasks; i += 1)
-    {
        if (suc[i].empty())
-       {
-           cp->post(st[i] + d[i] <= makespan);
-       }
-    }
+          cp->post(st[i] + d[i] <= makespan);
 
+    auto vars = st;
+    vars.push_back(makespan);
     // Search
-    DFSearch search(cp,[&cp,&st,&makespan]() {
-
+    DFSearch search(cp,[&cp,&vars]() {
         // Variable selection
-        auto const isNotBounded = [](const auto & x) {return x->size() > 1;};
-        auto const smallestValue = [](const auto & x) {return x->min();};
-        auto vars = st;
-        vars.push_back(makespan);
-        auto const var = selectMin(vars,isNotBounded, smallestValue);
-
-        if (var)
-        {
-            // Value selection
-            int const val = smallestValue(var);
+        auto const var = selectMin(vars,
+                                   [](const auto &x) { return x->size() > 1; },
+                                   [](const auto &x) { return x->min(); }
+                                   );
+        if (var) { // Value selection
+            int const val = var->min();
             std::vector<function<void(void)>> br;
             br.push_back([cp,var,val] { return cp->post(var == val);});
             br.push_back([cp,var,val] { return cp->post(var != val);});
