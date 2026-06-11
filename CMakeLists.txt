@@ -15,6 +15,9 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
+# GPU support
+option(GPU "Enable GPU support" OFF)
+message(STATUS "GPU support: ${GPU}")
 
 # Dependencies
 # 3rd party open-source library to (header only!)
@@ -46,17 +49,15 @@ set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unus
 #   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
 #   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 #else()
-   set(CMAKE_CXX_FLAGS_DEBUG "-g")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
+   set(CMAKE_CXX_FLAGS_DEBUG "-g -DGPU=${GPU}")
+   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPU=${GPU}")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
 #endif()
 
 message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
 message("Build: ${CMAKE_BUILD_TYPE}")
 
-# GPU support
-option(GPU "Enable GPU support" OFF)
-message(STATUS "GPU support: ${GPU}")
 if(GPU)
+    set(CMAKE_CXX_EXTENSIONS OFF)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
 

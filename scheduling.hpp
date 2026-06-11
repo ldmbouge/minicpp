@@ -3,7 +3,8 @@
 
 #include "ttable.hpp"
 #include "global_constraints/cumulative.hpp"
-#ifdef __CUDACC__
+#if GPU==on
+#pragma message("Compiling with CUDA...")
 #include "gpu_constraints/cumulative.cuh"
 #endif
 
@@ -18,8 +19,8 @@ namespace Factory {
         case CPU:
            return new Cumulative(s,p,h,c);
         case GPU:         
-#ifdef __CUDACC__
-          return new CumulativeCPU(s, p, h, c);
+#if GPU==on
+          return new CumulativeGPU(s, p, h, c);
 #else
           std::cerr << "Warning: this code was not compiled for NVIDIA libs. Falling back on energetic on CPU.\n";
           return new Cumulative(s, p, h, c);
