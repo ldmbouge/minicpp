@@ -1,55 +1,39 @@
-#include <iostream>
-#include <fstream>
-#include "solver.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
-#include <nlohmann/json.hpp>
 #include "scheduling.hpp"
+#include <nlohmann/json.hpp>
 
 int main(int argc,char* argv[])
 {
     using namespace std;
     using namespace Factory;
     using json = nlohmann::json;
-
-    // Model based on https://github.com/MiniZinc/minizinc-benchmarks/blob/master/rcpsp/rcpsp.mzn
-
     ifstream f(argv[1]);
     auto const data = json::parse(f);
-    // cout << data.dump() << std::endl;
-
     // Resources
-    int const n_res = data["n_res"];    // The number of resources
+    int const nRes = data["n_res"];    // The number of resources
     vector<int> const rc = data["rc"];  // The resource capabilities
-
     // Tasks
-    int const n_tasks = data["n_tasks"];         // The number of tasks
+    int const nTasks = data["n_tasks"];         // The number of tasks
     vector<int> const d = data["d"];             // The task durations
     vector<vector<int>> const rr = data["rr"];   // The resource requirements
     vector<vector<int>> const suc = data["suc"]; // The task successors
-
     // Planning horizon
-    int const t_max = std::accumulate(d.begin(), d.end(), 0); // End time of the planning horizon
-    int const est = 0;                                                    // Earliest starting time
-    int const lst = t_max - 1;                                            // Latest starting time
-
+    int const tMax = std::accumulate(d.begin(), d.end(), 0); // End time of the planning horizon
     // Variables
     auto cp = makeSolver();
-    auto st = intVarArray(cp,n_tasks,est,lst);  // The tasks start time
-    auto makespan = makeIntVar(cp,0,t_max);                            // The project duration
+    auto st = intVarArray(cp,nTasks,0,tMax - 1);  // The tasks start time
+    auto makespan = makeIntVar(cp,0,tMax);        // The project duration
 
     // Precedence constraints
-    for (int i = 0; i < n_tasks; i += 1)
+    for (int i = 0; i < nTasks; i += 1)
        for (auto const & j : suc[i])
           cp->post(st[i] + d[i]<= st[j]);
 
     // Cumulative resource constraints
-    for( int i = 0; i < n_res; i += 1)
+    for( int i = 0; i < nRes; i += 1)
        cp->post(cumulativeEN(st,d,rr[i],rc[i],GPU));          
 
     // Makespan constraints
-    for (int i = 0; i < n_tasks; i += 1)
+    for (int i = 0; i < nTasks; i += 1)
        if (suc[i].empty())
           cp->post(st[i] + d[i] <= makespan);
 
@@ -60,7 +44,7 @@ int main(int argc,char* argv[])
         // Variable selection
         auto const var = selectMin(vars,
                                    [](const auto &x) { return x->size() > 1; },
-                                   [](const auto &x) { return x->min(); }
+                                   [](const auto &x) { return x->size(); }
                                    );
         if (var) { // Value selection
             int const val = var->min();

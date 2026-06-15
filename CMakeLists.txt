@@ -49,8 +49,14 @@ set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unus
 #   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
 #   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 #else()
-   set(CMAKE_CXX_FLAGS_DEBUG "-g -DGPU=${GPU}")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPU=${GPU}")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
+if(GPU)
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -DGPU=1")
+  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPUON=1")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
+else()
+  set(CMAKE_CXX_FLAGS_DEBUG "-g -DGPU=0")
+   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPUON=0")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
+endif()
+  
 #endif()
 
 message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
