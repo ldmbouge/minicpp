@@ -18,7 +18,7 @@
 namespace Factory {
    enum CDevice { CPU, GPU };
 
-   inline Constraint::Ptr cumulativeEN(Factory::Veci &s,
+   inline Constraint::Ptr cumulativeER(Factory::Veci &s,
                                        std::vector<int> const &p,
                                        std::vector<int> const &h, int c,
                                        enum CDevice dev = CPU) {

@@ -26,6 +26,7 @@
 #include <unordered_map>
 #include <bitset>
 #include <utility>
+#include <type_traits>
 #if defined(__x86_64__)
 #include <xmmintrin.h>
 #endif
