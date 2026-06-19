@@ -29,6 +29,16 @@ int main(int argc,char* argv[])
        for (auto const & j : suc[i])
           cp->post(st[i] + d[i]<= st[j]);
 
+    for (int i = 0; i < nTasks; i += 1)
+      for (int j = i+1; j < nTasks; j += 1)
+	for (int r = 0; r < nRes; r += 1)
+	  if (rr[r][i] + rr[r][j] > rc[r]) {
+	    auto ij = isLessOrEqual(st[i]+ d[i], st[j]);
+	    auto ji = isLessOrEqual(st[j]+ d[j], st[i]);
+	    cp->post(clause({ij,ji}));
+	  }
+
+    
     // Cumulative resource constraints
     for( int i = 0; i < nRes; i += 1) {
       cp->post(cumulativeER(st,d,rr[i],rc[i],CDevice::GPU));

@@ -988,6 +988,9 @@ namespace Factory
    template <class Vec> Constraint::Ptr clause(const Vec& xs) {
       return new (xs[0]->getSolver()) Clause(xs);
    }
+   inline Constraint::Ptr clause(std::initializer_list<var<bool>::Ptr> init) {
+     return new ((*init.begin())->getSolver()) Clause(init);    
+   }
    /**
     * Factory reification function that returns a constraint requiring `b` to be true if the clause over `xs` is true
     * @param b a Boolean variable

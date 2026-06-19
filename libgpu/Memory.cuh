@@ -7,6 +7,9 @@
 
 #include <cuda_runtime_api.h>
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+
 namespace Gpu::Memory
 {
     uint32_t static const DefaultAlign{8}; // 64-bit aligned
@@ -49,3 +52,5 @@ namespace Gpu::Memory
         return reinterpret_cast<T *>(memory);
     }
 }
+
+#pragma GCC diagnostic pop

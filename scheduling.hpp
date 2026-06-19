@@ -11,7 +11,6 @@
 #include "ttable.hpp"
 #include "global_constraints/cumulative.hpp"
 #if GPUON==1
-#pragma message("Compiling with CUDA...")
 #include "gpu_constraints/cumulative.cuh"
 #endif
 
