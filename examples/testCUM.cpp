@@ -44,7 +44,7 @@ int main(int argc,char* argv[])
         // Variable selection
         auto const var = selectMin(vars,
                                    [](const auto &x) { return x->size() > 1; },
-                                   [](const auto &x) { return x->size(); }
+                                   [](const auto &x) { return x->min(); }
                                    );
         if (var) { // Value selection
             int const val = var->min();
