@@ -21,6 +21,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <concepts>
+#include <type_traits>
 
 //#define TRACE(...) __VA_ARGS__
 #define TRACE(...)
@@ -76,15 +78,21 @@ inline void printError(std::string const & error)
     std::cerr << "% [ERROR] " << error << std::endl;
 }
 
-template<typename T>
-void printVector(std::ostream& os, std::vector<T>& vector)
+template<typename C>
+void printVector(std::ostream& os,const C& vector)
 {
-    if (not vector.empty())
-    {
-        os << vector[0];
+    if (vector.size() > 0) {
+        os << '[' << vector[0];
         for (size_t i = 1; i < vector.size(); i += 1)
-        {
             os << "," << vector[i];
-        };
-    }
+        os << ']';        
+    } else os << "[]";
 }
+
+template<typename T>
+std::ostream& operator<<(std::ostream& os,const std::vector<T>& vector)
+{
+    printVector(os,vector);
+    return os;
+}
+

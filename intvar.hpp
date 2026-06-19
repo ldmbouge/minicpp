@@ -470,6 +470,12 @@ namespace Factory {
     * references to variables obtained some other way.
     */   
    Veci intVarArray(CPSolver::Ptr cps,int sz);
+
+   inline Veci operator<<(const Veci&a, const typename Veci::value_type& c) {
+        Veci b(a.size(),(alloci(c->getStore())));
+        b.push_back(c);
+        return b;        
+    }
    /**
     * Factory method. Allocates an array of Boolean variables to be used on the solver
     * @param cps the owner of the array
@@ -477,7 +483,7 @@ namespace Factory {
     * @param createVar tells the factory method to fill the array with nullptr references
     * (`createVar` is false) or with actual fresh Boolean variables (`createVar` is true).
     * @return a subclass of std::vector<T> holding `var<bool>::Ptr` instances.
-    */   
+    */
    Vecb boolVarArray(CPSolver::Ptr cps,int sz,bool createVar = true);
    /**
     * Factory method. Allocates an array of integer variables of the specified size and
@@ -553,5 +559,14 @@ void printVar(var<int>* x);
  * @param x a handle pointer to a `var<int>`, i.e., a `var<int>::Ptr`
  */ 
 void printVar(var<int>::Ptr x);
+
+inline auto valueOf(const Factory::Veci& v) {
+    std::vector<int> r;
+    r.reserve(v.size());
+    for(const auto& vi : v)
+        r.push_back(vi->min());
+    return r;
+}
+
 
 #endif

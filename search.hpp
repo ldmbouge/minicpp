@@ -253,7 +253,7 @@ typename Container::value_type selectFirst(const Container& c,Predicate test)
 }
 
 
-template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,Container& c) {
+template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,const Container& c) {
    using namespace Factory;
    return [=]() {
       auto sx = selectMin(c,
@@ -267,7 +267,21 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
    };
 }
 
-template<class Container,typename Predicate, typename Fun>
+template <class Container> std::function<Branches(void)> smallest(CPSolver::Ptr cp,const Container& c) {
+   using namespace Factory;
+   return [=]() {
+      auto sx = selectMin(c,
+                          [](const auto& x) { return x->size() > 1;},
+                          [](const auto& x) { return x->min();});
+      if (sx) {
+         int v = sx->min();
+         return [cp,sx,v] { return cp->post(sx == v);}
+            |  [cp,sx,v] { return cp->post(sx != v);};
+      } else return Branches({});
+   };
+}
+
+template <class Container,typename Predicate, typename Fun>
 typename Container::value_type selectMax(const Container& c,Predicate test, Fun f,
                                          typename Container::value_type def = typename Container::value_type())
 {

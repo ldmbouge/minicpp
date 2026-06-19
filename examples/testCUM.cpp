@@ -1,6 +1,7 @@
 #include "scheduling.hpp"
+#include "utils.hpp"
 #include <nlohmann/json.hpp>
-
+ 
 int main(int argc,char* argv[])
 {
     using namespace std;
@@ -30,7 +31,7 @@ int main(int argc,char* argv[])
 
     // Cumulative resource constraints
     for( int i = 0; i < nRes; i += 1)
-       cp->post(cumulativeEN(st,d,rr[i],rc[i],GPU));          
+       cp->post(cumulativeER(st,d,rr[i],rc[i],GPU));          
 
     // Makespan constraints
     for (int i = 0; i < nTasks; i += 1)
@@ -40,37 +41,14 @@ int main(int argc,char* argv[])
     auto vars = st;
     vars.push_back(makespan);
     // Search
-    DFSearch search(cp,[&cp,&vars]() {
-        // Variable selection
-        auto const var = selectMin(vars,
-                                   [](const auto &x) { return x->size() > 1; },
-                                   [](const auto &x) { return x->min(); }
-                                   );
-        if (var) { // Value selection
-            int const val = var->min();
-            std::vector<function<void(void)>> br;
-            br.push_back([cp,var,val] { return cp->post(var == val);});
-            br.push_back([cp,var,val] { return cp->post(var != val);});
-            return Branches(br);
-        }
-        else
-            return Branches({});
-    });
-
+    DFSearch search(cp,smallest(cp,vars));
     search.onSolution([&st,&makespan]() {
-      std::cout << "Makespan = " << makespan->min() << "\n";
-      std::cout << "Starting Times = [";
-      for (auto i = 0u; i < st.size(); i += 1) {
-         if (i!= 0) std::cout << ',';
-         std::cout << st[i]->min();
-      }
-      std::cout << "]" << "\n";
-      std::cout << "---" << "\n";
+        std::cout << "Makespan = " << makespan->min()
+                  << "\nStarting Times = " << valueOf(st) << "\n---" << "\n";
     });
 
     auto obj = minimize(makespan);
     auto stat = search.optimize(obj);
     cout << stat << endl;
-
     return 0;
 }
