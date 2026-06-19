@@ -30,8 +30,10 @@ int main(int argc,char* argv[])
           cp->post(st[i] + d[i]<= st[j]);
 
     // Cumulative resource constraints
-    for( int i = 0; i < nRes; i += 1)
-       cp->post(cumulativeER(st,d,rr[i],rc[i],GPU));          
+    for( int i = 0; i < nRes; i += 1) {
+      cp->post(cumulativeER(st,d,rr[i],rc[i],CDevice::GPU));
+      //cp->post(cumulativeTT(st,d,rr[i],rc[i],CDevice::CPU));
+    }
 
     // Makespan constraints
     for (int i = 0; i < nTasks; i += 1)
