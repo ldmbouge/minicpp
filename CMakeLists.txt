@@ -20,25 +20,23 @@ option(GPU "Enable GPU support" OFF)
 message(STATUS "GPU support: ${GPU}")
 
 # Dependencies
-# 3rd party open-source library to (header only!)
-# 1. Parse JSON Files
-# 2. Formatting of outputs (Will be in the C++ 26 version)
-# In use whether we use the GPU or not.
-# 
+# Third party open-source library for:
+# - JSON files parsing (header only)
+# - Command line parsing (header only)
 include(FetchContent)
 FetchContent_Declare(
         json
         GIT_REPOSITORY https://github.com/nlohmann/json
-        GIT_TAG        master
+        GIT_TAG        v3.12.0
+        GIT_SHALLOW    TRUE
 )
-#FetchContent_Declare(
-#        fmt
-#        GIT_REPOSITORY https://github.com/fmtlib/fmt
-#        GIT_TAG        master
-#)
-FetchContent_MakeAvailable(json)
-#FetchContent_MakeAvailable(fmt)
-
+FetchContent_Declare(
+        cli11
+        GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
+        GIT_TAG        v2.6.2
+        GIT_SHALLOW    TRUE
+)
+FetchContent_MakeAvailable(json cli11)
 
 # experimental
 #set(CXX /opt/homebrew/Cellar/llvm/18.1.8/bin/clang)
@@ -76,6 +74,7 @@ if(GPU)
     string(APPEND CMAKE_CUDA_FLAGS_RELWITHDEBINFO " -lineinfo")
 
     # Suppress warnings
+    string(APPEND CMAKE_CUDA_FLAGS " -Xnvlink -w") # Suppress linking warning
     string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 177")
     string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 550")
     string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 815")
@@ -92,10 +91,6 @@ set(GPU_CONSTR_SRC
 
 set(GLB_CONSTR_SRC
   global_constraints/cumulative.cpp
-)
-
-set(GPU_EXAMPLES
-  gpu_examples/rcpsp.cu
 )
 
 # Auxiliary functions
@@ -121,7 +116,7 @@ add_library(copl
 	fail.cpp
 	acstr.cpp
 	bitset.cpp
-        commandList.cpp
+    commandList.cpp
 	constraint.cpp
 	domain.cpp
 	fz_constraints/bool_array.cpp
@@ -172,9 +167,7 @@ add_library(copl
 if (GPU)
     target_sources(copl PRIVATE ${GPU_CONSTR_SRC})
     target_link_libraries(copl PRIVATE CUDA::cudart)
-    target_include_directories(copl PRIVATE {CUDAToolkit_INCLUDE_DIRS})
-
-    add_executables("gpu_examples" "*.cu" "copl;nlohmann_json::nlohmann_json")
+    target_include_directories(copl PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 endif()
 
 add_library(fzl
@@ -206,7 +199,7 @@ foreach (file ${files})
 	get_filename_component(dir ${file} DIRECTORY)
 	message("BASE IS: [${base}]")
 	add_executable(${base} ${dir}/${base}.cpp)
-	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json") # copl)
+	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json;CLI11::CLI11") # copl)
 	add_dependencies(${base} copl)
 endforeach()
 

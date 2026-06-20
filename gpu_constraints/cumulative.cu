@@ -20,7 +20,7 @@ CumulativeGPU::CumulativeGPU(Factory::Veci & sa, std::vector<int> const & p, std
     using namespace Fca;
     using namespace Gpu::Memory;
 
-    //Constraints
+    // Constraints
     setPriority(CLOW);
 
     // Memory allocation
