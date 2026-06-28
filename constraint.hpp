@@ -743,7 +743,7 @@ namespace Factory
     */
    inline var<int>::Ptr operator-(var<int>::Ptr x,var<int>::Ptr y) { // x - y
       int min = x->min() - y->max();
-      int max = x->max() - y->max();
+      int max = x->max() - y->min();
       var<int>::Ptr z = makeIntVar(x->getSolver(),min,max);
       x->getSolver()->post(equal(x,z,y));
       return z;
@@ -832,6 +832,15 @@ namespace Factory
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       TRYFAIL
          x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b,x,c));
+      ONFAIL
+      ENDFAIL
+      return b;
+   }
+   inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x, var<int>::Ptr y) {
+      var<bool>::Ptr b = makeBoolVar(x->getSolver());
+      TRYFAIL
+         var<int>::Ptr z = x - y;
+         x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b, z, 0));  // b ⟺ z ≤ 0 ⟺ x ≤ y
       ONFAIL
       ENDFAIL
       return b;
