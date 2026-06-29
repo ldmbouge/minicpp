@@ -220,7 +220,8 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("isEqual",&Factory::isEqual);
    m.def("isLarger",&Factory::isLarger);
    m.def("isLess",&Factory::isLess);
-   m.def("isLessOrEqual",&Factory::isLessOrEqual);
+   m.def("isLessOrEqual",static_cast<var<bool>::Ptr (*)(var<int>::Ptr,var<int>::Ptr)>(&Factory::isLessOrEqual));
+   m.def("isLessOrEqual",static_cast<var<bool>::Ptr (*)(var<int>::Ptr,const int)>(&Factory::isLessOrEqual));
    m.def("isLargerOrEqual",&Factory::isLargerOrEqual);
    
    m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,var<int>::Ptr)>(&Factory::sum));
