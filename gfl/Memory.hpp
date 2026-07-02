@@ -119,7 +119,6 @@ namespace gfl
         checkOrAbort(status == cudaSuccess and memory != nullptr, "cudaReserveDevice failed");
         return scast<T*>(memory);
     }
-
     inline
     void cudaReleaseDevice(void*& memory) noexcept
     {

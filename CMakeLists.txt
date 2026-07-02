@@ -16,8 +16,8 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
 # GPU support
-option(GPU "Enable GPU support" OFF)
-message(STATUS "GPU support: ${GPU}")
+option(ENABLE_GPU "Enable GPU support" OFF)
+message(STATUS "ENABLE_GPU support: ${ENABLE_GPU}")
 
 # Dependencies
 # Third party open-source library for:
@@ -47,7 +47,7 @@ set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unus
 #   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
 #   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
 #else()
-if(GPU)
+if(ENABLE_GPU)
   set(CMAKE_CXX_FLAGS_DEBUG "-g -DGPUON=1")
   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPUON=1")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
 else()
@@ -60,7 +60,7 @@ endif()
 message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
 message("Build: ${CMAKE_BUILD_TYPE}")
 
-if(GPU)
+if(ENABLE_GPU)
     set(CMAKE_CXX_EXTENSIONS OFF)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
@@ -109,7 +109,7 @@ function(add_executables DIR FILTER LIBS)
     message(STATUS ${DIR_MSG})
 endfunction()
 
-include_directories(.)
+include_directories(. gfl)
 
 add_library(copl
 	RuntimeMonitor.cpp
@@ -164,7 +164,7 @@ add_library(copl
     ${GLB_CONSTR_SRC}
 )
 
-if (GPU)
+if (ENABLE_GPU)
     target_sources(copl PRIVATE ${GPU_CONSTR_SRC})
     target_link_libraries(copl PRIVATE CUDA::cudart)
     target_include_directories(copl PRIVATE ${CUDAToolkit_INCLUDE_DIRS})

@@ -1,13 +1,13 @@
-#include <libfca/Array.hpp>
-#include <libfca/Utils.hpp>
-#include <libgpu/Utils.cuh>
+#include "gfl/Array.hpp"
+#include "gfl/Memory.hpp"
+#include "gfl/CudaUtils.hpp"
 #include "gpu_constraints/cumulative.cuh"
 
-__global__ void resetIntervalsKernel(Fca::i32 * nIntervals_d);
-__global__ void calcIntervalsKernel(Fca::i32 nActivities, Cumulative::StartInterval const * si_d, Fca::i32 const * p_d, Fca::i32 * nIntervals_d, Cumulative::Interval * i_d);
+__global__ void resetIntervalsKernel(gfl::i32 * nIntervals_d);
+__global__ void calcIntervalsKernel(gfl::i32 nActivities, Cumulative::StartInterval const * si_d, gfl::i32 const * p_d, gfl::i32 * nIntervals_d, Cumulative::Interval * i_d);
 __global__ void resetConsistencyKernel(bool * isConsistent_d);
-__global__ void updateBoundsKernel(Fca::i32 nActivities, Fca::i32 const * h_d,
-				   Fca::i32 const * p_d, Fca::i32 c, Fca::i32 * nIntervals_d,
+__global__ void updateBoundsKernel(gfl::i32 nActivities, gfl::i32 const * h_d,
+				   gfl::i32 const * p_d, gfl::i32 c, gfl::i32 * nIntervals_d,
 				   Cumulative::Interval const * i_d,
 				   Cumulative::StartInterval * si_d,
 				   bool * isConsistent_d);
@@ -17,23 +17,21 @@ CumulativeGPU::CumulativeGPU(Factory::Veci & sa, std::vector<int> const & p, std
   : Cumulative(sa,p,h,c)
 {
     using namespace std;
-    using namespace Fca;
-    using namespace Gpu::Memory;
-
+    using namespace gfl;
     // Constraints
     setPriority(CLOW);
 
     // Memory allocation
-    p_d = mallocDevice<i32>(Array<i32>::getDataSize(nActivities));
-    h_d = mallocDevice<i32>(Array<i32>::getDataSize(nActivities));
-    nIntervals_d = mallocDevice<i32>(sizeof(i32));
-    i_d = mallocDevice<Interval>(Array<Interval>::getDataSize(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities));
-    allocator_h = new Gpu::LinearAllocator(mallocHost<void>(INPUT_OUTPUT_MEMORY), INPUT_OUTPUT_MEMORY);
-    allocator_d = new Gpu::LinearAllocator(mallocDevice<void>(INPUT_OUTPUT_MEMORY), INPUT_OUTPUT_MEMORY);
+    p_d = cudaReserveDevice<i32>(Array<i32>::dataMemSize(nActivities));
+    h_d = cudaReserveDevice<i32>(Array<i32>::dataMemSize(nActivities));
+    nIntervals_d = cudaReserveDevice<i32>(sizeof(i32));
+    i_d = cudaReserveDevice<Interval>(Array<Interval>::dataMemSize(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities));
+    allocator_h = new gfl::ArenaAllocator(INPUT_OUTPUT_MEMORY,cudaReserveHost<u8>(INPUT_OUTPUT_MEMORY));
+    allocator_d = new gfl::ArenaAllocator(INPUT_OUTPUT_MEMORY,cudaReserveDevice<u8>(INPUT_OUTPUT_MEMORY));
     isConsistent_h = allocator_h->allocate<bool>(sizeof(bool));
-    si_h = allocator_h->allocate<StartInterval>(Array<StartInterval>::getDataSize(nActivities));
+    si_h = allocator_h->allocate<StartInterval>(Array<StartInterval>::dataMemSize(nActivities));
     isConsistent_d = allocator_d->allocate<bool>(sizeof(bool));
-    si_d = allocator_d->allocate<StartInterval>(Array<StartInterval>::getDataSize(nActivities));
+    si_d = allocator_d->allocate<StartInterval>(Array<StartInterval>::dataMemSize(nActivities));
 
     // CUDA initialization
     cudaDeviceProp cu_prop;
@@ -48,23 +46,22 @@ CumulativeGPU::CumulativeGPU(std::vector<var<int>::Ptr> & s, std::vector<int> co
         Cumulative(s,p,h,c)
 {
     using namespace std;
-    using namespace Fca;
-    using namespace Gpu::Memory;
+    using namespace gfl;
 
     //Constraints
     setPriority(CLOW);
 
     // Memory allocation
-    p_d = mallocDevice<i32>(Array<i32>::getDataSize(nActivities));
-    h_d = mallocDevice<i32>(Array<i32>::getDataSize(nActivities));
-    nIntervals_d = mallocDevice<i32>(sizeof(i32));
-    i_d = mallocDevice<Interval>(Array<Interval>::getDataSize(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities));
-    allocator_h = new Gpu::LinearAllocator(mallocHost<void>(INPUT_OUTPUT_MEMORY), INPUT_OUTPUT_MEMORY);
-    allocator_d = new Gpu::LinearAllocator(mallocDevice<void>(INPUT_OUTPUT_MEMORY), INPUT_OUTPUT_MEMORY);
+    p_d = cudaReserveDevice<i32>(Array<i32>::dataMemSize(nActivities));
+    h_d = cudaReserveDevice<i32>(Array<i32>::dataMemSize(nActivities));
+    nIntervals_d = cudaReserveDevice<i32>(sizeof(i32));
+    i_d = cudaReserveDevice<Interval>(Array<Interval>::dataMemSize(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities));
+    allocator_h = new gfl::ArenaAllocator(INPUT_OUTPUT_MEMORY,cudaReserveHost<u8>(INPUT_OUTPUT_MEMORY));
+    allocator_d = new gfl::ArenaAllocator(INPUT_OUTPUT_MEMORY,cudaReserveDevice<u8>(INPUT_OUTPUT_MEMORY));
     isConsistent_h = allocator_h->allocate<bool>(sizeof(bool));
-    si_h = allocator_h->allocate<StartInterval>(Array<StartInterval>::getDataSize(nActivities));
+    si_h = allocator_h->allocate<StartInterval>(Array<StartInterval>::dataMemSize(nActivities));
     isConsistent_d = allocator_d->allocate<bool>(sizeof(bool));
-    si_d = allocator_d->allocate<StartInterval>(Array<StartInterval>::getDataSize(nActivities));
+    si_d = allocator_d->allocate<StartInterval>(Array<StartInterval>::dataMemSize(nActivities));
 
     // CUDA initialization
     cudaDeviceProp cu_prop;
@@ -77,16 +74,15 @@ CumulativeGPU::CumulativeGPU(std::vector<var<int>::Ptr> & s, std::vector<int> co
 void CumulativeGPU::post()
 {
     using namespace std;
-    using namespace Fca;
-
+    using namespace gfl;
     for (auto const & v : s)
     {
         v->propagateOnBoundChange(this);
     }
 
     // Copy constants data on GPU
-    cudaMemcpyAsync(p_d, p.data(), Array<i32>::getDataSize(nActivities), cudaMemcpyDefault, cu_stream);
-    cudaMemcpyAsync(h_d, h.data(), Array<i32>::getDataSize(nActivities), cudaMemcpyDefault, cu_stream);
+    cudaMemcpyAsync(p_d, p.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
+    cudaMemcpyAsync(h_d, h.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
 }
 
 void CumulativeGPU::propagate()
@@ -129,8 +125,8 @@ void CumulativeGPU::propagateBase()
   // FUNKY naming conventions
   // xxx_d :: it's a variable xxx that is meant to be used on the device (GPU)
   // xxx_h :: it's a variable xxx that is meant to be used on the HOST (CPU)
-  using namespace Fca;
-  cudaMemcpyAsync(si_d, si_h, Array<StartInterval>::getDataSize(s.size()), cudaMemcpyDefault, cu_stream);
+  using namespace gfl;
+  cudaMemcpyAsync(si_d, si_h, Array<StartInterval>::dataMemSize(s.size()), cudaMemcpyDefault, cu_stream);
   resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
   calcIntervalsKernel<<<sm_count, CUMULATIVE_BLOCK_SIZE, 0, cu_stream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
   resetConsistencyKernel<<<1,1,0,cu_stream>>>(isConsistent_d);
@@ -140,9 +136,9 @@ void CumulativeGPU::propagateBase()
 									i_d,
 									si_d,
 									isConsistent_d);
-  cudaMemcpyAsync(allocator_h->getMemory(),
-		  allocator_d->getMemory(),
-		  allocator_h->getUsedMemorySize(),
+  cudaMemcpyAsync(allocator_h->mem(),
+		  allocator_d->mem(),
+		  allocator_h->usedSize(),
 		  cudaMemcpyDefault, cu_stream);
 }
 
@@ -162,23 +158,21 @@ void CumulativeGPU::initPropagateLowLatency()
 }
 
 __global__
-void resetIntervalsKernel(Fca::i32 * nIntervals_d)
+void resetIntervalsKernel(gfl::i32 * nIntervals_d)
 {
     *nIntervals_d = 0;
 }
 
 __global__
-void calcIntervalsKernel(Fca::i32 nActivities,
+void calcIntervalsKernel(gfl::i32 nActivities,
 			 Cumulative::StartInterval const * si_d,
-			 Fca::i32 const * p_d,
-			 Fca::i32 * nIntervals_d,
+			 gfl::i32 const * p_d,
+			 gfl::i32 * nIntervals_d,
 			 Cumulative::Interval * i_d)
 {
-    using namespace Fca;
-    using namespace Gpu::Utils::Parallel;
+    using namespace gfl;
 
-    u32 ijBegin, ijEnd;
-    getBeginEnd(&ijBegin, &ijEnd, blockIdx.x, gridDim.x, nActivities * nActivities);
+    auto [ijBegin,ijEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, nActivities * nActivities);
     for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x)
     {
         u32 const i = ijIdx / nActivities;
@@ -243,18 +237,16 @@ void resetConsistencyKernel(bool * isConsistent_d)
     *isConsistent_d = true;
 }
 
-__global__ void updateBoundsKernel(Fca::i32 nActivities,
-				   Fca::i32 const * h_d,
-				   Fca::i32 const * p_d,
-				   Fca::i32 c,
-				   Fca::i32 * nIntervals_d,
+__global__ void updateBoundsKernel(gfl::i32 nActivities,
+				   gfl::i32 const * h_d,
+				   gfl::i32 const * p_d,
+				   gfl::i32 c,
+				   gfl::i32 * nIntervals_d,
 				   Cumulative::Interval const * i_d,
 				   Cumulative::StartInterval * si_d,
 				   bool * isConsistent_d)
 {
-    using namespace Fca;
-    using namespace Gpu::Memory;
-    using namespace Gpu::Utils::Parallel;
+    using namespace gfl;
 
     __shared__ Cumulative::StartInterval si_s[MAX_ACTIVITIES];
 
@@ -266,8 +258,7 @@ __global__ void updateBoundsKernel(Fca::i32 nActivities,
         }
         __syncthreads();
 
-        u32 iBegin, iEnd;
-        getBeginEnd(&iBegin, &iEnd, blockIdx.x, gridDim.x, *nIntervals_d);
+        auto [iBegin,iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, *nIntervals_d);
         for (auto i = iBegin + threadIdx.x; i < iEnd; i += blockDim.x)
         {
             i32 const t1 = i_d[i].t1;

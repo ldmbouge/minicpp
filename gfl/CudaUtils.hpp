@@ -1,9 +1,11 @@
-#pragma once
+#ifndef __CUDAUTILS_H
+#define __CUDAUTILS_H
 
 #include <cassert>
 #include <cstdio>
 #include <type_traits>
 #include <cmath>
+#include <tuple>
 
 #include "Types.hpp"
 #include "FunQual.hpp"
@@ -45,34 +47,7 @@ namespace gfl
         }
     }
 
-    GFL_HOST_DEVICE inline
-    void printMemSize(i64 const size) noexcept
-    {
-        char const* const units[] = {" B", "KB", "MB", "GB"};
-        auto uIdx = 0;
-        auto dSize = static_cast<double>(size);
-        while (dSize >= 1024 and uIdx < 3)
-        {
-            dSize /= 1024.0;
-            uIdx += 1;
-        }
-        printf("%7.2f %s", dSize, units[uIdx]);
-    }
-
     // Math
-    template <typename TIn1, typename TIn2>
-    GFL_HOST_DEVICE constexpr
-    double div(TIn1 const a, TIn2 const b)
-    {
-        static_assert(std::is_integral_v<TIn1>);
-        static_assert(std::is_integral_v<TIn2>);
-        assert(a >= 0);
-        assert(b > 0);
-        auto const _a = static_cast<double>(a);
-        auto const _b = static_cast<double>(b);
-        return _a / _b;
-    }
-
     template <typename TOut, typename TIn1, typename TIn2>
     GFL_HOST_DEVICE constexpr
     TOut roundUpDivPosInt(TIn1 const a, TIn2 const b)
@@ -115,47 +90,6 @@ namespace gfl
         CommonT const _a = static_cast<CommonT>(a);
         CommonT const _b = static_cast<CommonT>(b);
         return static_cast<TOut>(((_a + _b - 1) / _b) * _b);
-    }
-
-    template <typename TOut, typename TIn1, typename TIn2>
-    GFL_HOST_DEVICE constexpr
-    TOut min(TIn1 const a, TIn2 const b)
-    {
-        static_assert(std::is_arithmetic_v<TIn1>);
-        static_assert(std::is_arithmetic_v<TIn2>);
-        static_assert(std::is_arithmetic_v<TOut>);
-        using CommonT = std::common_type_t<TIn1, TIn2>;
-        CommonT const _a = static_cast<CommonT>(a);
-        CommonT const _b = static_cast<CommonT>(b);
-        return static_cast<TOut>( _a < _b ? _a : _b);
-    }
-
-    template <typename TOut, typename TIn1, typename TIn2, typename... TRest>
-    GFL_HOST_DEVICE constexpr TOut min(TIn1 const a, TIn2 const b, TRest const... rest)
-    {
-        TOut const ab = min<TOut>(a, b);
-        return min<TOut>(ab, rest...);
-    }
-
-    template <typename TOut, typename TIn1, typename TIn2>
-    GFL_HOST_DEVICE constexpr
-    TOut max(TIn1 const a, TIn2 const b)
-    {
-        static_assert(std::is_arithmetic_v<TIn1>);
-        static_assert(std::is_arithmetic_v<TIn2>);
-        static_assert(std::is_arithmetic_v<TOut>);
-        using CommonT = std::common_type_t<TIn1, TIn2>;
-        CommonT const _a = static_cast<CommonT>(a);
-        CommonT const _b = static_cast<CommonT>(b);
-        return static_cast<TOut>( _a > _b ? _a : _b);
-    }
-
-    template <typename TOut, typename TIn1, typename TIn2, typename... TRest>
-    GFL_HOST_DEVICE constexpr
-    TOut max(TIn1 const a, TIn2 const b, TRest const... rest)
-    {
-        TOut const ab = max<TOut>(a, b);
-        return max<TOut>(ab, rest...);
     }
 
     template <typename T>
@@ -221,25 +155,15 @@ namespace gfl
     }
 #endif
 
-    // Misc
-    GFL_HOST_DEVICE inline
-    void abort()
-    {
-#ifdef __CUDA_ARCH__
-        __trap();
-#else
-        std::abort();
-#endif
-    }
 
     template<typename T>
     GFL_HOST_DEVICE inline
-    void getBeginEnd(T & begin, T & end, i64 index, i64 workers, i64 jobs) noexcept
+    gfl::tuple<T,T> getBeginEnd(const i64 index, const i64 workers, const i64 jobs) noexcept
     {
         assert(index < workers);
         assert(0 <= workers);
         assert(0 <= jobs);
-
+	T begin,end;
         auto const jobsPerWorker = jobs / workers;
         auto const remainder = jobs % workers;
 
@@ -248,6 +172,7 @@ namespace gfl
 
         begin = index * jobsPerWorker + min<i64>(index, remainder);
         end = begin + jobsPerWorker + extra;
+	return gfl::make_tuple(begin,end);
     }
 
     inline
@@ -288,20 +213,7 @@ namespace gfl
         asm volatile("mov.u32 %0, %laneid;" : "=r"(lIdx));
         return lIdx;
     }
-
-    inline
-    void checkCudaError(cudaError_t err, const char *file, const int line)
-    {
-        if (err != cudaSuccess)
-        {
-            const char * errorStr = NULL;
-            errorStr = cudaGetErrorString(err);
-            fprintf(stderr, "CUDA API error = %04d \"%s\" from %s:%i\n", err, errorStr, file, line);
-            exit(EXIT_FAILURE);
-        }
-    }
-
-#define CHECK_CUDA_ERROR(err) gfl::checkCudaError(err, __FILE__, __LINE__)
-#define CHECK_LAST_CUDA_ERROR() CHECK_CUDA_ERROR(cudaGetLastError())
 #endif
 }
+
+#endif
