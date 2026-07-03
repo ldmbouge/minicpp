@@ -10,7 +10,7 @@
 
 #include "ttable.hpp"
 #include "global_constraints/cumulative.hpp"
-#if GPUON==1
+#if __CUDACC__
 #include "gpu_constraints/cumulative.cuh"
 #endif
 
@@ -24,14 +24,14 @@ namespace Factory {
       switch (dev) {
         case CPU:
            return new Cumulative(s,p,h,c);
-        case GPU:         
-#if GPUON==1
+      case GPU:default:         
+#ifdef __CUDACC__
           return new CumulativeGPU(s, p, h, c);
 #else
           std::cerr << "Warning: this code was not compiled for NVIDIA libs. Falling back on energetic on CPU.\n";
           return new Cumulative(s, p, h, c);
 #endif
-     }           
+     }
    }
 
    inline Constraint::Ptr cumulativeTT(Factory::Veci &start,

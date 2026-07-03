@@ -1,4 +1,5 @@
-#pragma once
+#ifndef __GFLMEMORY_H
+#define __GFLMEMORY_H
 
 #include <sys/mman.h>
 #include <unistd.h>
@@ -47,16 +48,15 @@ namespace gfl
         return scast<T*>(memory);
     }
 
-    inline
-    void heapRelease(void*& memory) noexcept
+    inline void* heapRelease(void* memory) noexcept
     {
         checkOrAbort(memory != nullptr, "heapRelease failed: null pointer");
         std::free(memory);
-        memory = nullptr;
+        return nullptr;
     }
 
     template<typename T>
-    void heapRelease(T*& memory) noexcept { heapRelease(rcast<void*&>(memory)); }
+    void* heapRelease(T* memory) noexcept { return heapRelease(rcast<void*&>(memory)); }
 
     // Virtual memory — reserve once, commit as needed, pointer never moves
 
@@ -80,16 +80,23 @@ namespace gfl
     }
 
     template<typename T>
-    void vmRelease(T*& ptr, i64 const count) noexcept
+    void* vmRelease(T* ptr, i64 const count) noexcept
     {
         checkOrAbort(ptr != nullptr, "vmRelease failed: null pointer");
         checkOrAbort(count > 0, "vmRelease failed: count must be > 0");
         munmap(ptr, sizeof(T) * count);
-        ptr = nullptr;
+        return nullptr;
     }
-
-#ifdef __CUDACC__
-    // CUDA
+  
+  template<typename T = u8>
+  T* cudaReserveDevice(i64 const count) noexcept
+  {
+    checkOrAbort(count > 0, "cudaReserveDevice failed: count must be > 0");
+    void* memory = nullptr;
+    cudaError_t const status = cudaMalloc(&memory, sizeof(T) * count);
+    checkOrAbort(status == cudaSuccess and memory != nullptr, "cudaReserveDevice failed");
+    return scast<T*>(memory);
+    }
 
     template<typename T = u8>
     T* cudaReserveHost(i64 const count) noexcept
@@ -100,16 +107,19 @@ namespace gfl
         checkOrAbort(status == cudaSuccess and memory != nullptr, "cudaReserveHost failed");
         return scast<T*>(memory);
     }
+  
+#ifdef __CUDACC__
+    // CUDA
 
     inline
-    void cudaReleaseHost(void*& memory) noexcept
+    void* cudaReleaseHost(void* memory) noexcept
     {
         checkOrAbort(memory != nullptr, "cudaReleaseHost failed: null pointer");
         cudaError_t const status = cudaFreeHost(memory);
         checkOrAbort(status == cudaSuccess, "cudaReleaseHost failed");
-        memory = nullptr;
+        return nullptr;
     }
-
+  /*
     template<typename T = u8>
     T* cudaReserveDevice(i64 const count) noexcept
     {
@@ -118,14 +128,14 @@ namespace gfl
         cudaError_t const status = cudaMalloc(&memory, sizeof(T) * count);
         checkOrAbort(status == cudaSuccess and memory != nullptr, "cudaReserveDevice failed");
         return scast<T*>(memory);
-    }
+	}*/
     inline
-    void cudaReleaseDevice(void*& memory) noexcept
+    void* cudaReleaseDevice(void* memory) noexcept
     {
         checkOrAbort(memory != nullptr, "cudaReleaseDevice failed: null pointer");
         cudaError_t const status = cudaFree(memory);
         checkOrAbort(status == cudaSuccess, "cudaReleaseDevice failed");
-        memory = nullptr;
+        return nullptr;
     }
 
     template<typename T = u8>
@@ -139,12 +149,14 @@ namespace gfl
     }
 
     inline
-    void cudaReleaseManaged(void*& memory) noexcept
+    void* cudaReleaseManaged(void* memory) noexcept
     {
         checkOrAbort(memory != nullptr, "cudaReleaseManaged failed: null pointer");
         cudaError_t const status = cudaFree(memory);
         checkOrAbort(status == cudaSuccess, "cudaReleaseManaged failed");
-        memory = nullptr;
+        return nullptr;
     }
 #endif
 }
+
+#endif

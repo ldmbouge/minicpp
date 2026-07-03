@@ -189,6 +189,8 @@ add_library(fzl
 #This is the full list of exapmles for miniCPP		
 ################################################################################
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
+file(GLOB GPUfiles "examples/*.cu")
+
 #file(GLOB files "examples/tutorial/*.cpp" "examples/mdd/amongNurse.cpp" "examples/mdd/amongNurse2.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/fz.cpp")
@@ -199,6 +201,15 @@ foreach (file ${files})
 	get_filename_component(dir ${file} DIRECTORY)
 	message("BASE IS: [${base}]")
 	add_executable(${base} ${dir}/${base}.cpp)
+	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json;CLI11::CLI11") # copl)
+	add_dependencies(${base} copl)
+endforeach()
+
+foreach (file ${GPUfiles})
+	get_filename_component(base ${file} NAME_WE)
+	get_filename_component(dir ${file} DIRECTORY)
+	message("BASE IS: [${base}]")
+	add_executable(${base} ${dir}/${base}.cu)
 	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json;CLI11::CLI11") # copl)
 	add_dependencies(${base} copl)
 endforeach()

@@ -31,10 +31,19 @@ protected:
   std::vector<Interval> intervals;
 
 public:
-  Cumulative(Factory::Veci &s, std::vector<int> const &p,
-             std::vector<int> const &h, int c);
-  Cumulative(std::vector<var<int>::Ptr> &s, std::vector<int> const &p,
-             std::vector<int> const &h, int c);
+  template <typename Container>
+  Cumulative(Container& sa,
+	     std::vector<int> const &p,
+             std::vector<int> const &h, int c)
+    : Constraint(sa[0]->getSolver()),
+      nActivities(sa.size()),
+      c(c), si(sa.size()),
+      p(p), h(h)
+  {
+    for (auto& v : sa)
+      s.push_back(v);
+    setPriority(CLOW); 
+  }
   void post() override;
   void propagate() override;
 

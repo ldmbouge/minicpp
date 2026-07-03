@@ -1,6 +1,6 @@
 
 #include "cumulative.hpp"
-
+/*
 Cumulative::Cumulative(Factory::Veci &sa,
                        std::vector<int> const &p,
                        std::vector<int> const &h, int c)
@@ -17,6 +17,7 @@ Cumulative::Cumulative(std::vector<var<int>::Ptr> & s, std::vector<int> const & 
 {
    setPriority(CLOW);
 }
+*/
 
 void Cumulative::post()
 {

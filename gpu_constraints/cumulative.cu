@@ -13,72 +13,41 @@ __global__ void updateBoundsKernel(gfl::i32 nActivities, gfl::i32 const * h_d,
 				   bool * isConsistent_d);
 
 
-CumulativeGPU::CumulativeGPU(Factory::Veci & sa, std::vector<int> const & p, std::vector<int> const & h, int c)
-  : Cumulative(sa,p,h,c)
+void CumulativeGPU::init()
 {
     using namespace std;
     using namespace gfl;
     // Constraints
+    std::cout << "CumulativeGPU::init\n";
     setPriority(CLOW);
-
     // Memory allocation
-    p_d = cudaReserveDevice<i32>(Array<i32>::dataMemSize(nActivities));
-    h_d = cudaReserveDevice<i32>(Array<i32>::dataMemSize(nActivities));
-    nIntervals_d = cudaReserveDevice<i32>(sizeof(i32));
-    i_d = cudaReserveDevice<Interval>(Array<Interval>::dataMemSize(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities));
-    allocator_h = new gfl::ArenaAllocator(INPUT_OUTPUT_MEMORY,cudaReserveHost<u8>(INPUT_OUTPUT_MEMORY));
-    allocator_d = new gfl::ArenaAllocator(INPUT_OUTPUT_MEMORY,cudaReserveDevice<u8>(INPUT_OUTPUT_MEMORY));
-    isConsistent_h = allocator_h->allocate<bool>(sizeof(bool));
-    si_h = allocator_h->allocate<StartInterval>(Array<StartInterval>::dataMemSize(nActivities));
-    isConsistent_d = allocator_d->allocate<bool>(sizeof(bool));
-    si_d = allocator_d->allocate<StartInterval>(Array<StartInterval>::dataMemSize(nActivities));
+    p_d = new (pool.gpu) i32[nActivities];
+    h_d = new (pool.gpu) i32[nActivities];
+    nIntervals_d = new (pool.gpu) i32;
+    i_d = new (pool.gpu) Interval[MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities];
+
+    region = pool.record([this]() {
+      isConsistent_h = new (pool.cpu) bool;
+      isConsistent_d = new (pool.gpu) bool;
+      si_h = new (pool.cpu) StartInterval[nActivities];
+      si_d = new (pool.gpu) StartInterval[nActivities];     
+    });
 
     // CUDA initialization
     cudaDeviceProp cu_prop;
     cudaGetDeviceProperties(&cu_prop, 0);
     sm_count = cu_prop.multiProcessorCount;
     cudaStreamCreate(&cu_stream);
-    initPropagateLowLatency();
+    initPropagateLowLatency();  
 }
 
-
-CumulativeGPU::CumulativeGPU(std::vector<var<int>::Ptr> & s, std::vector<int> const & p, std::vector<int> const & h, int c) :
-        Cumulative(s,p,h,c)
-{
-    using namespace std;
-    using namespace gfl;
-
-    //Constraints
-    setPriority(CLOW);
-
-    // Memory allocation
-    p_d = cudaReserveDevice<i32>(Array<i32>::dataMemSize(nActivities));
-    h_d = cudaReserveDevice<i32>(Array<i32>::dataMemSize(nActivities));
-    nIntervals_d = cudaReserveDevice<i32>(sizeof(i32));
-    i_d = cudaReserveDevice<Interval>(Array<Interval>::dataMemSize(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities));
-    allocator_h = new gfl::ArenaAllocator(INPUT_OUTPUT_MEMORY,cudaReserveHost<u8>(INPUT_OUTPUT_MEMORY));
-    allocator_d = new gfl::ArenaAllocator(INPUT_OUTPUT_MEMORY,cudaReserveDevice<u8>(INPUT_OUTPUT_MEMORY));
-    isConsistent_h = allocator_h->allocate<bool>(sizeof(bool));
-    si_h = allocator_h->allocate<StartInterval>(Array<StartInterval>::dataMemSize(nActivities));
-    isConsistent_d = allocator_d->allocate<bool>(sizeof(bool));
-    si_d = allocator_d->allocate<StartInterval>(Array<StartInterval>::dataMemSize(nActivities));
-
-    // CUDA initialization
-    cudaDeviceProp cu_prop;
-    cudaGetDeviceProperties(&cu_prop, 0);
-    sm_count = cu_prop.multiProcessorCount;
-    cudaStreamCreate(&cu_stream);
-    initPropagateLowLatency();
-}
 
 void CumulativeGPU::post()
 {
     using namespace std;
     using namespace gfl;
     for (auto const & v : s)
-    {
         v->propagateOnBoundChange(this);
-    }
 
     // Copy constants data on GPU
     cudaMemcpyAsync(p_d, p.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
@@ -96,8 +65,8 @@ void CumulativeGPU::propagate()
     // these kernel transfers each time. So, instead, use the macro propagate_low_latency
     // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
     // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
-    //propagateBase();
-    cudaGraphLaunch(propagate_low_latency, cu_stream);
+    propagateBase();
+    //cudaGraphLaunch(propagate_low_latency, cu_stream);
     cudaStreamSynchronize(cu_stream);
 
     // Filtering
@@ -126,7 +95,9 @@ void CumulativeGPU::propagateBase()
   // xxx_d :: it's a variable xxx that is meant to be used on the device (GPU)
   // xxx_h :: it's a variable xxx that is meant to be used on the HOST (CPU)
   using namespace gfl;
-  cudaMemcpyAsync(si_d, si_h, Array<StartInterval>::dataMemSize(s.size()), cudaMemcpyDefault, cu_stream);
+  //cudaMemcpyAsync(si_d, si_h, Array<StartInterval>::dataMemSize(s.size()), cudaMemcpyDefault, cu_stream);
+  region.copyToDevice(cu_stream);
+  
   resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
   calcIntervalsKernel<<<sm_count, CUMULATIVE_BLOCK_SIZE, 0, cu_stream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
   resetConsistencyKernel<<<1,1,0,cu_stream>>>(isConsistent_d);
@@ -136,10 +107,11 @@ void CumulativeGPU::propagateBase()
 									i_d,
 									si_d,
 									isConsistent_d);
-  cudaMemcpyAsync(allocator_h->mem(),
+  region.copyToHost(cu_stream);
+  /*  cudaMemcpyAsync(allocator_h->mem(),
 		  allocator_d->mem(),
 		  allocator_h->usedSize(),
-		  cudaMemcpyDefault, cu_stream);
+		  cudaMemcpyDefault, cu_stream);*/
 }
 
 void CumulativeGPU::initPropagateLowLatency()
