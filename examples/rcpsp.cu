@@ -1,0 +1,66 @@
+#include "scheduling.hpp"
+#include "utils.hpp"
+#include <nlohmann/json.hpp>
+ 
+int main(int argc,char* argv[])
+{
+    using namespace std;
+    using namespace Factory;
+    using json = nlohmann::json;
+    ifstream f(argv[1]);
+    auto const data = json::parse(f);
+    // Resources
+    int const nRes = data["n_res"];    // The number of resources
+    vector<int> const rc = data["rc"];  // The resource capabilities
+    // Tasks
+    int const nTasks = data["n_tasks"];         // The number of tasks
+    vector<int> const d = data["d"];             // The task durations
+    vector<vector<int>> const rr = data["rr"];   // The resource requirements
+    vector<vector<int>> const suc = data["suc"]; // The task successors
+    // Planning horizon
+    int const tMax = std::accumulate(d.begin(), d.end(), 0); // End time of the planning horizon
+    // Variables
+    auto cp = makeSolver();
+    auto st = intVarArray(cp,nTasks,0,tMax - 1);  // The tasks start time
+    auto makespan = makeIntVar(cp,0,tMax);        // The project duration
+
+    // Precedence constraints
+    for (int i = 0; i < nTasks; i += 1)
+       for (auto const & j : suc[i])
+          cp->post(st[i] + d[i]<= st[j]);
+
+    for (int i = 0; i < nTasks; i += 1)
+      for (int j = i+1; j < nTasks; j += 1)
+	for (int r = 0; r < nRes; r += 1)
+	  if (rr[r][i] + rr[r][j] > rc[r]) {
+	    auto ij = isLessOrEqual(st[i]+ d[i], st[j]);
+	    auto ji = isLessOrEqual(st[j]+ d[j], st[i]);
+	    cp->post(clause({ij,ji}));
+	  }
+
+    
+    // Cumulative resource constraints
+    for( int i = 0; i < nRes; i += 1) {
+      cp->post(cumulativeER(st,d,rr[i],rc[i],CDevice::GPU));
+      //cp->post(cumulativeTT(st,d,rr[i],rc[i],CDevice::CPU));
+    }
+
+    // Makespan constraints
+    for (int i = 0; i < nTasks; i += 1)
+       if (suc[i].empty())
+          cp->post(st[i] + d[i] <= makespan);
+
+    auto vars = st;
+    vars.push_back(makespan);
+    // Search
+    DFSearch search(cp,smallest(cp,vars));
+    search.onSolution([&st,&makespan]() {
+        std::cout << "Makespan = " << makespan->min()
+                  << "\nStarting Times = " << valueOf(st) << "\n---" << "\n";
+    });
+
+    auto obj = minimize(makespan);
+    auto stat = search.optimize(obj);
+    cout << stat << endl;
+    return 0;
+}

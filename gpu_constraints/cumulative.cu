@@ -65,8 +65,8 @@ void CumulativeGPU::propagate()
     // these kernel transfers each time. So, instead, use the macro propagate_low_latency
     // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
     // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
-    propagateBase();
-    //cudaGraphLaunch(propagate_low_latency, cu_stream);
+    //propagateBase();
+    cudaGraphLaunch(propagate_low_latency, cu_stream);
     cudaStreamSynchronize(cu_stream);
 
     // Filtering
@@ -95,7 +95,6 @@ void CumulativeGPU::propagateBase()
   // xxx_d :: it's a variable xxx that is meant to be used on the device (GPU)
   // xxx_h :: it's a variable xxx that is meant to be used on the HOST (CPU)
   using namespace gfl;
-  //cudaMemcpyAsync(si_d, si_h, Array<StartInterval>::dataMemSize(s.size()), cudaMemcpyDefault, cu_stream);
   region.copyToDevice(cu_stream);
   
   resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
@@ -108,10 +107,6 @@ void CumulativeGPU::propagateBase()
 									si_d,
 									isConsistent_d);
   region.copyToHost(cu_stream);
-  /*  cudaMemcpyAsync(allocator_h->mem(),
-		  allocator_d->mem(),
-		  allocator_h->usedSize(),
-		  cudaMemcpyDefault, cu_stream);*/
 }
 
 void CumulativeGPU::initPropagateLowLatency()
