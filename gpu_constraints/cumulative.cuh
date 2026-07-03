@@ -5,6 +5,7 @@
 #include "gfl/Types.hpp"
 #include "gfl/Memory.hpp"
 #include "gfl/ArenaAllocator.hpp"
+#include "gfl/Scalar.hpp"
 
 #include <varitf.hpp>
 #include <constraint.hpp>
@@ -25,9 +26,9 @@ private:
   gfl::i32 * h_d; // Height
   gfl::i32 * nIntervals_d;
   Interval * i_d;
-  bool * isConsistent_h;
+  gfl::Scalar<bool> isConsistent_h;
   StartInterval * si_h;
-  bool * isConsistent_d;
+  gfl::Scalar<bool> isConsistent_d;
   StartInterval * si_d;
   // CUDA
   gfl::u32 sm_count;      // how many multi-processors

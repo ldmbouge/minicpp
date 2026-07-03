@@ -5,12 +5,12 @@
 
 __global__ void resetIntervalsKernel(gfl::i32 * nIntervals_d);
 __global__ void calcIntervalsKernel(gfl::i32 nActivities, Cumulative::StartInterval const * si_d, gfl::i32 const * p_d, gfl::i32 * nIntervals_d, Cumulative::Interval * i_d);
-__global__ void resetConsistencyKernel(bool * isConsistent_d);
+__global__ void resetConsistencyKernel(gfl::Scalar<bool> isConsistent_d);
 __global__ void updateBoundsKernel(gfl::i32 nActivities, gfl::i32 const * h_d,
 				   gfl::i32 const * p_d, gfl::i32 c, gfl::i32 * nIntervals_d,
 				   Cumulative::Interval const * i_d,
 				   Cumulative::StartInterval * si_d,
-				   bool * isConsistent_d);
+				   gfl::Scalar<bool> isConsistent_d);
 
 
 void CumulativeGPU::init()
@@ -26,8 +26,8 @@ void CumulativeGPU::init()
     i_d = new (pool.gpu) Interval[MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities];
 
     region = pool.record([this]() {
-      isConsistent_h = new (pool.cpu) bool;
-      isConsistent_d = new (pool.gpu) bool;
+      isConsistent_h = Scalar<bool> {new (pool.cpu) bool};
+      isConsistent_d = Scalar<bool> {new (pool.gpu) bool};
       si_h = new (pool.cpu) StartInterval[nActivities];
       si_d = new (pool.gpu) StartInterval[nActivities];     
     });
@@ -73,7 +73,7 @@ void CumulativeGPU::propagate()
     cudaGraphLaunch(propagateGraph, cu_stream);
     cudaStreamSynchronize(cu_stream);
     // Filtering
-    if (*isConsistent_h)
+    if (isConsistent_h)
       for (auto i = 0; i < nActivities; i += 1) {
            s.at(i)->removeBelow(si_h[i].min);
            s.at(i)->removeAbove(si_h[i].max);
@@ -157,9 +157,9 @@ __global__ void calcIntervalsKernel(gfl::i32 nActivities,
 }
 
 __global__
-void resetConsistencyKernel(bool * isConsistent_d)
+void resetConsistencyKernel(gfl::Scalar<bool> isConsistent_d)
 {
-    *isConsistent_d = true;
+  isConsistent_d = true;
 }
 
 __global__ void updateBoundsKernel(gfl::i32 nActivities,
@@ -169,18 +169,15 @@ __global__ void updateBoundsKernel(gfl::i32 nActivities,
 				   gfl::i32 * nIntervals_d,
 				   Cumulative::Interval const * i_d,
 				   Cumulative::StartInterval * si_d,
-				   bool * isConsistent_d)
+				   gfl::Scalar<bool> isConsistent_d)
 {
     using namespace gfl;
 
     __shared__ Cumulative::StartInterval si_s[MAX_ACTIVITIES];
 
-    if (*isConsistent_d)
-    {
+    if (isConsistent_d) {
         for (auto a = threadIdx.x; a < nActivities; a += blockDim.x)
-        {
             si_s[a] = si_d[a];
-        }
         __syncthreads();
 
         auto [iBegin,iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, *nIntervals_d);
@@ -230,13 +227,13 @@ __global__ void updateBoundsKernel(gfl::i32 nActivities,
             }
             else
             {
-                *isConsistent_d = false;
-                break;
+	      isConsistent_d = false;
+	      break;
             }
         }
         __syncthreads();
 
-        if (*isConsistent_d)
+        if (isConsistent_d)
         {
             for (auto a = threadIdx.x; a < nActivities; a += blockDim.x)
             {
