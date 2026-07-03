@@ -18,7 +18,6 @@ void CumulativeGPU::init()
     using namespace std;
     using namespace gfl;
     // Constraints
-    std::cout << "CumulativeGPU::init\n";
     setPriority(CLOW);
     // Memory allocation
     p_d = new (pool.gpu) i32[nActivities];
@@ -38,7 +37,6 @@ void CumulativeGPU::init()
     cudaGetDeviceProperties(&cu_prop, 0);
     sm_count = cu_prop.multiProcessorCount;
     cudaStreamCreate(&cu_stream);
-    initPropagateLowLatency();  
 }
 
 
@@ -52,90 +50,50 @@ void CumulativeGPU::post()
     // Copy constants data on GPU
     cudaMemcpyAsync(p_d, p.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
     cudaMemcpyAsync(h_d, h.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
+
+    propagateGraph = gfl::capture(cu_stream,[this]() {
+      region.copyToDevice(cu_stream);      
+      resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
+      calcIntervalsKernel<<<sm_count, CBS, 0, cu_stream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
+      resetConsistencyKernel<<<1,1,0,cu_stream>>>(isConsistent_d);
+      updateBoundsKernel<<<sm_count, CBS, 0, cu_stream>>>(nActivities,h_d, p_d, c,nIntervals_d,i_d,si_d,isConsistent_d);
+      region.copyToHost(cu_stream);
+    });
 }
 
 void CumulativeGPU::propagate()
 {
-    // Initialization
     initStartIntervals(nActivities, s.data(), si_h);
-
     // Propagation
     // ----------------------------------------------------------------------
     // We should normally call propagateBase. But it's slow to have CUDA do all
     // these kernel transfers each time. So, instead, use the macro propagate_low_latency
     // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
     // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
-    //propagateBase();
-    cudaGraphLaunch(propagate_low_latency, cu_stream);
+    cudaGraphLaunch(propagateGraph, cu_stream);
     cudaStreamSynchronize(cu_stream);
-
     // Filtering
     if (*isConsistent_h)
-    {
-        for (auto i = 0; i < nActivities; i += 1)
-        {
+      for (auto i = 0; i < nActivities; i += 1) {
            s.at(i)->removeBelow(si_h[i].min);
            s.at(i)->removeAbove(si_h[i].max);
         }
-    }
     else
-    {
         failNow();
-    }
 }
 
-void CumulativeGPU::propagateBase()
-{
-  // This is the actual propagation recipe
-  // Note how it
-  // 1. transfer the data to the GPU memory
-  // 2. Run 4 distinct kernels back to back
-  // 3. Retrieve the results by copying memory back from GPU to host.
-  // FUNKY naming conventions
-  // xxx_d :: it's a variable xxx that is meant to be used on the device (GPU)
-  // xxx_h :: it's a variable xxx that is meant to be used on the HOST (CPU)
-  using namespace gfl;
-  region.copyToDevice(cu_stream);
-  
-  resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
-  calcIntervalsKernel<<<sm_count, CUMULATIVE_BLOCK_SIZE, 0, cu_stream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
-  resetConsistencyKernel<<<1,1,0,cu_stream>>>(isConsistent_d);
-  updateBoundsKernel<<<sm_count, CUMULATIVE_BLOCK_SIZE, 0, cu_stream>>>(nActivities,
-									h_d, p_d, c,
-									nIntervals_d,
-									i_d,
-									si_d,
-									isConsistent_d);
-  region.copyToHost(cu_stream);
-}
 
-void CumulativeGPU::initPropagateLowLatency()
-{
-  // Setup of the CUDA logic to _record_ the dependency graph between kernels to reuse it (faster)
-  // at each invocation of the top-level propagation
-  // 1. Begin the capture
-  // 2. Run the logic of the propagator (sending the kernels one by one)
-  // 3. End the capture
-  // 4. Ask CUDA to create a C callable (a macro kernel / function) that encodes the computation that was just recorded
-  // --> It goes into propagate_low_latency
-    cudaStreamBeginCapture(cu_stream, cudaStreamCaptureModeGlobal);
-    propagateBase();
-    cudaStreamEndCapture(cu_stream, &cu_graph);
-    cudaGraphInstantiate(&propagate_low_latency, cu_graph, nullptr, nullptr, 0);
-}
 
-__global__
-void resetIntervalsKernel(gfl::i32 * nIntervals_d)
+__global__ void resetIntervalsKernel(gfl::i32 * nIntervals_d)
 {
     *nIntervals_d = 0;
 }
 
-__global__
-void calcIntervalsKernel(gfl::i32 nActivities,
-			 Cumulative::StartInterval const * si_d,
-			 gfl::i32 const * p_d,
-			 gfl::i32 * nIntervals_d,
-			 Cumulative::Interval * i_d)
+__global__ void calcIntervalsKernel(gfl::i32 nActivities,
+				    Cumulative::StartInterval const * si_d,
+				    gfl::i32 const * p_d,
+				    gfl::i32 * nIntervals_d,
+				    Cumulative::Interval * i_d)
 {
     using namespace gfl;
 

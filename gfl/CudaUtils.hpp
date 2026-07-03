@@ -214,6 +214,17 @@ namespace gfl
         return lIdx;
     }
 #endif
+
+  template <typename Block> cudaGraphExec_t capture(cudaStream_t stream,Block b) {
+    cudaGraphExec_t ge;
+    cudaGraph_t g;
+    cudaStreamBeginCapture(stream, cudaStreamCaptureModeGlobal);
+    b();
+    cudaStreamEndCapture(stream, &g);
+    cudaGraphInstantiate(&ge, g, nullptr, nullptr, 0);
+    return ge;
+  }
+  
 }
 
 #endif
