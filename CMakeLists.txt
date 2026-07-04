@@ -189,7 +189,10 @@ add_library(fzl
 #This is the full list of exapmles for miniCPP		
 ################################################################################
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
+
+if(ENABLE_GPU)
 file(GLOB GPUfiles "examples/*.cu")
+endif()
 
 #file(GLOB files "examples/tutorial/*.cpp" "examples/mdd/amongNurse.cpp" "examples/mdd/amongNurse2.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
