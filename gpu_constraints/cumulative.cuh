@@ -13,8 +13,8 @@
 
 #define MAX_INTERVALS_PER_ACTIVITY_PAIR 12
 #define CBS 128
-#define MAX_ACTIVITIES 1024
-#define INPUT_OUTPUT_MEMORY 128 * 1024 // 128 KB
+#define MAX_ACTIVITIES 128
+#define INPUT_OUTPUT_MEMORY 16 * 1024 * 1024 // 16 MB
 
 // References:
 // - Constraint-Based Scheduling (ISBN: 978-1-4615-1479-4)
