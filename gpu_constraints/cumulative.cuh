@@ -32,10 +32,16 @@ public:
         gfl::i32 end;
     };
 
+    struct Domain {
+        bool changed;
+        gfl::i32 min;
+        gfl::i32 max;
+    };
+
     using ProcessingTimes = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
     using Requirements = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
     using RelevantIntervals = gfl::Vector<TimeInterval, gfl::DeviceAllocator<TimeInterval>>;
-    using StartIntervals = gfl::Array<TimeInterval, gfl::ManagedAllocator<TimeInterval>>;
+    using StartIntervals = gfl::Array<Domain, gfl::ManagedAllocator<Domain>>;
 
 private:
     gfl::i32 _n;
