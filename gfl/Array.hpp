@@ -12,10 +12,10 @@ namespace gfl
         using ArrayView<T>::size_;
         using ArrayView<T>::data_;
     public:
-        Array(Array const&) = delete;
-        Array& operator=(Array const&) = delete;
+        Array(Array const&) noexcept = default;
+        Array& operator=(Array const&) noexcept = default;
         explicit Array(i64 const size) noexcept : ArrayView<T>(size, Allocator{}.allocate(scast<usize>(size))) {}
-        ~Array() noexcept { Allocator{}.deallocate(data_, scast<usize>(size_)); }
+        //~Array() noexcept { Allocator{}.deallocate(data_, scast<usize>(size_)); }
 #ifdef __CUDACC__
         void prefetchToHost(cudaStream_t const stream = 0) const noexcept {
             static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToHost: requires ManagedAllocator");

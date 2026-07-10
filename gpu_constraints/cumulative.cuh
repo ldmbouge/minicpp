@@ -40,18 +40,19 @@ public:
 
     using ProcessingTimes = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
     using Requirements = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
-    using RelevantIntervals = gfl::Vector<TimeInterval, gfl::DeviceAllocator<TimeInterval>>;
+    using RelevantIntervals = gfl::Vector<TimeInterval, gfl::ManagedAllocator>;
     using StartIntervals = gfl::Array<Domain, gfl::ManagedAllocator<Domain>>;
 
 private:
     gfl::i32 _n;
     gfl::i32 _c;
     std::vector<var<int>::Ptr> _s;
-    ProcessingTimes* _p;
-    Requirements* _h;
-    RelevantIntervals* _ri;
-    StartIntervals* _si;
+    ProcessingTimes _p;
+    Requirements _h;
+    RelevantIntervals _ri;
     bool* _fail;
+    StartIntervals _si;
+
 
     // CUDA
     gfl::i32 deviceId;
@@ -63,11 +64,11 @@ public:
     template <typename Container>
     CumulativeGPU(Container& s, std::vector<int> const& p, std::vector<int> const& h, int c) :
         Constraint(s[0]->getSolver()), _n(gfl::scast<gfl::i32>(s.size ())), _c(c),_s(_n),
-        _p(gfl::make<ProcessingTimes, gfl::ManagedAllocator>(_n)),
-        _h(gfl::make<Requirements, gfl::ManagedAllocator>(_n)),
-        _ri(gfl::make<RelevantIntervals, gfl::ManagedAllocator>(MAX_INTERVALS_PER_ACTIVITY_PAIR*_n*_n)),
-        _si(gfl::make<StartIntervals, gfl::ManagedAllocator>(_n)),
-        _fail(gfl::make<bool, gfl::ManagedAllocator>())
+        _p(_n),
+        _h(_n),
+        _ri(MAX_INTERVALS_PER_ACTIVITY_PAIR*_n*_n),
+        _fail(gfl::make<bool, gfl::ManagedAllocator>()),
+        _si(_n)
     {
 
         gfl::checkOrAbort(p.size() == s.size(), "CumulativeGPU: |p| != |s|");
@@ -75,8 +76,8 @@ public:
 
         for (auto i = 0; i < _n; i += 1)
         {
-            _p->at(i) = p[i];
-            _h->at(i) = h[i];
+            _p[i] = p[i];
+            _h[i] = h[i];
             _s[i] = s[i];
         }
 
@@ -90,5 +91,6 @@ public:
     }
 
     void post() override;
+    void prefetchBoolToDevice(bool const* boolPtr, cudaStream_t stream, gfl::i32 device) const noexcept;
     void propagate() override;
 };

@@ -1,34 +1,41 @@
 #pragma once
 
 #include <type_traits>
-#include "VectorView.hpp"
+#include <cstring>
+#include "SizedArray.hpp"
 #include "Memory.hpp"
 
 namespace gfl
 {
-    template<typename T, typename Allocator = HeapAllocator<T>>
-    class Vector : public VectorView<T> {
+
+    template<typename T, template<typename> class Allocator = HeapAllocator>
+    class Vector {
         static_assert(std::is_trivially_copyable_v<T>, "Vector<T>: T must be trivially copyable");
-        using VectorView<T>::data_;
-        using VectorView<T>::capacity_;
+        i64 _capacity;
+        SizedArray<T,Allocator> _sa;
     public:
-        Vector(Vector const&) = delete;
-        Vector& operator=(Vector const&) = delete;
-        explicit Vector(i64 const capacity) noexcept : VectorView<T>(capacity, Allocator{}.allocate(scast<usize>(capacity))) {}
-        ~Vector() noexcept { Allocator{}.deallocate(data_, scast<usize>(capacity_)); }
+        Vector(Vector const&) noexcept = default;
+        Vector& operator=(Vector const&) noexcept = default;
+        explicit Vector(i64 const capacity) noexcept : _capacity(capacity), _sa(_capacity) {}
+        GFL_HOST_DEVICE void clear() noexcept { _sa.resizeBy(-_sa.size());}
+        GFL_HOST_DEVICE i64 size() const noexcept { return _sa.size(); }
+        GFL_HOST_DEVICE i64 capacity() const noexcept { return _capacity; }
+        GFL_HOST_DEVICE T* data() noexcept { return _sa.data(); }
+        GFL_HOST_DEVICE T const* data() const noexcept { return _sa.data(); }
+        GFL_HOST_DEVICE T& at(i64 const i) noexcept { return _sa.at(i); }
+        GFL_HOST_DEVICE T const& at(i64 const i) const noexcept { return _sa.at(i); }
+        GFL_HOST_DEVICE T& operator[](i64 const i) noexcept { return _sa[i]; }
+        GFL_HOST_DEVICE T const& operator[](i64 const i) const noexcept { return _sa[i]; }
+        GFL_HOST_DEVICE void pushBackAtomic(ArrayView<T> const & items) noexcept {
+            i64 const n = items.size();
+            assert(_sa.size() + n <= _capacity);
+            i64 const oldSize = _sa.resizeByAtomic(items.size());
+            memcpy(&_sa[oldSize], items.data(), items.dataMemSize());
+        }
+
 #ifdef __CUDACC__
-        void prefetchToHost(cudaStream_t const stream = 0) const noexcept {
-            static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToHost: requires ManagedAllocator");
-            cudaMemLocation const location = {.type = cudaMemLocationTypeHost, .id = 0};
-            cudaError_t const status = cudaMemPrefetchAsync(data_, this->dataMemSize(), location, 0, stream);
-            checkOrAbort(status == cudaSuccess, "Vector::prefetchToHost failed");
-        }
-        void prefetchToDevice(cudaStream_t const stream = 0, i32 const device = 0) const noexcept {
-            static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToDevice: requires ManagedAllocator");
-            cudaMemLocation const location = {.type = cudaMemLocationTypeDevice, .id = device};
-            cudaError_t const status = cudaMemPrefetchAsync(data_, this->dataMemSize(), location, 0, stream);
-            checkOrAbort(status == cudaSuccess, "Vector::prefetchToDevice failed");
-        }
+        void prefetchToHost(cudaStream_t const stream) const noexcept { _sa.prefetchToHost(stream); }
+        void prefetchToDevice(cudaStream_t const stream, i32 const device) const noexcept { _sa.prefetchToDevice(stream,device);}
 #endif
     };
 }
