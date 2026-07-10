@@ -1,0 +1,1173 @@
+diff --git a/gfl/ArenaAllocator.hpp b/gfl/ArenaAllocator.hpp
+index fc69f83..cccb092 100644
+--- a/gfl/ArenaAllocator.hpp
++++ b/gfl/ArenaAllocator.hpp
+@@ -90,55 +90,56 @@ namespace gfl
+         GFL_HOST_DEVICE i64 usedSize() const noexcept { return scast<i64>(current - begin); }
+         GFL_HOST_DEVICE i64 totalSize() const noexcept { return scast<i64>(end - begin); }
+     };
+-  class Region {
+-    gfl::u8* _startCPU;
+-    gfl::u8* _endCPU;
+-    gfl::u8* _startGPU;
+-    gfl::u8* _endGPU;
+-    Region(gfl::u8* sC,gfl::u8* eC,gfl::u8* sG,gfl::u8* eG) : _startCPU(sC),_endCPU(eC),_startGPU(sG),_endGPU(eG) {}
+-  public:
+-    Region() : _startCPU(nullptr),_endCPU(nullptr),_startGPU(nullptr),_endGPU(nullptr) {}
+-    friend class MPool;
+-    void copyToDevice(cudaStream_t cus) {
+-      cudaMemcpyAsync(_startGPU,_startCPU,_endCPU-_startCPU,cudaMemcpyHostToDevice,cus);
+-      CHECK_LAST_CUDA_ERROR();
+-    }
+-    void copyToHost(cudaStream_t cus) {
+-      cudaMemcpyAsync(_startCPU,_startGPU,_endCPU-_startCPU,cudaMemcpyDeviceToHost,cus);
+-      CHECK_LAST_CUDA_ERROR();
+-    }
+-  };
+-  class MPool {
+-  public:
+-    typedef MPool* Ptr;
+-    MPool(const i64 sz) : cpu(sz,cudaReserveHost(sz)),
+-			  gpu(sz,cudaReserveDevice(sz)) {}
+-    ~MPool() {
+-      cudaReleaseDevice(gpu.mem());
+-      cudaReleaseHost(cpu.mem());
+-    }
+-    ArenaAllocator cpu;
+-    ArenaAllocator gpu;
+-    template <typename Block> Region record(Block b) {
+-      auto cpuBEG = cpu.freeMem();
+-      auto gpuBEG = gpu.freeMem();
+-      b();
+-      return Region { cpuBEG,cpu.freeMem(),gpuBEG,gpu.freeMem()};
+-    }
+-  };
+ }
+-
+-// Placement new overloads for ArenaAllocator
+-inline void * operator new(std::size_t const size, gfl::ArenaAllocator& allocator) {
+-    return allocator.allocate<gfl::u8>(gfl::scast<gfl::i64>(size), gfl::DefaultAlign);
+-}
+-
+-inline void * operator new[](std::size_t const size, gfl::ArenaAllocator& allocator) {
+-    return allocator.allocate<gfl::u8>(gfl::scast<gfl::i64>(size), gfl::DefaultAlign);
+-}
+-
+-// Required matching deletes (no-op, arena owns the memory)
+-inline void operator delete(void*, gfl::ArenaAllocator&) noexcept {}
+-inline void operator delete[](void*, gfl::ArenaAllocator&) noexcept {}
++//   class Region {
++//     gfl::u8* _startCPU;
++//     gfl::u8* _endCPU;
++//     gfl::u8* _startGPU;
++//     gfl::u8* _endGPU;
++//     Region(gfl::u8* sC,gfl::u8* eC,gfl::u8* sG,gfl::u8* eG) : _startCPU(sC),_endCPU(eC),_startGPU(sG),_endGPU(eG) {}
++//   public:
++//     Region() : _startCPU(nullptr),_endCPU(nullptr),_startGPU(nullptr),_endGPU(nullptr) {}
++//     friend class MPool;
++//     void copyToDevice(cudaStream_t cus) {
++//       cudaMemcpyAsync(_startGPU,_startCPU,_endCPU-_startCPU,cudaMemcpyHostToDevice,cus);
++//       CHECK_LAST_CUDA_ERROR();
++//     }
++//     void copyToHost(cudaStream_t cus) {
++//       cudaMemcpyAsync(_startCPU,_startGPU,_endCPU-_startCPU,cudaMemcpyDeviceToHost,cus);
++//       CHECK_LAST_CUDA_ERROR();
++//     }
++//   };
++//   class MPool {
++//   public:
++//     typedef MPool* Ptr;
++//     MPool(const i64 sz) : cpu(sz,cudaReserveHost(sz)),
++// 			  gpu(sz,cudaReserveDevice(sz)) {}
++//     ~MPool() {
++//       cudaReleaseDevice(gpu.mem());
++//       cudaReleaseHost(cpu.mem());
++//     }
++//     ArenaAllocator cpu;
++//     ArenaAllocator gpu;
++//     template <typename Block> Region record(Block b) {
++//       auto cpuBEG = cpu.freeMem();
++//       auto gpuBEG = gpu.freeMem();
++//       b();
++//       return Region { cpuBEG,cpu.freeMem(),gpuBEG,gpu.freeMem()};
++//     }
++//   };
++// }
++//
++// // Placement new overloads for ArenaAllocator
++// inline void * operator new(std::size_t const size, gfl::ArenaAllocator& allocator) {
++//     return allocator.allocate<gfl::u8>(gfl::scast<gfl::i64>(size), gfl::DefaultAlign);
++// }
++//
++// inline void * operator new[](std::size_t const size, gfl::ArenaAllocator& allocator) {
++//     return allocator.allocate<gfl::u8>(gfl::scast<gfl::i64>(size), gfl::DefaultAlign);
++// }
++//
++// // Required matching deletes (no-op, arena owns the memory)
++// inline void operator delete(void*, gfl::ArenaAllocator&) noexcept {}
++// inline void operator delete[](void*, gfl::ArenaAllocator&) noexcept {}
+ 
+ #endif
+diff --git a/gfl/Array.hpp b/gfl/Array.hpp
+index e5f0c89..1e30402 100644
+--- a/gfl/Array.hpp
++++ b/gfl/Array.hpp
+@@ -1,36 +1,34 @@
+ #pragma once
+ 
++#include <type_traits>
+ #include "ArrayView.hpp"
+ #include "Memory.hpp"
+ 
+ namespace gfl
+ {
+-    template<typename T>
+-    class Array : public ArrayView<T>
+-    {
++    template<typename T, typename Allocator = HeapAllocator<T>>
++    class Array : public ArrayView<T> {
++        static_assert(std::is_trivially_copyable_v<T>, "Array<T>: T must be trivially copyable");
+         using ArrayView<T>::size_;
+         using ArrayView<T>::data_;
+-
+     public:
+-        Array() = delete;
+-
+         Array(Array const&) = delete;
+         Array& operator=(Array const&) = delete;
+-
+-        Array(Array && other) = delete;
+-        Array& operator=(Array && other) = delete;
+-
+-        explicit
+-        Array(i64 const size) noexcept :
+-            ArrayView<T>(size, vmReserve<T>(size))
+-        {
+-            vmCommit(data_, size);
++        explicit Array(i64 const size) noexcept : ArrayView<T>(size, Allocator{}.allocate(scast<usize>(size))) {}
++        ~Array() noexcept { Allocator{}.deallocate(data_, scast<usize>(size_)); }
++#ifdef __CUDACC__
++        void prefetchToHost(cudaStream_t const stream = 0) const noexcept {
++            static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToHost: requires ManagedAllocator");
++            cudaMemLocation const location = {.type = cudaMemLocationTypeHost, .id = 0};
++            cudaError_t const status = cudaMemPrefetchAsync(data_, this->dataMemSize(), location, 0, stream);
++            checkOrAbort(status == cudaSuccess, "Vector::prefetchToHost failed");
+         }
+-
+-        ~Array() noexcept
+-        {
+-            assert(data_ != nullptr);
+-            vmRelease(data_, size_);
++        void prefetchToDevice(cudaStream_t const stream = 0, i32 const device = 0) const noexcept {
++            static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToDevice: requires ManagedAllocator");
++            cudaMemLocation const location = {.type = cudaMemLocationTypeDevice, .id = device};
++            cudaError_t const status = cudaMemPrefetchAsync(data_, this->dataMemSize(), location, 0, stream);
++            checkOrAbort(status == cudaSuccess, "Vector::prefetchToDevice failed");
+         }
++#endif
+     };
+ }
+\ No newline at end of file
+diff --git a/gfl/ArrayView.hpp b/gfl/ArrayView.hpp
+index aa86226..f443e30 100644
+--- a/gfl/ArrayView.hpp
++++ b/gfl/ArrayView.hpp
+@@ -37,10 +37,6 @@ namespace gfl
+             assert(size >= 0);  // Allow size = 0 for VectorBase (starts empty)
+         }
+ 
+-        template<typename Allocator>
+-        GFL_HOST_DEVICE
+-        ArrayView(i64 const size, Allocator & alloc) noexcept :
+-            ArrayView(size, alloc.template allocate<T>(size)) {}
+ 
+         GFL_HOST_DEVICE
+         ArrayView(T * begin, T * end) noexcept :
+diff --git a/gfl/CudaUtils.hpp b/gfl/CudaUtils.hpp
+index 6a9f4c1..3a79a38 100644
+--- a/gfl/CudaUtils.hpp
++++ b/gfl/CudaUtils.hpp
+@@ -10,6 +10,7 @@
+ #include "Types.hpp"
+ #include "FunQual.hpp"
+ #include "Backend.hpp"
++#include "MathUtils.hpp"
+ 
+ #ifdef __CUDACC__
+ #include <cuda_runtime_api.h>
+@@ -170,7 +171,7 @@ namespace gfl
+         // First 'remainder' workers get one extra job
+         auto const extra = (index < remainder) ? 1 : 0;
+ 
+-        begin = index * jobsPerWorker + min<i64>(index, remainder);
++        begin = index * jobsPerWorker + gfl::min<i64>(index, remainder);
+         end = begin + jobsPerWorker + extra;
+ 	return gfl::make_tuple(begin,end);
+     }
+diff --git a/gfl/Memory.hpp b/gfl/Memory.hpp
+index c00576f..fcca1b9 100644
+--- a/gfl/Memory.hpp
++++ b/gfl/Memory.hpp
+@@ -1,162 +1,71 @@
+-#ifndef __GFLMEMORY_H
+-#define __GFLMEMORY_H
+-
+-#include <sys/mman.h>
+-#include <unistd.h>
++#pragma once
+ 
++#include <cstdlib>
++#include <new>
++#include <utility>
+ #ifdef __CUDACC__
+ #include <cuda_runtime.h>
+ #endif
+-
+-#include "Types.hpp"
+-#include "MathUtils.hpp"
+ #include "DebugUtils.hpp"
++#include "Types.hpp"
+ 
+-namespace gfl
+-{
+-
+-    GFL_HOST_DEVICE inline
+-    void printMemSize(i64 const size) noexcept
+-    {
+-        char const* const units[] = {" B", "KB", "MB", "GB"};
+-        auto uIdx = 0;
+-        auto dSize = static_cast<double>(size);
+-        while (dSize >= 1024 and uIdx < 3)
+-        {
+-            dSize /= 1024.0;
+-            uIdx += 1;
+-        }
+-        printf("%7.2f %s", dSize, units[uIdx]);
+-    }
+-
+-
+-    inline
+-    i64 pageSize() noexcept
+-    {
+-        static i64 const size = scast<i64>(sysconf(_SC_PAGESIZE));
+-        return size;
+-    }
+-
+-    // Heap
+-
++namespace gfl {
+     template<typename T = u8>
+-    T* heapReserve(i64 const count) noexcept
+-    {
+-        checkOrAbort(count > 0, "heapReserve failed: count must be > 0");
+-        void* memory = std::malloc(sizeof(T) * count);
+-        checkOrAbort(memory != nullptr, "heapReserve failed: null pointer returned");
+-        return scast<T*>(memory);
+-    }
+-
+-    inline void* heapRelease(void* memory) noexcept
+-    {
+-        checkOrAbort(memory != nullptr, "heapRelease failed: null pointer");
+-        std::free(memory);
+-        return nullptr;
+-    }
+-
+-    template<typename T>
+-    void* heapRelease(T* memory) noexcept { return heapRelease(rcast<void*&>(memory)); }
+-
+-    // Virtual memory — reserve once, commit as needed, pointer never moves
+-
+-    template<typename T>
+-    T* vmReserve(i64 const count) noexcept
+-    {
+-        checkOrAbort(count > 0, "vmReserve failed: count must be > 0");
+-        void* p = mmap(nullptr, sizeof(T) * count,PROT_NONE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+-        checkOrAbort(p != MAP_FAILED, "vmReserve failed: mmap returned MAP_FAILED");
+-        return scast<T*>(p);
+-    }
+-
+-    template<typename T>
+-    void vmCommit(T* const ptr, i64 const count) noexcept
+-    {
+-        checkOrAbort(ptr != nullptr, "vmCommit failed: null pointer");
+-        checkOrAbort(count > 0, "vmCommit failed: count must be > 0");
+-        i64 const bytes  = roundUp<i64>(sizeof(T) * count , pageSize());
+-        i32 const result = mprotect(ptr, bytes, PROT_READ | PROT_WRITE);
+-        checkOrAbort(result == 0, "vmCommit failed: mprotect failed");
+-    }
+-
+-    template<typename T>
+-    void* vmRelease(T* ptr, i64 const count) noexcept
+-    {
+-        checkOrAbort(ptr != nullptr, "vmRelease failed: null pointer");
+-        checkOrAbort(count > 0, "vmRelease failed: count must be > 0");
+-        munmap(ptr, sizeof(T) * count);
+-        return nullptr;
+-    }
+-  
+-  template<typename T = u8>
+-  T* cudaReserveDevice(i64 const count) noexcept
+-  {
+-    checkOrAbort(count > 0, "cudaReserveDevice failed: count must be > 0");
+-    void* memory = nullptr;
+-    cudaError_t const status = cudaMalloc(&memory, sizeof(T) * count);
+-    checkOrAbort(status == cudaSuccess and memory != nullptr, "cudaReserveDevice failed");
+-    return scast<T*>(memory);
+-    }
++    class HeapAllocator{
++    public:
++        using value_type = T;
++        T* allocate(usize const count) noexcept {
++            checkOrAbort(count != 0, "HeapAllocator: count must not be zero");
++            void* memory = std::malloc(sizeof(T) * count);
++            checkOrAbort(memory != nullptr, "HeapAllocator: std::malloc failed");
++            return scast<T*>(memory);
++        }
++        void deallocate(T* memory, usize) noexcept { std::free(memory); }
++    };
+ 
+-    template<typename T = u8>
+-    T* cudaReserveHost(i64 const count) noexcept
+-    {
+-        checkOrAbort(count > 0, "cudaReserveHost failed: count must be > 0");
+-        void* memory = nullptr;
+-        cudaError_t const status = cudaMallocHost(&memory, sizeof(T) * count);
+-        checkOrAbort(status == cudaSuccess and memory != nullptr, "cudaReserveHost failed");
+-        return scast<T*>(memory);
+-    }
+-  
+ #ifdef __CUDACC__
+-    // CUDA
+-
+-    inline
+-    void* cudaReleaseHost(void* memory) noexcept
+-    {
+-        checkOrAbort(memory != nullptr, "cudaReleaseHost failed: null pointer");
+-        cudaError_t const status = cudaFreeHost(memory);
+-        checkOrAbort(status == cudaSuccess, "cudaReleaseHost failed");
+-        return nullptr;
+-    }
+-  /*
+     template<typename T = u8>
+-    T* cudaReserveDevice(i64 const count) noexcept
+-    {
+-        checkOrAbort(count > 0, "cudaReserveDevice failed: count must be > 0");
+-        void* memory = nullptr;
+-        cudaError_t const status = cudaMalloc(&memory, sizeof(T) * count);
+-        checkOrAbort(status == cudaSuccess and memory != nullptr, "cudaReserveDevice failed");
+-        return scast<T*>(memory);
+-	}*/
+-    inline
+-    void* cudaReleaseDevice(void* memory) noexcept
+-    {
+-        checkOrAbort(memory != nullptr, "cudaReleaseDevice failed: null pointer");
+-        cudaError_t const status = cudaFree(memory);
+-        checkOrAbort(status == cudaSuccess, "cudaReleaseDevice failed");
+-        return nullptr;
+-    }
+-
++    class ManagedAllocator {
++    public:
++        using value_type = T;
++        T* allocate(usize const count) noexcept {
++            checkOrAbort(count != 0, "ManagedAllocator: count must not be zero");
++            void* memory = nullptr;
++            cudaError_t const status = cudaMallocManaged(&memory, sizeof(T) * count);
++            checkOrAbort(status == cudaSuccess and memory != nullptr, "ManagedAllocator: cudaMallocManaged failed");
++            return scast<T*>(memory);
++        }
++        void deallocate(T* memory, usize) noexcept {
++            cudaError_t const status = cudaFree(memory);
++            checkOrAbort(status == cudaSuccess, "ManagedAllocator: cudaFree failed");
++        }
++    };
+     template<typename T = u8>
+-    T* cudaReserveManaged(i64 const count) noexcept
+-    {
+-        checkOrAbort(count > 0, "cudaReserveManaged failed: count must be > 0");
+-        void* memory = nullptr;
+-        cudaError_t const status = cudaMallocManaged(&memory, sizeof(T) * count);
+-        checkOrAbort(status == cudaSuccess and memory != nullptr, "cudaReserveManaged failed");
+-        return scast<T*>(memory);
+-    }
+-
+-    inline
+-    void* cudaReleaseManaged(void* memory) noexcept
+-    {
+-        checkOrAbort(memory != nullptr, "cudaReleaseManaged failed: null pointer");
+-        cudaError_t const status = cudaFree(memory);
+-        checkOrAbort(status == cudaSuccess, "cudaReleaseManaged failed");
+-        return nullptr;
+-    }
++    class DeviceAllocator {
++    public:
++        using value_type = T;
++        T* allocate(usize const count) noexcept {
++            checkOrAbort(count != 0, "DeviceAllocator: count must not be zero");
++            void* memory = nullptr;
++            cudaError_t const status = cudaMalloc(&memory, sizeof(T) * count);
++            checkOrAbort(status == cudaSuccess and memory != nullptr, "DeviceAllocator: cudaMalloc failed");
++            return scast<T*>(memory);
++        }
++        void deallocate(T* memory, usize) noexcept {
++            cudaError_t const status = cudaFree(memory);
++            checkOrAbort(status == cudaSuccess, "DeviceAllocator: cudaFree failed");
++        }
++    };
+ #endif
+-}
+ 
+-#endif
++    template<typename T, template<typename> class Allocator = HeapAllocator, typename... Args>
++    T* make(Args&&... args) noexcept{
++        return ::new (Allocator<T>{}.allocate(1)) T(std::forward<Args>(args)...);
++    }
++    template<typename T, template<typename> class Allocator = HeapAllocator>
++    void destroy(T* ptr) noexcept {
++        checkOrAbort(ptr != nullptr, "destroy: null pointer");
++        ptr->~T();
++        Allocator<T>{}.deallocate(ptr, 1);
++    }
++}
+\ No newline at end of file
+diff --git a/gfl/Types.hpp b/gfl/Types.hpp
+index 24ae8fa..f4e55cf 100644
+--- a/gfl/Types.hpp
++++ b/gfl/Types.hpp
+@@ -26,6 +26,7 @@ namespace gfl
+     using f64 = double;
+ 
+     using uptr = std::uintptr_t;
++    using usize = std::size_t;
+ 
+     // Printf format helper types
+     using lld = long long int;
+diff --git a/gfl/Vector.hpp b/gfl/Vector.hpp
+index f07351d..1d9f56c 100644
+--- a/gfl/Vector.hpp
++++ b/gfl/Vector.hpp
+@@ -1,79 +1,34 @@
+ #pragma once
+ 
++#include <type_traits>
+ #include "VectorView.hpp"
+ #include "Memory.hpp"
+-#include <cassert>
+ 
+ namespace gfl
+ {
+-    template<typename T>
+-    class Vector : public VectorView<T>
+-    {
+-        using VectorView<T>::size_;
++    template<typename T, typename Allocator = HeapAllocator<T>>
++    class Vector : public VectorView<T> {
++        static_assert(std::is_trivially_copyable_v<T>, "Vector<T>: T must be trivially copyable");
+         using VectorView<T>::data_;
+         using VectorView<T>::capacity_;
+-
+-        static constexpr i64 MaxBytes    = 64ll * 1024ll * 1024ll * 1024ll; // 64GB
+-        static constexpr i64 MaxElements = MaxBytes / scast<i64>(sizeof(T));
+-        static constexpr i64 GrowthFactor  = 4;
+-        static constexpr i64 DefaultSize = 4096;
+-
+-        void reserve(i64 const capacity) noexcept
+-        {
+-            if (capacity > capacity_)
+-            {
+-
+-                i64 const newCapacity = capacity * GrowthFactor;
+-                checkOrAbort(newCapacity <= MaxElements, "Vector exceeded MaxElements");
+-                vmCommit(data_, newCapacity);   // pointer stays the same, no copy
+-                capacity_ = newCapacity;
+-            }
+-        }
+-
+     public:
+-        Vector() = delete;
+-
+         Vector(Vector const&) = delete;
+         Vector& operator=(Vector const&) = delete;
+-
+-        Vector(Vector&&) = delete;
+-        Vector& operator=(Vector&&) = delete;
+-
+-        explicit
+-        Vector(i64 const capacity) noexcept :
+-            VectorView<T>(capacity, vmReserve<T>(MaxElements))
+-        {
+-            vmCommit(data_, capacity);
++        explicit Vector(i64 const capacity) noexcept : VectorView<T>(capacity, Allocator{}.allocate(scast<usize>(capacity))) {}
++        ~Vector() noexcept { Allocator{}.deallocate(data_, scast<usize>(capacity_)); }
++#ifdef __CUDACC__
++        void prefetchToHost(cudaStream_t const stream = 0) const noexcept {
++            static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToHost: requires ManagedAllocator");
++            cudaMemLocation const location = {.type = cudaMemLocationTypeHost, .id = 0};
++            cudaError_t const status = cudaMemPrefetchAsync(data_, this->dataMemSize(), location, 0, stream);
++            checkOrAbort(status == cudaSuccess, "Vector::prefetchToHost failed");
+         }
+-
+-        ~Vector() noexcept
+-        {
+-            assert(data_ != nullptr);
+-            vmRelease(data_, MaxElements);
+-        }
+-
+-        i64 resizeTo(i64 const size) noexcept
+-        {
+-            reserve(size);
+-            return VectorView<T>::resizeTo(size);
+-        }
+-
+-        i64 resizeBy(i64 const delta) noexcept
+-        {
+-            reserve(size_ + delta);
+-            return VectorView<T>::resizeBy(delta);
+-        }
+-
+-        void pushBack(ArrayView<T> const& elements) noexcept
+-        {
+-            reserve(size_ + elements.size());
+-            VectorView<T>::pushBack(elements);
+-        }
+-
+-        void pushBack(T const & value) noexcept
+-        {
+-            reserve(size_ + 1);
+-            VectorView<T>::pushBack(&value);
++        void prefetchToDevice(cudaStream_t const stream = 0, i32 const device = 0) const noexcept {
++            static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToDevice: requires ManagedAllocator");
++            cudaMemLocation const location = {.type = cudaMemLocationTypeDevice, .id = device};
++            cudaError_t const status = cudaMemPrefetchAsync(data_, this->dataMemSize(), location, 0, stream);
++            checkOrAbort(status == cudaSuccess, "Vector::prefetchToDevice failed");
+         }
++#endif
+     };
+ }
+\ No newline at end of file
+diff --git a/gfl/VectorView.hpp b/gfl/VectorView.hpp
+index 631acd1..6970cc1 100644
+--- a/gfl/VectorView.hpp
++++ b/gfl/VectorView.hpp
+@@ -1,7 +1,6 @@
+ #pragma once
+ 
+ #include <cstring>
+-#include <atomic>
+ 
+ #include "ArrayView.hpp"
+ 
+@@ -30,23 +29,13 @@ namespace gfl
+ 
+         GFL_HOST_DEVICE
+         VectorView(i64 const capacity, T * data) noexcept :
+-            ArrayView<T>(scast<i64>(0),data),
++            ArrayView<T>(scast<i64>(0), data),
+             capacity_(capacity)
+         {
+             assert(data != nullptr);
+             assert(capacity > 0);
+         }
+ 
+-        template<typename Allocator>
+-        GFL_HOST_DEVICE
+-        VectorView(i64 const capacity, Allocator & alloc) noexcept :
+-            ArrayView<T>(scast<i64>(0), alloc.template allocate<T>(capacity)),  // Start with size=0
+-            capacity_(capacity)
+-        {
+-            assert(capacity > 0);
+-            assert(data_ != nullptr);
+-        }
+-
+         GFL_HOST_DEVICE
+         i64 capacity() const noexcept { return capacity_; }
+ 
+@@ -59,10 +48,7 @@ namespace gfl
+         GFL_HOST_DEVICE static
+         void swap(VectorView & a, VectorView & b) noexcept
+         {
+-            // Swap ArrayView members (data_ and size_)
+             ArrayView<T>::swap(a, b);
+-
+-            // Swap capacity_
+             i64 const tmpCapacity = a.capacity_;
+             a.capacity_ = b.capacity_;
+             b.capacity_ = tmpCapacity;
+@@ -94,11 +80,13 @@ namespace gfl
+         GFL_HOST_DEVICE
+         i64 resizeByAtomic(i64 const delta) noexcept
+         {
++            static_assert(sizeof(i64) == sizeof(llu), "resizeByAtomic: i64 must be 64-bit");
+ #ifdef __CUDA_ARCH__
+-            i64 const oldSize = atomicAdd(rcast<llu*>(&size_), scast<llu>(delta));
++            // No signed 64-bit atomicAdd exists. Two's-complement wraparound makes the
++            // unsigned add produce the correct signed result for negative deltas.
++            i64 const oldSize = scast<i64>(atomicAdd(rcast<llu*>(&size_), scast<llu>(delta)));
+ #else
+-            std::atomic_ref<i64> atomicSize(size_);
+-            i64 const oldSize = atomicSize.fetch_add(delta, std::memory_order_relaxed);
++            i64 const oldSize = __atomic_fetch_add(&size_, delta, __ATOMIC_RELAXED);
+ #endif
+             assert(oldSize + delta >= 0);
+             assert(oldSize + delta <= capacity_);
+@@ -112,17 +100,18 @@ namespace gfl
+             std::memcpy(&at(oldSize), elements.data(), elements.dataMemSize());
+         }
+ 
++        // Host only: std::vector cannot exist in device code
+         void pushBack(std::vector<T> const & elements) noexcept
+         {
+-            i64 const oldSize = resizeBy(elements.size());
++            i64 const oldSize = resizeBy(scast<i64>(elements.size()));
+             std::memcpy(&at(oldSize), elements.data(), sizeof(T) * elements.size());
+         }
+ 
+         GFL_HOST_DEVICE
+-        void pushBack(T const * value) noexcept
++        void pushBack(T const & value) noexcept
+         {
+             i64 const oldSize = resizeBy(1);
+-            std::memcpy(&at(oldSize), value, sizeof(T));
++            std::memcpy(&at(oldSize), &value, sizeof(T));
+         }
+ 
+ #ifdef __CUDACC__
+@@ -141,14 +130,17 @@ namespace gfl
+         }
+ 
+         GFL_HOST_DEVICE
+-        void pushBackAtomic(T const & value) noexcept {{pushBackAtomic(ArrayView<T>(&value, 1));}}
++        void pushBackAtomic(T const & value) noexcept
++        {
++            i64 const oldSize = resizeByAtomic(1);
++            std::memcpy(&at(oldSize), &value, sizeof(T));
++        }
+ 
+         GFL_HOST_DEVICE
+         ArrayView<T> popBack(i64 const count) noexcept
+         {
+             i64 const oldSize = resizeBy(-count);
+-            ArrayView<T> items(data_ + size_, data_ + oldSize);
+-            return items;
++            return ArrayView<T>(data_ + size_, data_ + oldSize);
+         }
+ 
+         GFL_HOST_DEVICE
+@@ -158,11 +150,10 @@ namespace gfl
+         ArrayView<T> popBackAtomic(i64 const count) noexcept
+         {
+             i64 const oldSize = resizeByAtomic(-count);
+-            ArrayView<T> items(data_ + size_, data_ + oldSize);
+-            return items;
++            return ArrayView<T>(data_ + size_, data_ + oldSize);
+         }
+ 
+         GFL_HOST_DEVICE
+         T & popBackAtomic() noexcept { return popBackAtomic(1).front(); }
+     };
+-}
++}
+\ No newline at end of file
+diff --git a/gpu_constraints/cumulative.cu b/gpu_constraints/cumulative.cu
+index 891aca0..51c41b1 100644
+--- a/gpu_constraints/cumulative.cu
++++ b/gpu_constraints/cumulative.cu
+@@ -3,243 +3,174 @@
+ #include "gfl/CudaUtils.hpp"
+ #include "gpu_constraints/cumulative.cuh"
+ 
+-__global__ void resetIntervalsKernel(gfl::i32 * nIntervals_d);
+-__global__ void calcIntervalsKernel(gfl::i32 nActivities, Cumulative::StartInterval const * si_d, gfl::i32 const * p_d, gfl::i32 * nIntervals_d, Cumulative::Interval * i_d);
+-__global__ void resetConsistencyKernel(gfl::Scalar<bool> isConsistent_d);
+-__global__ void updateBoundsKernel(gfl::i32 nActivities, gfl::i32 const * h_d,
+-				   gfl::i32 const * p_d, gfl::i32 c, gfl::i32 * nIntervals_d,
+-				   Cumulative::Interval const * i_d,
+-				   Cumulative::StartInterval * si_d,
+-				   gfl::Scalar<bool> isConsistent_d);
+-
+-
+-void CumulativeGPU::init()
+-{
+-    using namespace std;
++GFL_GLOBAL void clearRiKernel(CumulativeGPU::RelevantIntervals * ri) { ri->clear(); }
++GFL_GLOBAL void resetFailKernel(bool * fail) { *fail = false; }
++GFL_GLOBAL void calcRiKernel(CumulativeGPU::StartIntervals const* si,
++                  CumulativeGPU::ProcessingTimes const* p,
++                  CumulativeGPU::RelevantIntervals* ri) {
+     using namespace gfl;
+-    // Constraints
+-    setPriority(CLOW);
+-    // Memory allocation
+-    p_d = new (pool.gpu) i32[nActivities];
+-    h_d = new (pool.gpu) i32[nActivities];
+-    nIntervals_d = new (pool.gpu) i32;
+-    i_d = new (pool.gpu) Interval[MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities];
+-
+-    region = pool.record([this]() {
+-      isConsistent_h = Scalar<bool> {new (pool.cpu) bool};
+-      isConsistent_d = Scalar<bool> {new (pool.gpu) bool};
+-      si_h = new (pool.cpu) StartInterval[nActivities];
+-      si_d = new (pool.gpu) StartInterval[nActivities];     
+-    });
+-
+-    // CUDA initialization
+-    cudaDeviceProp cu_prop;
+-    cudaGetDeviceProperties(&cu_prop, 0);
+-    sm_count = cu_prop.multiProcessorCount;
+-    cudaStreamCreate(&cu_stream);
+-}
++    using TimeInterval = CumulativeGPU::TimeInterval;
+ 
++    i32 const n = si->size();
++    auto [ijBegin, ijEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, n * n);
++    for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x) {
++        u32 const i = ijIdx / n;
++        u32 const j = ijIdx % n;
++        u32 nGoodIntervals = 0;
++        TimeInterval intervalsToTest[MAX_INTERVALS_PER_ACTIVITY_PAIR];
++
++        i32 const pi = p->at(i);
++        i32 const siMin = si->at(i).start;
++        i32 const siMax = si->at(i).end;
++        i32 const eiMax = siMax + pi;
++
++        i32 const pj = p->at(j);
++        i32 const sjMin = si->at(j).start;
++        i32 const sjMax = si->at(j).end;
++        i32 const ejMin = sjMin + pj;
++        i32 const ejMax = sjMax + pj;
++
++        // Case 1
++        intervalsToTest[0] = {siMin, ejMin};
++        intervalsToTest[1] = {siMin, ejMax};
++        intervalsToTest[2] = {siMax, ejMin};
++        intervalsToTest[3] = {siMax, ejMax};
++
++        // Case 2
++        intervalsToTest[4] = {siMin, sjMin + ejMax - siMin};
++        intervalsToTest[5] = {siMin, sjMin + ejMax - siMax};
++        intervalsToTest[6] = {siMax, sjMin + ejMax - siMin};
++        intervalsToTest[7] = {siMax, sjMin + ejMax - siMax};
++
++        // Case 3
++        intervalsToTest[8]  = {siMin + eiMax - ejMin, ejMin};
++        intervalsToTest[9]  = {siMin + eiMax - ejMin, ejMax};
++        intervalsToTest[10] = {siMin + eiMax - ejMax, ejMin};
++        intervalsToTest[11] = {siMin + eiMax - ejMax, ejMax};
++
++        for (u32 k = 0; k < MAX_INTERVALS_PER_ACTIVITY_PAIR; k += 1) {
++            if (intervalsToTest[k].start < intervalsToTest[k].end) {
++                intervalsToTest[nGoodIntervals] = intervalsToTest[k];
++                nGoodIntervals += 1;
++            }
++        }
+ 
+-void CumulativeGPU::post()
+-{
+-    using namespace std;
+-    using namespace gfl;
+-    for (auto const & v : s)
+-        v->propagateOnBoundChange(this);
+-
+-    // Copy constants data on GPU
+-    cudaMemcpyAsync(p_d, p.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
+-    cudaMemcpyAsync(h_d, h.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
+-
+-    propagateGraph = gfl::capture(cu_stream,[this]() {
+-      region.copyToDevice(cu_stream);      
+-      resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
+-      calcIntervalsKernel<<<sm_count, CBS, 0, cu_stream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
+-      resetConsistencyKernel<<<1,1,0,cu_stream>>>(isConsistent_d);
+-      updateBoundsKernel<<<sm_count, CBS, 0, cu_stream>>>(nActivities,h_d, p_d, c,nIntervals_d,i_d,si_d,isConsistent_d);
+-      region.copyToHost(cu_stream);
+-    });
++        if (nGoodIntervals > 0)
++            ri->pushBackAtomic(ArrayView(scast<i64>(nGoodIntervals), intervalsToTest));
++    }
+ }
+ 
+-void CumulativeGPU::propagate()
++__global__ void updateSiKernel(gfl::ArrayView<gfl::i32> h,
++                                   gfl::ArrayView<gfl::i32> p,
++                                   gfl::i32 const c,
++                                   CumulativeGPU::RelevantIntervals const* ri,
++                                   CumulativeGPU::StartIntervals* si,
++                                   bool* fail)
+ {
+-    initStartIntervals(nActivities, s.data(), si_h);
+-    // Propagation
+-    // ----------------------------------------------------------------------
+-    // We should normally call propagateBase. But it's slow to have CUDA do all
+-    // these kernel transfers each time. So, instead, use the macro propagate_low_latency
+-    // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
+-    // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
+-    cudaGraphLaunch(propagateGraph, cu_stream);
+-    cudaStreamSynchronize(cu_stream);
+-    // Filtering
+-    if (isConsistent_h)
+-      for (auto i = 0; i < nActivities; i += 1) {
+-           s.at(i)->removeBelow(si_h[i].min);
+-           s.at(i)->removeAbove(si_h[i].max);
+-        }
+-    else
+-        failNow();
+-}
++    using namespace gfl;
++    using TimeInterval = CumulativeGPU::TimeInterval;
+ 
++    __shared__ TimeInterval si_s[MAX_ACTIVITIES];
+ 
++    if (*fail) return;
+ 
+-__global__ void resetIntervalsKernel(gfl::i32 * nIntervals_d)
+-{
+-    *nIntervals_d = 0;
+-}
++    i32 const n = si->size();
++    for (auto a = threadIdx.x; a < n; a += blockDim.x)
++        si_s[a] = si->at(a);
++    __syncthreads();
+ 
+-__global__ void calcIntervalsKernel(gfl::i32 nActivities,
+-				    Cumulative::StartInterval const * si_d,
+-				    gfl::i32 const * p_d,
+-				    gfl::i32 * nIntervals_d,
+-				    Cumulative::Interval * i_d)
+-{
+-    using namespace gfl;
+-
+-    auto [ijBegin,ijEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, nActivities * nActivities);
+-    for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x)
++    auto [iBegin, iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, scast<u32>(ri->size()));
++    for (auto i = iBegin + threadIdx.x; i < iEnd; i += blockDim.x)
+     {
+-        u32 const i = ijIdx / nActivities;
+-        u32 const j = ijIdx % nActivities;
+-        u32 nGoodIntervals = 0;
+-        Cumulative::Interval intervalsToTest[MAX_INTERVALS_PER_ACTIVITY_PAIR];
+-	if (si_d[i].changed or si_d[j].changed)
++        i32 const t1 = ri->at(i).start;
++        i32 const t2 = ri->at(i).end;
++
++        i32 w = 0;
++        for (i32 a = 0; a < n; a += 1)
+         {
+-            i32 const pi = p_d[i];
+-            i32 const siMin = si_d[i].min;
+-            i32 const siMax = si_d[i].max;
+-            i32 const eiMax = siMax + pi;
+-
+-            i32 const pj = p_d[j];
+-            i32 const sjMin = si_d[j].min;
+-            i32 const sjMax = si_d[j].max;
+-            i32 const ejMin = sjMin + pj;
+-            i32 const ejMax = sjMax + pj;
+-
+-            // Case 1
+-            intervalsToTest[0] = {siMin, ejMin};
+-            intervalsToTest[1] = {siMin, ejMax};
+-            intervalsToTest[2] = {siMax, ejMin};
+-            intervalsToTest[3] = {siMax, ejMax};
+-
+-            // Case 2
+-            intervalsToTest[4] = {siMin, sjMin + ejMax - siMin};
+-            intervalsToTest[5] = {siMin, sjMin + ejMax - siMax};
+-            intervalsToTest[6] = {siMax, sjMin + ejMax - siMin};
+-            intervalsToTest[7] = {siMax, sjMin + ejMax - siMax};
+-
+-            // Case 3
+-            intervalsToTest[8] = {siMin + eiMax - ejMin, ejMin};
+-            intervalsToTest[9] = {siMin + eiMax - ejMin, ejMax};
+-            intervalsToTest[10] = {siMin + eiMax - ejMax, ejMin};
+-            intervalsToTest[11] = {siMin + eiMax - ejMax, ejMax};
+-
+-            for (u32 k = 0; k < MAX_INTERVALS_PER_ACTIVITY_PAIR; k += 1)
+-            {
+-                if (intervalsToTest[k].t1 < intervalsToTest[k].t2)
+-                {
+-                    intervalsToTest[nGoodIntervals] = intervalsToTest[k];
+-                    nGoodIntervals += 1;
+-                }
+-            }
++            i32 const ha = h.at(a);
++            i32 const saMin = si_s[a].start;
++            i32 const saMax = si_s[a].end;
++            i32 const pa = p.at(a);
++            i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
++            i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
++            w += ha * min(ls, rs);
+         }
+ 
+-        if (nGoodIntervals > 0)
++        if (w > c * (t2 - t1)) { *fail = true; }
++
++        for (i32 a = 0; a < n; a += 1)
+         {
+-            u32 const freeIntervalIdx = atomicAdd(nIntervals_d, nGoodIntervals);
+-            for (u32 k = 0; k < nGoodIntervals; k += 1)
+-            {
+-                i_d[freeIntervalIdx + k] = intervalsToTest[k];
+-            }
++            i32 const ha = h.at(a);
++            i32 const saMin = si_s[a].start;
++            i32 const saMax = si_s[a].end;
++            i32 const pa = p.at(a);
++            i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
++            i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
++            i32 const avail = c * (t2 - t1) - w + ha * min(ls, rs);
++            if (avail < ha * ls) atomicMax_block(&si_s[a].start, t2 - (avail / ha));
++            if (avail < ha * rs) atomicMin_block(&si_s[a].end, t1 + (avail / ha) - pa);
+         }
+     }
+-}
++    __syncthreads();
+ 
+-__global__
+-void resetConsistencyKernel(gfl::Scalar<bool> isConsistent_d)
+-{
+-  isConsistent_d = true;
++    for (auto a = threadIdx.x; a < n; a += blockDim.x)
++    {
++        atomicMax(&si->at(a).start, si_s[a].start);
++        atomicMin(&si->at(a).end, si_s[a].end);
++    }
+ }
+ 
+-__global__ void updateBoundsKernel(gfl::i32 nActivities,
+-				   gfl::i32 const * h_d,
+-				   gfl::i32 const * p_d,
+-				   gfl::i32 c,
+-				   gfl::i32 * nIntervals_d,
+-				   Cumulative::Interval const * i_d,
+-				   Cumulative::StartInterval * si_d,
+-				   gfl::Scalar<bool> isConsistent_d)
++
++void CumulativeGPU::post()
+ {
++    using namespace std;
+     using namespace gfl;
+ 
+-    __shared__ Cumulative::StartInterval si_s[MAX_ACTIVITIES];
++    for (auto const & v : _s)
++        v->propagateOnBoundChange(this);
+ 
+-    if (isConsistent_d) {
+-        for (auto a = threadIdx.x; a < nActivities; a += blockDim.x)
+-            si_s[a] = si_d[a];
+-        __syncthreads();
++    // Copy constants data on GPU
++    _p->prefetchToDevice(cuStream, deviceId);
++    _h->prefetchToDevice(cuStream, deviceId);
++
++    // cuGraph = gfl::capture(cuSrream,[this]() {
++    //   region.copyToDevice(cuSrream);
++    //   resetIntervalsKernel<<<1,1,0,cuSrream>>>(nIntervals_d);
++    //   calcIntervalsKernel<<<nSM, CBS, 0, cuSrream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
++    //   resetConsistencyKernel<<<1,1,0,cuSrream>>>(isConsistent_d);
++    //   updateBoundsKernel<<<nSM, CBS, 0, cuSrream>>>(nActivities,h_d, p_d, c,nIntervals_d,i_d,si_d,isConsistent_d);
++    //   region.copyToHost(cuSrream);
++    // });
++}
+ 
+-        auto [iBegin,iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, *nIntervals_d);
+-        for (auto i = iBegin + threadIdx.x; i < iEnd; i += blockDim.x)
+-        {
+-            i32 const t1 = i_d[i].t1;
+-            i32 const t2 = i_d[i].t2;
+-
+-            i32 w = 0;
+-            for (i32 a = 0; a < nActivities; a += 1)
+-            {
+-                i32 const ha = h_d[a];
+-                i32 const saMin = si_s[a].min;
+-                i32 const saMax = si_s[a].max;
+-                i32 const pa = p_d[a];
+-                i32 const eaMin = saMin + pa;
+-                i32 const eaMax = saMax + pa;
+-                i32 const ls = max(0, min(eaMin, t2) - max(saMin, t1));
+-                i32 const rs = max(0, min(eaMax, t2) - max(saMax, t1));
+-                i32 const mi = min(ls, rs);
+-                w += ha * mi;
+-            }
++void CumulativeGPU::propagate()
++{
++    for (auto i = 0; i < _n; i += 1)
++        _si->at(i) = {_s[i]->min(), _s[i]->max()};
+ 
+-            if (w <= c * (t2 - t1))
+-            {
+-                for (auto a = 0; a < nActivities; a += 1)
+-                {
+-                    i32 const ha = h_d[a];
+-                    i32 const saMin = si_s[a].min;
+-                    i32 const saMax = si_s[a].max;
+-                    i32 const pa = p_d[a];
+-                    i32 const eaMin = saMin + pa;
+-                    i32 const eaMax = saMax + pa;
+-                    i32 const ls = max(0, min(eaMin, t2) - max(saMin, t1));
+-                    i32 const rs = max(0, min(eaMax, t2) - max(saMax, t1));
+-                    i32 const mi = min(ls, rs);
+-                    i32 const avail = c * (t2 - t1) - w + ha * mi;
+-                    if (avail < ha * ls)
+-                    {
+-                        atomicMax_block(&si_s[a].min, t2 - (avail / ha));
+-                    }
+-                    if (avail < ha * rs)
+-                    {
+-                        atomicMin_block(&si_s[a].max, t1 + (avail / ha) - pa);
+-                    }
+-                }
+-            }
+-            else
+-            {
+-	      isConsistent_d = false;
+-	      break;
+-            }
+-        }
+-        __syncthreads();
++    // Propagation
++    // ----------------------------------------------------------------------
++    // We should normally call propagateBase. But it's slow to have CUDA do all
++    // these kernel transfers each time. So, instead, use the macro propagate_low_latency
++    // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
++    // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
++    //cudaGraphLaunch(cuGraph, cuStream);
+ 
+-        if (isConsistent_d)
+-        {
+-            for (auto a = threadIdx.x; a < nActivities; a += blockDim.x)
+-            {
+-                atomicMax(&si_d[a].min, si_s[a].min);
+-                atomicMin(&si_d[a].max, si_s[a].max);
+-            }
++    _si->prefetchToDevice(cuStream, deviceId);
++    clearRiKernel<<<1, 1, 0, cuStream>>>(_ri);
++    calcRiKernel<<<nSM, CBS, 0, cuStream>>>(_si, _p, _ri);
++    resetFailKernel<<<1, 1, 0, cuStream>>>(_fail);
++    updateSiKernel<<<nSM, CBS, 0, cuStream>>>(*_h, *_p, _c, _ri, _si, _fail);
++    _si->prefetchToHost(cuStream);
++    cudaStreamSynchronize(cuStream);
++
++    // Filtering
++    if (not *_fail)
++        for (auto i = 0; i < _n; i += 1) {
++            _s[i]->removeBelow(_si->at(i).start);
++            _s[i]->removeAbove(_si->at(i).end);
+         }
+-    }
+-}
++    else
++        failNow();
++}
+\ No newline at end of file
+diff --git a/gpu_constraints/cumulative.cuh b/gpu_constraints/cumulative.cuh
+index d1d96bd..faa5da8 100644
+--- a/gpu_constraints/cumulative.cuh
++++ b/gpu_constraints/cumulative.cuh
+@@ -4,11 +4,14 @@
+ #include <cuda_runtime_api.h>
+ #include "gfl/Types.hpp"
+ #include "gfl/Memory.hpp"
+-#include "gfl/ArenaAllocator.hpp"
+-#include "gfl/Scalar.hpp"
++#include "gfl/Array.hpp"
++#include "gfl/Vector.hpp"
++#include "gfl/DebugUtils.hpp"
+ 
+ #include <varitf.hpp>
+ #include <constraint.hpp>
++
++#include "Vector.hpp"
+ #include "global_constraints/cumulative.hpp"
+ 
+ #define MAX_INTERVALS_PER_ACTIVITY_PAIR 12
+@@ -20,29 +23,66 @@
+ // - Constraint-Based Scheduling (ISBN: 978-1-4615-1479-4)
+ // - A New Characterization of Relevant Intervals for Energetic Reasoning (DOI: 10.1007/978-3-319-10428-7_22)
+ 
+-class CumulativeGPU : public Cumulative {
++class CumulativeGPU : public Constraint
++{
++public:
++    struct TimeInterval
++    {
++        gfl::i32 start;
++        gfl::i32 end;
++    };
++
++    using ProcessingTimes = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
++    using Requirements = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
++    using RelevantIntervals = gfl::Vector<TimeInterval, gfl::DeviceAllocator<TimeInterval>>;
++    using StartIntervals = gfl::Array<TimeInterval, gfl::ManagedAllocator<TimeInterval>>;
++
+ private:
+-  gfl::i32 * p_d; // Processing time
+-  gfl::i32 * h_d; // Height
+-  gfl::i32 * nIntervals_d;
+-  Interval * i_d;
+-  gfl::Scalar<bool> isConsistent_h;
+-  StartInterval * si_h;
+-  gfl::Scalar<bool> isConsistent_d;
+-  StartInterval * si_d;
+-  // CUDA
+-  gfl::u32 sm_count;      // how many multi-processors
+-  cudaStream_t cu_stream; // a GPU queue to offload work
+-  cudaGraphExec_t propagateGraph; // The executable kernel graph
+-  gfl::MPool pool;
+-  gfl::Region region;
+-  void init();
++    gfl::i32 _n;
++    gfl::i32 _c;
++    std::vector<var<int>::Ptr> _s;
++    ProcessingTimes* _p;
++    Requirements* _h;
++    RelevantIntervals* _ri;
++    StartIntervals* _si;
++    bool* _fail;
++
++    // CUDA
++    gfl::i32 deviceId;
++    gfl::u32 nSM; // Mow many multi-processors
++    cudaStream_t cuStream; // a GPU queue to offload work
++    cudaGraphExec_t cuGraph; // The executable kernel graph
++
+ public:
+-  template <typename Container>
+-  CumulativeGPU(Container & sa, std::vector<int> const & p, std::vector<int> const & h, int c)
+-    : Cumulative(sa,p,h,c),pool(INPUT_OUTPUT_MEMORY) {
+-    init();
+-  }    
+-  void post() override;
+-  void propagate() override;
++    template <typename Container>
++    CumulativeGPU(Container& s, std::vector<int> const& p, std::vector<int> const& h, int c) :
++        Constraint(s[0]->getSolver()), _n(gfl::scast<gfl::i32>(s.size ())), _c(c),_s(_n),
++        _p(gfl::make<ProcessingTimes, gfl::ManagedAllocator>(_n)),
++        _h(gfl::make<Requirements, gfl::ManagedAllocator>(_n)),
++        _ri(gfl::make<RelevantIntervals, gfl::ManagedAllocator>(MAX_INTERVALS_PER_ACTIVITY_PAIR*_n*_n)),
++        _si(gfl::make<StartIntervals, gfl::ManagedAllocator>(_n)),
++        _fail(gfl::make<bool, gfl::ManagedAllocator>())
++    {
++
++        gfl::checkOrAbort(p.size() == s.size(), "CumulativeGPU: |p| != |s|");
++        gfl::checkOrAbort(h.size() == s.size(), "CumulativeGPU: |h| != |s|");
++
++        for (auto i = 0; i < _n; i += 1)
++        {
++            _p->at(i) = p[i];
++            _h->at(i) = h[i];
++            _s[i] = s[i];
++        }
++
++        // CUDA initialization
++        cudaGetDevice(&deviceId);
++        cudaDeviceProp cuProp;
++        cudaGetDeviceProperties(&cuProp, deviceId);
++        nSM = cuProp.multiProcessorCount;
++        cudaStreamCreate(&cuStream);
++        setPriority(CLOW);
++    }
++
++    void post() override;
++    void propagate() override;
+ };

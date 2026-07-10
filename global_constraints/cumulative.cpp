@@ -148,6 +148,8 @@ void Cumulative::propagate()
         }
     }
 
+
+
     for (auto i = 0; i < nActivities; i += 1)
     {
         s.at(i)->removeBelow(si.at(i).min);

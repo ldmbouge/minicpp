@@ -26,6 +26,7 @@ namespace gfl
     using f64 = double;
 
     using uptr = std::uintptr_t;
+    using usize = std::size_t;
 
     // Printf format helper types
     using lld = long long int;

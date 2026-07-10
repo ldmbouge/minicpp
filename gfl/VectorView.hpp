@@ -1,7 +1,6 @@
 #pragma once
 
 #include <cstring>
-#include <atomic>
 
 #include "ArrayView.hpp"
 
@@ -30,21 +29,11 @@ namespace gfl
 
         GFL_HOST_DEVICE
         VectorView(i64 const capacity, T * data) noexcept :
-            ArrayView<T>(scast<i64>(0),data),
+            ArrayView<T>(scast<i64>(0), data),
             capacity_(capacity)
         {
             assert(data != nullptr);
             assert(capacity > 0);
-        }
-
-        template<typename Allocator>
-        GFL_HOST_DEVICE
-        VectorView(i64 const capacity, Allocator & alloc) noexcept :
-            ArrayView<T>(scast<i64>(0), alloc.template allocate<T>(capacity)),  // Start with size=0
-            capacity_(capacity)
-        {
-            assert(capacity > 0);
-            assert(data_ != nullptr);
         }
 
         GFL_HOST_DEVICE
@@ -59,10 +48,7 @@ namespace gfl
         GFL_HOST_DEVICE static
         void swap(VectorView & a, VectorView & b) noexcept
         {
-            // Swap ArrayView members (data_ and size_)
             ArrayView<T>::swap(a, b);
-
-            // Swap capacity_
             i64 const tmpCapacity = a.capacity_;
             a.capacity_ = b.capacity_;
             b.capacity_ = tmpCapacity;
@@ -94,11 +80,13 @@ namespace gfl
         GFL_HOST_DEVICE
         i64 resizeByAtomic(i64 const delta) noexcept
         {
+            static_assert(sizeof(i64) == sizeof(llu), "resizeByAtomic: i64 must be 64-bit");
 #ifdef __CUDA_ARCH__
-            i64 const oldSize = atomicAdd(rcast<llu*>(&size_), scast<llu>(delta));
+            // No signed 64-bit atomicAdd exists. Two's-complement wraparound makes the
+            // unsigned add produce the correct signed result for negative deltas.
+            i64 const oldSize = scast<i64>(atomicAdd(rcast<llu*>(&size_), scast<llu>(delta)));
 #else
-            std::atomic_ref<i64> atomicSize(size_);
-            i64 const oldSize = atomicSize.fetch_add(delta, std::memory_order_relaxed);
+            i64 const oldSize = __atomic_fetch_add(&size_, delta, __ATOMIC_RELAXED);
 #endif
             assert(oldSize + delta >= 0);
             assert(oldSize + delta <= capacity_);
@@ -112,17 +100,18 @@ namespace gfl
             std::memcpy(&at(oldSize), elements.data(), elements.dataMemSize());
         }
 
+        // Host only: std::vector cannot exist in device code
         void pushBack(std::vector<T> const & elements) noexcept
         {
-            i64 const oldSize = resizeBy(elements.size());
+            i64 const oldSize = resizeBy(scast<i64>(elements.size()));
             std::memcpy(&at(oldSize), elements.data(), sizeof(T) * elements.size());
         }
 
         GFL_HOST_DEVICE
-        void pushBack(T const * value) noexcept
+        void pushBack(T const & value) noexcept
         {
             i64 const oldSize = resizeBy(1);
-            std::memcpy(&at(oldSize), value, sizeof(T));
+            std::memcpy(&at(oldSize), &value, sizeof(T));
         }
 
 #ifdef __CUDACC__
@@ -141,14 +130,17 @@ namespace gfl
         }
 
         GFL_HOST_DEVICE
-        void pushBackAtomic(T const & value) noexcept {{pushBackAtomic(ArrayView<T>(&value, 1));}}
+        void pushBackAtomic(T const & value) noexcept
+        {
+            i64 const oldSize = resizeByAtomic(1);
+            std::memcpy(&at(oldSize), &value, sizeof(T));
+        }
 
         GFL_HOST_DEVICE
         ArrayView<T> popBack(i64 const count) noexcept
         {
             i64 const oldSize = resizeBy(-count);
-            ArrayView<T> items(data_ + size_, data_ + oldSize);
-            return items;
+            return ArrayView<T>(data_ + size_, data_ + oldSize);
         }
 
         GFL_HOST_DEVICE
@@ -158,8 +150,7 @@ namespace gfl
         ArrayView<T> popBackAtomic(i64 const count) noexcept
         {
             i64 const oldSize = resizeByAtomic(-count);
-            ArrayView<T> items(data_ + size_, data_ + oldSize);
-            return items;
+            return ArrayView<T>(data_ + size_, data_ + oldSize);
         }
 
         GFL_HOST_DEVICE

@@ -90,55 +90,56 @@ namespace gfl
         GFL_HOST_DEVICE i64 usedSize() const noexcept { return scast<i64>(current - begin); }
         GFL_HOST_DEVICE i64 totalSize() const noexcept { return scast<i64>(end - begin); }
     };
-  class Region {
-    gfl::u8* _startCPU;
-    gfl::u8* _endCPU;
-    gfl::u8* _startGPU;
-    gfl::u8* _endGPU;
-    Region(gfl::u8* sC,gfl::u8* eC,gfl::u8* sG,gfl::u8* eG) : _startCPU(sC),_endCPU(eC),_startGPU(sG),_endGPU(eG) {}
-  public:
-    Region() : _startCPU(nullptr),_endCPU(nullptr),_startGPU(nullptr),_endGPU(nullptr) {}
-    friend class MPool;
-    void copyToDevice(cudaStream_t cus) {
-      cudaMemcpyAsync(_startGPU,_startCPU,_endCPU-_startCPU,cudaMemcpyHostToDevice,cus);
-      CHECK_LAST_CUDA_ERROR();
-    }
-    void copyToHost(cudaStream_t cus) {
-      cudaMemcpyAsync(_startCPU,_startGPU,_endCPU-_startCPU,cudaMemcpyDeviceToHost,cus);
-      CHECK_LAST_CUDA_ERROR();
-    }
-  };
-  class MPool {
-  public:
-    typedef MPool* Ptr;
-    MPool(const i64 sz) : cpu(sz,cudaReserveHost(sz)),
-			  gpu(sz,cudaReserveDevice(sz)) {}
-    ~MPool() {
-      cudaReleaseDevice(gpu.mem());
-      cudaReleaseHost(cpu.mem());
-    }
-    ArenaAllocator cpu;
-    ArenaAllocator gpu;
-    template <typename Block> Region record(Block b) {
-      auto cpuBEG = cpu.freeMem();
-      auto gpuBEG = gpu.freeMem();
-      b();
-      return Region { cpuBEG,cpu.freeMem(),gpuBEG,gpu.freeMem()};
-    }
-  };
 }
-
-// Placement new overloads for ArenaAllocator
-inline void * operator new(std::size_t const size, gfl::ArenaAllocator& allocator) {
-    return allocator.allocate<gfl::u8>(gfl::scast<gfl::i64>(size), gfl::DefaultAlign);
-}
-
-inline void * operator new[](std::size_t const size, gfl::ArenaAllocator& allocator) {
-    return allocator.allocate<gfl::u8>(gfl::scast<gfl::i64>(size), gfl::DefaultAlign);
-}
-
-// Required matching deletes (no-op, arena owns the memory)
-inline void operator delete(void*, gfl::ArenaAllocator&) noexcept {}
-inline void operator delete[](void*, gfl::ArenaAllocator&) noexcept {}
+//   class Region {
+//     gfl::u8* _startCPU;
+//     gfl::u8* _endCPU;
+//     gfl::u8* _startGPU;
+//     gfl::u8* _endGPU;
+//     Region(gfl::u8* sC,gfl::u8* eC,gfl::u8* sG,gfl::u8* eG) : _startCPU(sC),_endCPU(eC),_startGPU(sG),_endGPU(eG) {}
+//   public:
+//     Region() : _startCPU(nullptr),_endCPU(nullptr),_startGPU(nullptr),_endGPU(nullptr) {}
+//     friend class MPool;
+//     void copyToDevice(cudaStream_t cus) {
+//       cudaMemcpyAsync(_startGPU,_startCPU,_endCPU-_startCPU,cudaMemcpyHostToDevice,cus);
+//       CHECK_LAST_CUDA_ERROR();
+//     }
+//     void copyToHost(cudaStream_t cus) {
+//       cudaMemcpyAsync(_startCPU,_startGPU,_endCPU-_startCPU,cudaMemcpyDeviceToHost,cus);
+//       CHECK_LAST_CUDA_ERROR();
+//     }
+//   };
+//   class MPool {
+//   public:
+//     typedef MPool* Ptr;
+//     MPool(const i64 sz) : cpu(sz,cudaReserveHost(sz)),
+// 			  gpu(sz,cudaReserveDevice(sz)) {}
+//     ~MPool() {
+//       cudaReleaseDevice(gpu.mem());
+//       cudaReleaseHost(cpu.mem());
+//     }
+//     ArenaAllocator cpu;
+//     ArenaAllocator gpu;
+//     template <typename Block> Region record(Block b) {
+//       auto cpuBEG = cpu.freeMem();
+//       auto gpuBEG = gpu.freeMem();
+//       b();
+//       return Region { cpuBEG,cpu.freeMem(),gpuBEG,gpu.freeMem()};
+//     }
+//   };
+// }
+//
+// // Placement new overloads for ArenaAllocator
+// inline void * operator new(std::size_t const size, gfl::ArenaAllocator& allocator) {
+//     return allocator.allocate<gfl::u8>(gfl::scast<gfl::i64>(size), gfl::DefaultAlign);
+// }
+//
+// inline void * operator new[](std::size_t const size, gfl::ArenaAllocator& allocator) {
+//     return allocator.allocate<gfl::u8>(gfl::scast<gfl::i64>(size), gfl::DefaultAlign);
+// }
+//
+// // Required matching deletes (no-op, arena owns the memory)
+// inline void operator delete(void*, gfl::ArenaAllocator&) noexcept {}
+// inline void operator delete[](void*, gfl::ArenaAllocator&) noexcept {}
 
 #endif

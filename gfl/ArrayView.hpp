@@ -37,10 +37,6 @@ namespace gfl
             assert(size >= 0);  // Allow size = 0 for VectorBase (starts empty)
         }
 
-        template<typename Allocator>
-        GFL_HOST_DEVICE
-        ArrayView(i64 const size, Allocator & alloc) noexcept :
-            ArrayView(size, alloc.template allocate<T>(size)) {}
 
         GFL_HOST_DEVICE
         ArrayView(T * begin, T * end) noexcept :

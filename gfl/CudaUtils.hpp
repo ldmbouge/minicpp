@@ -10,6 +10,7 @@
 #include "Types.hpp"
 #include "FunQual.hpp"
 #include "Backend.hpp"
+#include "MathUtils.hpp"
 
 #ifdef __CUDACC__
 #include <cuda_runtime_api.h>
@@ -170,7 +171,7 @@ namespace gfl
         // First 'remainder' workers get one extra job
         auto const extra = (index < remainder) ? 1 : 0;
 
-        begin = index * jobsPerWorker + min<i64>(index, remainder);
+        begin = index * jobsPerWorker + gfl::min<i64>(index, remainder);
         end = begin + jobsPerWorker + extra;
 	return gfl::make_tuple(begin,end);
     }

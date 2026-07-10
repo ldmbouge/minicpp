@@ -1,79 +1,34 @@
 #pragma once
 
+#include <type_traits>
 #include "VectorView.hpp"
 #include "Memory.hpp"
-#include <cassert>
 
 namespace gfl
 {
-    template<typename T>
-    class Vector : public VectorView<T>
-    {
-        using VectorView<T>::size_;
+    template<typename T, typename Allocator = HeapAllocator<T>>
+    class Vector : public VectorView<T> {
+        static_assert(std::is_trivially_copyable_v<T>, "Vector<T>: T must be trivially copyable");
         using VectorView<T>::data_;
         using VectorView<T>::capacity_;
-
-        static constexpr i64 MaxBytes    = 64ll * 1024ll * 1024ll * 1024ll; // 64GB
-        static constexpr i64 MaxElements = MaxBytes / scast<i64>(sizeof(T));
-        static constexpr i64 GrowthFactor  = 4;
-        static constexpr i64 DefaultSize = 4096;
-
-        void reserve(i64 const capacity) noexcept
-        {
-            if (capacity > capacity_)
-            {
-
-                i64 const newCapacity = capacity * GrowthFactor;
-                checkOrAbort(newCapacity <= MaxElements, "Vector exceeded MaxElements");
-                vmCommit(data_, newCapacity);   // pointer stays the same, no copy
-                capacity_ = newCapacity;
-            }
-        }
-
     public:
-        Vector() = delete;
-
         Vector(Vector const&) = delete;
         Vector& operator=(Vector const&) = delete;
-
-        Vector(Vector&&) = delete;
-        Vector& operator=(Vector&&) = delete;
-
-        explicit
-        Vector(i64 const capacity) noexcept :
-            VectorView<T>(capacity, vmReserve<T>(MaxElements))
-        {
-            vmCommit(data_, capacity);
+        explicit Vector(i64 const capacity) noexcept : VectorView<T>(capacity, Allocator{}.allocate(scast<usize>(capacity))) {}
+        ~Vector() noexcept { Allocator{}.deallocate(data_, scast<usize>(capacity_)); }
+#ifdef __CUDACC__
+        void prefetchToHost(cudaStream_t const stream = 0) const noexcept {
+            static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToHost: requires ManagedAllocator");
+            cudaMemLocation const location = {.type = cudaMemLocationTypeHost, .id = 0};
+            cudaError_t const status = cudaMemPrefetchAsync(data_, this->dataMemSize(), location, 0, stream);
+            checkOrAbort(status == cudaSuccess, "Vector::prefetchToHost failed");
         }
-
-        ~Vector() noexcept
-        {
-            assert(data_ != nullptr);
-            vmRelease(data_, MaxElements);
+        void prefetchToDevice(cudaStream_t const stream = 0, i32 const device = 0) const noexcept {
+            static_assert(std::is_same_v<Allocator, ManagedAllocator<T>>, "prefetchToDevice: requires ManagedAllocator");
+            cudaMemLocation const location = {.type = cudaMemLocationTypeDevice, .id = device};
+            cudaError_t const status = cudaMemPrefetchAsync(data_, this->dataMemSize(), location, 0, stream);
+            checkOrAbort(status == cudaSuccess, "Vector::prefetchToDevice failed");
         }
-
-        i64 resizeTo(i64 const size) noexcept
-        {
-            reserve(size);
-            return VectorView<T>::resizeTo(size);
-        }
-
-        i64 resizeBy(i64 const delta) noexcept
-        {
-            reserve(size_ + delta);
-            return VectorView<T>::resizeBy(delta);
-        }
-
-        void pushBack(ArrayView<T> const& elements) noexcept
-        {
-            reserve(size_ + elements.size());
-            VectorView<T>::pushBack(elements);
-        }
-
-        void pushBack(T const & value) noexcept
-        {
-            reserve(size_ + 1);
-            VectorView<T>::pushBack(&value);
-        }
+#endif
     };
 }

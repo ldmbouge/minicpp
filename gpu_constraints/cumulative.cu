@@ -3,40 +3,122 @@
 #include "gfl/CudaUtils.hpp"
 #include "gpu_constraints/cumulative.cuh"
 
-__global__ void resetIntervalsKernel(gfl::i32 * nIntervals_d);
-__global__ void calcIntervalsKernel(gfl::i32 nActivities, Cumulative::StartInterval const * si_d, gfl::i32 const * p_d, gfl::i32 * nIntervals_d, Cumulative::Interval * i_d);
-__global__ void resetConsistencyKernel(gfl::Scalar<bool> isConsistent_d);
-__global__ void updateBoundsKernel(gfl::i32 nActivities, gfl::i32 const * h_d,
-				   gfl::i32 const * p_d, gfl::i32 c, gfl::i32 * nIntervals_d,
-				   Cumulative::Interval const * i_d,
-				   Cumulative::StartInterval * si_d,
-				   gfl::Scalar<bool> isConsistent_d);
-
-
-void CumulativeGPU::init()
-{
-    using namespace std;
+GFL_GLOBAL void clearRiKernel(CumulativeGPU::RelevantIntervals * ri) { ri->clear(); }
+GFL_GLOBAL void resetFailKernel(bool * fail) { *fail = false; }
+GFL_GLOBAL void calcRiKernel(CumulativeGPU::StartIntervals const* si,
+                  CumulativeGPU::ProcessingTimes const* p,
+                  CumulativeGPU::RelevantIntervals* ri) {
     using namespace gfl;
-    // Constraints
-    setPriority(CLOW);
-    // Memory allocation
-    p_d = new (pool.gpu) i32[nActivities];
-    h_d = new (pool.gpu) i32[nActivities];
-    nIntervals_d = new (pool.gpu) i32;
-    i_d = new (pool.gpu) Interval[MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities];
+    using TimeInterval = CumulativeGPU::TimeInterval;
 
-    region = pool.record([this]() {
-      isConsistent_h = Scalar<bool> {new (pool.cpu) bool};
-      isConsistent_d = Scalar<bool> {new (pool.gpu) bool};
-      si_h = new (pool.cpu) StartInterval[nActivities];
-      si_d = new (pool.gpu) StartInterval[nActivities];     
-    });
+    i32 const n = si->size();
+    auto [ijBegin, ijEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, n * n);
+    for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x) {
+        u32 const i = ijIdx / n;
+        u32 const j = ijIdx % n;
+        u32 nGoodIntervals = 0;
+        TimeInterval intervalsToTest[MAX_INTERVALS_PER_ACTIVITY_PAIR];
 
-    // CUDA initialization
-    cudaDeviceProp cu_prop;
-    cudaGetDeviceProperties(&cu_prop, 0);
-    sm_count = cu_prop.multiProcessorCount;
-    cudaStreamCreate(&cu_stream);
+        i32 const pi = p->at(i);
+        i32 const siMin = si->at(i).start;
+        i32 const siMax = si->at(i).end;
+        i32 const eiMax = siMax + pi;
+
+        i32 const pj = p->at(j);
+        i32 const sjMin = si->at(j).start;
+        i32 const sjMax = si->at(j).end;
+        i32 const ejMin = sjMin + pj;
+        i32 const ejMax = sjMax + pj;
+
+        // Case 1
+        intervalsToTest[0] = {siMin, ejMin};
+        intervalsToTest[1] = {siMin, ejMax};
+        intervalsToTest[2] = {siMax, ejMin};
+        intervalsToTest[3] = {siMax, ejMax};
+
+        // Case 2
+        intervalsToTest[4] = {siMin, sjMin + ejMax - siMin};
+        intervalsToTest[5] = {siMin, sjMin + ejMax - siMax};
+        intervalsToTest[6] = {siMax, sjMin + ejMax - siMin};
+        intervalsToTest[7] = {siMax, sjMin + ejMax - siMax};
+
+        // Case 3
+        intervalsToTest[8]  = {siMin + eiMax - ejMin, ejMin};
+        intervalsToTest[9]  = {siMin + eiMax - ejMin, ejMax};
+        intervalsToTest[10] = {siMin + eiMax - ejMax, ejMin};
+        intervalsToTest[11] = {siMin + eiMax - ejMax, ejMax};
+
+        for (u32 k = 0; k < MAX_INTERVALS_PER_ACTIVITY_PAIR; k += 1) {
+            if (intervalsToTest[k].start < intervalsToTest[k].end) {
+                intervalsToTest[nGoodIntervals] = intervalsToTest[k];
+                nGoodIntervals += 1;
+            }
+        }
+
+        if (nGoodIntervals > 0)
+            ri->pushBackAtomic(ArrayView(scast<i64>(nGoodIntervals), intervalsToTest));
+    }
+}
+
+__global__ void updateSiKernel(gfl::ArrayView<gfl::i32> h,
+                                   gfl::ArrayView<gfl::i32> p,
+                                   gfl::i32 const c,
+                                   CumulativeGPU::RelevantIntervals const* ri,
+                                   CumulativeGPU::StartIntervals* si,
+                                   bool* fail)
+{
+    using namespace gfl;
+    using TimeInterval = CumulativeGPU::TimeInterval;
+
+    __shared__ TimeInterval si_s[MAX_ACTIVITIES];
+
+    if (*fail) return;
+
+    i32 const n = si->size();
+    for (auto a = threadIdx.x; a < n; a += blockDim.x)
+        si_s[a] = si->at(a);
+    __syncthreads();
+
+    auto [iBegin, iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, scast<u32>(ri->size()));
+    for (auto i = iBegin + threadIdx.x; i < iEnd; i += blockDim.x)
+    {
+        i32 const t1 = ri->at(i).start;
+        i32 const t2 = ri->at(i).end;
+
+        i32 w = 0;
+        for (i32 a = 0; a < n; a += 1)
+        {
+            i32 const ha = h.at(a);
+            i32 const saMin = si_s[a].start;
+            i32 const saMax = si_s[a].end;
+            i32 const pa = p.at(a);
+            i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
+            i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
+            w += ha * min(ls, rs);
+        }
+
+        if (w > c * (t2 - t1)) { *fail = true; continue; }
+
+        for (i32 a = 0; a < n; a += 1)
+        {
+            i32 const ha = h.at(a);
+            i32 const saMin = si_s[a].start;
+            i32 const saMax = si_s[a].end;
+            i32 const pa = p.at(a);
+            i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
+            i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
+            i32 const avail = c * (t2 - t1) - w + ha * min(ls, rs);
+            if (avail < ha * ls) atomicMax_block(&si_s[a].start, t2 - (avail / ha));
+            if (avail < ha * rs) atomicMin_block(&si_s[a].end, t1 + (avail / ha) - pa);
+        }
+    }
+    __syncthreads();
+
+    for (auto a = threadIdx.x; a < n; a += blockDim.x)
+    {
+        atomicMax(&si->at(a).start, si_s[a].start);
+        atomicMin(&si->at(a).end, si_s[a].end);
+    }
 }
 
 
@@ -44,202 +126,62 @@ void CumulativeGPU::post()
 {
     using namespace std;
     using namespace gfl;
-    for (auto const & v : s)
+
+    for (auto const & v : _s)
         v->propagateOnBoundChange(this);
 
     // Copy constants data on GPU
-    cudaMemcpyAsync(p_d, p.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
-    cudaMemcpyAsync(h_d, h.data(), Array<i32>::dataMemSize(nActivities), cudaMemcpyDefault, cu_stream);
+    _p->prefetchToDevice(cuStream, deviceId);
+    _h->prefetchToDevice(cuStream, deviceId);
 
-    propagateGraph = gfl::capture(cu_stream,[this]() {
-      region.copyToDevice(cu_stream);      
-      resetIntervalsKernel<<<1,1,0,cu_stream>>>(nIntervals_d);
-      calcIntervalsKernel<<<sm_count, CBS, 0, cu_stream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
-      resetConsistencyKernel<<<1,1,0,cu_stream>>>(isConsistent_d);
-      updateBoundsKernel<<<sm_count, CBS, 0, cu_stream>>>(nActivities,h_d, p_d, c,nIntervals_d,i_d,si_d,isConsistent_d);
-      region.copyToHost(cu_stream);
-    });
+    // cuGraph = gfl::capture(cuSrream,[this]() {
+    //   region.copyToDevice(cuSrream);
+    //   resetIntervalsKernel<<<1,1,0,cuSrream>>>(nIntervals_d);
+    //   calcIntervalsKernel<<<nSM, CBS, 0, cuSrream>>>(nActivities, si_d, p_d, nIntervals_d, i_d);
+    //   resetConsistencyKernel<<<1,1,0,cuSrream>>>(isConsistent_d);
+    //   updateBoundsKernel<<<nSM, CBS, 0, cuSrream>>>(nActivities,h_d, p_d, c,nIntervals_d,i_d,si_d,isConsistent_d);
+    //   region.copyToHost(cuSrream);
+    // });
 }
 
 void CumulativeGPU::propagate()
 {
-    initStartIntervals(nActivities, s.data(), si_h);
+    for (auto i = 0; i < _n; i += 1)
+        _si->at(i) = {_s[i]->min(), _s[i]->max()};
+
     // Propagation
     // ----------------------------------------------------------------------
     // We should normally call propagateBase. But it's slow to have CUDA do all
     // these kernel transfers each time. So, instead, use the macro propagate_low_latency
     // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
     // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
-    cudaGraphLaunch(propagateGraph, cu_stream);
-    cudaStreamSynchronize(cu_stream);
+    //cudaGraphLaunch(cuGraph, cuStream);
+
+
+    _si->prefetchToDevice(cuStream, deviceId);
+    clearRiKernel<<<1, 1, 0, cuStream>>>(_ri);
+    calcRiKernel<<<nSM, CBS, 0, cuStream>>>(_si, _p, _ri);
+    resetFailKernel<<<1, 1, 0, cuStream>>>(_fail);
+    updateSiKernel<<<nSM, CBS, 0, cuStream>>>(*_h, *_p, _c, _ri, _si, _fail);
+    _si->prefetchToHost(cuStream);
+    cudaStreamSynchronize(cuStream);
+
+    // ---- instrumentation ----
+    static int nCalls = 0;
+    if (nCalls++ < 5) {
+        printf("GPU propagate #%d: ri=%ld fail=%d\n", nCalls, (long)_ri->size(), (int)*_fail);
+        for (int i = 0; i < _n; ++i)
+            printf("  si[%d]=[%d,%d]\n", i, _si->at(i).start, _si->at(i).end);
+    }
+    // -------------------------
+
+
     // Filtering
-    if (isConsistent_h)
-      for (auto i = 0; i < nActivities; i += 1) {
-           s.at(i)->removeBelow(si_h[i].min);
-           s.at(i)->removeAbove(si_h[i].max);
+    if (not *_fail)
+        for (auto i = 0; i < _n; i += 1) {
+            _s[i]->removeBelow(_si->at(i).start);
+            _s[i]->removeAbove(_si->at(i).end);
         }
     else
         failNow();
-}
-
-
-
-__global__ void resetIntervalsKernel(gfl::i32 * nIntervals_d)
-{
-    *nIntervals_d = 0;
-}
-
-__global__ void calcIntervalsKernel(gfl::i32 nActivities,
-				    Cumulative::StartInterval const * si_d,
-				    gfl::i32 const * p_d,
-				    gfl::i32 * nIntervals_d,
-				    Cumulative::Interval * i_d)
-{
-    using namespace gfl;
-
-    auto [ijBegin,ijEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, nActivities * nActivities);
-    for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x)
-    {
-        u32 const i = ijIdx / nActivities;
-        u32 const j = ijIdx % nActivities;
-        u32 nGoodIntervals = 0;
-        Cumulative::Interval intervalsToTest[MAX_INTERVALS_PER_ACTIVITY_PAIR];
-	if (si_d[i].changed or si_d[j].changed)
-        {
-            i32 const pi = p_d[i];
-            i32 const siMin = si_d[i].min;
-            i32 const siMax = si_d[i].max;
-            i32 const eiMax = siMax + pi;
-
-            i32 const pj = p_d[j];
-            i32 const sjMin = si_d[j].min;
-            i32 const sjMax = si_d[j].max;
-            i32 const ejMin = sjMin + pj;
-            i32 const ejMax = sjMax + pj;
-
-            // Case 1
-            intervalsToTest[0] = {siMin, ejMin};
-            intervalsToTest[1] = {siMin, ejMax};
-            intervalsToTest[2] = {siMax, ejMin};
-            intervalsToTest[3] = {siMax, ejMax};
-
-            // Case 2
-            intervalsToTest[4] = {siMin, sjMin + ejMax - siMin};
-            intervalsToTest[5] = {siMin, sjMin + ejMax - siMax};
-            intervalsToTest[6] = {siMax, sjMin + ejMax - siMin};
-            intervalsToTest[7] = {siMax, sjMin + ejMax - siMax};
-
-            // Case 3
-            intervalsToTest[8] = {siMin + eiMax - ejMin, ejMin};
-            intervalsToTest[9] = {siMin + eiMax - ejMin, ejMax};
-            intervalsToTest[10] = {siMin + eiMax - ejMax, ejMin};
-            intervalsToTest[11] = {siMin + eiMax - ejMax, ejMax};
-
-            for (u32 k = 0; k < MAX_INTERVALS_PER_ACTIVITY_PAIR; k += 1)
-            {
-                if (intervalsToTest[k].t1 < intervalsToTest[k].t2)
-                {
-                    intervalsToTest[nGoodIntervals] = intervalsToTest[k];
-                    nGoodIntervals += 1;
-                }
-            }
-        }
-
-        if (nGoodIntervals > 0)
-        {
-            u32 const freeIntervalIdx = atomicAdd(nIntervals_d, nGoodIntervals);
-            for (u32 k = 0; k < nGoodIntervals; k += 1)
-            {
-                i_d[freeIntervalIdx + k] = intervalsToTest[k];
-            }
-        }
-    }
-}
-
-__global__
-void resetConsistencyKernel(gfl::Scalar<bool> isConsistent_d)
-{
-  isConsistent_d = true;
-}
-
-__global__ void updateBoundsKernel(gfl::i32 nActivities,
-				   gfl::i32 const * h_d,
-				   gfl::i32 const * p_d,
-				   gfl::i32 c,
-				   gfl::i32 * nIntervals_d,
-				   Cumulative::Interval const * i_d,
-				   Cumulative::StartInterval * si_d,
-				   gfl::Scalar<bool> isConsistent_d)
-{
-    using namespace gfl;
-
-    __shared__ Cumulative::StartInterval si_s[MAX_ACTIVITIES];
-
-    if (isConsistent_d) {
-        for (auto a = threadIdx.x; a < nActivities; a += blockDim.x)
-            si_s[a] = si_d[a];
-        __syncthreads();
-
-        auto [iBegin,iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, *nIntervals_d);
-        for (auto i = iBegin + threadIdx.x; i < iEnd; i += blockDim.x)
-        {
-            i32 const t1 = i_d[i].t1;
-            i32 const t2 = i_d[i].t2;
-
-            i32 w = 0;
-            for (i32 a = 0; a < nActivities; a += 1)
-            {
-                i32 const ha = h_d[a];
-                i32 const saMin = si_s[a].min;
-                i32 const saMax = si_s[a].max;
-                i32 const pa = p_d[a];
-                i32 const eaMin = saMin + pa;
-                i32 const eaMax = saMax + pa;
-                i32 const ls = max(0, min(eaMin, t2) - max(saMin, t1));
-                i32 const rs = max(0, min(eaMax, t2) - max(saMax, t1));
-                i32 const mi = min(ls, rs);
-                w += ha * mi;
-            }
-
-            if (w <= c * (t2 - t1))
-            {
-                for (auto a = 0; a < nActivities; a += 1)
-                {
-                    i32 const ha = h_d[a];
-                    i32 const saMin = si_s[a].min;
-                    i32 const saMax = si_s[a].max;
-                    i32 const pa = p_d[a];
-                    i32 const eaMin = saMin + pa;
-                    i32 const eaMax = saMax + pa;
-                    i32 const ls = max(0, min(eaMin, t2) - max(saMin, t1));
-                    i32 const rs = max(0, min(eaMax, t2) - max(saMax, t1));
-                    i32 const mi = min(ls, rs);
-                    i32 const avail = c * (t2 - t1) - w + ha * mi;
-                    if (avail < ha * ls)
-                    {
-                        atomicMax_block(&si_s[a].min, t2 - (avail / ha));
-                    }
-                    if (avail < ha * rs)
-                    {
-                        atomicMin_block(&si_s[a].max, t1 + (avail / ha) - pa);
-                    }
-                }
-            }
-            else
-            {
-	      isConsistent_d = false;
-	      break;
-            }
-        }
-        __syncthreads();
-
-        if (isConsistent_d)
-        {
-            for (auto a = threadIdx.x; a < nActivities; a += blockDim.x)
-            {
-                atomicMax(&si_d[a].min, si_s[a].min);
-                atomicMin(&si_d[a].max, si_s[a].max);
-            }
-        }
-    }
 }

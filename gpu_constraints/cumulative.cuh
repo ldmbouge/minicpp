@@ -4,11 +4,14 @@
 #include <cuda_runtime_api.h>
 #include "gfl/Types.hpp"
 #include "gfl/Memory.hpp"
-#include "gfl/ArenaAllocator.hpp"
-#include "gfl/Scalar.hpp"
+#include "gfl/Array.hpp"
+#include "gfl/Vector.hpp"
+#include "gfl/DebugUtils.hpp"
 
 #include <varitf.hpp>
 #include <constraint.hpp>
+
+#include "Vector.hpp"
 #include "global_constraints/cumulative.hpp"
 
 #define MAX_INTERVALS_PER_ACTIVITY_PAIR 12
@@ -20,29 +23,66 @@
 // - Constraint-Based Scheduling (ISBN: 978-1-4615-1479-4)
 // - A New Characterization of Relevant Intervals for Energetic Reasoning (DOI: 10.1007/978-3-319-10428-7_22)
 
-class CumulativeGPU : public Cumulative {
-private:
-  gfl::i32 * p_d; // Processing time
-  gfl::i32 * h_d; // Height
-  gfl::i32 * nIntervals_d;
-  Interval * i_d;
-  gfl::Scalar<bool> isConsistent_h;
-  StartInterval * si_h;
-  gfl::Scalar<bool> isConsistent_d;
-  StartInterval * si_d;
-  // CUDA
-  gfl::u32 sm_count;      // how many multi-processors
-  cudaStream_t cu_stream; // a GPU queue to offload work
-  cudaGraphExec_t propagateGraph; // The executable kernel graph
-  gfl::MPool pool;
-  gfl::Region region;
-  void init();
+class CumulativeGPU : public Constraint
+{
 public:
-  template <typename Container>
-  CumulativeGPU(Container & sa, std::vector<int> const & p, std::vector<int> const & h, int c)
-    : Cumulative(sa,p,h,c),pool(INPUT_OUTPUT_MEMORY) {
-    init();
-  }    
-  void post() override;
-  void propagate() override;
+    struct TimeInterval
+    {
+        gfl::i32 start;
+        gfl::i32 end;
+    };
+
+    using ProcessingTimes = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
+    using Requirements = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
+    using RelevantIntervals = gfl::Vector<TimeInterval, gfl::DeviceAllocator<TimeInterval>>;
+    using StartIntervals = gfl::Array<TimeInterval, gfl::ManagedAllocator<TimeInterval>>;
+
+private:
+    gfl::i32 _n;
+    gfl::i32 _c;
+    std::vector<var<int>::Ptr> _s;
+    ProcessingTimes* _p;
+    Requirements* _h;
+    RelevantIntervals* _ri;
+    StartIntervals* _si;
+    bool* _fail;
+
+    // CUDA
+    gfl::i32 deviceId;
+    gfl::u32 nSM; // Mow many multi-processors
+    cudaStream_t cuStream; // a GPU queue to offload work
+    cudaGraphExec_t cuGraph; // The executable kernel graph
+
+public:
+    template <typename Container>
+    CumulativeGPU(Container& s, std::vector<int> const& p, std::vector<int> const& h, int c) :
+        Constraint(s[0]->getSolver()), _n(gfl::scast<gfl::i32>(s.size ())), _c(c),_s(_n),
+        _p(gfl::make<ProcessingTimes, gfl::ManagedAllocator>(_n)),
+        _h(gfl::make<Requirements, gfl::ManagedAllocator>(_n)),
+        _ri(gfl::make<RelevantIntervals, gfl::ManagedAllocator>(MAX_INTERVALS_PER_ACTIVITY_PAIR*_n*_n)),
+        _si(gfl::make<StartIntervals, gfl::ManagedAllocator>(_n)),
+        _fail(gfl::make<bool, gfl::ManagedAllocator>())
+    {
+
+        gfl::checkOrAbort(p.size() == s.size(), "CumulativeGPU: |p| != |s|");
+        gfl::checkOrAbort(h.size() == s.size(), "CumulativeGPU: |h| != |s|");
+
+        for (auto i = 0; i < _n; i += 1)
+        {
+            _p->at(i) = p[i];
+            _h->at(i) = h[i];
+            _s[i] = s[i];
+        }
+
+        // CUDA initialization
+        cudaGetDevice(&deviceId);
+        cudaDeviceProp cuProp;
+        cudaGetDeviceProperties(&cuProp, deviceId);
+        nSM = cuProp.multiProcessorCount;
+        cudaStreamCreate(&cuStream);
+        setPriority(CLOW);
+    }
+
+    void post() override;
+    void propagate() override;
 };
