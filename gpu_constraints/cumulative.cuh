@@ -38,14 +38,15 @@ public:
         gfl::i32 max;
     };
 
-    using ProcessingTimes = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
-    using Requirements = gfl::Array<gfl::i32, gfl::ManagedAllocator<gfl::i32>>;
-    using RelevantIntervals = gfl::Vector<TimeInterval, gfl::DeviceAllocator<TimeInterval>>;
-    using StartIntervals = gfl::Array<Domain, gfl::ManagedAllocator<Domain>>;
+    using ProcessingTimes = gfl::Array<gfl::i32, gfl::MemoryPool<gfl::ManagedAllocator<>>>;
+    using Requirements = gfl::Array<gfl::i32, gfl::MemoryPool<gfl::ManagedAllocator<>>>;
+    using RelevantIntervals = gfl::Vector<TimeInterval,  gfl::MemoryPool<gfl::DeviceAllocator<>>>;
+    using StartIntervals = gfl::Array<Domain,  gfl::MemoryPool<gfl::ManagedAllocator<>>>;
 
 private:
     gfl::i32 _n;
     gfl::i32 _c;
+    gfl::MemoryManager _mm;
     std::vector<var<int>::Ptr> _s;
     ProcessingTimes* _p;
     Requirements* _h;
@@ -63,11 +64,12 @@ public:
     template <typename Container>
     CumulativeGPU(Container& s, std::vector<int> const& p, std::vector<int> const& h, int c) :
         Constraint(s[0]->getSolver()), _n(gfl::scast<gfl::i32>(s.size ())), _c(c),_s(_n),
-        _p(gfl::make<ProcessingTimes, gfl::ManagedAllocator>(_n)),
-        _h(gfl::make<Requirements, gfl::ManagedAllocator>(_n)),
-        _ri(gfl::make<RelevantIntervals, gfl::ManagedAllocator>(MAX_INTERVALS_PER_ACTIVITY_PAIR*_n*_n)),
-        _si(gfl::make<StartIntervals, gfl::ManagedAllocator>(_n)),
-        _fail(gfl::make<bool, gfl::ManagedAllocator>())
+        _mm(),
+        _p(new (_mm.managed())  ProcessingTimes(_n, _mm.managed())),
+        _h(new (_mm.managed())  Requirements(_n, _mm.managed())),
+        _ri(new (_mm.managed())  RelevantIntervals(MAX_INTERVALS_PER_ACTIVITY_PAIR*_n*_n, _mm.device())),
+        _si(new (_mm.managed())  StartIntervals(_n, _mm.managed())),
+        _fail(new (_mm.managed())  bool)
     {
 
         gfl::checkOrAbort(p.size() == s.size(), "CumulativeGPU: |p| != |s|");

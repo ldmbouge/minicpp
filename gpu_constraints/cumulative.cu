@@ -158,9 +158,9 @@ void CumulativeGPU::propagate()
     // these kernel transfers each time. So, instead, use the macro propagate_low_latency
     // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
     // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
-    _si->prefetchToDevice(cuStream, deviceId);
+    _mm.managed().prefetchToDevice(cuStream, deviceId);
     cudaGraphLaunch(cuGraph, cuStream);
-    _si->prefetchToHost(cuStream);
+    _mm.managed().prefetchToHost(cuStream);
 
 
     // _si->prefetchToDevice(cuStream, deviceId);

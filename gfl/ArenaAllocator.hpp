@@ -30,7 +30,7 @@ namespace gfl
         ArenaAllocator& operator=(ArenaAllocator &&) = delete;
 
         GFL_HOST_DEVICE
-        ArenaAllocator(i64 const size, u8 * memory) noexcept :
+        ArenaAllocator(u8 * memory, i64 const size) noexcept :
             begin(rcast<uptr>(memory)),
             current(begin),
             end(begin + scast<uptr>(size))
@@ -40,11 +40,8 @@ namespace gfl
             assert(begin <= numeric_limits<uptr>::max() - scast<uptr>(size)); // Overflow
         }
 
-        template<typename T>
-        GFL_HOST_DEVICE
-        T * allocate(i64 const count, i32 const align) noexcept
+        void * allocate(usize const size, i32 const align = DefaultAlign) noexcept
         {
-            uptr const size = sizeof(T) * scast<uptr>(count);
             uptr const memory = roundUp<uptr>(current, align);
             uptr const newCurrent = memory + size;
             if (newCurrent > end)
@@ -59,15 +56,7 @@ namespace gfl
                 abort();
             }
             current = newCurrent;
-            return rcast<T*>(memory);
-        }
-
-        template<typename T>
-        GFL_HOST_DEVICE
-        T * allocate(i64 const count = 1) noexcept
-        {
-            i32 const align = max<i32>(alignof(T), DefaultAlign);
-            return allocate<T>(count, align);
+            return rcast<void*>(memory);
         }
 
         GFL_HOST_DEVICE
