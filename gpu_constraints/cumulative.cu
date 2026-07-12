@@ -160,7 +160,7 @@ void CumulativeGPU::propagate()
     // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
     _mm.managed().prefetchToDevice(cuStream, deviceId);
     cudaGraphLaunch(cuGraph, cuStream);
-    _mm.managed().prefetchToHost(cuStream);
+    _si->prefetchToHost(cuStream);
 
 
     // _si->prefetchToDevice(cuStream, deviceId);
