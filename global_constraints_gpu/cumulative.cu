@@ -3,62 +3,60 @@
 #include "gfl/CudaUtils.hpp"
 #include "global_constraints_gpu/cumulative.cuh"
 
-GFL_GLOBAL void calcRiKernel(
-                  gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
-                  gfl::MirrorPtr<CumulativeGPU::ProcessingTimes> p,
-                  gfl::MirrorPtr<CumulativeGPU::RelevantIntervals> ri) {
+GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
+                             gfl::MirrorPtr<CumulativeGPU::ProcessingTimes> p,
+                             gfl::MirrorPtr<CumulativeGPU::RelevantIntervals> ri) {
     using namespace gfl;
-    using TimeInterval = CumulativeGPU::TimeInterval;
+    using TimeInterval =  CumulativeGPU::TimeInterval;
 
     i32 const n = si->size();
     auto [ijBegin, ijEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, n * n);
-    for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x)
-    {
-        u32 const i = ijIdx / n;
-        u32 const j = ijIdx % n;
-        u32 nGoodIntervals = 0;
-        TimeInterval intervalsToTest[MAX_INTERVALS_PER_ACTIVITY_PAIR];
-        if (si->at(i).changed or si->at(j).changed)
-        {
+    for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x){
+        i32 const i = ijIdx / n;
+        i32 const j = ijIdx % n;
+        i32 goodIntervals = 0;
+        TimeInterval intervalsToConsider[MAX_INTERVALS_PER_ACTIVITY_PAIR];
+
+        if (si->at(i).changed or si->at(j).changed) {
             i32 const pi = p->at(i);
-            i32 const siMin = si->at(i).min;
-            i32 const siMax = si->at(i).max;
-            i32 const eiMax = siMax + pi;
+            i32 const esti = si->at(i).min;
+            i32 const lsti = si->at(i).max;
+            i32 const lcti = lsti + pi;
 
             i32 const pj = p->at(j);
-            i32 const sjMin = si->at(j).min;
-            i32 const sjMax = si->at(j).max;
-            i32 const ejMin = sjMin + pj;
-            i32 const ejMax = sjMax + pj;
+            i32 const estj = si->at(j).min;
+            i32 const lstj = si->at(j).max;
+            i32 const ectj = estj + pj;
+            i32 const lctj = lstj + pj;
 
             // Case 1
-            intervalsToTest[0] = {siMin, ejMin};
-            intervalsToTest[1] = {siMin, ejMax};
-            intervalsToTest[2] = {siMax, ejMin};
-            intervalsToTest[3] = {siMax, ejMax};
+            intervalsToConsider[0] = {esti, ectj};
+            intervalsToConsider[1] = {esti, lctj};
+            intervalsToConsider[2] = {lsti, ectj};
+            intervalsToConsider[3] = {lsti, lctj};
 
             // Case 2
-            intervalsToTest[4] = {siMin, sjMin + ejMax - siMin};
-            intervalsToTest[5] = {siMin, sjMin + ejMax - siMax};
-            intervalsToTest[6] = {siMax, sjMin + ejMax - siMin};
-            intervalsToTest[7] = {siMax, sjMin + ejMax - siMax};
+            intervalsToConsider[4] = {esti, estj + lctj - esti};
+            intervalsToConsider[5] = {esti, estj + lctj - lsti};
+            intervalsToConsider[6] = {lsti, estj + lctj - esti};
+            intervalsToConsider[7] = {lsti, estj + lctj - lsti};
 
             // Case 3
-            intervalsToTest[8]  = {siMin + eiMax - ejMin, ejMin};
-            intervalsToTest[9]  = {siMin + eiMax - ejMin, ejMax};
-            intervalsToTest[10] = {siMin + eiMax - ejMax, ejMin};
-            intervalsToTest[11] = {siMin + eiMax - ejMax, ejMax};
+            intervalsToConsider[8]  = {esti + lcti - ectj, ectj};
+            intervalsToConsider[9]  = {esti + lcti - ectj, lctj};
+            intervalsToConsider[10] = {esti + lcti - lctj, ectj};
+            intervalsToConsider[11] = {esti + lcti - lctj, lctj};
 
             for (u32 k = 0; k < MAX_INTERVALS_PER_ACTIVITY_PAIR; k += 1) {
-                if (intervalsToTest[k].start < intervalsToTest[k].end) {
-                    intervalsToTest[nGoodIntervals] = intervalsToTest[k];
-                    nGoodIntervals += 1;
+                if (intervalsToConsider[k].start < intervalsToConsider[k].end) {
+                    intervalsToConsider[goodIntervals] = intervalsToConsider[k];
+                    goodIntervals += 1;
                 }
             }
 
-            if (nGoodIntervals > 0) {
-                auto const oldSize = ri->resizeByAtomic(nGoodIntervals);
-                memcpy(ri->data() + oldSize, intervalsToTest, sizeof(TimeInterval) * nGoodIntervals);
+            if (goodIntervals > 0) {
+                auto const oldSize = ri->resizeByAtomic(goodIntervals);
+                memcpy(ri->data() + oldSize, intervalsToConsider, sizeof(TimeInterval) * goodIntervals);
             }
         }
     }
@@ -72,58 +70,53 @@ __global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
                                gfl::MirrorPtr<bool> fail)
 {
     using namespace gfl;
-    using Domain = CumulativeGPU::Domain;
+    using Domain =  CumulativeGPU::Domain;
 
     __shared__ Domain si_s[MAX_ACTIVITIES];
 
     if (*fail) return;
 
     i32 const n = si->size();
-    for (auto a = threadIdx.x; a < n; a += blockDim.x)
-        si_s[a] = si->at(a);
+    for (auto i = threadIdx.x; i < n; i += blockDim.x)
+        si_s[i] = si->at(i);
     __syncthreads();
 
     auto [iBegin, iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, scast<u32>(ri->size()));
-    for (auto i = iBegin + threadIdx.x; i < iEnd and (not *fail); i += blockDim.x)
-    {
-        i32 const t1 = ri->at(i).start;
-        i32 const t2 = ri->at(i).end;
-
+    for (auto j = iBegin + threadIdx.x; j < iEnd and (not *fail); j += blockDim.x) {
+        i32 const t1 = ri->at(j).start;
+        i32 const t2 = ri->at(j).end;
         i32 w = 0;
-        for (i32 a = 0; a < n; a += 1)
-        {
-            i32 const ha = h->at(a);
-            i32 const saMin = si_s[a].min;
-            i32 const saMax = si_s[a].max;
-            i32 const pa = p->at(a);
-            i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
-            i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
-            w += ha * min(ls, rs);
+
+        for (i32 i = 0; i < n; i += 1) {
+            i32 const hi = h->at(i);
+            i32 const pi = p->at(i);
+            i32 const esti = si_s[i].min;
+            i32 const lsti = si_s[i].max;
+            i32 const ls = max(0, min(esti + pi, t2) - max(esti, t1));
+            i32 const rs = max(0, min(lsti + pi, t2) - max(lsti, t1));
+            w += hi * min(ls, rs);
         }
 
-        if (w <= c * (t2 - t1)) {
-            for (i32 a = 0; a < n; a += 1)
-            {
-                i32 const ha = h->at(a);
-                i32 const saMin = si_s[a].min;
-                i32 const saMax = si_s[a].max;
-                i32 const pa = p->at(a);
-                i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
-                i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
-                i32 const avail = c * (t2 - t1) - w + ha * min(ls, rs);
-                if (avail < ha * ls) atomicMax_block(&si_s[a].min, t2 - (avail / ha));
-                if (avail < ha * rs) atomicMin_block(&si_s[a].max, t1 + (avail / ha) - pa);
+        if (w <= c * (t2 - t1))
+            for (i32 i = 0; i < n; i += 1){
+                i32 const hi = h->at(i);
+                i32 const pi = p->at(i);
+                i32 const esti = si_s[i].min;
+                i32 const lsti = si_s[i].max;
+                i32 const ls = max(0, min(esti + pi, t2) - max(esti, t1));
+                i32 const rs = max(0, min(lsti + pi, t2) - max(lsti, t1));
+                i32 const avail = c * (t2 - t1) - w + hi * min(ls, rs);
+                if (avail < hi * ls) atomicMax_block(&si_s[i].min, t2 - (avail / hi));
+                if (avail < hi * rs) atomicMin_block(&si_s[i].max, t1 + (avail / hi) - pi);
             }
-        }
         else
             *fail = true;
     }
     __syncthreads();
 
-    for (auto a = threadIdx.x; a < n; a += blockDim.x)
-    {
-        atomicMax(&si->at(a).min, si_s[a].min);
-        atomicMin(&si->at(a).max, si_s[a].max);
+    for (auto i = threadIdx.x; i < n; i += blockDim.x){
+        atomicMax(&si->at(i).min, si_s[i].min);
+        atomicMin(&si->at(i).max, si_s[i].max);
     }
 }
 
@@ -133,8 +126,8 @@ void CumulativeGPU::post()
     using namespace std;
     using namespace gfl;
 
-    _ri->clear();
     *_fail = false;
+    _ri->clear();
     for (auto const & v : _s)
         v->propagateOnBoundChange(this);
 
@@ -150,10 +143,9 @@ void CumulativeGPU::post()
     });
 }
 
-void CumulativeGPU::propagate()
-{
-    _ri->clear();
+void CumulativeGPU::propagate(){
     *_fail = false;
+    _ri->clear();
     for (auto i = 0; i < _n; i += 1)
         _si->at(i) = {_s[i]->changed(), _s[i]->min(), _s[i]->max()};
 
