@@ -1,0 +1,79 @@
+# ============================================================================
+# .clang-tidy
+#
+# Hand-written by inspecting the minicpp codebase
+# (https://github.com/ldmbouge/minicpp) and encoding its naming conventions.
+#
+# Naming rules below were derived from what is actually used in the repo:
+#   * Types / classes      -> PascalCase     (IntVarImpl, CPSolver, BitDomain)
+#   * Methods / functions   -> camelCase      (makeIntVar, removeBelow)
+#   * Member variables      -> _camelCase     (_solver, _dom, _onBindList)
+#   * Namespaces            -> PascalCase     (Factory)
+#
+# The check list pairs those naming rules with a conservative set of
+# bug-finding and modernization checks. Tune the Checks line to taste.
+#
+# CLion picks this file up automatically (Settings -> Editor -> Inspections
+# -> C/C++ -> Clang-Tidy, "Prefer .clang-tidy files" is on by default).
+# ============================================================================
+---
+Checks: >
+    -*,
+    readability-identifier-naming,
+    bugprone-use-after-move,
+    bugprone-integer-division,
+    bugprone-macro-parentheses,
+    bugprone-suspicious-semicolon,
+    modernize-use-nullptr,
+    modernize-use-override,
+    modernize-use-using,
+    modernize-loop-convert,
+    performance-for-range-copy,
+    performance-unnecessary-value-param
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+FormatStyle: file
+
+CheckOptions:
+    # --- Types / classes: PascalCase ---
+    - key:   readability-identifier-naming.ClassCase
+      value: CamelCase
+    - key:   readability-identifier-naming.StructCase
+      value: CamelCase
+    - key:   readability-identifier-naming.EnumCase
+      value: CamelCase
+    - key:   readability-identifier-naming.TypedefCase
+      value: CamelCase
+    - key:   readability-identifier-naming.TypeAliasCase
+      value: CamelCase
+
+    # --- Namespaces: PascalCase (e.g. Factory) ---
+    - key:   readability-identifier-naming.NamespaceCase
+      value: CamelCase
+
+    # --- Methods / free functions: camelCase ---
+    - key:   readability-identifier-naming.FunctionCase
+      value: camelBack
+    - key:   readability-identifier-naming.MethodCase
+      value: camelBack
+
+    # --- Member variables: _camelCase (leading underscore) ---
+    - key:   readability-identifier-naming.MemberCase
+      value: camelBack
+    - key:   readability-identifier-naming.MemberPrefix
+      value: '_'
+    - key:   readability-identifier-naming.PrivateMemberCase
+      value: camelBack
+    - key:   readability-identifier-naming.PrivateMemberPrefix
+      value: '_'
+    - key:   readability-identifier-naming.ProtectedMemberCase
+      value: camelBack
+    - key:   readability-identifier-naming.ProtectedMemberPrefix
+      value: '_'
+
+    # --- Local variables / parameters: camelCase, no prefix ---
+    - key:   readability-identifier-naming.VariableCase
+      value: camelBack
+    - key:   readability-identifier-naming.ParameterCase
+      value: camelBack

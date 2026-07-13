@@ -1,146 +1,94 @@
 #pragma once
 
-#include <cstdlib>
-#include <new>
-#include <utility>
-#ifdef __CUDACC__
-#include <cuda_runtime.h>
-#endif
-#include "ArenaAllocator.hpp"
-#include "DebugUtils.hpp"
-#include "Types.hpp"
+#include <cassert>
+#include <vector>
+#include "FunQual.hpp"
+#include "Allocators.hpp"
 
 namespace gfl {
-    template<typename T = u8>
-    class HeapAllocator{
-    public:
-        using value_type = T;
-        T* allocate(usize const count) noexcept {
-            checkOrAbort(count != 0, "HeapAllocator: count must not be zero");
-            void* memory = std::malloc(sizeof(T) * count);
-            checkOrAbort(memory != nullptr, "HeapAllocator: std::malloc failed");
-            return scast<T*>(memory);
-        }
-        void deallocate(T* memory, usize) noexcept { std::free(memory); }
+
+template<typename Allocator>
+class MemoryPool {
+    struct Block {
+        void* memory;
+        usize size;
     };
+    std::vector<Block> _blocks;
+public:
+    ~MemoryPool() {
+        for (auto b : _blocks)
+            Allocator{}.deallocate(b.memory, b.size);
+    }
+    void* allocate(usize const size) noexcept {
+        _blocks.push_back(Block{Allocator{}.allocate(size), size});
+        return _blocks.back().memory;
+    }
+    void deallocate(void*, usize) noexcept {}
+    template<typename T>
+    T* allocate(usize const count) noexcept { return scast<T*>(allocate(sizeof(T)* count));}
+};
 
 #ifdef __CUDACC__
-    template<typename T = u8>
-    class ManagedAllocator {
-    public:
-        using value_type = T;
-        T* allocate(usize const count) noexcept {
-            checkOrAbort(count != 0, "ManagedAllocator: count must not be zero");
-            void* memory = nullptr;
-            cudaError_t const status = cudaMallocManaged(&memory, sizeof(T) * count);
-            checkOrAbort(status == cudaSuccess and memory != nullptr, "ManagedAllocator: cudaMallocManaged failed");
-            return scast<T*>(memory);
-        }
-        void deallocate(T* memory, usize) noexcept {
-            cudaError_t const status = cudaFree(memory);
-            checkOrAbort(status == cudaSuccess, "ManagedAllocator: cudaFree failed");
-        }
-    };
-    template<typename T = u8>
-    class DeviceAllocator {
-    public:
-        using value_type = T;
-        T* allocate(usize const count) noexcept {
-            checkOrAbort(count != 0, "DeviceAllocator: count must not be zero");
-            void* memory = nullptr;
-            cudaError_t const status = cudaMalloc(&memory, sizeof(T) * count);
-            checkOrAbort(status == cudaSuccess and memory != nullptr, "DeviceAllocator: cudaMalloc failed");
-            return scast<T*>(memory);
-        }
-        void deallocate(T* memory, usize) noexcept {
-            cudaError_t const status = cudaFree(memory);
-            checkOrAbort(status == cudaSuccess, "DeviceAllocator: cudaFree failed");
-        }
-    };
-    template<typename T = u8>
-    class HostAllocator {
-    public:
-        using value_type = T;
-        T* allocate(usize const count) noexcept {
-            checkOrAbort(count != 0, "HostAllocator: count must not be zero");
-            void* memory = nullptr;
-            cudaError_t const status = cudaMallocHost(&memory, sizeof(T) * count);
-            checkOrAbort(status == cudaSuccess and memory != nullptr, "HostAllocator: cudaMalloc failed");
-            return scast<T*>(memory);
-        }
-        void deallocate(T* memory, usize) noexcept {
-            cudaError_t const status = cudaFree(memory);
-            checkOrAbort(status == cudaSuccess, "HostAllocator: cudaFree failed");
-        }
-    };
+template<typename T>
+class MirrorPtr {
+    T* _host;
+    T* _device;
 
-    template<typename Allocator>
-    class MemoryPool {
-        bool _growing;
-        std::vector<ArenaAllocator*> _blocks;
-    public:
-        MemoryPool() : _growing(true) {};
-        MemoryPool(usize const size) noexcept : _growing(false){
-            auto b = new ArenaAllocator(Allocator{}.allocate(size), size);
-            _blocks.push_back(b);
-        }
-        void * allocate(usize const size) noexcept {
-            if (_growing) {
-                auto b = new ArenaAllocator(Allocator{}.allocate(size), size);
-                _blocks.push_back(b);
-            }
-            return _blocks.back()->allocate(size);
-        }
-        void deallocate(void*, usize) noexcept {}
-
-#ifdef __CUDACC__
-        void prefetchToHost(cudaStream_t const stream = 0) const noexcept {
-            if (not _growing) {
-                cudaMemLocation const location = {.type = cudaMemLocationTypeHost, .id = 0};
-                cudaError_t const status = cudaMemPrefetchAsync(_blocks.back()->mem(), _blocks.back()->usedSize(), location, 0, stream);
-                checkOrAbort(status == cudaSuccess, "Vector::prefetchToHost failed");
-            }
-
-        }
-        void prefetchToDevice(cudaStream_t const stream = 0, i32 const device = 0) const noexcept {
-            cudaMemLocation const location = {.type = cudaMemLocationTypeDevice, .id = device};
-            cudaError_t const status = cudaMemPrefetchAsync(_blocks.back()->mem(), _blocks.back()->usedSize(), location, 0, stream);
-            checkOrAbort(status == cudaSuccess, "Vector::prefetchToDevice failed");
-        }
+public:
+    MirrorPtr() = delete;
+    MirrorPtr(T* host, T* device) noexcept : _host(host), _device(device) {
+        assert(host != nullptr);
+        assert(device != nullptr);
+    }
+    T* h() const noexcept { return _host; }
+    GFL_HOST_DEVICE T* d() const noexcept { return _device; }
+    GFL_HOST_DEVICE T* get() const noexcept {
+#ifdef __CUDA_ARCH__
+        return _device;
+#else
+        return _host;
 #endif
-    };
+    }
+    GFL_HOST_DEVICE T& operator*() const noexcept { return *get(); }
+    GFL_HOST_DEVICE T* operator->() const noexcept { return get(); }
+    GFL_HOST_DEVICE bool valid() const noexcept { return _host != nullptr and _device != nullptr; }
+};
 
-    class MemoryManager {
-        MemoryPool<ManagedAllocator<u8>> _managedPool;
-        MemoryPool<HostAllocator<u8>> _hostPool;
-        MemoryPool<DeviceAllocator<u8>> _devicePool;
-
-    public:
-        MemoryManager(usize const managedSize = 4096) : _managedPool(managedSize), _hostPool(), _devicePool() {};
-        MemoryPool<ManagedAllocator<>>& managed() noexcept { return _managedPool; }
-        MemoryPool<HostAllocator<u8>> &  host() noexcept { return _hostPool; }
-        MemoryPool<DeviceAllocator<u8>> &  device() noexcept { return _devicePool; }
-    };
-
-
+class MirrorPool {
+    BumpAllocator _hostPool;
+    BumpAllocator _devicePool;
+public:
+    MirrorPool(usize const size) :
+        _hostPool(HostAllocator{}.allocate(size), size),
+        _devicePool(DeviceAllocator{}.allocate(size), size)
+    {}
+    ~MirrorPool() {
+        HostAllocator{}.deallocate(_hostPool.mem(), _hostPool.totalSize());
+        DeviceAllocator{}.deallocate(_devicePool.mem(), _devicePool.totalSize());
+    }
+    template<typename T>
+    MirrorPtr<T> allocate(i64 const count) noexcept {
+        return {_hostPool.allocate<T>(count), _devicePool.allocate<T>(count)};
+    }
+    template<typename T, typename... Args>
+    MirrorPtr<T> make(Args&&... args) noexcept {
+        static_assert(std::is_trivially_copyable_v<T>);
+        MirrorPtr<T> mptr = allocate<T>(1);
+        new (mptr.h()) T(std::forward<Args>(args)...);
+        return mptr;
+    }
+};
 #endif
 }
 
-// 1. Make operator new a template that accepts any Allocator type
-template <typename Allocator>
-void* operator new(std::size_t size, gfl::MemoryPool<Allocator>& pool) noexcept {
-    return pool.allocate(size);
-}
+template<typename Allocator>
+void* operator new(std::size_t size, gfl::MemoryPool<Allocator>& pool) noexcept { return pool.allocate(size); }
 
-// 2. Make operator delete match it perfectly
-template <typename Allocator>
-void operator delete(void* ptr, gfl::MemoryPool<Allocator>& pool) noexcept {
-}
-template <typename Allocator>
-void* operator new[](std::size_t size, gfl::MemoryPool<Allocator>& pool) noexcept {
-    return pool.allocate(size);
-}
-template <typename Allocator>
-void operator delete[](void* ptr, gfl::MemoryPool<Allocator>& pool) noexcept {
-    pool.deallocate(ptr, 0);
-}
+template<typename Allocator>
+void operator delete(void*, gfl::MemoryPool<Allocator>&) noexcept {}
+
+template<typename Allocator>
+void* operator new[](std::size_t size, gfl::MemoryPool<Allocator>& pool) noexcept { return pool.allocate(size); }
+
+template<typename Allocator>
+void operator delete[](void*, gfl::MemoryPool<Allocator>&) noexcept {}

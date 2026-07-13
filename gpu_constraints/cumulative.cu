@@ -1,4 +1,4 @@
-#include "gfl/Array.hpp"
+#include "gfl/Arrays.hpp"
 #include "gfl/Memory.hpp"
 #include "gfl/CudaUtils.hpp"
 #include "gpu_constraints/cumulative.cuh"
@@ -58,13 +58,13 @@ GFL_GLOBAL void calcRiKernel(CumulativeGPU::StartIntervals const* si,
             }
 
             if (nGoodIntervals > 0)
-                ri->pushBackAtomic(ArrayView(scast<i64>(nGoodIntervals), intervalsToTest));
+                ri->pushBackAtomic(Views(scast<i64>(nGoodIntervals), intervalsToTest));
         }
     }
 }
 
-__global__ void updateSiKernel(gfl::ArrayView<gfl::i32> h,
-                                   gfl::ArrayView<gfl::i32> p,
+__global__ void updateSiKernel(gfl::Views<gfl::i32> h,
+                                   gfl::Views<gfl::i32> p,
                                    gfl::i32 const c,
                                    CumulativeGPU::RelevantIntervals const* ri,
                                    CumulativeGPU::StartIntervals* si,

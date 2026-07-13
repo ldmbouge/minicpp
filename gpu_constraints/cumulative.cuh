@@ -4,14 +4,14 @@
 #include <cuda_runtime_api.h>
 #include "gfl/Types.hpp"
 #include "gfl/Memory.hpp"
-#include "gfl/Array.hpp"
-#include "gfl/Vector.hpp"
+#include "gfl/Arrays.hpp"
+#include "gfl/Vectors.hpp"
 #include "gfl/DebugUtils.hpp"
 
 #include <varitf.hpp>
 #include <constraint.hpp>
 
-#include "Vector.hpp"
+#include "Vectors.hpp"
 #include "global_constraints/cumulative.hpp"
 
 #define MAX_INTERVALS_PER_ACTIVITY_PAIR 12
@@ -46,8 +46,8 @@ public:
 private:
     gfl::i32 _n;
     gfl::i32 _c;
-    gfl::MemoryManager _mm;
     std::vector<var<int>::Ptr> _s;
+    gfl::MemoryManager _mm;
     ProcessingTimes* _p;
     Requirements* _h;
     RelevantIntervals* _ri;
