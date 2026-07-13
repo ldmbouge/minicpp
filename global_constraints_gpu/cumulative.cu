@@ -84,7 +84,7 @@ __global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
     __syncthreads();
 
     auto [iBegin, iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, scast<u32>(ri->size()));
-    for (auto i = iBegin + threadIdx.x; i < iEnd; i += blockDim.x)
+    for (auto i = iBegin + threadIdx.x; i < iEnd and (not *fail); i += blockDim.x)
     {
         i32 const t1 = ri->at(i).start;
         i32 const t2 = ri->at(i).end;
@@ -101,20 +101,22 @@ __global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
             w += ha * min(ls, rs);
         }
 
-        if (w > c * (t2 - t1)) { *fail = true; continue; }
-
-        for (i32 a = 0; a < n; a += 1)
-        {
-            i32 const ha = h->at(a);
-            i32 const saMin = si_s[a].min;
-            i32 const saMax = si_s[a].max;
-            i32 const pa = p->at(a);
-            i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
-            i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
-            i32 const avail = c * (t2 - t1) - w + ha * min(ls, rs);
-            if (avail < ha * ls) atomicMax_block(&si_s[a].min, t2 - (avail / ha));
-            if (avail < ha * rs) atomicMin_block(&si_s[a].max, t1 + (avail / ha) - pa);
+        if (w <= c * (t2 - t1)) {
+            for (i32 a = 0; a < n; a += 1)
+            {
+                i32 const ha = h->at(a);
+                i32 const saMin = si_s[a].min;
+                i32 const saMax = si_s[a].max;
+                i32 const pa = p->at(a);
+                i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
+                i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
+                i32 const avail = c * (t2 - t1) - w + ha * min(ls, rs);
+                if (avail < ha * ls) atomicMax_block(&si_s[a].min, t2 - (avail / ha));
+                if (avail < ha * rs) atomicMin_block(&si_s[a].max, t1 + (avail / ha) - pa);
+            }
         }
+        else
+            *fail = true;
     }
     __syncthreads();
 
