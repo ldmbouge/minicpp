@@ -4,13 +4,111 @@
 #include "Memory.hpp"
 
 namespace gfl {
+template<typename T, typename Ptr = T*>
+class VectorView {
+    ArrayView<T,Ptr> _aView;
+    i64 _capacity;
+
+public:
+    VectorView() = delete;
+    GFL_HOST_DEVICE VectorView(Ptr const data, i64 const capacity) noexcept :
+	 _aView(data, 0), _capacity(capacity) { assert(capacity > 0); }
+    GFL_HOST_DEVICE T const* data() const noexcept { return _aView.data(); }
+    GFL_HOST_DEVICE T* data() noexcept { return _aView.data(); }
+#ifdef __CUDACC__
+    template<typename P = Ptr, std::enable_if_t<std::is_same_v<P, MirrorPtr<T>>, bool> = true>
+    GFL_HOST_DEVICE MirrorPtr<T> mirrorData() const noexcept { return _aView.mirrorData(); }
+#endif
+    GFL_HOST_DEVICE i64 size() const noexcept { return _aView.size(); }
+    GFL_HOST_DEVICE i64 capacity() const noexcept { return _capacity; }
+    GFL_HOST_DEVICE bool empty() const noexcept { return _aView.empty(); }
+    GFL_HOST_DEVICE bool full() const noexcept { return _aView.size() == _capacity; }
+    GFL_HOST_DEVICE T const* begin() const noexcept { return _aView.begin(); }
+    GFL_HOST_DEVICE T* begin() noexcept { return _aView.begin(); }
+    GFL_HOST_DEVICE T const* end() const noexcept { return _aView.end(); }
+    GFL_HOST_DEVICE T* end() noexcept { return _aView.end(); }
+    GFL_HOST_DEVICE T const& at(i64 const idx) const noexcept { return _aView.at(idx); }
+    GFL_HOST_DEVICE T& at(i64 const idx) noexcept { return _aView.at(idx); }
+    GFL_HOST_DEVICE T const& operator[](i64 const idx) const noexcept { return _aView[idx]; }
+    GFL_HOST_DEVICE T& operator[](i64 const idx) noexcept { return _aView[idx]; }
+    GFL_HOST_DEVICE T const& front() const noexcept { return _aView.front(); }
+    GFL_HOST_DEVICE T& front() noexcept { return _aView.front(); }
+    GFL_HOST_DEVICE T const& back() const noexcept { return _aView.back(); }
+    GFL_HOST_DEVICE T& back() noexcept { return _aView.back(); }
+    GFL_HOST_DEVICE ArrayView<T> slice(i64 const begin, i64 const end) const noexcept { return _aView.slice(begin, end); }
+    GFL_HOST_DEVICE ArrayView<T> slice(i64 const count) const noexcept { return _aView.slice(count); }
+    GFL_HOST_DEVICE ArrayView<T> slice() const noexcept { return _aView.slice(); }
+    GFL_HOST_DEVICE void resizeBy(i64 const delta) noexcept {
+        i64 const newSize = _aView._size + delta;
+        assert(0 <= newSize);
+        assert(newSize <= _capacity);
+        _aView._size = newSize;
+    }
+    GFL_HOST_DEVICE i64 resizeByAtomic(i64 const delta) noexcept {
+#ifdef __CUDA_ARCH__
+        static_assert(sizeof(i64) == sizeof(llu));
+        i64 const oldSize = scast<i64>(atomicAdd(rcast<llu*>(&_aView._size), scast<llu>(delta)));
+#else
+        i64 const oldSize = __atomic_fetch_add(&_aView._size, delta, __ATOMIC_RELAXED);
+#endif
+       assert(0 <= oldSize + delta);
+        assert(oldSize + delta <= _capacity);
+        return oldSize;
+    }
+    GFL_DEVICE i64 resizeByAtomicBlock(i64 const delta) noexcept {
+        static_assert(sizeof(i64) == sizeof(llu));
+        i64 const oldSize = scast<i64>(atomicAdd_block(rcast<llu*>(&_aView._size), scast<llu>(delta)));
+        assert(0 <= oldSize + delta);
+        assert(oldSize + delta <= _capacity);
+        return oldSize;
+    }
+    GFL_HOST_DEVICE void resizeTo(i64 const newSize) noexcept {
+        assert(0 <= newSize);
+        assert(newSize <= _capacity);
+        _aView._size = newSize;
+    }
+    GFL_HOST_DEVICE void clear() noexcept { resizeTo(0); }
+    GFL_HOST_DEVICE void append(T const& value) noexcept {
+        i64 const oldSize = _aView._size;
+        resizeBy(1);
+        data()[oldSize] = value;
+    }
+    GFL_HOST_DEVICE void appendAtomic(T const& value) noexcept {
+        i64 const oldSize = resizeByAtomic(1);
+        data()[oldSize] = value;
+    }
+    GFL_HOST_DEVICE void appendAtomicBlock(T const& value) noexcept {
+        i64 const oldSize = resizeByAtomic(1);
+        data()[oldSize] = value;
+    }
+    GFL_HOST_DEVICE void append(ArrayView<T> const& elements) noexcept {
+        if (not elements.empty()) {
+            i64 const oldSize = _aView._size;
+            resizeBy(elements.size());
+            memcpy(data() + oldSize, elements.data(), scast<usize>(elements.size()) * sizeof(T));
+        }
+    }
+    GFL_HOST_DEVICE void appendAtomic(ArrayView<T> const& elements) noexcept {
+        if (not elements.empty()) {
+            i64 const oldSize = resizeByAtomic(elements.size());
+            memcpy(data() + oldSize, elements.data(), scast<usize>(elements.size()) * sizeof(T));
+        }
+    }
+    GFL_DEVICE void appendAtomicBlock(ArrayView<T> const& elements) noexcept {
+        if (not elements.empty()) {
+            i64 const oldSize = resizeByAtomicBlock(elements.size());
+            memcpy(data() + oldSize, elements.data(), scast<usize>(elements.size()) * sizeof(T));
+        }
+    }
+};
+
 template<typename T>
 class Vector {
     VectorView<T> _vView;
     Vector(T* const data, i64 const capacity) noexcept : _vView(data,capacity) { assert(capacity > 0); }
 public:
     Vector() = delete;
-    Vector(MemoryPool<HeapAllocator>& pool,  i64 const capacity) :
+    Vector(HeapPool& pool,  i64 const capacity) :
         Vector(pool.allocate<T>(capacity), capacity) {}
     T const* data() const noexcept { return _vView.data(); }
     T* data() noexcept { return _vView.data(); }
@@ -47,8 +145,8 @@ class DeviceVector {
     DeviceVector(T* const data, i64 const capacity) noexcept : _vView(data,capacity) { assert(capacity > 0); }
 public:
     DeviceVector() = delete;
-    DeviceVector(MemoryPool<DeviceAllocator>& pool,  i64 const capacity) :
-        DeviceVector(pool.allocate<T>(capacity), capacity) {}
+    DeviceVector(DevicePool& dPool,  i64 const capacity) :
+        DeviceVector(dPool.allocate<T>(capacity), capacity) {}
     GFL_HOST_DEVICE T const* data() const noexcept { return _vView.data(); }
     GFL_DEVICE T* data() noexcept { return _vView.data(); }
     GFL_HOST_DEVICE i64 size() const noexcept { return _vView.size(); }
@@ -80,7 +178,6 @@ public:
     GFL_DEVICE void appendAtomic(T const& value) noexcept { _vView.appendAtomic(value); }
     GFL_DEVICE void appendAtomic(ArrayView<T> const& elements) noexcept { _vView.appendAtomic(elements); }
     GFL_DEVICE void appendAtomicBlock(ArrayView<T> const& elements) noexcept { _vView.appendAtomicBlock(elements); }
-
     void copyToDeviceAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
         assert(elements.size() <= size());
         cudaError_t const status = cudaMemcpyAsync(data(), elements.data(), sizeof(T) * elements.size(), cudaMemcpyHostToDevice, stream);
@@ -103,7 +200,7 @@ public:
     MirrorVector() = delete;
     MirrorVector(MirrorPool& pool,  i64 const capacity) :
         MirrorVector(pool.allocate<T>(capacity), capacity) {}
-    MirrorVector(MemoryPool<HostAllocator>& hPool, MemoryPool<HostAllocator>& dPool, i64 const capacity) :
+    MirrorVector(HostPool & hPool, DevicePool& dPool, i64 const capacity) :
         MirrorVector(hPool.allocate<T>(capacity), dPool.allocate<T>(capacity), capacity) {}
     GFL_HOST_DEVICE T const* data() const noexcept { return _vView.data(); }
     GFL_HOST_DEVICE T* data() noexcept { return _vView.data(); }
