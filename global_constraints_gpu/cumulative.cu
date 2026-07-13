@@ -1,13 +1,12 @@
 #include "gfl/Arrays.hpp"
 #include "gfl/Memory.hpp"
 #include "gfl/CudaUtils.hpp"
-#include "gpu_constraints/cumulative.cuh"
+#include "global_constraints_gpu/cumulative.cuh"
 
-GFL_GLOBAL void clearRiKernel(CumulativeGPU::RelevantIntervals * ri) { ri->clear(); }
-GFL_GLOBAL void resetFailKernel(bool * fail) { *fail = false; }
-GFL_GLOBAL void calcRiKernel(CumulativeGPU::StartIntervals const* si,
-                  CumulativeGPU::ProcessingTimes const* p,
-                  CumulativeGPU::RelevantIntervals* ri) {
+GFL_GLOBAL void calcRiKernel(
+                  gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
+                  gfl::MirrorPtr<CumulativeGPU::ProcessingTimes> p,
+                  gfl::MirrorPtr<CumulativeGPU::RelevantIntervals> ri) {
     using namespace gfl;
     using TimeInterval = CumulativeGPU::TimeInterval;
 
@@ -57,18 +56,20 @@ GFL_GLOBAL void calcRiKernel(CumulativeGPU::StartIntervals const* si,
                 }
             }
 
-            if (nGoodIntervals > 0)
-                ri->pushBackAtomic(Views(scast<i64>(nGoodIntervals), intervalsToTest));
+            if (nGoodIntervals > 0) {
+                auto const oldSize = ri->resizeByAtomic(nGoodIntervals);
+                memcpy(ri->data() + oldSize, intervalsToTest, sizeof(TimeInterval) * nGoodIntervals);
+            }
         }
     }
 }
 
-__global__ void updateSiKernel(gfl::Views<gfl::i32> h,
-                                   gfl::Views<gfl::i32> p,
-                                   gfl::i32 const c,
-                                   CumulativeGPU::RelevantIntervals const* ri,
-                                   CumulativeGPU::StartIntervals* si,
-                                   bool* fail)
+__global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
+                               gfl::MirrorPtr<CumulativeGPU::ProcessingTimes> p,
+                               gfl::i32 const c,
+                               gfl::MirrorPtr<CumulativeGPU::RelevantIntervals> ri,
+                               gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
+                               gfl::MirrorPtr<bool> fail)
 {
     using namespace gfl;
     using Domain = CumulativeGPU::Domain;
@@ -91,10 +92,10 @@ __global__ void updateSiKernel(gfl::Views<gfl::i32> h,
         i32 w = 0;
         for (i32 a = 0; a < n; a += 1)
         {
-            i32 const ha = h.at(a);
+            i32 const ha = h->at(a);
             i32 const saMin = si_s[a].min;
             i32 const saMax = si_s[a].max;
-            i32 const pa = p.at(a);
+            i32 const pa = p->at(a);
             i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
             i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
             w += ha * min(ls, rs);
@@ -104,10 +105,10 @@ __global__ void updateSiKernel(gfl::Views<gfl::i32> h,
 
         for (i32 a = 0; a < n; a += 1)
         {
-            i32 const ha = h.at(a);
+            i32 const ha = h->at(a);
             i32 const saMin = si_s[a].min;
             i32 const saMax = si_s[a].max;
-            i32 const pa = p.at(a);
+            i32 const pa = p->at(a);
             i32 const ls = max(0, min(saMin + pa, t2) - max(saMin, t1));
             i32 const rs = max(0, min(saMax + pa, t2) - max(saMax, t1));
             i32 const avail = c * (t2 - t1) - w + ha * min(ls, rs);
@@ -130,48 +131,33 @@ void CumulativeGPU::post()
     using namespace std;
     using namespace gfl;
 
+    _ri->clear();
+    *_fail = false;
     for (auto const & v : _s)
         v->propagateOnBoundChange(this);
 
     // Copy constants data on GPU
-    _p->prefetchToDevice(cuStream, deviceId);
-    _h->prefetchToDevice(cuStream, deviceId);
+    _ioPool.copyToDeviceAsync(cuStream);
+    _roPool.copyToDeviceAsync(cuStream);
 
     cuGraph = gfl::capture(cuStream,[this]() {
-
-         clearRiKernel<<<1, 1, 0, cuStream>>>(_ri);
+         _ioPool.copyToDeviceAsync(cuStream);
          calcRiKernel<<<nSM, CBS, 0, cuStream>>>(_si, _p, _ri);
-         resetFailKernel<<<1, 1, 0, cuStream>>>(_fail);
-         updateSiKernel<<<nSM, CBS, 0, cuStream>>>(*_h, *_p, _c, _ri, _si, _fail);
-
+         updateSiKernel<<<nSM, CBS, 0, cuStream>>>(_h, _p, _c, _ri, _si, _fail);
+        _ioPool.copyToHostAsync(cuStream);
     });
 }
 
 void CumulativeGPU::propagate()
 {
+    _ri->clear();
+    *_fail = false;
     for (auto i = 0; i < _n; i += 1)
         _si->at(i) = {_s[i]->changed(), _s[i]->min(), _s[i]->max()};
 
     // Propagation
-    // ----------------------------------------------------------------------
-    // We should normally call propagateBase. But it's slow to have CUDA do all
-    // these kernel transfers each time. So, instead, use the macro propagate_low_latency
-    // that was created in "initPropagateLowLatency". It's a "recipe" where all the kernels
-    // are compiled once and called many times with the "cudaGraphLaunch" on that macro.
-    _mm.managed().prefetchToDevice(cuStream, deviceId);
     cudaGraphLaunch(cuGraph, cuStream);
-    _si->prefetchToHost(cuStream);
-
-
-    // _si->prefetchToDevice(cuStream, deviceId);
-    // clearRiKernel<<<1, 1, 0, cuStream>>>(_ri);
-    // calcRiKernel<<<nSM, CBS, 0, cuStream>>>(_si, _p, _ri);
-    // resetFailKernel<<<1, 1, 0, cuStream>>>(_fail);
-    // updateSiKernel<<<nSM, CBS, 0, cuStream>>>(*_h, *_p, _c, _ri, _si, _fail);
-    // _si->prefetchToHost(cuStream);
     cudaStreamSynchronize(cuStream);
-
-
 
     // Filtering
     if (not *_fail)

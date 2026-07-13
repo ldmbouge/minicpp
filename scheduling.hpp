@@ -11,7 +11,7 @@
 #include "ttable.hpp"
 #include "global_constraints/cumulative.hpp"
 #if __CUDACC__
-#include "gpu_constraints/cumulative.cuh"
+#include "global_constraints_gpu/cumulative.cuh"
 #endif
 
 namespace Factory {

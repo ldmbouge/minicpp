@@ -55,10 +55,11 @@ public:
 };
 
 class MirrorPool {
+    static constexpr usize DefaultSize = 4096;
     BumpAllocator _hostPool;
     BumpAllocator _devicePool;
 public:
-    MirrorPool(usize const size) :
+    MirrorPool(usize const size = DefaultSize) :
         _hostPool(HostAllocator{}.allocate(size), size),
         _devicePool(DeviceAllocator{}.allocate(size), size)
     {}
@@ -76,6 +77,16 @@ public:
         MirrorPtr<T> mptr = allocate<T>(1);
         new (mptr.h()) T(std::forward<Args>(args)...);
         return mptr;
+    }
+    void copyToDeviceAsync(cudaStream_t const stream) noexcept {
+        assert(_hostPool.usedSize() <= _devicePool.usedSize());
+        cudaError_t const status = cudaMemcpyAsync(_devicePool.mem(), _hostPool.mem(), _hostPool.usedSize(), cudaMemcpyHostToDevice, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorValue::copyToDevice: cudaMemcpyAsync failed");
+    }
+    void copyToHostAsync(cudaStream_t const stream) noexcept {
+        assert(_devicePool.usedSize() <= _hostPool.usedSize());
+        cudaError_t const status = cudaMemcpyAsync(_hostPool.mem(), _devicePool.mem(), _hostPool.usedSize(), cudaMemcpyDeviceToHost, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorValue::copyToHost: cudaMemcpyAsync failed");
     }
 };
 #endif

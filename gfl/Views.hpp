@@ -46,6 +46,10 @@ public:
             return _data;
     }
     GFL_HOST_DEVICE T* data() noexcept { return asMut(asConst(this)->data()); }
+#ifdef __CUDACC__
+    template<typename P = Ptr, std::enable_if_t<std::is_same_v<P, MirrorPtr<T>>, bool> = true>
+    GFL_HOST_DEVICE MirrorPtr<T> mirrorData() const noexcept { return _data; }
+#endif
     GFL_HOST_DEVICE i64 size() const noexcept { return _size; }
     GFL_HOST_DEVICE bool empty() const noexcept { return _size == 0; }
     GFL_HOST_DEVICE T const* begin() const noexcept { return data(); }
@@ -96,6 +100,10 @@ public:
 	 _aView(data, 0), _capacity(capacity) { assert(capacity > 0); }
     GFL_HOST_DEVICE T const* data() const noexcept { return _aView.data(); }
     GFL_HOST_DEVICE T* data() noexcept { return _aView.data(); }
+#ifdef __CUDACC__
+    template<typename P = Ptr, std::enable_if_t<std::is_same_v<P, MirrorPtr<T>>, bool> = true>
+    GFL_HOST_DEVICE MirrorPtr<T> mirrorData() const noexcept { return _aView.mirrorData(); }
+#endif
     GFL_HOST_DEVICE i64 size() const noexcept { return _aView.size(); }
     GFL_HOST_DEVICE i64 capacity() const noexcept { return _capacity; }
     GFL_HOST_DEVICE bool empty() const noexcept { return _aView.empty(); }

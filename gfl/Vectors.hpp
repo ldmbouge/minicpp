@@ -39,6 +39,7 @@ public:
     void append(ArrayView<T> const& elements) noexcept { _vView.append(elements); }
 };
 
+#ifdef __CUDACC__
 template<typename T>
 class DeviceVector {
     VectorView<T> _vView;
@@ -71,7 +72,18 @@ public:
     GFL_DEVICE i64 resizeByAtomic(i64 const delta) noexcept { return _vView.resizeByAtomic(delta); }
     GFL_DEVICE i64 resizeByAtomicBlock(i64 const delta) noexcept { return _vView.resizeByAtomicBlock(delta); }
     GFL_DEVICE void resizeTo(i64 const size) noexcept { _vView.resizeTo(size); }
-    GFL_DEVICE void clear() noexcept { _vView.clear(); }
+    GFL_HOST_DEVICE void clear() noexcept { _vView.clear(); }
+    void copyToDeviceAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
+        assert(elements.size() <= size());
+        cudaError_t const status = cudaMemcpyAsync(data(), elements.data(), sizeof(T) * elements.size(), cudaMemcpyHostToDevice, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorValue::copyToDevice: cudaMemcpyAsync failed");
+    }
+    void copyToHostAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
+        assert(size() <= elements.size());
+        cudaError_t const status = cudaMemcpyAsync(elements.data(),data(), sizeof(T) * elements.size(), cudaMemcpyDeviceToHost, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorValue::copyToHost: cudaMemcpyAsync failed");
+    }
+
 };
 
 template<typename T>
@@ -110,5 +122,14 @@ public:
     GFL_DEVICE i64 resizeByAtomicBlock(i64 const delta) noexcept { return _vView.resizeByAtomicBlock(delta); }
     GFL_HOST_DEVICE void resizeTo(i64 const size) noexcept { _vView.resizeTo(size); }
     GFL_HOST_DEVICE void clear() noexcept { _vView.clear(); }
+    void copyToDeviceAsync(cudaStream_t const stream) noexcept {
+        cudaError_t const status = cudaMemcpyAsync(_vView.mirrorData().d(), _vView.mirrorData().h(), sizeof(T) * size(), cudaMemcpyHostToDevice, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorVector::copyToDeviceAsync: cudaMemcpyAsync failed");
+    }
+    void copyToHostAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
+        cudaError_t const status = cudaMemcpyAsync(_vView.mirrorData().h(), _vView.mirrorData().d(), sizeof(T) * size(), cudaMemcpyDeviceToHost, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorVector::copyToHostAsync: cudaMemcpyAsync failed");
+    }
 };
+#endif
 }

@@ -58,6 +58,16 @@ public:
     GFL_DEVICE T& back() noexcept { return _aView.back(); }
     GFL_DEVICE ArrayView<T> slice(i64 const begin, i64 const end) const noexcept { return _aView.slice(begin, end); }
     GFL_DEVICE ArrayView<T> slice(i64 const count) const noexcept { return _aView.slice(count); }
+    void copyToDeviceAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
+        assert(elements.size() <= size());
+        cudaError_t const status = cudaMemcpyAsync(data(), elements.data(), sizeof(T) * elements.size(), cudaMemcpyHostToDevice, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorValue::copyToDevice: cudaMemcpyAsync failed");
+    }
+    void copyToHostAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
+        assert(size() <= elements.size());
+        cudaError_t const status = cudaMemcpyAsync(elements.data(),data(), sizeof(T) * elements.size(), cudaMemcpyDeviceToHost, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorValue::copyToHost: cudaMemcpyAsync failed");
+    }
 };
 template<typename T>
 class MirrorArray {
@@ -87,6 +97,14 @@ public:
     GFL_HOST_DEVICE T& back() noexcept { return _aView.back(); }
     GFL_HOST_DEVICE ArrayView<T> slice(i64 const begin, i64 const end) const noexcept { return _aView.slice(begin, end); }
     GFL_HOST_DEVICE ArrayView<T> slice(i64 const count) const noexcept { return _aView.slice(count); }
+    void copyToDeviceAsync(cudaStream_t const stream) noexcept {
+        cudaError_t const status = cudaMemcpyAsync(_aView.mirrorData().d(), _aView.mirrorData().h(), sizeof(T) * size(), cudaMemcpyHostToDevice, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorArray::copyToDeviceAsync: cudaMemcpyAsync failed");
+    }
+    void copyToHostAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
+        cudaError_t const status = cudaMemcpyAsync(_aView.mirrorData().h(), _aView.mirrorData().d(), sizeof(T) * size(), cudaMemcpyDeviceToHost, stream);
+        checkOrAbort(status == cudaSuccess, "MirrorArray::copyToHostAsync: cudaMemcpyAsync failed");
+    }
 };
 #endif
 }

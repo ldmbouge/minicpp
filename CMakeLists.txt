@@ -86,7 +86,7 @@ if(ENABLE_GPU)
 endif()
 
 set(GPU_CONSTR_SRC
-    gpu_constraints/cumulative.cu
+        global_constraints_gpu/cumulative.cu
 )
 
 set(GLB_CONSTR_SRC
@@ -119,19 +119,6 @@ add_library(copl
     commandList.cpp
 	constraint.cpp
 	domain.cpp
-	fz_constraints/bool_array.cpp
-	fz_constraints/bool_bin.cpp
-	fz_constraints/bool_lin.cpp
-	fz_constraints/bool_misc.cpp
-	fz_constraints/flatzinc.cpp
-	fz_constraints/int_array.cpp
-	fz_constraints/int_bin.cpp
-	fz_constraints/int_lin.cpp
-	fz_constraints/int_tern.cpp
-	fz_parser/flatzinc.cpp
-	fz_parser/lexer.yy.cpp
-	fz_parser/parser.tab.cpp
-	fz_parser/registry.cpp
 	intvar.cpp
 	lex.cpp
 	mallocWatch.cpp
@@ -170,22 +157,6 @@ if (ENABLE_GPU)
     target_include_directories(copl PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
 endif()
 
-add_library(fzl
-		fz_constraints/bool_array.cpp
-		fz_constraints/bool_bin.cpp
-		fz_constraints/bool_lin.cpp
-		fz_constraints/bool_misc.cpp
-		fz_constraints/flatzinc.cpp
-		fz_constraints/int_array.cpp
-		fz_constraints/int_bin.cpp
-		fz_constraints/int_lin.cpp
-		fz_constraints/int_tern.cpp
-		fz_parser/flatzinc.cpp
-		fz_parser/lexer.yy.cpp
-		fz_parser/parser.tab.cpp
-		fz_parser/registry.cpp
-		)
-
 #This is the full list of exapmles for miniCPP		
 ################################################################################
 file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
@@ -196,7 +167,6 @@ endif()
 
 #file(GLOB files "examples/tutorial/*.cpp" "examples/mdd/amongNurse.cpp" "examples/mdd/amongNurse2.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
-list(FILTER files EXCLUDE REGEX ".*/examples/fz.cpp")
 message("${files}")
 
 foreach (file ${files})
@@ -216,11 +186,6 @@ foreach (file ${GPUfiles})
 	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json;CLI11::CLI11") # copl)
 	add_dependencies(${base} copl)
 endforeach()
-
-# This is to compile the minizinc interface to miniCPP
-################################################################################
-add_executable(fzn-minicpp examples/fz.cpp)
-target_link_libraries(fzn-minicpp copl fzl)
 
 # Data files for the benchmarks
 ################################################################################

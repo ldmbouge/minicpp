@@ -38,21 +38,23 @@ public:
         gfl::i32 max;
     };
 
-    using ProcessingTimes = gfl::Array<gfl::i32, gfl::MemoryPool<gfl::ManagedAllocator<>>>;
-    using Requirements = gfl::Array<gfl::i32, gfl::MemoryPool<gfl::ManagedAllocator<>>>;
-    using RelevantIntervals = gfl::Vector<TimeInterval,  gfl::MemoryPool<gfl::DeviceAllocator<>>>;
-    using StartIntervals = gfl::Array<Domain,  gfl::MemoryPool<gfl::ManagedAllocator<>>>;
+    using ProcessingTimes = gfl::MirrorArray<gfl::i32>;
+    using Requirements = gfl::MirrorArray<gfl::i32>;
+    using RelevantIntervals = gfl::DeviceVector<TimeInterval>;
+    using StartIntervals = gfl::MirrorArray<Domain>;
 
 private:
     gfl::i32 _n;
     gfl::i32 _c;
     std::vector<var<int>::Ptr> _s;
-    gfl::MemoryManager _mm;
-    ProcessingTimes* _p;
-    Requirements* _h;
-    RelevantIntervals* _ri;
-    StartIntervals* _si;
-    bool* _fail;
+    gfl::MirrorPool _roPool;
+    gfl::MirrorPool _ioPool;
+    gfl::MemoryPool<gfl::DeviceAllocator> _dPool;
+    gfl::MirrorPtr<ProcessingTimes> _p;
+    gfl::MirrorPtr<Requirements> _h;
+    gfl::MirrorPtr<RelevantIntervals> _ri;
+    gfl::MirrorPtr<StartIntervals> _si;
+    gfl::MirrorPtr<bool> _fail;
 
     // CUDA
     gfl::i32 deviceId;
@@ -64,12 +66,14 @@ public:
     template <typename Container>
     CumulativeGPU(Container& s, std::vector<int> const& p, std::vector<int> const& h, int c) :
         Constraint(s[0]->getSolver()), _n(gfl::scast<gfl::i32>(s.size ())), _c(c),_s(_n),
-        _mm(),
-        _p(new (_mm.managed())  ProcessingTimes(_n, _mm.managed())),
-        _h(new (_mm.managed())  Requirements(_n, _mm.managed())),
-        _ri(new (_mm.managed())  RelevantIntervals(MAX_INTERVALS_PER_ACTIVITY_PAIR*_n*_n, _mm.device())),
-        _si(new (_mm.managed())  StartIntervals(_n, _mm.managed())),
-        _fail(new (_mm.managed())  bool)
+        _roPool(),
+        _ioPool(),
+        _dPool(),
+        _p(_roPool.make<ProcessingTimes>(_roPool,_n)),
+        _h(_roPool.make<Requirements>(_roPool,_n)),
+        _ri(_ioPool.make<RelevantIntervals>(_dPool,MAX_INTERVALS_PER_ACTIVITY_PAIR*_n*_n)),
+        _si(_ioPool.make<StartIntervals>(_ioPool,_n)),
+        _fail(_ioPool.make<bool>())
     {
 
         gfl::checkOrAbort(p.size() == s.size(), "CumulativeGPU: |p| != |s|");
