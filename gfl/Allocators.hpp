@@ -76,58 +76,86 @@ public:
 class BumpAllocator {
     // Vectorized instructions: SSE = 16, AVX = 32, AVX-512 = 64
     static constexpr i32 DefaultAlign = 32;
-    uptr const begin;
-    uptr current;
-    uptr const end;
+    uptr _begin;
+    uptr _current;
+    uptr _end;
 
 public:
-    BumpAllocator() = delete;
+    BumpAllocator() : _begin(), _current(), _end() {}
+    BumpAllocator(BumpAllocator&& other) noexcept
+        : _begin(std::exchange(other._begin, 0)),
+          _current(std::exchange(other._current, 0)),
+          _end(std::exchange(other._end, 0)) {}
+    BumpAllocator& operator=(BumpAllocator&& other) noexcept {
+        if (this == &other) return *this;
+        _begin   = std::exchange(other._begin, 0);
+        _current = std::exchange(other._current, 0);
+        _end     = std::exchange(other._end, 0);
+        return *this;
+    }
     BumpAllocator(BumpAllocator const&) = delete;
-    BumpAllocator(BumpAllocator&&) = delete;
     BumpAllocator& operator=(BumpAllocator const&) = delete;
-    BumpAllocator& operator=(BumpAllocator&&) = delete;
 
     GFL_HOST_DEVICE
     BumpAllocator(void* memory, i64 const size) noexcept :
-        begin(rcast<uptr>(memory)),
-        current(begin),
-        end(begin + scast<uptr>(size)) {
+        _begin(rcast<uptr>(memory)),
+        _current(_begin),
+        _end(_begin + scast<uptr>(size)) {
         assert(memory != nullptr);
         assert(size > 0);
-        assert(begin <= numeric_limits<uptr>::max() - scast<uptr>(size)); // Overflow
+        assert(_begin <= numeric_limits<uptr>::max() - scast<uptr>(size)); // Overflow
     }
 
     template<typename Allocator>
     BumpAllocator(Allocator const allocator, i64 const size) noexcept :
         BumpAllocator(allocator.allocate(scast<usize>(DefaultAlign + size)), DefaultAlign + size) {}
 
-    bool fits(usize const size) const noexcept { return current + DefaultAlign + size < end; }
+    bool fits(usize const size) const noexcept {  return roundUp<uptr>(_current, DefaultAlign) + size <= _end; }
 
     void* allocate(usize const size) noexcept {
         checkOrAbort(fits(size), "BumpAllocator::allocate: out of memory");
-        uptr const oldCurrent = current;
-        uptr const newCurrent = roundUp<uptr>(current, DefaultAlign) + size;
-        current = newCurrent;
-        return rcast<void*>(oldCurrent);
+        uptr const current = roundUp<uptr>(_current, DefaultAlign);
+        _current = current + size;
+        return rcast<void*>(current);
     }
 
     template<typename T>
     T* allocate(i64 const count) { return scast<T*>(allocate(sizeof(T) * scast<usize>(count))); }
 
-    GFL_HOST_DEVICE void clear() noexcept { current = begin; }
-    GFL_HOST_DEVICE void const *  getMarker() const noexcept { return rcast<void*>(current); }
-    GFL_HOST_DEVICE
-    void rewindTo(void const* const marker) noexcept {
-        uptr const addr = rcast<uptr>(marker);
-        assert(begin <= addr);
-        assert(addr <= current);
-        current = addr;
-    }
+    void deallocate(void*, usize) const noexcept {}
 
-    GFL_HOST_DEVICE void* mem() const noexcept { return rcast<void*>(begin); }
-    GFL_HOST_DEVICE void* freeMem() const noexcept { return rcast<void*>(current); }
-    GFL_HOST_DEVICE i64 freeSize() const noexcept { return scast<i64>(end - current); }
-    GFL_HOST_DEVICE i64 usedSize() const noexcept { return scast<i64>(current - begin); }
-    GFL_HOST_DEVICE i64 totalSize() const noexcept { return scast<i64>(end - begin); }
+    GFL_HOST_DEVICE void clear() noexcept { _current = _begin; }
+    GFL_HOST_DEVICE void* mem() const noexcept {
+        void* mem = rcast<void*>(_begin);
+        assert(mem != nullptr);
+        return mem;
+    }
+    GFL_HOST_DEVICE void* freeMem() const noexcept {
+        void* mem = rcast<void*>(_current);
+        assert(mem != nullptr);
+        return mem;
+    }
+    GFL_HOST_DEVICE i64 freeSize() const noexcept {
+        auto const size =  scast<i64>(_end - _current);
+        assert(size >= 0);
+        return size;
+    }
+    GFL_HOST_DEVICE i64 usedSize() const noexcept {
+        auto const size =  scast<i64>(_current - _begin);
+        assert(size >= 0);
+        return size;
+    }
+    GFL_HOST_DEVICE i64 totalSize() const noexcept {
+        auto const size =  scast<i64>(_end - _begin);
+        assert(size >= 0);
+        return size;
+    }
+    GFL_HOST_DEVICE void * marker() const noexcept { return freeMem(); }
+    GFL_HOST_DEVICE void rewindTo(void const* const marker) noexcept {
+        uptr const addr = rcast<uptr>(marker);
+        assert(_begin <= addr);
+        assert(addr <= _current);
+        _current = addr;
+    }
 };
 }

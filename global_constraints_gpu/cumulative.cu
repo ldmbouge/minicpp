@@ -14,8 +14,10 @@ GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
     for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x){
         i32 const i = ijIdx / n;
         i32 const j = ijIdx % n;
-        i32 goodIntervals = 0;
-        TimeInterval intervalsToConsider[MAX_INTERVALS_PER_ACTIVITY_PAIR];
+
+        TimeInterval intervalsBuff[MAX_INTERVALS_PER_ACTIVITY_PAIR];
+        VectorView<TimeInterval> intervals(intervalsBuff, MAX_INTERVALS_PER_ACTIVITY_PAIR);
+        auto collectIfValid = [&](TimeInterval ti) { if (ti.start < ti.end) intervals.append(ti); };
 
         if (si->at(i).changed or si->at(j).changed) {
             i32 const pi = p->at(i);
@@ -30,34 +32,24 @@ GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
             i32 const lctj = lstj + pj;
 
             // Case 1
-            intervalsToConsider[0] = {esti, ectj};
-            intervalsToConsider[1] = {esti, lctj};
-            intervalsToConsider[2] = {lsti, ectj};
-            intervalsToConsider[3] = {lsti, lctj};
+            collectIfValid({esti, ectj});
+            collectIfValid({esti, lctj});
+            collectIfValid({lsti, ectj});
+            collectIfValid({lsti, lctj});
 
             // Case 2
-            intervalsToConsider[4] = {esti, estj + lctj - esti};
-            intervalsToConsider[5] = {esti, estj + lctj - lsti};
-            intervalsToConsider[6] = {lsti, estj + lctj - esti};
-            intervalsToConsider[7] = {lsti, estj + lctj - lsti};
+            collectIfValid({esti, estj + lctj - esti});
+            collectIfValid({esti, estj + lctj - lsti});
+            collectIfValid({lsti, estj + lctj - esti});
+            collectIfValid({lsti, estj + lctj - lsti});
 
             // Case 3
-            intervalsToConsider[8]  = {esti + lcti - ectj, ectj};
-            intervalsToConsider[9]  = {esti + lcti - ectj, lctj};
-            intervalsToConsider[10] = {esti + lcti - lctj, ectj};
-            intervalsToConsider[11] = {esti + lcti - lctj, lctj};
+            collectIfValid({esti + lcti - ectj, ectj});
+            collectIfValid({esti + lcti - ectj, lctj});
+            collectIfValid({esti + lcti - lctj, ectj});
+            collectIfValid({esti + lcti - lctj, lctj});
 
-            for (u32 k = 0; k < MAX_INTERVALS_PER_ACTIVITY_PAIR; k += 1) {
-                if (intervalsToConsider[k].start < intervalsToConsider[k].end) {
-                    intervalsToConsider[goodIntervals] = intervalsToConsider[k];
-                    goodIntervals += 1;
-                }
-            }
-
-            if (goodIntervals > 0) {
-                auto const oldSize = ri->resizeByAtomic(goodIntervals);
-                memcpy(ri->data() + oldSize, intervalsToConsider, sizeof(TimeInterval) * goodIntervals);
-            }
+            ri->appendAtomic(intervals.slice());
         }
     }
 }
@@ -120,7 +112,6 @@ __global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
     }
 }
 
-
 void CumulativeGPU::post()
 {
     using namespace std;
@@ -132,14 +123,14 @@ void CumulativeGPU::post()
         v->propagateOnBoundChange(this);
 
     // Copy constants data on GPU
-    _ioPool.copyToDeviceAsync(cuStream);
-    _roPool.copyToDeviceAsync(cuStream);
+    _roRegion.copyToDeviceAsync(cuStream);
+    _ioRegion.copyToDeviceAsync(cuStream);
 
     cuGraph = gfl::capture(cuStream,[this]() {
-         _ioPool.copyToDeviceAsync(cuStream);
+         _ioRegion.copyToDeviceAsync(cuStream);
          calcRiKernel<<<nSM, CBS, 0, cuStream>>>(_si, _p, _ri);
          updateSiKernel<<<nSM, CBS, 0, cuStream>>>(_h, _p, _c, _ri, _si, _fail);
-        _ioPool.copyToHostAsync(cuStream);
+        _ioRegion.copyToHostAsync(cuStream);
     });
 }
 

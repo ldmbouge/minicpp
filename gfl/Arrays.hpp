@@ -101,7 +101,7 @@ public:
         cudaError_t const status = cudaMemcpyAsync(_aView.mirrorData().d(), _aView.mirrorData().h(), sizeof(T) * size(), cudaMemcpyHostToDevice, stream);
         checkOrAbort(status == cudaSuccess, "MirrorArray::copyToDeviceAsync: cudaMemcpyAsync failed");
     }
-    void copyToHostAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
+    void copyToHostAsync(cudaStream_t const stream) noexcept {
         cudaError_t const status = cudaMemcpyAsync(_aView.mirrorData().h(), _aView.mirrorData().d(), sizeof(T) * size(), cudaMemcpyDeviceToHost, stream);
         checkOrAbort(status == cudaSuccess, "MirrorArray::copyToHostAsync: cudaMemcpyAsync failed");
     }

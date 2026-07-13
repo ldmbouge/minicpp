@@ -32,6 +32,7 @@ public:
     T& back() noexcept { return _vView.back(); }
     ArrayView<T> slice(i64 const begin, i64 const end) const noexcept { return _vView.slice(begin, end); }
     ArrayView<T> slice(i64 const count) const noexcept { return _vView.slice(count); }
+    ArrayView<T> slice() const noexcept { return _vView.slice(); }
     void resizeBy(i64 const delta) noexcept { _vView.resizeBy(delta); }
     void resizeTo(i64 const size) noexcept { _vView.resizeTo(size); }
     void clear() noexcept { _vView.clear(); }
@@ -68,11 +69,18 @@ public:
     GFL_DEVICE T& back() noexcept { return _vView.back(); }
     GFL_DEVICE ArrayView<T> slice(i64 const begin, i64 const end) const noexcept { return _vView.slice(begin, end); }
     GFL_DEVICE ArrayView<T> slice(i64 const count) const noexcept { return _vView.slice(count); }
-    GFL_DEVICE void resizeBy(i64 const delta) noexcept { _vView.resizeBy(delta); }
+    GFL_DEVICE ArrayView<T> slice() const noexcept { return _vView.slice(); }
+    GFL_HOST_DEVICE void resizeBy(i64 const delta) noexcept { _vView.resizeBy(delta); }
     GFL_DEVICE i64 resizeByAtomic(i64 const delta) noexcept { return _vView.resizeByAtomic(delta); }
     GFL_DEVICE i64 resizeByAtomicBlock(i64 const delta) noexcept { return _vView.resizeByAtomicBlock(delta); }
-    GFL_DEVICE void resizeTo(i64 const size) noexcept { _vView.resizeTo(size); }
+    GFL_HOST_DEVICE void resizeTo(i64 const size) noexcept { _vView.resizeTo(size); }
     GFL_HOST_DEVICE void clear() noexcept { _vView.clear(); }
+    GFL_DEVICE void append(T const& value) noexcept { _vView.append(value); }
+    GFL_DEVICE void append(ArrayView<T> const& elements) noexcept { _vView.append(elements); }
+    GFL_DEVICE void appendAtomic(T const& value) noexcept { _vView.appendAtomic(value); }
+    GFL_DEVICE void appendAtomic(ArrayView<T> const& elements) noexcept { _vView.appendAtomic(elements); }
+    GFL_DEVICE void appendAtomicBlock(ArrayView<T> const& elements) noexcept { _vView.appendAtomicBlock(elements); }
+
     void copyToDeviceAsync(cudaStream_t const stream, ArrayView<T> const & elements) noexcept {
         assert(elements.size() <= size());
         cudaError_t const status = cudaMemcpyAsync(data(), elements.data(), sizeof(T) * elements.size(), cudaMemcpyHostToDevice, stream);
@@ -117,11 +125,18 @@ public:
     GFL_HOST_DEVICE T& back() noexcept { return _vView.back(); }
     GFL_HOST_DEVICE ArrayView<T> slice(i64 const begin, i64 const end) const noexcept { return _vView.slice(begin, end); }
     GFL_HOST_DEVICE ArrayView<T> slice(i64 const count) const noexcept { return _vView.slice(count); }
+    GFL_HOST_DEVICE ArrayView<T> slice() const noexcept { return _vView.slice(); }
     GFL_HOST_DEVICE void resizeBy(i64 const delta) noexcept { _vView.resizeBy(delta); }
-    GFL_DEVICE i64 resizeByAtomic(i64 const delta) noexcept { return _vView.resizeByAtomic(delta); }
+    GFL_HOST_DEVICE i64 resizeByAtomic(i64 const delta) noexcept { return _vView.resizeByAtomic(delta); }
     GFL_DEVICE i64 resizeByAtomicBlock(i64 const delta) noexcept { return _vView.resizeByAtomicBlock(delta); }
     GFL_HOST_DEVICE void resizeTo(i64 const size) noexcept { _vView.resizeTo(size); }
     GFL_HOST_DEVICE void clear() noexcept { _vView.clear(); }
+    GFL_HOST_DEVICE void append(T const& value) noexcept { _vView.append(value); }
+    GFL_HOST_DEVICE void append(ArrayView<T> const& elements) noexcept { _vView.append(elements); }
+    GFL_HOST_DEVICE void appendAtomic(T const& value) noexcept { _vView.appendAtomic(value); }
+    GFL_HOST_DEVICE void appendAtomic(ArrayView<T> const& elements) noexcept { _vView.appendAtomic(elements); }
+    GFL_DEVICE void appendAtomicBlock(ArrayView<T> const& elements) noexcept { _vView.appendAtomicBlock(elements); }
+
     void copyToDeviceAsync(cudaStream_t const stream) noexcept {
         cudaError_t const status = cudaMemcpyAsync(_vView.mirrorData().d(), _vView.mirrorData().h(), sizeof(T) * size(), cudaMemcpyHostToDevice, stream);
         checkOrAbort(status == cudaSuccess, "MirrorVector::copyToDeviceAsync: cudaMemcpyAsync failed");

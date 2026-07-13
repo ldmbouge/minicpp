@@ -87,6 +87,7 @@ public:
         else
             return slice(_size + count, _size);
     }
+    GFL_HOST_DEVICE ArrayView<T> slice() const noexcept { return slice(0, size()); }
 };
 
 template<typename T, typename Ptr = T*>
@@ -122,17 +123,21 @@ public:
     GFL_HOST_DEVICE T& back() noexcept { return _aView.back(); }
     GFL_HOST_DEVICE ArrayView<T> slice(i64 const begin, i64 const end) const noexcept { return _aView.slice(begin, end); }
     GFL_HOST_DEVICE ArrayView<T> slice(i64 const count) const noexcept { return _aView.slice(count); }
+    GFL_HOST_DEVICE ArrayView<T> slice() const noexcept { return _aView.slice(); }
     GFL_HOST_DEVICE void resizeBy(i64 const delta) noexcept {
         i64 const newSize = _aView._size + delta;
         assert(0 <= newSize);
         assert(newSize <= _capacity);
         _aView._size = newSize;
     }
-#ifdef __CUDACC__
-    GFL_DEVICE i64 resizeByAtomic(i64 const delta) noexcept {
+    GFL_HOST_DEVICE i64 resizeByAtomic(i64 const delta) noexcept {
+#ifdef __CUDA_ARCH__
         static_assert(sizeof(i64) == sizeof(llu));
         i64 const oldSize = scast<i64>(atomicAdd(rcast<llu*>(&_aView._size), scast<llu>(delta)));
-        assert(0 <= oldSize + delta);
+#else
+        i64 const oldSize = __atomic_fetch_add(&_aView._size, delta, __ATOMIC_RELAXED);
+#endif
+       assert(0 <= oldSize + delta);
         assert(oldSize + delta <= _capacity);
         return oldSize;
     }
@@ -143,18 +148,43 @@ public:
         assert(oldSize + delta <= _capacity);
         return oldSize;
     }
-#endif
-    GFL_HOST_DEVICE void resizeTo(i64 const newSize) noexcept { resizeBy(newSize - size()); }
+    GFL_HOST_DEVICE void resizeTo(i64 const newSize) noexcept {
+        assert(0 <= newSize);
+        assert(newSize <= _capacity);
+        _aView._size = newSize;
+    }
     GFL_HOST_DEVICE void clear() noexcept { resizeTo(0); }
-    void append(T const& value) noexcept {
+    GFL_HOST_DEVICE void append(T const& value) noexcept {
         i64 const oldSize = _aView._size;
         resizeBy(1);
         data()[oldSize] = value;
     }
-    void append(ArrayView<T> const& elements) noexcept {
-        i64 const oldSize = _aView._size;
-        resizeBy(elements.size());
-        memcpy(data() + oldSize, elements.data(), scast<usize>(elements.size()) * sizeof(T));
+    GFL_HOST_DEVICE void appendAtomic(T const& value) noexcept {
+        i64 const oldSize = resizeByAtomic(1);
+        data()[oldSize] = value;
+    }
+    GFL_HOST_DEVICE void appendAtomicBlock(T const& value) noexcept {
+        i64 const oldSize = resizeByAtomic(1);
+        data()[oldSize] = value;
+    }
+    GFL_HOST_DEVICE void append(ArrayView<T> const& elements) noexcept {
+        if (not elements.empty()) {
+            i64 const oldSize = _aView._size;
+            resizeBy(elements.size());
+            memcpy(data() + oldSize, elements.data(), scast<usize>(elements.size()) * sizeof(T));
+        }
+    }
+    GFL_HOST_DEVICE void appendAtomic(ArrayView<T> const& elements) noexcept {
+        if (not elements.empty()) {
+            i64 const oldSize = resizeByAtomic(elements.size());
+            memcpy(data() + oldSize, elements.data(), scast<usize>(elements.size()) * sizeof(T));
+        }
+    }
+    GFL_DEVICE void appendAtomicBlock(ArrayView<T> const& elements) noexcept {
+        if (not elements.empty()) {
+            i64 const oldSize = resizeByAtomicBlock(elements.size());
+            memcpy(data() + oldSize, elements.data(), scast<usize>(elements.size()) * sizeof(T));
+        }
     }
 };
 }
