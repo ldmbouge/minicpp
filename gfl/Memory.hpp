@@ -9,23 +9,30 @@ namespace gfl {
 
 template<typename Allocator>
 class MemoryPool {
-    struct Block {
-        void* memory;
-        usize size;
-    };
-    std::vector<Block> _blocks;
+    static constexpr i64 DefaultBlockSize = 4 * 1024 * 1024ll;
+    i64 const _blockSize;
+    std::vector<BumpAllocator*> _blocks;
 public:
+    MemoryPool(i64 const blockSize = DefaultBlockSize) : _blockSize(blockSize), _blocks() {
+        _blocks.emplace_back(new BumpAllocator(Allocator{}, _blockSize));
+    }
     ~MemoryPool() {
-        for (auto b : _blocks)
-            Allocator{}.deallocate(b.memory, b.size);
+        for (auto b : _blocks) {
+            Allocator{}.deallocate(b->mem(), b->totalSize());
+            delete b;
+        }
     }
     void* allocate(usize const size) noexcept {
-        _blocks.push_back(Block{Allocator{}.allocate(size), size});
-        return _blocks.back().memory;
+        if (not _blocks.back()->fits(size)) {
+            i64 const blockSize = gfl::max<i64>(scast<i64>(size), _blockSize);
+            _blocks.emplace_back(new BumpAllocator(Allocator{}, blockSize));
+        }
+        assert(_blocks.back()->fits(size));
+        return _blocks.back()->allocate(size);
     }
     void deallocate(void*, usize) noexcept {}
     template<typename T>
-    T* allocate(usize const count) noexcept { return scast<T*>(allocate(sizeof(T)* count));}
+    T* allocate(usize const count) noexcept { return scast<T*>(allocate(sizeof(T) * count)); }
 };
 
 #ifdef __CUDACC__

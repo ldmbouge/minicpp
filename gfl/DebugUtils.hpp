@@ -1,20 +1,22 @@
 #pragma once
 #include <cstdio>
 #include <cstdlib>
-
+#include <Backend.hpp>
 namespace gfl
 {
-    inline
-    void abortWithMsg(char const * const msg) noexcept
-    {
-        std::printf("%s\n", msg);
-        std::fflush(stdout);
-        std::abort();
+    GFL_HOST_DEVICE inline
+    void abortWithMsg(char const * const msg) noexcept{
+#ifdef __CUDA_ARCH__
+        printf("%s", msg);
+#else
+        std::fprintf(stderr, "%s", msg);
+        std::fflush(stderr);
+#endif
+        gfl::abort();
     }
 
-    inline
-    void checkOrAbort(bool const condition, char const * const msg)
-    {
+    GFL_HOST_DEVICE inline
+    void checkOrAbort(bool const condition, char const * const msg) {
         if (not condition) abortWithMsg(msg);
     }
 
