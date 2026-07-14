@@ -19,13 +19,12 @@ class ArrayView {
 #ifdef __CUDACC__
     static_assert(std::is_same_v<Ptr, T*> or std::is_same_v<Ptr, MirrorPtr<T>>);
 #endif
-    friend class VectorView<T,Ptr>;
-protected:
     Ptr _data;
+protected:
     i64 _size;
+    friend class VectorView<T,Ptr>;
 public:
     using value_type = T;
-
     // --- Construction ---
     ArrayView() = delete;
     GFL_HOST_DEVICE ArrayView(Ptr const data, i64 const size) noexcept : _data(data), _size(size) {
