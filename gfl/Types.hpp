@@ -33,31 +33,19 @@ using llu = unsigned long long int;
 
 // Type-changing casts: name the target type.
 template<typename To, typename From>
-GFL_HOST_DEVICE constexpr To scast(From from) noexcept {
-    return static_cast<To>(from);
-}
+GFL_HOST_DEVICE constexpr To scast(From from) noexcept { return static_cast<To>(from); }
 
 template<typename To, typename From>
-GFL_HOST_DEVICE constexpr To rcast(From from) noexcept {
-    return reinterpret_cast<To>(from);
-}
+GFL_HOST_DEVICE constexpr To rcast(From from) noexcept { return reinterpret_cast<To>(from); }
 
 // Qualifier-adjusting casts: type deduced, only const-ness changes.
 template<typename T>
-GFL_HOST_DEVICE constexpr T const* asConst(T* ptr) noexcept {
-    return ptr;
-}
+GFL_HOST_DEVICE constexpr T const* asConst(T* ptr) noexcept { return ptr; }
 template<typename T>
-GFL_HOST_DEVICE constexpr T const& asConst(T& ref) noexcept {
-    return ref;
-}
+GFL_HOST_DEVICE constexpr T const& asConst(T& ref) noexcept { return ref; }
 
 template<typename T>
-GFL_HOST_DEVICE constexpr T* asMut(T const* ptr) noexcept {
-    return const_cast<T*>(ptr);
-}
+GFL_HOST_DEVICE constexpr T* asMut(T const* ptr) noexcept { return const_cast<T*>(ptr); }
 template<typename T>
-GFL_HOST_DEVICE constexpr T& asMut(T const& ref) noexcept {
-    return const_cast<T&>(ref);
-}
+GFL_HOST_DEVICE constexpr T& asMut(T const& ref) noexcept { return const_cast<T&>(ref); }
 }

@@ -46,7 +46,6 @@ void sortByKey(KeyContainer keys, Containers&... arrays) {
     size_t n = keys.size();
     if (!((arrays.size() == n) && ...))
         throw std::invalid_argument("All containers must have the same size as keys");
-
     if (n > 1)
         quickSort(keys, 0, (int)n - 1, arrays...);
 }
@@ -60,15 +59,12 @@ void sortByKeyFn(KeyFn keyFn, Containers&... arrays) {
     for (size_t s : sizes)
         if (s != sizes[0])
             throw std::invalid_argument("All containers must have the same size");
-
     size_t n = sizes[0];
-
     using Key = decltype(keyFn(arrays[0]...));
     std::vector<Key> keys;
     keys.reserve(n);
     for (size_t i = 0; i < n; ++i)
         keys.push_back(keyFn(arrays[i]...));
-
     if (n > 1)
         quickSort(keys, 0, (int)n - 1, arrays...);
 }

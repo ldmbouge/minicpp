@@ -110,11 +110,11 @@ public:
     BumpAllocator(Allocator const allocator, i64 const size) noexcept :
         BumpAllocator(allocator.allocate(scast<usize>(DefaultAlign + size)), DefaultAlign + size) {}
 
-    bool fits(usize const size) const noexcept {  return roundUp<uptr>(_current, DefaultAlign) + size <= _end; }
+    bool fits(usize const size) const noexcept { return roundUp<uptr>(scast<i64>(_current), DefaultAlign) + size <= _end; }
 
     void* allocate(usize const size) noexcept {
         checkOrAbort(fits(size), "BumpAllocator::allocate: out of memory");
-        uptr const current = roundUp<uptr>(_current, DefaultAlign);
+        uptr const current = roundUp<uptr>(scast<i64>(_current), DefaultAlign);
         _current = current + size;
         return rcast<void*>(current);
     }

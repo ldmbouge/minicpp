@@ -1,158 +1,89 @@
-
+#include <algorithm>
 #include "cumulative.hpp"
-/*
-Cumulative::Cumulative(Factory::Veci &sa,
-                       std::vector<int> const &p,
-                       std::vector<int> const &h, int c)
-   : Constraint(sa[0]->getSolver()), nActivities(sa.size()), c(c), si(sa.size()),
-     p(p), h(h)
-{
-   for (auto& v : sa)
-      s.push_back(v);
-   setPriority(CLOW);
-}  
 
-Cumulative::Cumulative(std::vector<var<int>::Ptr> & s, std::vector<int> const & p, std::vector<int> const & h, int c)
-  : Constraint(s[0]->getSolver()), nActivities(s.size()), c(c), s(s),si(s.size()), p(p), h(h)
-{
-   setPriority(CLOW);
-}
-*/
-
-void Cumulative::post()
-{
-  intervals.reserve(MAX_INTERVALS_PER_ACTIVITY_PAIR * nActivities * nActivities);
-  for (auto const & v : s) 
-    v->propagateOnBoundChange(this);    
+void Cumulative::post() {
+  for (auto const & v : _x)
+    v->propagateOnBoundChange(this);
 }
 
-void Cumulative::initStartIntervals(int nActivities, var<int>::Ptr const * s, StartInterval * si)
-{
-    for (auto i = 0; i < nActivities; i += 1)
-    {
-        auto const & v = s[i];
-        si[i] = {v->changed(), v->min(), v->max()};
-    }
-}
-
-void Cumulative::calcIntervals()
-{
-
-    intervals.clear();
-
-    Interval intervalsToTest[MAX_INTERVALS_PER_ACTIVITY_PAIR];
-    for (auto i = 0; i < nActivities; i += 1)
-    {
-        int const pi = p.at(i);
-        const bool siChanged = si.at(i).changed;
-        int const siMin = si.at(i).min;
-        int const siMax = si.at(i).max;
-        int const eiMax = siMax + pi;
-
-        for (int j = 0; j < nActivities; j += 1)
-        {
-   	    const bool sjChanged = si.at(j).changed;
-            if (siChanged or sjChanged)
-            {
-                int const pj = p.at(j);
-                int const sjMin = si.at(j).min;
-                int const sjMax = si.at(j).max;
-                int const ejMin = sjMin + pj;
-                int const ejMax = sjMax + pj;
+void Cumulative::calcRi() {
+    _ri.clear();
+    auto collectIfValid = [this](TimeInterval ti) { if (ti.start < ti.end) _ri.push_back(ti); };
+    for (auto i = 0; i < _n; i += 1) {
+        int const pi = _p[i];
+        int const esti = _si[i].min;
+        int const lsti = _si[i].max;
+        int const lcti = lsti + pi;
+        for (int j = 0; j < _n; j += 1) {
+            if (_si[i].changed or _si[j].changed) {
+                int const pj = _p[j];
+                int const estj = _si[j].min;
+                int const lstj = _si[j].max;
+                int const ectj = estj + pj;
+                int const lctj = lstj + pj;
 
                 // Case 1
-                intervalsToTest[0] = {siMin, ejMin};
-                intervalsToTest[1] = {siMin, ejMax};
-                intervalsToTest[2] = {siMax, ejMin};
-                intervalsToTest[3] = {siMax, ejMax};
+                collectIfValid({esti, ectj});
+                collectIfValid({esti, lctj});
+                collectIfValid({lsti, ectj});
+                collectIfValid({lsti, lctj});
 
                 // Case 2
-                intervalsToTest[4] = {siMin, sjMin + ejMax - siMin};
-                intervalsToTest[5] = {siMin, sjMin + ejMax - siMax};
-                intervalsToTest[6] = {siMax, sjMin + ejMax - siMin};
-                intervalsToTest[7] = {siMax, sjMin + ejMax - siMax};
+                collectIfValid({esti, estj + lctj - esti});
+                collectIfValid({esti, estj + lctj - lsti});
+                collectIfValid({lsti, estj + lctj - esti});
+                collectIfValid({lsti, estj + lctj - lsti});
 
                 // Case 3
-                intervalsToTest[8] = {siMin + eiMax - ejMin, ejMin};
-                intervalsToTest[9] = {siMin + eiMax - ejMin, ejMax};
-                intervalsToTest[10] = {siMin + eiMax - ejMax, ejMin};
-                intervalsToTest[11] = {siMin + eiMax - ejMax, ejMax};
-
-                for (auto k = 0; k < MAX_INTERVALS_PER_ACTIVITY_PAIR; k += 1)
-                {
-                    if (intervalsToTest[k].t1 < intervalsToTest[k].t2)
-                    {
-                        intervals.push_back(intervalsToTest[k]);
-                    }
-                }
+                collectIfValid({esti + lcti - ectj, ectj});
+                collectIfValid({esti + lcti - ectj, lctj});
+                collectIfValid({esti + lcti - lctj, ectj});
+                collectIfValid({esti + lcti - lctj, lctj});
             }
         }
     }
 }
 
-void Cumulative::propagate()
-{
+void Cumulative::updateSi() {
     using namespace std;
-
-    initStartIntervals(nActivities, s.data(), si.data());
-    calcIntervals();
-
-    auto const nIntervals = intervals.size();
-    for (std::size_t j = 0; j < nIntervals; j +=1)
-    {
-        int const t1 = intervals.at(j).t1;
-        int const t2 = intervals.at(j).t2;
-
+    int const riSize = static_cast<int>(_ri.size());
+    for (auto j = 0; j < riSize; j += 1) {
+        auto const [t1,t2] = _ri[j];
         int w = 0;
-        for (auto a = 0; a < nActivities; a += 1)
-        {
-            int const ha = h[a];
-            int const saMin = s.at(a)->min();
-            int const saMax = s.at(a)->max();
-            int const pa = p[a];
-            int const eaMin = saMin + pa;
-            int const eaMax = saMax + pa;
-            int const ls = max(0, min(eaMin, t2) - max(saMin, t1));
-            int const rs = max(0, min(eaMax, t2) - max(saMax, t1));
-            int const mi = min(ls, rs);
-            w += ha * mi;
+        for (int i = 0; i < _n; i += 1) {
+            int const hi = _h[i];
+            int const pi = _p[i];
+            int const esti = _x[i]->min(); // We could use _si, but the #propagations would not match GPU
+            int const lsti = _x[i]->max(); // We could use _si, but the #propagations would not match GPU
+            int const ls = max(0, min(esti + pi, t2) - max(esti, t1));
+            int const rs = max(0, min(lsti + pi, t2) - max(lsti, t1));
+            w += hi * min(ls, rs);
         }
 
-        if (w <= c * (t2 - t1))
-        {
-            for (auto a = 0; a < nActivities; a += 1)
-            {
-                int const ha = h[a];
-                int const saMin = s.at(a)->min();
-                int const saMax = s.at(a)->max();
-                int const pa = p[a];
-                int const eaMin = saMin + pa;
-                int const eaMax = saMax + pa;
-                int const ls = max(0, min(eaMin, t2) - max(saMin, t1));
-                int const rs = max(0, min(eaMax, t2) - max(saMax, t1));
-                int const mi = min(ls, rs);
-                int const avail = c * (t2 - t1) - w + ha * mi;
-                if (avail < ha * ls)
-                {
-                    si.at(a).min = max(si.at(a).min, t2 - (avail / ha));
-                }
-                if (avail < ha * rs)
-                {
-                    si.at(a).max = min(si.at(a).max, t1 + (avail / ha) - pa);
-                }
+        if (w <= _c * (t2 - t1))
+            for (int i = 0; i < _n; i += 1){
+                int const hi = _h[i];
+                int const pi = _p[i];
+                int const esti = _x[i]->min(); // We could use _si, but the #propagations would not match GPU
+                int const lsti = _x[i]->max(); // We could use _si, but the #propagations would not match GPU
+                int const ls = max(0, min(esti + pi, t2) - max(esti, t1));
+                int const rs = max(0, min(lsti + pi, t2) - max(lsti, t1));
+                int const avail = _c * (t2 - t1) - w + hi * min(ls, rs);
+                if (avail < hi * ls)
+                    _si[i].min = max(_si[i].min, t2 - (avail / hi));
+                if (avail < hi * rs)
+                    _si[i].max = min(_si[i].max, t1 + (avail / hi) - pi);
             }
-        }
         else
-        {
             failNow();
-        }
     }
+}
 
-
-
-    for (auto i = 0; i < nActivities; i += 1)
-    {
-        s.at(i)->removeBelow(si.at(i).min);
-        s.at(i)->removeAbove(si.at(i).max);
-    }
+void Cumulative::propagate() {
+    for (auto i = 0; i < _n; i += 1)
+        _si[i] = {_x[i]->changed(), _x[i]->min(), _x[i]->max()};
+    calcRi();
+    updateSi();
+    for (auto i = 0; i < _n; i += 1)
+        _x[i]->updateBounds(_si[i].min,_si[i].max);
 }

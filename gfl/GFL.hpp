@@ -1,14 +1,14 @@
 #pragma once
 
 #include <Types.hpp>
-#include <ArenaAllocator.hpp>
+#include <Allocators.hpp>
 #include <Memory.hpp>
-#include <VectorView.hpp>
-#include <Vector.hpp>
+#include <Arrays.hpp>
+#include <Vectors.hpp>
 #include <MathUtils.hpp>
 #include <ChronoUtils.hpp>
-#include <ParallelUtils.hpp>
+#include <CudaUtils.hpp>
 #include <BitSet.hpp>
 #include <HashUtils.hpp>
 #include <Sort.hpp>
-//#include <Timer.hpp>
+#include <Timer.hpp>

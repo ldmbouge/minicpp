@@ -1,22 +1,12 @@
 #pragma once
 
-#include <tuple>
-#include <cuda_runtime_api.h>
+#include "varitf.hpp"
+#include "constraint.hpp"
+#include "global_constraints/cumulative.hpp"
 #include "gfl/Types.hpp"
 #include "gfl/Memory.hpp"
 #include "gfl/Arrays.hpp"
 #include "gfl/Vectors.hpp"
-#include "gfl/DebugUtils.hpp"
-
-#include <varitf.hpp>
-#include <constraint.hpp>
-
-#include "Vectors.hpp"
-#include "global_constraints/cumulative.hpp"
-
-#define MAX_INTERVALS_PER_ACTIVITY_PAIR 12
-#define CBS 128
-#define MAX_ACTIVITIES 128
 
 // References:
 // - Constraint-Based Scheduling (ISBN: 978-1-4615-1479-4)
@@ -24,48 +14,42 @@
 
 class CumulativeGPU : public Constraint {
 public:
-    struct TimeInterval {
-        gfl::i32 start;
-        gfl::i32 end;
-    };
-
-    struct Domain {
-        bool changed;
-        gfl::i32 min;
-        gfl::i32 max;
-    };
-
+    static constexpr gfl::i32 BlockSize = 128;
+    static constexpr gfl::i32 MaxActivities = 128;
+    using TimeInterval = Cumulative::TimeInterval;
+    using Domain = Cumulative::Domain;
     using ProcessingTimes = gfl::MirrorArray<gfl::i32>;
     using Requirements = gfl::MirrorArray<gfl::i32>;
-    using RelevantIntervals = gfl::DeviceVector<TimeInterval>;
     using StartIntervals = gfl::MirrorArray<Domain>;
+    using RelevantIntervals = gfl::DeviceVector<TimeInterval>;
 
 private:
     gfl::i32 _n;
+    std::vector<var<int>::Ptr> _x;
+    gfl::MirrorPtr<ProcessingTimes> _p;
+    gfl::MirrorPtr<Requirements> _h;
     gfl::i32 _c;
-    std::vector<var<int>::Ptr> _s;
+    gfl::MirrorPtr<StartIntervals> _si;
+    gfl::MirrorPtr<bool> _fail;
+    gfl::MirrorPtr<RelevantIntervals> _ri;
+
     gfl::MirrorPool _mPool;
     gfl::DevicePool _dPool;
     gfl::MirrorRegion _roRegion;
     gfl::MirrorRegion _ioRegion;
-    gfl::MirrorPtr<ProcessingTimes> _p;
-    gfl::MirrorPtr<Requirements> _h;
-    gfl::MirrorPtr<RelevantIntervals> _ri;
-    gfl::MirrorPtr<StartIntervals> _si;
-    gfl::MirrorPtr<bool> _fail;
 
-    // CUDA
-    gfl::i32 deviceId;
-    gfl::u32 nSM; // Mow many multi-processors
-    cudaStream_t cuStream; // a GPU queue to offload work
-    cudaGraphExec_t cuGraph; // The executable kernel graph
+    gfl::i32 _device;
+    gfl::u32 _mp; // Mow many multi-processors
+    cudaStream_t _cuStream; // a GPU queue to offload work
+    cudaGraphExec_t _cuGraph; // The executable kernel graph
 
 public:
     template<typename Container>
-    CumulativeGPU(Container& s, std::vector<int> const& p, std::vector<int> const& h, int c) :
-        Constraint(s[0]->getSolver()), _n(gfl::scast<gfl::i32>(s.size())), _c(c), _s(_n) {
-        assert(p.size() == s.size());
-        assert(h.size() == s.size());
+    CumulativeGPU(Container& x, std::vector<int> const& p, std::vector<int> const& h, int c) :
+        Constraint(x[0]->getSolver()), _n(x.size()), _x(x.begin(),x.end()), _c(c)
+    {
+        assert(p.size() == x.size());
+        assert(h.size() == x.size());
 
         _roRegion = _mPool.record([this]() {
             _p = _mPool.make<ProcessingTimes>(_mPool, _n);
@@ -73,23 +57,20 @@ public:
         });
 
         _ioRegion = _mPool.record([this]() {
-            _ri = _mPool.make<RelevantIntervals>(_dPool,MAX_INTERVALS_PER_ACTIVITY_PAIR * _n * _n);
             _si = _mPool.make<StartIntervals>(_mPool, _n);
             _fail = _mPool.make<bool>();
+            _ri = _mPool.make<RelevantIntervals>(_dPool, Cumulative::IntervalsPerActivityPair * _n * _n);
         });
 
-        for (auto i = 0; i < _n; i += 1) {
-            _p->at(i) = p[i];
-            _h->at(i) = h[i];
-            _s[i] = s[i];
-        }
+        _p->loadFrom(p);
+        _h->loadFrom(h);
 
         // CUDA initialization
-        cudaGetDevice(&deviceId);
+        cudaGetDevice(&_device);
         cudaDeviceProp cuProp;
-        cudaGetDeviceProperties(&cuProp, deviceId);
-        nSM = cuProp.multiProcessorCount;
-        cudaStreamCreate(&cuStream);
+        cudaGetDeviceProperties(&cuProp, _device);
+        _mp = cuProp.multiProcessorCount;
+        cudaStreamCreate(&_cuStream);
         setPriority(CLOW);
     }
 

@@ -26,7 +26,7 @@ namespace Factory {
            return new Cumulative(s,p,h,c);
       case GPU:default:         
 #ifdef __CUDACC__
-          return new CumulativeGPU(s, p, h, c);
+          return new CumulativeGPU(s,p,h,c);
 #else
           std::cerr << "Warning: this code was not compiled for NVIDIA libs. Falling back on energetic on CPU.\n";
           return new Cumulative(s, p, h, c);

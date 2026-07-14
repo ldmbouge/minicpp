@@ -15,8 +15,8 @@ GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
         i32 const i = ijIdx / n;
         i32 const j = ijIdx % n;
 
-        TimeInterval intervalsBuff[MAX_INTERVALS_PER_ACTIVITY_PAIR];
-        VectorView<TimeInterval> intervals(intervalsBuff, MAX_INTERVALS_PER_ACTIVITY_PAIR);
+        TimeInterval intervalsBuff[Cumulative::IntervalsPerActivityPair];
+        VectorView<TimeInterval> intervals(intervalsBuff, Cumulative::IntervalsPerActivityPair);
         auto collectIfValid = [&](TimeInterval ti) { if (ti.start < ti.end) intervals.append(ti); };
 
         if (si->at(i).changed or si->at(j).changed) {
@@ -49,12 +49,12 @@ GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
             collectIfValid({esti + lcti - lctj, ectj});
             collectIfValid({esti + lcti - lctj, lctj});
 
-            ri->appendAtomic(intervals.slice());
+            ri->appendAtomic(intervals.view());
         }
     }
 }
 
-__global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
+GFL_GLOBAL void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
                                gfl::MirrorPtr<CumulativeGPU::ProcessingTimes> p,
                                gfl::i32 const c,
                                gfl::MirrorPtr<CumulativeGPU::RelevantIntervals> ri,
@@ -64,7 +64,7 @@ __global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
     using namespace gfl;
     using Domain =  CumulativeGPU::Domain;
 
-    __shared__ Domain si_s[MAX_ACTIVITIES];
+    __shared__ Domain si_s[CumulativeGPU::MaxActivities];
 
     if (*fail) return;
 
@@ -75,10 +75,8 @@ __global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
 
     auto [iBegin, iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, scast<u32>(ri->size()));
     for (auto j = iBegin + threadIdx.x; j < iEnd and (not *fail); j += blockDim.x) {
-        i32 const t1 = ri->at(j).start;
-        i32 const t2 = ri->at(j).end;
+        auto const [t1,t2] = ri->at(j);
         i32 w = 0;
-
         for (i32 i = 0; i < n; i += 1) {
             i32 const hi = h->at(i);
             i32 const pi = p->at(i);
@@ -98,18 +96,21 @@ __global__ void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
                 i32 const ls = max(0, min(esti + pi, t2) - max(esti, t1));
                 i32 const rs = max(0, min(lsti + pi, t2) - max(lsti, t1));
                 i32 const avail = c * (t2 - t1) - w + hi * min(ls, rs);
-                if (avail < hi * ls) atomicMax_block(&si_s[i].min, t2 - (avail / hi));
-                if (avail < hi * rs) atomicMin_block(&si_s[i].max, t1 + (avail / hi) - pi);
+                if (avail < hi * ls)
+                    atomicMax_block(&si_s[i].min, t2 - (avail / hi));
+                if (avail < hi * rs)
+                    atomicMin_block(&si_s[i].max, t1 + (avail / hi) - pi);
             }
         else
             *fail = true;
     }
     __syncthreads();
 
-    for (auto i = threadIdx.x; i < n; i += blockDim.x){
-        atomicMax(&si->at(i).min, si_s[i].min);
-        atomicMin(&si->at(i).max, si_s[i].max);
-    }
+    if (not *fail)
+        for (auto i = threadIdx.x; i < n; i += blockDim.x) {
+            atomicMax(&si->at(i).min, si_s[i].min);
+            atomicMin(&si->at(i).max, si_s[i].max);
+        }
 }
 
 void CumulativeGPU::post()
@@ -119,18 +120,18 @@ void CumulativeGPU::post()
 
     *_fail = false;
     _ri->clear();
-    for (auto const & v : _s)
+    for (auto const & v : _x)
         v->propagateOnBoundChange(this);
 
     // Copy constants data on GPU
-    _roRegion.copyToDeviceAsync(cuStream);
-    _ioRegion.copyToDeviceAsync(cuStream);
+    _roRegion.copyToDeviceAsync(_cuStream);
+    _ioRegion.copyToDeviceAsync(_cuStream);
 
-    cuGraph = gfl::capture(cuStream,[this]() {
-         _ioRegion.copyToDeviceAsync(cuStream);
-         calcRiKernel<<<nSM, CBS, 0, cuStream>>>(_si, _p, _ri);
-         updateSiKernel<<<nSM, CBS, 0, cuStream>>>(_h, _p, _c, _ri, _si, _fail);
-        _ioRegion.copyToHostAsync(cuStream);
+    _cuGraph = gfl::capture(_cuStream,[this]() {
+         _ioRegion.copyToDeviceAsync(_cuStream);
+         calcRiKernel<<<_mp, BlockSize, 0, _cuStream>>>(_si, _p, _ri);
+         updateSiKernel<<<_mp, BlockSize, 0, _cuStream>>>(_h, _p, _c, _ri, _si, _fail);
+        _ioRegion.copyToHostAsync(_cuStream);
     });
 }
 
@@ -138,18 +139,16 @@ void CumulativeGPU::propagate(){
     *_fail = false;
     _ri->clear();
     for (auto i = 0; i < _n; i += 1)
-        _si->at(i) = {_s[i]->changed(), _s[i]->min(), _s[i]->max()};
+        _si->at(i) = {_x[i]->changed(), _x[i]->min(), _x[i]->max()};
 
     // Propagation
-    cudaGraphLaunch(cuGraph, cuStream);
-    cudaStreamSynchronize(cuStream);
+    cudaGraphLaunch(_cuGraph, _cuStream);
+    cudaStreamSynchronize(_cuStream);
 
     // Filtering
     if (not *_fail)
-        for (auto i = 0; i < _n; i += 1) {
-            _s[i]->removeBelow(_si->at(i).min);
-            _s[i]->removeAbove(_si->at(i).max);
-        }
+        for (auto i = 0; i < _n; i += 1)
+            _x[i]->updateBounds(_si->at(i).min,_si->at(i).max);
     else
         failNow();
 }
