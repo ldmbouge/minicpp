@@ -1,0 +1,60 @@
+# ============================================================================
+# .clang-format
+#
+# Hand-written by inspecting the minicpp codebase
+# (https://github.com/ldmbouge/minicpp) and encoding its dominant style.
+#
+# NOTE: minicpp itself uses 3-space indentation; per project request this
+# config uses 4-space indentation instead. All other rules mirror minicpp:
+# attached (K&R/Java) braces, pointer/reference bound to the type, short
+# one-liner method bodies preserved, no enforced column limit.
+#
+# Known divergences clang-format CANNOT reproduce from the original source:
+#   * minicpp writes "int min,int max" (no space after comma); clang-format
+#     always inserts one space after a comma. Expect this in every diff.
+#   * minicpp writes "{ return x;}" (no space before closing brace);
+#     clang-format normalizes this to "{ return x; }".
+# ============================================================================
+---
+Language:        Cpp
+BasedOnStyle:    LLVM
+
+# --- Indentation (4 spaces per project request; minicpp uses 3) ---
+IndentWidth:     4
+TabWidth:        4
+UseTab:          Never
+ContinuationIndentWidth: 4
+AccessModifierOffset: -4          # de-indent public:/private: to class level
+
+# --- Braces: attached, like minicpp ---
+BreakBeforeBraces: Attach
+
+# --- Pointers/references bind to the type: var<int>::Ptr& x ---
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+
+# --- Templates / angle brackets, as seen in var<int>, Foo::Ptr ---
+SpaceAfterTemplateKeyword: false
+SpacesInAngles:  Never
+
+# --- Keep minicpp's tight one-liner methods on a single line ---
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortLoopsOnASingleLine: true
+AllowShortBlocksOnASingleLine: Always
+AllowShortCaseLabelsOnASingleLine: true
+
+# --- minicpp lines run long; do not force reflowing ---
+ColumnLimit:     0
+
+# --- Misc, matching what is visible in the repo ---
+NamespaceIndentation: None
+FixNamespaceComments: false
+IndentCaseLabels: false
+SpaceBeforeParens: ControlStatements   # "if (" yes, "f(" no
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+SortIncludes:    Never                  # includes are hand-ordered by dependency
+Cpp11BracedListStyle: true
+Standard:        c++17
