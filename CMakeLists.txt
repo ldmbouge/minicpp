@@ -43,10 +43,10 @@ FetchContent_MakeAvailable(json cli11)
 set(CMAKE_CXX_COMPILER /usr/bin/clang++)
 
 set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unused-but-set-variable")
-#if (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "x86_64")
-#   set(CMAKE_CXX_FLAGS_DEBUG "-g -msse4.2")
-#   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -msse4.2 -D_NDEBUG -DNDEBUG")  #[[ comment  ]]
-#else()
+
+# experimental
+set(CXX /usr/bin/clang++)
+
 if(ENABLE_GPU)
   set(CMAKE_CXX_FLAGS_DEBUG "-g -DGPUON=1")
   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPUON=1")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
@@ -55,8 +55,6 @@ else()
    set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPUON=0")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
 endif()
   
-#endif()
-
 message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
 message("Build: ${CMAKE_BUILD_TYPE}")
 

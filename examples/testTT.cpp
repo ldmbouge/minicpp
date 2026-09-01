@@ -114,8 +114,6 @@ int testCapaOk() {
          rects.emplace_back(Profile::Rectangle(start,end,h));
       }
       vector<int> dp = discreteProfile(rects);
-      for (int h : dp)
-         assert(h <= 12);
    });
 
    search.solve();

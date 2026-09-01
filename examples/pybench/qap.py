@@ -1,7 +1,7 @@
 #!/usr/local/bin/python3
 from minicpp import *
 
-with open("../examples/data/qap.txt") as f:
+with open("../../data/qap.txt") as f:
     n = int(f.readline())
     f.readline() # skip blank line
     data = [[int(v) for v in line.split()] for line in f.readlines()]
@@ -10,8 +10,12 @@ with open("../examples/data/qap.txt") as f:
      
 cp = makeSolver()
 x  = intVarArray(cp,n,n)
+print(x)
+print(type(x))
 
-cp.post(allDifferent(x))
+cp.post(allDifferent([x[i] for i in range(0,n)]))
+
+#cp.post(allDifferent(x))
 wDist = [w[i][j] * element(d,x[i],x[j]) for i in range(0,n) for j in range(0,n)]
 obj = minimize(sum(wDist))
 

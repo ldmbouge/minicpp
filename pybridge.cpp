@@ -34,7 +34,8 @@
 namespace py = pybind11;
 
 PYBIND11_DECLARE_HOLDER_TYPE(T, handle_ptr<T>,true);
-//PYBIND11_MAKE_OPAQUE(Factory::Veci);
+PYBIND11_DECLARE_HOLDER_TYPE(T, strict_ptr<T>,true);
+PYBIND11_MAKE_OPAQUE(Factory::Veci);
 //PYBIND11_MAKE_OPAQUE(std::vector<var<int>::Ptr>);
                      
 PYBIND11_MODULE(minicpp,m) {
@@ -56,6 +57,13 @@ PYBIND11_MODULE(minicpp,m) {
    
    //py::class_<Chooser>(m,"Chooser");
    py::class_<AVar,AVar::Ptr>(m,"AVar");
+   py::class_<ConstraintDesc,ConstraintDesc::Ptr>(m,"ConstraintDesc");
+      // .def("__repr__",[](const ConstraintDesc& s) {
+      //    std::ostringstream str;
+      //    s.print(str);
+      //    str << std::ends;
+      //    return str.str();         
+      // });
    py::class_<Constraint,Constraint::Ptr>(m,"Constraint")
       .def("post",&Constraint::post)
       .def("propagate",&Constraint::propagate)
@@ -103,9 +111,13 @@ PYBIND11_MODULE(minicpp,m) {
       },py::is_operator())
       .def("__eq__",[](const var<int>::Ptr& a,int b) {
          TRYFAIL {
-            return Factory::operator==(a,b);
+            auto rv =  Factory::operator==(a,b);
+            //std::cout << "Got: ";
+            //rv->print(std::cout);
+            //std::cout << "\n";
+            return rv;
          } ONFAIL {
-            //std::cout << "failure in x==" << b << std::endl;
+	    //std::cout << "failure in x==" << b << std::endl;
             throw Failure; // convert longjmp/setjmp back to C++ exception to go through pybind layer
          } ENDFAIL
       },py::is_operator())
@@ -134,13 +146,26 @@ PYBIND11_MODULE(minicpp,m) {
    
    py::class_<CPSolver,CPSolver::Ptr>(m,"CPSolver")
       .def("fixpoint",&CPSolver::fixpoint)
-      .def("post",[](CPSolver::Ptr cp,Constraint::Ptr c,bool enforceFixPoint) {
-         TRYFAIL {
+      .def("post",static_cast<void (*)(CPSolver::Ptr,Constraint::Ptr,bool)>([](CPSolver::Ptr cp,Constraint::Ptr c,bool enforceFixPoint) {
+         TRYFAIL {            
             cp->post(c,enforceFixPoint);
          } ONFAIL {
-            std::cout << "failure caught ..." << std::endl;            
+	   //std::cout << "failure caught(1) ..." << std::endl;
+	   throw Failure; // rethrow C++ style to go across the python boundary
          } ENDFAIL         
-      },
+              }),
+         py::arg("c"),
+         py::arg("enforceFixPoint")=true,
+         "Post the constraint `c` and runs the fixpoint as required.")
+      .def("post",static_cast<void(*)(CPSolver::Ptr,ConstraintDesc::Ptr,bool)>([](CPSolver::Ptr cp,ConstraintDesc::Ptr c,bool enforceFixPoint) {
+	//std::cout << "post(ConstraintDesc::Ptr) " << c.get() << "\n";
+         TRYFAIL {            
+            cp->post(c,enforceFixPoint);
+         } ONFAIL {
+	    //std::cout << "failure caught(2) ..." << std::endl;
+	    throw Failure; // rethrow C++ style
+         } ENDFAIL         
+              }),
          py::arg("c"),
          py::arg("enforceFixPoint")=true,
          "Post the constraint `c` and runs the fixpoint as required.")
@@ -224,6 +249,7 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("isLessOrEqual",static_cast<var<bool>::Ptr (*)(var<int>::Ptr,const int)>(&Factory::isLessOrEqual));
    m.def("isLargerOrEqual",&Factory::isLargerOrEqual);
    
+   m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,int)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,var<int>::Ptr)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,int)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<int>::Ptr>&,var<int>::Ptr)>(&Factory::sum));
@@ -232,11 +258,11 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,int)>(&Factory::sum));
    m.def("sum",static_cast<var<int>::Ptr (*)(Factory::Veci&)>(&Factory::sum<Factory::Veci>));
    m.def("sum",static_cast<var<int>::Ptr (*)(std::vector<var<int>::Ptr>&)>(&Factory::sum<std::vector<var<int>::Ptr>>));
-   
-   m.def("allDifferent",&Factory::allDifferent<const Factory::Veci&>);
-   m.def("allDifferent",&Factory::allDifferent<std::vector<var<int>::Ptr>>);
+   m.def("allDifferent",(Constraint::Ptr (*)(const Factory::Veci&))&Factory::allDifferent<Factory::Veci>);   
+   m.def("allDifferent", &Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
-   m.def("circuit",&Factory::circuit<const Factory::Veci&>);
+
+   m.def("circuit",(Constraint::Ptr (*)(const Factory::Veci&))&Factory::circuit<Factory::Veci>);
    m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
    m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
