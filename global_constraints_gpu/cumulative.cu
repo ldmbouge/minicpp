@@ -1,7 +1,6 @@
-#include "gfl/Arrays.hpp"
-#include "gfl/Memory.hpp"
-#include "gfl/CudaUtils.hpp"
 #include "global_constraints_gpu/cumulative.cuh"
+
+#include "gfl/ParallelUtils.hpp"
 
 GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
                              gfl::MirrorPtr<CumulativeGPU::ProcessingTimes> p,
@@ -10,14 +9,14 @@ GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
     using TimeInterval =  CumulativeGPU::TimeInterval;
 
     i32 const n = si->size();
-    auto [ijBegin, ijEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, n * n);
+    auto [ijBegin, ijEnd] = calcSlice<u32>(blockIdx.x, gridDim.x, n * n);
     for (u32 ijIdx = ijBegin + threadIdx.x; ijIdx < ijEnd; ijIdx += blockDim.x){
         i32 const i = ijIdx / n;
         i32 const j = ijIdx % n;
 
         TimeInterval intervalsBuff[Cumulative::IntervalsPerActivityPair];
         VectorView<TimeInterval> intervals(intervalsBuff, Cumulative::IntervalsPerActivityPair);
-        auto collectIfValid = [&](TimeInterval ti) { if (ti.start < ti.end) intervals.append(ti); };
+        auto collectIfValid = [&](TimeInterval ti) { if (ti.start < ti.end) intervals.pushBack(ti); };
 
         if (si->at(i).changed or si->at(j).changed) {
             i32 const pi = p->at(i);
@@ -49,7 +48,7 @@ GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
             collectIfValid({esti + lcti - lctj, ectj});
             collectIfValid({esti + lcti - lctj, lctj});
 
-            ri->appendAtomic(intervals.view());
+            ri->pushBackAtomic(intervals.view());
         }
     }
 }
@@ -73,7 +72,7 @@ GFL_GLOBAL void updateSiKernel(gfl::MirrorPtr<CumulativeGPU::Requirements> h,
         si_s[i] = si->at(i);
     __syncthreads();
 
-    auto [iBegin, iEnd] = getBeginEnd<u32>(blockIdx.x, gridDim.x, scast<u32>(ri->size()));
+    auto [iBegin, iEnd] = calcSlice<u32>(blockIdx.x, gridDim.x, scast<u32>(ri->size()));
     for (auto j = iBegin + threadIdx.x; j < iEnd and (not *fail); j += blockDim.x) {
         auto const [t1,t2] = ri->at(j);
         i32 w = 0;

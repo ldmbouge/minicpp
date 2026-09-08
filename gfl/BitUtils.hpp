@@ -7,9 +7,14 @@
 #include "FunQual.hpp"
 
 namespace gfl {
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE T bitReverse(T const x) noexcept {
-    if constexpr (sizeof(T) == 8) {
+    if constexpr (sizeof(T) == 16) {
+        // No hardware 128-bit reverse: swap the halves and reverse each one
+        u64 const lo = scast<u64>(x);
+        u64 const hi = scast<u64>(x >> 64);
+        return (scast<T>(bitReverse(lo)) << 64) | scast<T>(bitReverse(hi));
+    } else if constexpr (sizeof(T) == 8) {
 #ifdef __CUDA_ARCH__
         return __brevll(x);
 #else
@@ -36,53 +41,53 @@ GFL_HOST_DEVICE T bitReverse(T const x) noexcept {
         return scast<T>(y >> (32 - digits<T>()));
     }
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr T mask(i32 const pos) noexcept {
     assert(0 <= pos && pos < digits<T>());
     return T{1} << pos;
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr T fullMask() noexcept {
     return ~T{0};
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr T lowMask(i32 const count) noexcept {
     if (count <= 0) return T{0};
     if (count >= digits<T>()) return fullMask<T>();
     return fullMask<T>() >> (digits<T>() - count);
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr T highMask(i32 const count) noexcept {
     if (count <= 0) return T{0};
     if (count >= digits<T>()) return fullMask<T>();
     return fullMask<T>() << (digits<T>() - count);
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr i32 msb(T const x) noexcept {
     assert(x != 0);
     return digits<T>() - 1 - clz(x);
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr i32 lsb(T const x) noexcept {
     assert(x != 0);
     return ctz(x);
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr T clearMsb(T const x) noexcept {
     assert(x != 0);
     return x & ~mask<T>(msb(x));
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr T clearLsb(T const x) noexcept {
     assert(x != 0);
     return x & (x - 1); // Equivalent to: x & ~mask<T>(lsb(x));
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE constexpr bool test(T const x, i32 const pos) noexcept {
     assert(0 <= pos && pos < digits<T>());
     return (x & mask<T>(pos)) != 0;
 }
-template<typename T> requires std::is_unsigned_v<T>
+template<Unsigned T>
 GFL_HOST_DEVICE void printBinary(T const x) noexcept {
     for (i32 i = digits<T>() - 1; i >= 0; --i) { printf("%c", test(x, i) ? '1' : '0'); }
 }
@@ -90,4 +95,9 @@ static_assert(highMask<u8>(3) == 0b11100000u);
 static_assert(lowMask<u8>(3) == 0b00000111u);
 static_assert(highMask<u8>(0) == 0u && highMask<u8>(8) == 0xFFu);
 static_assert(lowMask<u8>(0) == 0u && lowMask<u8>(8) == 0xFFu);
+// u128 must behave like any other unsigned word under both clang and nvcc
+static_assert(digits<u128>() == 128);
+static_assert(test(mask<u128>(127), 127) && !test(mask<u128>(127), 126));
+static_assert(lowMask<u128>(0) == u128{0} && lowMask<u128>(128) == ~u128{0});
+static_assert(highMask<u128>(1) == mask<u128>(127));
 }

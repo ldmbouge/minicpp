@@ -86,6 +86,8 @@ if(ENABLE_GPU)
 endif()
 
 set(GPU_CONSTR_SRC
+        gfl/SqrBitMatrix.cu
+        global_constraints_gpu/all_different.cu
         global_constraints_gpu/cumulative.cu
         global_constraints_gpu/bin_packing.cu
 )

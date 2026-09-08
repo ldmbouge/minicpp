@@ -3,10 +3,11 @@
 #include "varitf.hpp"
 #include "constraint.hpp"
 #include "global_constraints/cumulative.hpp"
-#include "gfl/Types.hpp"
-#include "gfl/Memory.hpp"
-#include "gfl/Arrays.hpp"
-#include "gfl/Vectors.hpp"
+#include "gfl/Alias.hpp"
+#include "gfl/ArrayView.hpp"
+#include "gfl/Mirror.hpp"
+#include "gfl/Pools.hpp"
+#include "gfl/VectorView.hpp"
 
 // References:
 // - Constraint-Based Scheduling (ISBN: 978-1-4615-1479-4)
@@ -18,10 +19,10 @@ public:
     static constexpr gfl::i32 MaxActivities = 128;
     using TimeInterval = Cumulative::TimeInterval;
     using Domain = Cumulative::Domain;
-    using ProcessingTimes = gfl::MirrorArray<gfl::i32>;
-    using Requirements = gfl::MirrorArray<gfl::i32>;
-    using StartIntervals = gfl::MirrorArray<Domain>;
-    using RelevantIntervals = gfl::DeviceVector<TimeInterval>;
+    using ProcessingTimes = gfl::MirrorArrayView<gfl::i32>;
+    using Requirements = gfl::MirrorArrayView<gfl::i32>;
+    using StartIntervals = gfl::MirrorArrayView<Domain>;
+    using RelevantIntervals = gfl::VectorView<TimeInterval>;
 
 private:
     gfl::i32 _n;

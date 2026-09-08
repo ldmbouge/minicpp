@@ -1,11 +1,11 @@
 #pragma once
 
 #include "global_constraints/bin_packing.hpp"
-#include "gfl/Types.hpp"
+#include "gfl/Alias.hpp"
+#include "gfl/ArrayView.hpp"
 #include "gfl/MathUtils.hpp"
-#include "gfl/Memory.hpp"
-#include "gfl/Arrays.hpp"
-#include "gfl/CudaUtils.hpp"
+#include "gfl/Mirror.hpp"
+#include "gfl/ParallelUtils.hpp"
 
 // GPU counterpart of BinPackingLoad: only the dual-feasible-function lower
 // bounds are offloaded, one kernel per (reduction, DFF) pair, each sampling the
@@ -18,7 +18,7 @@ class BinPackingLoadGPU : public BinPackingLoad
         static constexpr gfl::i32 KernelsCount = BinPackingLoad::REDUCTIONS_COUNT * BinPackingLoad::DFFS_COUNT;
         // Slack covering the alignment padding of the three pool allocations
         static constexpr gfl::i64 PoolPadding = 256;
-        using Weights = gfl::MirrorArray<gfl::i32>;
+        using Weights = gfl::MirrorArrayView<gfl::i32>;
 
         struct InstanceData
         {

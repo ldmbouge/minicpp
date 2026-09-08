@@ -716,18 +716,25 @@ void AllDifferentBinary::post()
 }
 
 
-void AllDifferentAC::post() 
+void AllDifferentAC::init()
 {
    CPSolver::Ptr cp = _x[0]->getSolver();
    _nVar    = (int)_x.size();
    _nVal    = updateRange();
    _mm.setup();
-   for(int i=0;i < _nVar;i++)
-      _x[i]->propagateOnDomainChange(this);
    _match   = new (cp) int[_nVar];
    _varFor  = new (cp) int[_nVal];
    _nNodes  = _nVar + _nVal + 1;
+   _scc     = new (cp) int[_nNodes];
+   _nSCC    = 0;
    _rg = new (cp) PGraph(_nVar,_minVal,_maxVal,_match,_varFor,_x.data());
+}
+
+void AllDifferentAC::post() 
+{
+   init();
+   for(int i=0;i < _nVar;i++)
+      _x[i]->propagateOnDomainChange(this);
    propagate();
 }
 
@@ -743,35 +750,56 @@ int AllDifferentAC::updateRange()
    return _maxVal - _minVal + 1;
 }
 
-void AllDifferentAC::propagate()
+int AllDifferentAC::calcMatch()
 {
-   int size = _mm.compute(_match);
-   if (size < _nVar) 
-      failNow();
+   const int size = _mm.compute(_match);
    updateRange();
    _rg->setLiveValues(_minVal,_maxVal);
-   
+   return size;
+}
+
+void AllDifferentAC::calcVarFor()
+{
+   // Only the first `size` entries of _match mean anything, so an incomplete
+   // matching must fail the constraint before this runs.
+   // _varFor keeps its post-time size: the live range only ever shrinks, so
+   // indexing it by the current value offset stays in bounds.
    for(int i=0;i < _nVal;++i) _varFor[i] = -1;
    for(int i=0;i < _nVar;++i) _varFor[_match[i] - _minVal] = i; 
+}
 
-   //std::cout << "DD:" << _nbd << "    " << _nbmd << "   " << _nVar << "/" << (_maxVal - _minVal + 1) << "\n";
-   
+void AllDifferentAC::calcSCC()
+{
+   calcVarFor();
    int nc = 0;
-   int* scc = (int*)alloca(sizeof(int)*_nNodes);
+   int* scc = _scc;
    _rg->SCC([&scc,&nc](int n,int nd[]) {
       for(int i=0;i < n;i++)
          scc[nd[i]] = nc;
       ++nc;
    });
-   if (nc > 1) {
-      Factory::Veci::pointer x = _x.data();
-      for(int i=0;i < _nVar;i++) {
-         const int ub = x[i]->max();
-         for(int v = x[i]->min(); v <= ub;++v)
-            if (_match[i] != v && scc[i] != scc[valNode(v)] && x[i]->containsBase(v))
-               x[i]->remove(v);
-      }
+   _nSCC = nc;
+}
+
+void AllDifferentAC::filterDomains()
+{
+   Factory::Veci::pointer x = _x.data();
+   for(int i=0;i < _nVar;i++) {
+      const int ub = x[i]->max();
+      for(int v = x[i]->min(); v <= ub;++v)
+         if (_match[i] != v && _scc[i] != _scc[valNode(v)] && x[i]->containsBase(v))
+            x[i]->remove(v);
    }
+}
+
+void AllDifferentAC::propagate()
+{
+   if (calcMatch() < _nVar) 
+      failNow();
+   calcSCC();
+   // A single component covers every edge, so nothing can be filtered
+   if (_nSCC > 1)
+      filterDomains();
 }
 
 void Circuit::setup(CPSolver::Ptr cp)

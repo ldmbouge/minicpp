@@ -8,10 +8,10 @@
 
 namespace gfl {
 template<typename... Ts>
-concept AllIntegral = (std::is_integral_v<Ts> && ...);
+concept AllIntegral = (isIntegral<Ts> && ...);
 
 template<typename... Ts>
-concept AllArithmetic = (std::is_arithmetic_v<Ts> && ...);
+concept AllArithmetic = (isArithmetic<Ts> && ...);
 
 // Integer division returning f64
 template<typename T1, typename T2> requires AllIntegral<T1, T2>

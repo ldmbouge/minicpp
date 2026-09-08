@@ -265,15 +265,42 @@ public:
    void post() override;
 };
 
+/**
+ * @brief Domain-consistent alldifferent (Regin's algorithm).
+ *
+ * The filtering runs in four phases: `init` builds the residual graph,
+ * `calcMatch` finds a maximum matching, `calcSCC` labels the strongly
+ * connected components, and `filterDomains` drops the edges no component
+ * covers. They are separate and protected so a subclass can swap one out --
+ * `AllDifferentGPU` keeps all of them but computes the labelling on the GPU.
+ *
+ * Node numbering of the residual graph, shared with PGraph and with any
+ * subclass: variable `i` is node `i`, value `v` is node `valNode(v)`, and the
+ * sink is the last node, `_nNodes - 1`.
+ */
 class AllDifferentAC : public Constraint {
+   int updateRange();
+protected:
    Factory::Veci    _x;
    MaximumMatching _mm;
    PGraph*         _rg;
    int* _match,*_varFor;
    int _minVal,_maxVal;
    int _nVar,_nVal,_nNodes;
-   int updateRange();
+   int* _scc;      // Component label per node, filled by calcSCC
+   int _nSCC;      // How many components calcSCC found
    int valNode(int vid) const noexcept { return vid - _minVal + _nVar;}
+   /// Sizes the graph and allocates the working arrays. Call once, from post.
+   void init();
+   /// Recomputes the matching; returns how many variables it covers
+   int calcMatch();
+   /// Inverts the matching into _varFor. Needs a matching that covers every
+   /// variable, so only call it once calcMatch's result has been checked.
+   void calcVarFor();
+   /// Labels _scc with PGraph's components and sets _nSCC
+   void calcSCC();
+   /// Removes every value whose edge stays inside no component. Needs _scc.
+   void filterDomains();
 public:
    template <class Vec> AllDifferentAC(const Vec& x)
       : Constraint(x[0]->getSolver()),
