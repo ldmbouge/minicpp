@@ -1,14 +1,31 @@
 #pragma once
 
-#include <functional>
-#include "libminicpp/constraint.hpp"
-#include "libfca/Vector.hpp"
-#include "libfca/Utils.hpp"
+#include <array>
+#include <climits>
+#include <tuple>
+#include <vector>
+
+#include "constraint.hpp"
+#include "intvar.hpp"
+#include "gfl/MathUtils.hpp"
+
+// References:
+// - A Constraint for Bin Packing (DOI: 10.1007/978-3-540-30201-8_47)
+// - New lower bounds for bin packing problems with conflicts (DOI: 10.1016/j.ejor.2010.02.016)
 
 class BinPackingLoad : public Constraint
 {
     public:
-        BinPackingLoad(std::vector<var<int>::Ptr> const & load, std::vector<var<int>::Ptr> const & bin, std::vector<int> const & w);
+        template<typename LoadVars, typename BinVars>
+        BinPackingLoad(LoadVars const & load, BinVars const & bin, std::vector<int> const & w) :
+            Constraint(load[0]->getSolver()),
+            _load(load.begin(), load.end()),
+            _bin(bin.begin(), bin.end()),
+            _weights(w)
+        {
+            assert(w.size() == bin.size());
+            setup();
+        }
         void post() override;
         void propagate() override;
 
@@ -25,8 +42,8 @@ class BinPackingLoad : public Constraint
             public:
                 explicit VectorView(std::vector<T> const & v) : v(v), idxToHide(INT_MAX) {};
                 VectorView(std::vector<T> const & v, int idx) : v(v), idxToHide(idx) {};
-                std::size_t size() const {return v.size() - (idxToHide != INT_MAX);};
-                T const & at(std::size_t idx) const {return v.at(idx + (idx >= idxToHide));};
+                int size() const {return static_cast<int>(v.size()) - (idxToHide != INT_MAX);};
+                T const & at(int idx) const {return v.at(idx + (idx >= idxToHide));};
         };
 
         std::vector<var<int>::Ptr> const _load;
@@ -45,6 +62,7 @@ class BinPackingLoad : public Constraint
         std::vector<std::vector<ItemInfo>> candidate_items;
         std::vector<int> unassigned_weights;
 
+        void setup();
         void calculateNumBins();
         void calculateRequiredPossibleCandidates();
         void propagateLoadCoherence();
@@ -102,10 +120,8 @@ class BinPackingLoad : public Constraint
         template<int f(int,int,int)>
         static int calcDffLowerboundSingleLambda(std::vector<int> const & weights, int capacity, int lambda)
         {
-            using namespace Fca::Utils::Math;
-
             // Transform and sum the weights
-            int nWeights = static_cast<int>(weights.size());
+            int const nWeights = static_cast<int>(weights.size());
             int sumTransformedWeights = 0;
             for (int wIdx = 0; wIdx < nWeights; wIdx += 1)
             {
@@ -116,20 +132,23 @@ class BinPackingLoad : public Constraint
             int const transformedCapacity = f(capacity, lambda, capacity);
 
             // Lowerbound
-            return ceilDivPosInt(sumTransformedWeights, transformedCapacity);
+            return transformedCapacity > 0 ? gfl::ceilDiv<int>(sumTransformedWeights, transformedCapacity) : 0;
         }
         template<int f(int,int,int), LambdaRange l(int)>
         static int calcDffLowerbound(std::vector<int> const & weights, int capacity, int nWeights, int maxWeight, bool sanitize = false)
         {
-            using namespace Fca::Utils::Math;
-
             int fLowerbound = 0;
             LambdaRange lRange = l(capacity);
-            lRange = sanitize ? sanitizeLambdaRange(lRange,nWeights, maxWeight) : lRange;
-            int lStep = ceilDivPosInt(lRange.max - lRange.min + 1, LAMBDA_SAMPLES + 1);
+            lRange = sanitize ? sanitizeLambdaRange(lRange, nWeights, maxWeight) : lRange;
+            int const lRangeSize = lRange.max - lRange.min + 1;
+            if (lRangeSize <= 0)
+            {
+                return 0;
+            }
+            int const lStep = gfl::ceilDiv<int>(lRangeSize, LAMBDA_SAMPLES + 1);
             for (int lambda = lRange.min + lStep; lambda < lRange.max; lambda += lStep)
             {
-                int lowerbound =calcDffLowerboundSingleLambda<f>(weights, capacity, lambda);
+                int const lowerbound = calcDffLowerboundSingleLambda<f>(weights, capacity, lambda);
                 fLowerbound = std::max(fLowerbound, lowerbound);
             }
             return fLowerbound;

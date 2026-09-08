@@ -1,352 +1,209 @@
-#include <sys/resource.h>
+#include "packing.hpp"
+#include "utils.hpp"
+#include "gfl/Backend.hpp"
+#include <CLI/CLI.hpp>
 
-#include <iostream>
+#include <algorithm>
 #include <fstream>
 #include <numeric>
 
-#include "cxxopts/cxxopts.hpp"
+using namespace std;
+using namespace Factory;
+using namespace gfl;
 
-#include <libminicpp/solver.hpp>
-#include <libminicpp/search.hpp>
-#include <libminicpp/constraint.hpp>
-#include <libfca/Timer.hpp>
-#include <libfca/Utils.hpp>
-
-#include <global_constraints/lex_chain_bit.hpp>
-#include <global_constraints/bin_packing.hpp>
-#include <gpu_constriants/bin_packing.cuh>
-
-int main(int argc, char * argv[])
+// Read a BPPLIB instance in BPP format: number of items, bin capacity, one
+// weight per line. Returns the bin capacity and the item weights.
+pair<int, vector<int>> readInstance(string const & path)
 {
-    // Parse CLI options
-    cxxopts::Options options_parser("bpp-minicpp", "A GPU-accelerated Bin Packing solver based on MiniCPP.");
-    options_parser.custom_help("[Options]");
-    options_parser.positional_help("<BPPLIB file>");
-    options_parser.add_options()
-            ("s,stats", "Print search statistics", cxxopts::value<bool>())
-            ("t", "Timeout in seconds", cxxopts::value<int>()->default_value("2147483647"))
-            ("g,gpu", "Use GPU-accelerated lower bound", cxxopts::value<bool>())
-            ("bpf", "BPPLIB file", cxxopts::value<std::string>())
-            ("h,help", "Print usage");
-    options_parser.parse_positional({"bpf"});
-    auto args = options_parser.parse(argc, argv);
+    ifstream file(path);
+    int nItems;
+    int capacity;
+    file >> nItems >> capacity;
+    vector<int> weights(nItems);
+    for (auto & weight : weights)
+        file >> weight;
 
-    if (args.count("bpf") == 1)
-    {
-        using namespace Fca::Utils::Math;
+    // The dominance rules of the search heuristic need the items by
+    // decreasing weight, so the packing is reported in that order too
+    sort(weights.begin(), weights.end(), greater<int>());
+    return {capacity, weights};
+}
 
-        // Increase stack size to 256 MB
-        struct rlimit limit = {256 * 1024 * 1024, 256 * 1024 * 1024};
-        setrlimit(RLIMIT_STACK, &limit);
+// Complete Decreasing Best Fit: assign the heaviest unpacked item to the bin it
+// fills best, after applying the dominance rules that leave no choice.
+class DecreasingBestFit {
+    CPSolver::Ptr _cp;
+    Veci const & _bin;
+    vector<int> const & _w;
+    var<int>::Ptr _nBins;
+    int const _capacity;
+    int const _nItems;
+    // Preallocated working memory to avoid reallocating at every node
+    vector<int> _residual;
+    vector<int> _binsByResidual;
 
-        // Parameter
-        int timeout = args["t"].as<int>();
-        bool useGpu = args["gpu"].count() != 0;
-
-        // Read BPPLIB file in BPP format
-        int n_items;
-        int capacity;
-        std::vector<int> weights;
-        std::string bpp_filename = args["bpf"].as<std::string>();
-        std::ifstream bpp_file(bpp_filename);
-        if (bpp_file.fail())
-        {
-            std::cerr << "File does not exists: " << bpp_filename << std::endl;
-            return EXIT_FAILURE;
-        }
-        bpp_file >> n_items;
-        bpp_file >> capacity;
-        for (int wIdx = 0; wIdx < n_items; wIdx += 1)
-        {
-            int weight;
-            bpp_file >> weight;
-            weights.push_back(weight);
-        }
-
-        // Print BPPLIB instance
-        std::cout << "Timeout: " << timeout << " s" << std::endl;
-        std::cout << "Lowerbound: " << (useGpu ? "GPU" : "CPU") << std::endl;
-        std::cout << "File: " << bpp_filename << std::endl;
-        std::cout << "---" << std::endl;
-        std::cout << "Capacity: " << capacity << std::endl;
-        std::cout << "Items (" << n_items << "): ";
-        for (int wIdx = 0; wIdx < n_items; wIdx += 1)
-        {
-            std::cout << weights.at(wIdx) << " ";
-        }
-        std::cout << std::endl;
-
-        // Create Statistics
-        SearchStatistics stats;
-        stats.setStartTime();
-
-        // Create Solver
-        CPSolver::Ptr solver = Factory::makeSolver();
-
-        // Calculate bounds to the number of bins
-        int const sumWeights = std::accumulate(weights.begin(), weights.end(), 0);
-        int const lb = ceilDivPosInt(sumWeights, capacity);
-        int const ub = lb * 2;
-
-        // Create variables
-        var<int>::Ptr currNumBins = Factory::makeIntVar(solver, lb - 1, ub);
-        std::vector<var<int>::Ptr> itemsBin;
-        for (int iIdx = 0; iIdx < n_items; iIdx += 1)
-        {
-            itemsBin.push_back(Factory::makeIntVar(solver, 0, ub));
-        }
-        std::vector<var<int>::Ptr> binsLoad;
-        for (int bIdx = 0; bIdx <= ub; bIdx += 1)
-        {
-            binsLoad.push_back(Factory::makeIntVar(solver, 0, capacity));
-        }
-
-        // Create constraints
-        for (int iIdx = 0; iIdx < n_items; iIdx += 1)
-        {
-            solver->post(new(solver) LessOrEqual(itemsBin.at(iIdx), currNumBins));
-        }
-        solver->post(new (solver) LexChainBit(itemsBin));
-        if (useGpu)
-        {
-            solver->post(new(solver) BinPackingLoadGPU(binsLoad, itemsBin, weights));
-        }
-        else
-        {
-            solver->post(new(solver) BinPackingLoad(binsLoad, itemsBin, weights));
-        }
-
-
-        // Search heuristic
-        // Preallocate working memory to avoid leaks
-        struct BinInfo
-        {
-            int index;
-            int residual;
-        };
-        std::vector<int> residualCapacity(n_items, capacity);
-        std::vector<BinInfo> binsResidualDecreasing(n_items);
-        std::vector<int> candidates(n_items, 0);
-        auto complete_decreasing_best_fit = [&](CPSolver::Ptr const & cp, std::vector<var<int>::Ptr> & itemsBin)
-        {
-            using namespace Factory;
-
-            // Calculate the residual capacity of every bin
-            int const nBins = currNumBins->max() + 1;
-            std::fill(residualCapacity.begin(), residualCapacity.end(), capacity);
-            for (int iIdx = 0; iIdx < n_items; iIdx += 1)
-            {
-                if (itemsBin.at(iIdx)->isBound())
-                {
-                    int bIdx = itemsBin.at(iIdx)->min();
-                    int iWeight = weights.at(iIdx);
-                    residualCapacity.at(bIdx) -= iWeight;
-                }
-            }
-
-            // Dominance rules
-            bool someItemAssigned = true;
-            while (someItemAssigned)
-            {
-                someItemAssigned = false;
-
-                // Perfect fit
-                for (int bIdx = 0; bIdx < nBins; bIdx += 1)
-                {
-                    auto & bResidualCapacity = residualCapacity.at(bIdx);
-                    for (int iIdx = 0; iIdx < n_items; iIdx += 1)
-                    {
-                        int iWeight = weights.at(iIdx);
-                        auto & iBins = itemsBin.at(iIdx);
-                        if (not iBins->isBound() and iBins->contains(bIdx) and bResidualCapacity - iWeight == 0)
-                        {
-                            bResidualCapacity = 0;
-                            iBins->assign(bIdx);
-                            someItemAssigned = true;
-                            break;
-                        }
-                    }
-                }
-
-                // Only one item fits
-                binsResidualDecreasing.clear();
-                for (int bIdx = 0; bIdx < nBins; bIdx += 1)
-                {
-                    auto & bResidualCapacity = residualCapacity.at(bIdx);
-                    binsResidualDecreasing.push_back({bIdx, bResidualCapacity});
-                }
-                std::sort(binsResidualDecreasing.begin(), binsResidualDecreasing.end(), [](auto & lhs, auto & rhs)
-                { return lhs.residual > rhs.residual; });
-
-                for (int brIdx = 0; brIdx < nBins; brIdx += 1)
-                {
-                    int bIdx = binsResidualDecreasing.at(brIdx).index;
-                    candidates.clear();
-                    auto & bResidualCapacity = residualCapacity.at(bIdx);
-                    for (int iIdx = 0; iIdx < n_items; iIdx += 1)
-                    {
-                        int iWeight = weights.at(iIdx);
-                        auto & iBin = itemsBin.at(iIdx);
-                        if (not iBin->isBound() and iBin->contains(bIdx) and bResidualCapacity >= iWeight)
-                        {
-                            candidates.push_back(iIdx);
-                        }
-                    }
-                    int nCandidates = (int) candidates.size();
-                    if (nCandidates > 1)
-                    {
-                        int smallestCandidateWeight1 = weights.at(candidates.at(nCandidates - 1));
-                        int smallestCandidateWeight2 = weights.at(candidates.at(nCandidates - 2));
-                        if (smallestCandidateWeight1 + smallestCandidateWeight2 > bResidualCapacity)
-                        {
-                            int biggerCandidateIdx = candidates.at(0);
-                            int biggerCandidateWeight = weights.at(biggerCandidateIdx);
-                            bResidualCapacity -= biggerCandidateWeight;
-                            itemsBin.at(biggerCandidateIdx)->assign(bIdx);
-                            someItemAssigned = true;
-                        }
-                    }
-                }
-            }
-
-            cp->fixpoint();
-
-            // Select biggest item
-            auto itemBin = selectMax(itemsBin,
-                                     [&](const auto & x)
-                                     {
-                                         return x->size() > 1;
-                                     },
-                                     [&](const auto & x)
-                                     {
-                                         auto it = std::find(itemsBin.begin(), itemsBin.end(), x);
-                                         int const iIdx = std::distance(itemsBin.begin(), it);
-                                         int const weight = weights.at(iIdx);
-                                         return weight;
-                                     });
-
-            Branches branches({});
-
-            // Select best fit bin
-            if (itemBin)
-            {
-                // Calculate item weight
-                auto it = std::find(itemsBin.begin(), itemsBin.end(), itemBin);
-                int iIdx = static_cast<int>(std::distance(itemsBin.begin(), it));
-                int iWeight = weights.at(iIdx);
-
-                // Calculate best bin
-                int bestBin = INT_MIN;
-                int bestResidualCapacity = INT_MAX;
-                for (int bIdx = 0; bIdx < nBins; bIdx += 1)
-                {
-                    if (itemBin->contains(bIdx))
-                    {
-                        int candidateResidualCapacity = residualCapacity.at(bIdx) - iWeight;
-                        if (0 <= candidateResidualCapacity and candidateResidualCapacity < bestResidualCapacity)
-                        {
-                            bestBin = bIdx;
-                            bestResidualCapacity = candidateResidualCapacity;
-                        }
-                    }
-                }
-
-                branches.add([=]
-                             {
-                                 // Best bin assignment
-                                 cp->post(itemBin == bestBin);
-                             });
-                branches.add([=]
-                             {
-                                 int nBins = currNumBins->max() + 1;
-                                 int targetResidualCapacity = residualCapacity.at(bestBin);
-
-                                 // Removing all equivalent bins
-                                 for (int bIdx = 0; bIdx < nBins; bIdx += 1)
-                                 {
-                                     if (residualCapacity.at(bIdx) == targetResidualCapacity)
-                                     {
-                                         // For all equivalent items
-                                         for (int jIdx = iIdx; jIdx < n_items and iWeight == weights.at(jIdx); jIdx += 1)
-                                         {
-                                             if (not itemsBin.at(jIdx)->isBound())
-                                             {
-                                                 itemsBin.at(jIdx)->remove(bIdx);
-                                             }
-                                         }
-                                     }
-                                 }
-                                 cp->fixpoint();
-                             });
-
-            }
-            return branches;
-        };
-
-        // Create Search
-        auto bound_search = [&](){ return indomain_min(solver, input_order<std::vector<var<int>::Ptr>, var<int>::Ptr>({currNumBins})); };
-        auto item_search = [&](){ return complete_decreasing_best_fit(solver, itemsBin); };
-        DFSearch search(solver, land<std::function<Branches(void)>>({bound_search, item_search}));
-
-        // Collect statistics
-        search.onSolution([&](){stats.incrSolutions();});
-        search.onBranch([&](){ stats.incrNodes();});
-        search.onFailure([&](){stats.incrFailures();});
-
-        // Search limits
-        Limit search_limits = [&](SearchStatistics const & search_statistics)
-        {
-            return search_statistics.getRunningTime() >= timeout or
-                   search_statistics.getSolutions() > 0;
-        };
-        // Output
-        search.onSolution(
-                [&]()
-                {
-                    //assert(currNumBins->isBound());
-                    std::cout << "Objective: " << currNumBins->max() + 1 << std::endl;
-                    std::cout << "Packing: ";
-                    for (int iIdx = 0; iIdx < n_items; iIdx += 1)
-                    {
-                        assert(itemsBin.at(iIdx)->isBound());
-                        std::cout << itemsBin.at(iIdx)->min() << " ";
-                    }
-                    std::cout << std::endl;
-                    std::cout << "Loads: ";
-                    std::vector<int> load(currNumBins->max() + 1, 0);
-                    for (int iIdx = 0; iIdx < n_items; iIdx += 1)
-                    {
-                        load.at(itemsBin.at(iIdx)->min()) += weights.at(iIdx);
-                    }
-                    for (auto const & l: load)
-                    {
-                        assert(0 < l);
-                        assert(l <= capacity);
-                        std::cout << l << " ";
-                    }
-                    std::cout << std::endl;
-                });
-
-        // Launch Search
-        stats.setSearchStartTime();
-        search.solve(stats, search_limits);
-        stats.setSearchEndTime();
-
-        // Print statistics
-        if (args["s"].count() != 0)
-        {
-            std::cout << std::fixed << std::setprecision(3)
-                      << "---" << std::endl
-                      << "Time: " << stats.getSolveTime() << " s" << std::endl
-                      << "Propagations: " << solver->getPropagations() << std::endl
-                      << "Nodes: " << 1 + stats.getNodes() + stats.getTighteningFail() << std::endl
-                      << "Failures: " << stats.getFailures()  - stats.getTighteningFail() << std::endl
-                      << "Peak Depth: " << search.getPeakDepth() << std::endl;
-        }
+    bool fitsUnpacked(int i, int b) const {
+        return !_bin[i]->isBound() && _bin[i]->contains(b) && _w[i] <= _residual[b];
     }
-    else
-    {
-        std::cout << options_parser.help();
-        exit(EXIT_FAILURE);
+
+    // Residual capacity of every bin, given the items already packed
+    void calcResiduals() {
+        fill(_residual.begin(), _residual.end(), _capacity);
+        for (auto i = 0; i < _nItems; i += 1)
+            if (_bin[i]->isBound())
+                _residual[_bin[i]->min()] -= _w[i];
     }
+
+    // An item filling a bin exactly leaves nothing on the table: pack it there
+    bool perfectFit(int nBins) {
+        auto assigned = false;
+        for (auto b = 0; b < nBins; b += 1)
+            for (auto i = 0; i < _nItems; i += 1)
+                if (fitsUnpacked(i, b) && _residual[b] == _w[i]) {
+                    _residual[b] = 0;
+                    _bin[i]->assign(b);
+                    assigned = true;
+                    break;
+                }
+        return assigned;
+    }
+
+    // When no two of the remaining items fit together in a bin, that bin can
+    // take one more item at most, so it may as well take the heaviest one
+    bool onlyOneItemFits(int nBins) {
+        _binsByResidual.resize(nBins);
+        iota(_binsByResidual.begin(), _binsByResidual.end(), 0);
+        sort(_binsByResidual.begin(), _binsByResidual.end(),
+             [&](auto lhs, auto rhs) { return _residual[lhs] > _residual[rhs]; });
+
+        auto assigned = false;
+        for (auto b : _binsByResidual) {
+            // Items come by decreasing weight, so the first candidate found is
+            // the heaviest one and the last two are the lightest ones
+            auto heaviest = -1, lightest = -1, nextLightest = -1;
+            for (auto i = 0; i < _nItems; i += 1)
+                if (fitsUnpacked(i, b)) {
+                    heaviest = heaviest < 0 ? i : heaviest;
+                    nextLightest = lightest;
+                    lightest = i;
+                }
+
+            if (nextLightest >= 0 && _w[lightest] + _w[nextLightest] > _residual[b]) {
+                _residual[b] -= _w[heaviest];
+                _bin[heaviest]->assign(b);
+                assigned = true;
+            }
+        }
+        return assigned;
+    }
+
+public:
+    DecreasingBestFit(CPSolver::Ptr cp, Veci const & bin, vector<int> const & w, var<int>::Ptr nBins, int capacity) :
+        _cp(cp), _bin(bin), _w(w), _nBins(nBins), _capacity(capacity), _nItems(scast<int>(bin.size())),
+        _residual(nBins->max() + 1, capacity)
+    {
+        _binsByResidual.reserve(_residual.size());
+    }
+
+    Branches operator()() {
+        auto const nBins = _nBins->max() + 1;
+
+        // Dominance rules, until neither one packs anything. Both always run
+        // (hence '|' and not '||'): each one feeds the other
+        calcResiduals();
+        while (perfectFit(nBins) | onlyOneItemFits(nBins))
+            ;
+        _cp->fixpoint();
+
+        // The items being sorted, the heaviest unpacked one is the first one
+        auto const unpacked = find_if(_bin.begin(), _bin.end(), [](auto const & x) { return !x->isBound(); });
+        if (unpacked == _bin.end())
+            return Branches({});
+        auto const item = scast<int>(unpacked - _bin.begin());
+        auto const weight = _w[item];
+
+        // Select the bin it fills best
+        auto bestBin = -1;
+        auto bestResidual = highest<int>();
+        for (auto b = 0; b < nBins; b += 1)
+            if (_bin[item]->contains(b)) {
+                auto const residual = _residual[b] - weight;
+                if (0 <= residual && residual < bestResidual) {
+                    bestBin = b;
+                    bestResidual = residual;
+                }
+            }
+        if (bestBin < 0)
+            return Branches({});
+
+        auto cp = _cp;
+        auto x = _bin[item];
+        return Branches({
+            [=]() { cp->post(x == bestBin); },
+            [this, cp, nBins, bestBin, item, weight]() {
+                // On refusal, all the bins equivalent to the best one are ruled
+                // out, and so are all the items equivalent to the chosen one
+                auto const targetResidual = _residual[bestBin];
+                for (auto b = 0; b < nBins; b += 1)
+                    if (_residual[b] == targetResidual)
+                        for (auto j = item; j < _nItems && _w[j] == weight; j += 1)
+                            if (!_bin[j]->isBound())
+                                _bin[j]->remove(b);
+                cp->fixpoint();
+            }
+        });
+    }
+};
+
+int main(int argc, char * argv[]) {
+    // Parse the command line
+    string instanceFile;
+    auto timeout = highest<int>(); // ~68 years
+    auto gpu = false;
+
+    CLI::App app{"A MiniCPP-based Bin Packing solver"};
+    app.add_option("-i", instanceFile, "Instance file path (BPP format)")->check(CLI::ExistingFile)->required();
+    app.add_option("-t", timeout, "Timeout in seconds");
+    app.add_flag("-g", gpu, "Run the bin packing constraint on the GPU");
+    CLI11_PARSE(app, argc, argv);
+
+    auto const [capacity, w] = readInstance(instanceFile);
+    auto const nItems = scast<int>(w.size());
+
+    // Bounds on the number of bins
+    auto const sum = accumulate(w.begin(), w.end(), 0);
+    auto const lb = ceilDiv<int>(sum, capacity);
+    auto const ub = lb * 2;
+
+    // Variables
+    auto cp = makeSolver();
+    auto nBins = makeIntVar(cp, lb - 1, ub);          // The index of the last used bin
+    auto bin = intVarArray(cp, nItems, 0, ub);        // The bin of every item
+    auto load = intVarArray(cp, ub + 1, 0, capacity); // The load of every bin
+
+    // Only the bins up to the last one can be used
+    for (auto const & x : bin)
+        cp->post(x <= nBins);
+
+    // Symmetry breaking
+    cp->post(lexChainBit(bin));
+
+    // Bin Packing constraint
+    cp->post(binPacking(load, bin, w, gpu ? GPU : CPU));
+
+    // Search: pick the number of bins, then fill them
+    auto chooseNBins = [=]() { return nBins->isBound() ? Branches({}) : indomain_min(cp, nBins); };
+    DecreasingBestFit packItems(cp, bin, w, nBins, capacity);
+    DFSearch search(cp, land<function<Branches()>>({chooseNBins, packItems}));
+
+    search.onSolution([&]() {
+        cout << "Bins = " << nBins->max() + 1 << "\n"
+             << "Packing = " << valueOf(bin) << "\n"
+             << "---" << "\n";
+    });
+    auto limits = [=](SearchStatistics const & ss) {
+        return RuntimeMonitor::elapsedSeconds(ss.getStartTime()) > timeout || ss.getSolutions() > 0;
+    };
+    cout << search.solve(limits) << endl;
+    return 0;
 }

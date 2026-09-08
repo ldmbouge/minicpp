@@ -1,26 +1,13 @@
-#include "bin_packing.hpp"
+#include "global_constraints/bin_packing.hpp"
 
-#include "libfca/Timer.hpp"
-#include "libfca/Slice.hpp"
 #include <algorithm>
 
-using namespace Fca;
-
-BinPackingLoad::BinPackingLoad(std::vector<var<int>::Ptr> const & load, std::vector<var<int>::Ptr> const & bin, std::vector<int> const & w) :
-        Constraint(load[0]->getSolver()),
-        _load(load),
-        _bin(),
-        _weights(w)
+void BinPackingLoad::setup()
 {
     setPriority(CLOW);
 
     nBins = static_cast<int>(_load.size());
-    nItems = static_cast<int>(bin.size());
-
-    for (int i = 0; i < nItems; i += 1)
-    {
-        _bin.push_back(bin.at(i));
-    }
+    nItems = static_cast<int>(_bin.size());
 
     // Sort items and weights by decreasing weights
     std::vector<std::pair<var<int>::Ptr,int>> item_weights;
@@ -28,7 +15,7 @@ BinPackingLoad::BinPackingLoad(std::vector<var<int>::Ptr> const & load, std::vec
     {
         item_weights.emplace_back(_bin.at(i), _weights.at(i));
     }
-    std::sort(item_weights.begin(), item_weights.end(), [](auto & lhs, auto & rhs) {return lhs.second >= rhs.second;});
+    std::sort(item_weights.begin(), item_weights.end(), [](auto const & lhs, auto const & rhs) {return lhs.second > rhs.second;});
 
     for (int i = 0; i < nItems; i += 1)
     {
@@ -199,8 +186,8 @@ void BinPackingLoad::propagateBasicItemEliminationCommitment()
             auto const bMaxLoad = _load.at(bIdx)->max();
             auto const bRequiredLoad = required_loads.at(bIdx);
             auto const bPossibleLoad = possible_loads.at(bIdx);
-            auto const n_candidate_items = candidate_items.at(bIdx).size();
-            for (auto ciIdx = 0; ciIdx < n_candidate_items; ciIdx += 1)
+            int const n_candidate_items = static_cast<int>(candidate_items.at(bIdx).size());
+            for (int ciIdx = 0; ciIdx < n_candidate_items; ciIdx += 1)
             {
                 auto const iIdx = candidate_items.at(bIdx).at(ciIdx).index;
                 auto const iWeight = candidate_items.at(bIdx).at(ciIdx).weight;
@@ -288,8 +275,6 @@ void BinPackingLoad::propagateKnapsackItemEliminationCommitment()
 
 void BinPackingLoad::checkLowerbounds()
 {
-    using namespace Fca;
-    using namespace Fca::Utils::Math;
 
     int lowerbound = 0;
     int const nWeights = static_cast<int>(weightsBaseReduction.size());
@@ -320,22 +305,22 @@ void BinPackingLoad::checkLowerbounds()
             //if (lowerbound > nBins) failNow();
 
 
-            lowerbound = max(lowerbound, calcDffLowerbound<fCCM1,lCCM1>(weights, capacity, notZeroCount, maxWeight));
+            lowerbound = std::max(lowerbound, calcDffLowerbound<fCCM1,lCCM1>(weights, capacity, notZeroCount, maxWeight));
             if (lowerbound > nBins) failNow();
 
-            lowerbound = max(lowerbound, calcDffLowerbound<fMT,lMT>(weights, capacity, notZeroCount, maxWeight));
+            lowerbound = std::max(lowerbound, calcDffLowerbound<fMT,lMT>(weights, capacity, notZeroCount, maxWeight));
             if (lowerbound > nBins) failNow();
 
-            lowerbound = max(lowerbound, calcDffLowerbound<fBJ1,lBJ1>(weights, capacity, notZeroCount, maxWeight));
+            lowerbound = std::max(lowerbound, calcDffLowerbound<fBJ1,lBJ1>(weights, capacity, notZeroCount, maxWeight));
             if (lowerbound > nBins) failNow();
 
-            lowerbound = max(lowerbound, calcDffLowerbound<fVB2,lVB2>(weights, capacity, notZeroCount, maxWeight, true));
+            lowerbound = std::max(lowerbound, calcDffLowerbound<fVB2,lVB2>(weights, capacity, notZeroCount, maxWeight, true));
             if (lowerbound > nBins) failNow();
 
-            lowerbound = max(lowerbound, calcDffLowerbound<fFS1,lFS1>(weights, capacity, notZeroCount, maxWeight, true));
+            lowerbound = std::max(lowerbound, calcDffLowerbound<fFS1,lFS1>(weights, capacity, notZeroCount, maxWeight, true));
             if (lowerbound > nBins) failNow();
 
-            lowerbound = max(lowerbound, calcDffLowerbound<fRAD2,lRAD2>(weights, capacity, notZeroCount, maxWeight));
+            lowerbound = std::max(lowerbound, calcDffLowerbound<fRAD2,lRAD2>(weights, capacity, notZeroCount, maxWeight));
             if (lowerbound > nBins) failNow();
 
         }
@@ -380,7 +365,7 @@ std::tuple<bool, int, int> BinPackingLoad::noSum(VectorView<ItemInfo> const & it
         return std::make_tuple(false,0,0);
     }
 
-    int const card = static_cast<int>(items_info.size() - 1);
+    int const card = items_info.size() - 1;
     int sum_a = 0;
     int sum_b = 0;
     int sum_c = 0;
@@ -417,8 +402,8 @@ std::tuple<bool, int, int> BinPackingLoad::noSum(VectorView<ItemInfo> const & it
 int BinPackingLoad::sumWeights(VectorView<ItemInfo> const & items_info)
 {
     int result = 0;
-    auto const nItems = items_info.size();
-    for (auto iIdx = 0; iIdx < nItems; iIdx += 1)
+    int const nItems = items_info.size();
+    for (int iIdx = 0; iIdx < nItems; iIdx += 1)
     {
         result += items_info.at(iIdx).weight;
     }
@@ -434,7 +419,7 @@ void BinPackingLoad::prepareReductions()
     capacityBaseReduction = 0;
     for (auto bIdx = 0; bIdx < nBins; bIdx += 1)
     {
-        capacityBaseReduction = Utils::Math::max(capacityBaseReduction, _load.at(bIdx)->max());
+        capacityBaseReduction = std::max(capacityBaseReduction, _load.at(bIdx)->max());
     }
     for (auto bIdx = 0; bIdx < nBins; bIdx += 1)
     {
@@ -577,15 +562,12 @@ int BinPackingLoad::fRAD2(int w, int l, int c)
 
 int BinPackingLoad::fVB2Base(int w, int l, int c)
 {
-    using namespace Fca::Utils::Math;
-    int v = ceilDivPosInt(l * w, c);
+    int const v = gfl::ceilDiv<int>(l * w, c);
     return v > 0 ? v - 1 : 0;
 }
 
 int BinPackingLoad::fVB2(int w, int l, int c)
 {
-    using namespace Fca::Utils::Math;
-
     int const c0 = 2 * w > c;
     int const c1 = 2 * w == c;
     int const c2 = 2 * w < c;
@@ -637,8 +619,6 @@ int BinPackingLoad::fFS1(int w, int l, int c)
 
 int BinPackingLoad::fBJ1(int w, int l, int c)
 {
-    using namespace Fca;
-
     // Branch-less fBJ1 transformation
 
     // Auxiliary values

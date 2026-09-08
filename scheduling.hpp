@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include "device.hpp"
 #include "solver.hpp"
 #include "intvar.hpp"
 #include "constraint.hpp"
@@ -15,8 +16,6 @@
 #endif
 
 namespace Factory {
-   enum CDevice { CPU, GPU };
-
    inline Constraint::Ptr cumulativeER(Factory::Veci &s,
                                        std::vector<int> const &p,
                                        std::vector<int> const &h, int c,

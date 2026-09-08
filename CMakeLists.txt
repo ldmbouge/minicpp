@@ -87,10 +87,13 @@ endif()
 
 set(GPU_CONSTR_SRC
         global_constraints_gpu/cumulative.cu
+        global_constraints_gpu/bin_packing.cu
 )
 
 set(GLB_CONSTR_SRC
   global_constraints/cumulative.cpp
+  global_constraints/bin_packing.cpp
+  global_constraints/lex_chain_bit.cpp
 )
 
 # Auxiliary functions
@@ -168,6 +171,11 @@ endif()
 #file(GLOB files "examples/tutorial/*.cpp" "examples/mdd/amongNurse.cpp" "examples/mdd/amongNurse2.cpp")
 list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
 message("${files}")
+
+if(ENABLE_GPU)
+	# Examples with a GPU variant of their propagators must go through nvcc
+	set_source_files_properties(examples/binpacking.cpp PROPERTIES LANGUAGE CUDA)
+endif()
 
 foreach (file ${files})
 	get_filename_component(base ${file} NAME_WE)

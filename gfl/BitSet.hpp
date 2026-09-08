@@ -1,601 +1,369 @@
 #pragma once
 
 #include <cassert>
-#include <initializer_list>
-#include <limits>
-#include <type_traits>
+#include <iterator>
 
+#include "Alias.hpp"
+#include "Backend.hpp"
 #include "BitUtils.hpp"
-#include "MathUtils.hpp"
+#include "DebugUtils.hpp"
 #include "FunQual.hpp"
-#include "Types.hpp"
 #include "HashUtils.hpp"
+#include "MathUtils.hpp"
 
-namespace gfl
-{
-    template<i32 NumWords = 1>
-    class BitSet
-    {
-        static_assert(NumWords > 0);
+namespace gfl {
+template<i32 Capacity> class BitSet {
+    static_assert(Capacity > 0);
 
+public:
+    using WordType = u64;
+    static constexpr i32 WordSizeBits = digits<WordType>();
+    static constexpr i32 NumWords = ceilDiv<i32>(Capacity, WordSizeBits);
+    static constexpr i32 TailBits = Capacity % WordSizeBits;
+
+private:
+    WordType _words[NumWords]{};
+    static constexpr WordType TailMask = lowMask<WordType>(TailBits);
+    GFL_HOST_DEVICE void maskTail() noexcept {
+        if constexpr (TailBits != 0) _words[NumWords - 1] &= TailMask;
+    }
+
+public:
+    BitSet() noexcept = default;
+    GFL_HOST_DEVICE explicit BitSet(i32 const value) noexcept : _words{} { insert(value); }
+    GFL_HOST_DEVICE BitSet(i32 const min, i32 const max) noexcept : _words{} {
+        assert(0 <= min);
+        assert(min <= max);
+        assert(max < Capacity);
+        i32 const minBit = min % WordSizeBits;
+        i32 const maxBit = max % WordSizeBits;
+        // NumWords == 1 implies minWord == maxWord == 0 for every valid
+        // (min, max): both single-word branches always execute the same
+        // ordinary case, but writing it as a distinct compile-time path keeps
+        // the multi-word branch's indices (which reach NumWords) out of this
+        // instantiation entirely, rather than relying on the (NDEBUG-stripped
+        // at -O3) asserts above to prove them unreachable.
+        if constexpr (NumWords == 1) {
+            _words[0] = highMask<WordType>(WordSizeBits - minBit) & lowMask<WordType>(maxBit + 1);
+        } else {
+            i32 const minWord = min / WordSizeBits;
+            i32 const maxWord = max / WordSizeBits;
+            if (minWord == maxWord) {
+                _words[minWord] = highMask<WordType>(WordSizeBits - minBit) & lowMask<WordType>(maxBit + 1);
+                return;
+            }
+            _words[minWord] = highMask<WordType>(WordSizeBits - minBit);
+            _words[maxWord] = lowMask<WordType>(maxBit + 1);
+            for (i32 word = minWord + 1; word < maxWord; ++word) _words[word] = fullMask<WordType>();
+        }
+    }
+    GFL_HOST_DEVICE BitSet(initializer_list<i32> const values) noexcept : _words{} {
+        for (i32 const value : values) insert(value);
+    }
+    GFL_HOST_DEVICE static constexpr i32 capacity() noexcept { return Capacity; }
+    GFL_HOST_DEVICE static constexpr i32 maximum() noexcept { return Capacity - 1; }
+    GFL_HOST_DEVICE static constexpr i32 nWords() noexcept { return NumWords; }
+    GFL_HOST_DEVICE static constexpr i32 nWords(i32 const maxValue) noexcept {
+        assert(maxValue >= 0);
+        return ceilDiv<i32>(maxValue + 1, WordSizeBits);
+    }
+    GFL_HOST_DEVICE WordType word(i32 const i) const noexcept {
+        assert(0 <= i && i < NumWords);
+        return _words[i];
+    }
+
+    class Iterator {
     public:
-        using WordType = u64;
-        static constexpr i32 WordBitSize = std::numeric_limits<WordType>::digits;
+        using difference_type = i32;
+        using value_type = i32;
+        using iterator_category = std::forward_iterator_tag;
+        using iterator_concept = std::forward_iterator_tag;
 
     private:
-
-        static_assert(std::is_integral_v<WordType>);
-        static_assert(std::is_unsigned_v<WordType>);
-        WordType words_[NumWords]{};
+        WordType const* _word{};
+        i32 _wIdx{};
+        i32 _bIdx{};
+        GFL_HOST_DEVICE
+        void seek() noexcept {
+            while (_wIdx < NumWords) {
+                WordType const bits = *_word & highMask<WordType>(WordSizeBits - _bIdx);
+                if (bits != 0) {
+                    _bIdx = lsb(bits);
+                    return;
+                }
+                ++_word;
+                ++_wIdx;
+                _bIdx = 0;
+            }
+        }
 
     public:
-        BitSet() noexcept = default;
-
-        GFL_HOST_DEVICE BitSet(i32 val) noexcept;
-        GFL_HOST_DEVICE BitSet(i32 min, i32 max) noexcept;
-        GFL_HOST_DEVICE BitSet(std::initializer_list<i32> vals) noexcept;
-
-        GFL_HOST_DEVICE static constexpr i32 num_words(i32 const maxValue) noexcept
-        {
-            return ceil<i32>(maxValue, WordBitSize);
-        }
-
-        GFL_HOST_DEVICE static constexpr i32 capacity() noexcept { return WordBitSize * NumWords; }
-
-        GFL_HOST_DEVICE i32 size() const noexcept;
-        GFL_HOST_DEVICE tuple<i32,i32,i32> summary() const noexcept;
-        GFL_HOST_DEVICE static f32 iou(BitSet const& a, BitSet const& b) noexcept;
-        GFL_HOST_DEVICE f32 iou(BitSet const& other ) const noexcept;
-        GFL_HOST_DEVICE bool empty() const noexcept;
-
-        GFL_HOST_DEVICE void clear() noexcept;
-
-        GFL_HOST_DEVICE void insert(i32 val) noexcept;
-        GFL_HOST_DEVICE void remove(i32 val) noexcept;
-        GFL_HOST_DEVICE bool contains(i32 val) const noexcept;
-
-        GFL_HOST_DEVICE bool isEqual(BitSet const& other) const noexcept;
-        GFL_HOST_DEVICE BitSet& unionWith(BitSet const& other) noexcept;
-        GFL_HOST_DEVICE BitSet& interWith(BitSet const& other) noexcept;
-        GFL_HOST_DEVICE BitSet& diffWith(BitSet const& other) noexcept;
-        GFL_HOST_DEVICE BitSet& complement() noexcept;
-
-        GFL_HOST_DEVICE
-        BitSet shiftLeft(i32 const k) const noexcept
-        {
-            assert(k > 0);
-
-            BitSet result;
-            i32 const wordShift = k / WordBitSize;
-            i32 const bitShift  = k % WordBitSize;
-
-            for (i32 i = 0; i < NumWords; ++i)
-            {
-                i32 const src = i - wordShift;
-                // src contributes upper bits, src-1 contributes lower bits (overflow)
-                WordType const upper = (src >= 0 and src < NumWords) ? words_[src] << bitShift : 0;
-                WordType const lower = (bitShift > 0 and src - 1 >= 0 and src - 1 < NumWords) ? words_[src - 1] >> (WordBitSize - bitShift) : 0;
-                result.words_[i] = upper | lower;
+        Iterator() noexcept = default;
+        GFL_HOST_DEVICE Iterator(BitSet const& set, i32 const value) noexcept {
+            assert(0 <= value && value <= Capacity);
+            if (value == Capacity) {
+                _word = set._words + NumWords;
+                _wIdx = NumWords;
+                _bIdx = 0;
+                return;
             }
-            return result;
+            _wIdx = value / WordSizeBits;
+            _bIdx = value % WordSizeBits;
+            _word = set._words + _wIdx;
+            seek();
         }
-
-        GFL_HOST_DEVICE
-        BitSet shiftRight(i32 const k) const noexcept
-        {
-            assert(k > 0);
-
-            BitSet result;
-            i32 const wordShift = k / WordBitSize;
-            i32 const bitShift  = k % WordBitSize;
-
-            for (i32 i = 0; i < NumWords; ++i)
-            {
-                i32 const src = i + wordShift;
-                // src contributes lower bits, src+1 contributes upper bits (overflow)
-                WordType const lower = (src >= 0 and src < NumWords) ? words_[src] >> bitShift : 0;
-                WordType const upper = (bitShift > 0 and src + 1 < NumWords) ? words_[src + 1] << (WordBitSize - bitShift) : 0;
-                result.words_[i] = lower | upper;
+        GFL_HOST_DEVICE i32 operator*() const noexcept {
+            assert(_wIdx < NumWords);
+            return _wIdx * WordSizeBits + _bIdx;
+        }
+        GFL_HOST_DEVICE Iterator& operator++() noexcept {
+            assert(_wIdx < NumWords);
+            ++_bIdx;
+            if (_bIdx == WordSizeBits) {
+                _bIdx = 0;
+                ++_word;
+                ++_wIdx;
             }
-            return result;
+            seek();
+            return *this;
         }
-
-        GFL_HOST_DEVICE
-        BitSet reversed() const noexcept
-        {
-            using namespace gfl;
-            BitSet result;
-            for (i32 i = 0; i < NumWords; ++i)
-            {
-                result.words_[i] = bitreverse(words_[NumWords - 1 - i]);
-            }
-            return result;
+        GFL_HOST_DEVICE Iterator operator++(int) noexcept {
+            Iterator const tmp = *this;
+            ++(*this);
+            return tmp;
         }
-
-        GFL_HOST_DEVICE
-        BitSet(i32 const ofs, BitSet const & s) noexcept : words_{}
-        {
-             // Computes { ofs - v | v in s }
-             // for (i32 i = 0; i < capacity(); ++i)
-             // {
-             //     if (s.contains(i)) insert(ofs - i);
-             // }
-
-            *this = s.reversed().shiftRight(capacity() - ofs - 1);
-        }
-
-        GFL_HOST_DEVICE
-        friend bool operator==(BitSet const& a, BitSet const& b) noexcept { return a.isEqual(b); }
-
-        GFL_HOST_DEVICE
-        friend bool operator!=(BitSet const& a, BitSet const& b) noexcept { return !(a == b); }
-
-        GFL_HOST_DEVICE
-        friend BitSet operator|(BitSet a, BitSet const& b) noexcept { a.unionWith(b); return a; }
-
-        GFL_HOST_DEVICE
-        friend BitSet operator&(BitSet a, BitSet const& b) noexcept { a.interWith(b); return a; }
-
-        GFL_HOST_DEVICE
-        friend BitSet operator-(BitSet a, BitSet const& b) noexcept { a.diffWith(b); return a; }
-
-        GFL_HOST_DEVICE
-        friend BitSet operator~(BitSet a) noexcept { a.complement(); return a; }
-
-        GFL_HOST_DEVICE
-        friend BitSet operator-(i32 const l, BitSet const & s) noexcept { return BitSet(l, s);}
-
-        GFL_HOST_DEVICE
-        friend bool operator<=(BitSet const& a, BitSet const& b) noexcept
-        {
-            unsigned short nw = 0;
-            for (auto i = 0; i < NumWords; i++)
-                nw += (a.words_[i] & b.words_[i]) == a.words_[i];
-            return nw == NumWords;
-        }
-
-        template <typename Pred>
-        GFL_HOST_DEVICE friend
-        BitSet filter(BitSet const & set, Pred const p) {
-            BitSet out;
-            auto [minVal,maxVal,_] = set.summary();
-            for (i32 v = minVal; v <= maxVal; ++v)
-            {
-                if (set.contains(v))
-                {
-                    if (p(v))
-                        out.insert(v);
-                }
-            }
-            return out;
-        }
-
-        GFL_HOST_DEVICE
-        void printAsInts(i32 const end = WordBitSize * NumWords) const noexcept;
-
-        GFL_HOST_DEVICE
-        void printAs01(i32 const end = WordBitSize * NumWords) const noexcept;
-
-        GFL_HOST_DEVICE
-        void print() const noexcept;
-
-        GFL_HOST_DEVICE
-        i32 smallest() const noexcept;
-
-        GFL_HOST_DEVICE
-        i32 largest() const noexcept;
-
-        GFL_HOST_DEVICE
-        u64 hash() const noexcept
-        {
-            u64 seed = 0;
-            for (auto i = 0;i < NumWords; i++) hashCombine(seed, words_[i]);
-            return seed;
-        }
-
-        template <typename Term>
-        GFL_HOST_DEVICE friend
-        tuple<i32,i32> argmin(BitSet const & set, Term const & t)
-        {
-            i32 min = numeric_limits<i32>::max();
-            int elt;
-            auto [minVal,maxVal,_] = set.summary();
-            for (i32 v = minVal; v <= maxVal; ++v)
-            {
-                if (set.contains(v))
-                {
-                    auto const tv = t(v);
-                    min = (min < tv) ? min : tv;
-                    elt = (min < tv) ? elt : v;
-                }
-            }
-            return {elt, min};
-        }
-
-        template <typename Filter, typename Term>
-        GFL_HOST_DEVICE friend
-        i32 min(BitSet const & set, Filter const & f, Term const & t)
-        {
-            i32 ttl = numeric_limits<i32>::max();
-            auto [minVal,maxVal,_] = set.summary();
-            for (i32 v = minVal; v <= maxVal; ++v)
-            {
-                if (set.contains(v))
-                {
-                    if (f(v))
-                    {
-                        auto const tv = t(v);
-                        ttl = (ttl  < tv) ? ttl : tv;
-                    }
-                }
-            }
-            return ttl;
-        }
-
-        template <typename Term>
-        GFL_HOST_DEVICE friend
-        i32 min(BitSet const & set, Term const & t)
-        {
-            i32 ttl = numeric_limits<i32>::max();
-            auto [minVal,maxVal,_] = set.summary();
-            for (i32 v = minVal; v <= maxVal; ++v)
-            {
-                if (set.contains(v))
-                {
-                    auto const tv = t(v);
-                    ttl = (ttl  < tv) ? ttl : tv;
-                }
-            }
-            return ttl;
-        }
-
-        template <typename Term>
-        GFL_HOST_DEVICE friend
-        i32 max(BitSet const & set, Term const & t)
-        {
-            i32 ttl = numeric_limits<i32>::min();
-            auto [minVal,maxVal,_] = set.summary();
-            for (i32 v = minVal; v <= maxVal; ++v)
-            {
-                if (set.contains(v))
-                {
-                    auto const tv = t(v);
-                    ttl = (ttl > tv) ? ttl : tv;
-                }
-            }
-            return ttl;
-        }
-
-        template <typename Filter>
-        GFL_HOST_DEVICE friend
-        i32 count(BitSet const & set, Filter const & f) {
-            i32 count = 0;
-            auto [minVal,maxVal,_] = set.summary();
-            for (i32 v = minVal; v <= maxVal; ++v)
-            {
-                if (set.contains(v))
-                {
-                    if (f(v))
-                    {
-                        count++;
-                    }
-                }
-            }
-            return count;
-        }
-
-        template <typename Pred>
-        GFL_HOST_DEVICE friend
-        bool any(BitSet const & set, Pred const p)
-        {
-            auto [minVal,maxVal,_] = set.summary();
-            for (i32 v = minVal; v <= maxVal; ++v)
-            {
-                if (set.contains(v))
-                {
-                    if (p(v)) return true;
-                }
-            }
-            return false;
-        }
+        GFL_HOST_DEVICE bool operator==(Iterator const& other) const noexcept { return _wIdx == other._wIdx && _bIdx == other._bIdx; }
+        GFL_HOST_DEVICE bool operator!=(Iterator const& other) const noexcept { return !(*this == other); }
     };
 
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    BitSet<NumWords>::BitSet(i32 const val) noexcept : words_{}
-    {
-        insert(val);
+    GFL_HOST_DEVICE Iterator begin() const noexcept { return {*this, 0}; }
+    GFL_HOST_DEVICE Iterator end() const noexcept { return {*this, Capacity}; }
+    GFL_HOST_DEVICE Iterator begin() noexcept { return {*this, 0}; }
+    GFL_HOST_DEVICE Iterator end() noexcept { return {*this, Capacity}; }
+    GFL_HOST_DEVICE i32 size() const noexcept {
+        i32 result = 0;
+        for (i32 i = 0; i < NumWords; ++i) result += gfl::popcount(_words[i]);
+        return result;
+    }
+    GFL_HOST_DEVICE bool empty() const noexcept {
+        for (i32 i = 0; i < NumWords; ++i) {
+            if (_words[i] != 0) return false;
+        }
+        return true;
+    }
+    GFL_HOST_DEVICE bool contains(i32 const value) const noexcept {
+        if (value < 0 || value >= Capacity) return false;
+        return test(_words[value / WordSizeBits], value % WordSizeBits);
+    }
+    GFL_HOST_DEVICE i32 ith(i32 i) const noexcept {
+        assert(i >= 0);
+        for (i32 j = 0; j < NumWords; ++j) {
+            WordType bits = _words[j];
+            i32 const count = gfl::popcount(bits);
+            if (i >= count) {
+                i -= count;
+                continue;
+            }
+            while (i-- > 0) bits = clearLsb(bits);
+            return j * WordSizeBits + lsb(bits);
+        }
+        abort();
     }
 
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    BitSet<NumWords>::BitSet(i32 const min, i32 const max) noexcept : words_{}
-    {
-        assert(min >= 0);
-        assert(max >= 0);
+    GFL_HOST_DEVICE i32 rank(i32 const value) const noexcept {
+        assert(value >= 0);
+        i32 const limit = gfl::min<i32>(value, Capacity);
+        i32 const word = limit / WordSizeBits;
+        i32 result = 0;
+        for (i32 i = 0; i < word; ++i) result += gfl::popcount(_words[i]);
+        i32 const bits = limit % WordSizeBits;
+        if (bits != 0 && word < NumWords) result += gfl::popcount(_words[word] & lowMask<WordType>(bits));
+        return result;
+    }
+    // Count of set bits in [min, max] (inclusive) — same word-boundary
+    // math as the (min, max) range constructor below, applied directly
+    // against this set's own words instead of writing out a mask to AND
+    // against afterward. One pass touching only the words in range,
+    // unlike rank(max+1) - rank(min) (two independent scans from word 0,
+    // each redoing the same low words the other already covered).
+    GFL_HOST_DEVICE i32 popcount(i32 const min, i32 const max) const noexcept {
+        assert(0 <= min);
         assert(min <= max);
-        assert(max < capacity());
-
-        i32 const minWordIdx = min / WordBitSize;
-        i32 const minBitIdx  = min % WordBitSize;
-        i32 const maxWordIdx = max / WordBitSize;
-        i32 const maxBitIdx  = max % WordBitSize;
-
-        constexpr WordType fullWord = numeric_limits<WordType>::max();
-        WordType const minWordMask = suffixMaskInclusive<WordType>(minBitIdx);
-        WordType const maxWordMask = prefixMaskInclusive<WordType>(maxBitIdx);
-
-        if (minWordIdx == maxWordIdx)
-        {
-            words_[minWordIdx] = minWordMask & maxWordMask;
-        }
-        else
-        {
-            words_[minWordIdx] = minWordMask;
-            words_[maxWordIdx] = maxWordMask;
-
-            for (i32 wIdx = minWordIdx + 1; wIdx < maxWordIdx; ++wIdx)
-            {
-                words_[wIdx] = fullWord;
-            }
+        assert(max < Capacity);
+        i32 const minBit = min % WordSizeBits;
+        i32 const maxBit = max % WordSizeBits;
+        if constexpr (NumWords == 1) {
+            return gfl::popcount(_words[0] & highMask<WordType>(WordSizeBits - minBit) & lowMask<WordType>(maxBit + 1));
+        } else {
+            i32 const minWord = min / WordSizeBits;
+            i32 const maxWord = max / WordSizeBits;
+            if (minWord == maxWord) return gfl::popcount(_words[minWord] & highMask<WordType>(WordSizeBits - minBit) & lowMask<WordType>(maxBit + 1));
+            i32 result = gfl::popcount(_words[minWord] & highMask<WordType>(WordSizeBits - minBit));
+            result += gfl::popcount(_words[maxWord] & lowMask<WordType>(maxBit + 1));
+            for (i32 word = minWord + 1; word < maxWord; ++word) result += gfl::popcount(_words[word]);
+            return result;
         }
     }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    BitSet<NumWords>::BitSet(std::initializer_list<i32> const vals) noexcept : words_{}
-    {
-        for (i32 const& v : vals)
-        {
-            insert(v);
-        }
+    GFL_HOST_DEVICE i32 smallest() const noexcept {
+        assert(!empty());
+        for (i32 i = 0; i < NumWords; ++i)
+            if (_words[i] != 0) return i * WordSizeBits + lsb(_words[i]);
+        return highest<WordType>();
     }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    i32 BitSet<NumWords>::size() const noexcept
-    {
+    GFL_HOST_DEVICE i32 largest() const noexcept {
+        assert(!empty());
+        for (i32 i = NumWords - 1; i >= 0; --i)
+            if (_words[i] != 0) return i * WordSizeBits + msb(_words[i]);
+        return highest<WordType>();
+    }
+    GFL_HOST_DEVICE tuple<i32, i32, i32> summary() const noexcept {
+        i32 smallest = highest<i32>();
+        i32 largest = lowest<i32>();
         i32 count = 0;
-        for (i32 i = 0; i < NumWords; ++i)
-        {
-            count += popcount(words_[i]);
+        for (i32 i = 0; i < NumWords; ++i) {
+            WordType const word = _words[i];
+            if (word == 0) continue;
+            i32 const offset = i * WordSizeBits;
+            smallest = min<i32>(smallest, offset + lsb(word));
+            largest = max<i32>(largest, offset + msb(word));
+            count += gfl::popcount(word);
         }
-        return count;
+        return {smallest, largest, count};
     }
-
-    template<i32 NumWords>
+    GFL_HOST_DEVICE void clear() noexcept {
+        for (i32 i = 0; i < NumWords; ++i) _words[i] = 0;
+    }
+    GFL_HOST_DEVICE void insert(i32 const value) noexcept {
+        assert(0 <= value && value < Capacity);
+        _words[value / WordSizeBits] |= mask<WordType>(value % WordSizeBits);
+    }
+    GFL_HOST_DEVICE void remove(i32 const value) noexcept {
+        assert(0 <= value && value < Capacity);
+        _words[value / WordSizeBits] &= ~mask<WordType>(value % WordSizeBits);
+    }
+    GFL_HOST_DEVICE BitSet& unionWith(BitSet const& other) noexcept {
+        for (i32 i = 0; i < NumWords; ++i) _words[i] |= other._words[i];
+        return *this;
+    }
     GFL_HOST_DEVICE
-    bool BitSet<NumWords>::empty() const noexcept
-    {
+    BitSet& interWith(BitSet const& other) noexcept {
+        for (i32 i = 0; i < NumWords; ++i) _words[i] &= other._words[i];
+        return *this;
+    }
+    GFL_HOST_DEVICE BitSet& diffWith(BitSet const& other) noexcept {
+        for (i32 i = 0; i < NumWords; ++i) _words[i] &= ~other._words[i];
+        return *this;
+    }
+    GFL_HOST_DEVICE BitSet& operator|=(BitSet const& other) noexcept { return unionWith(other); }
+    GFL_HOST_DEVICE BitSet& operator&=(BitSet const& other) noexcept { return interWith(other); }
+    GFL_HOST_DEVICE BitSet& operator-=(BitSet const& other) noexcept { return diffWith(other); }
+    GFL_HOST_DEVICE
+    BitSet& complement() noexcept {
+        for (i32 i = 0; i < NumWords; ++i) _words[i] = ~_words[i];
+        maskTail();
+        return *this;
+    }
+    GFL_HOST_DEVICE friend bool operator<=(BitSet const& a, BitSet const& b) noexcept {
         for (i32 i = 0; i < NumWords; ++i)
-        {
-            if (words_[i] != 0) return false;
-        }
+            if ((a._words[i] & ~b._words[i]) != 0) return false;
         return true;
     }
-
-    template<i32 NumWords>
+    GFL_HOST_DEVICE BitSet shiftLeft(i32 const shift) const noexcept {
+        assert(shift >= 0);
+        BitSet result;
+        if (shift >= Capacity) return result;
+        i32 const wordShift = shift / WordSizeBits;
+        i32 const bitShift = shift % WordSizeBits;
+        for (i32 i = 0; i < NumWords; ++i) {
+            i32 const source = i - wordShift;
+            WordType const upper = 0 <= source && source < NumWords ? _words[source] << bitShift : 0;
+            WordType const lower = bitShift != 0 && source > 0 ? _words[source - 1] >> (WordSizeBits - bitShift) : 0;
+            result._words[i] = upper | lower;
+        }
+        result.maskTail();
+        return result;
+    }
     GFL_HOST_DEVICE
-    void BitSet<NumWords>::clear() noexcept
-    {
+    BitSet shiftRight(i32 const shift) const noexcept {
+        assert(shift >= 0);
+        BitSet result;
+        if (shift >= Capacity) return result;
+        i32 const wordShift = shift / WordSizeBits;
+        i32 const bitShift = shift % WordSizeBits;
+        for (i32 i = 0; i < NumWords; ++i) {
+            i32 const source = i + wordShift;
+            WordType const lower = source < NumWords ? _words[source] >> bitShift : 0;
+            WordType const upper = bitShift != 0 && source + 1 < NumWords ? _words[source + 1] << (WordSizeBits - bitShift) : 0;
+            result._words[i] = lower | upper;
+        }
+        result.maskTail();
+        return result;
+    }
+    GFL_HOST_DEVICE
+    BitSet reversed() const noexcept {
+        BitSet result;
+        for (i32 i = 0; i < NumWords; ++i) result._words[i] = bitReverse(_words[NumWords - 1 - i]);
+        if constexpr (TailBits != 0) result = result.shiftRight(WordSizeBits - TailBits);
+        result.maskTail();
+        return result;
+    }
+    GFL_HOST_DEVICE BitSet(i32 const offset, BitSet const& set) noexcept : _words{} {
+        assert(0 <= offset && offset < Capacity);
+        *this = set.reversed().shiftRight(Capacity - offset - 1);
+    }
+
+    GFL_HOST_DEVICE f32 interOverUnion(BitSet const& a, BitSet const& b) const noexcept {
+        i32 interSz = 0;
+        i32 unionSz = 0;
+        for (i32 i = 0; i < NumWords; ++i) {
+            interSz += gfl::popcount(a._words[i] & b._words[i]);
+            unionSz += gfl::popcount(a._words[i] | b._words[i]);
+        }
+        return unionSz == 0 ? 1.0f : as<f32>(div(interSz, unionSz));
+    }
+    GFL_DEVICE void print() const noexcept {
+        printf("[");
+        bool first = true;
+        for (i32 const value : *this) {
+            if (!first) printf(",");
+            printf("%d", value);
+            first = false;
+        }
+        printf("]\n");
+    }
+    GFL_DEVICE void printBinary() const noexcept {
+        printf("[");
+        for (i32 i = 0; i < NumWords; ++i) {
+            if (i != 0) printf(",");
+            gfl::printBinary(_words[i]);
+        }
+        printf("]\n");
+    }
+    GFL_HOST_DEVICE u64 hash() const noexcept {
+        u64 seed = 0;
+        for (i32 i = 0; i < NumWords; ++i) hashCombine(seed, _words[i]);
+        return seed;
+    }
+    GFL_HOST_DEVICE friend bool operator==(BitSet const& a, BitSet const& b) noexcept {
         for (i32 i = 0; i < NumWords; ++i)
-        {
-            words_[i] = 0;
-        }
-    }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    void BitSet<NumWords>::insert(i32 const val) noexcept
-    {
-        using namespace gfl;
-
-        assert(0 <= val);
-        assert(val < capacity());
-
-        i32 const wordIdx = val / WordBitSize;
-        i32 const bitIdx  = val % WordBitSize;
-
-        words_[wordIdx] |= mask<WordType>(bitIdx);
-    }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    void BitSet<NumWords>::remove(i32 const val) noexcept
-    {
-        assert(0 <= val);
-        assert(val < capacity());
-
-        i32 const wordIdx = val / WordBitSize;
-        i32 const bitIdx  = val % WordBitSize;
-
-        words_[wordIdx] &= ~mask<WordType>(bitIdx);
-    }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    bool BitSet<NumWords>::contains(i32 const val) const noexcept
-    {
-        if (0 <= val and val < capacity())
-        {
-            i32 const wordIdx = val / WordBitSize;
-            i32 const bitIdx  = val % WordBitSize;
-            return gfl::test(words_[wordIdx], bitIdx);
-        }
-        else return false;
-    }
-
-    template <i32 NumWords>
-    GFL_HOST_DEVICE
-    bool BitSet<NumWords>::isEqual(BitSet const& other) const noexcept
-    {
-        using namespace gfl;
-        for (int i = 0; i < NumWords; ++i) if (words_[i] != other.words_[i]) return false;
+            if (a._words[i] != b._words[i]) return false;
         return true;
     }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    BitSet<NumWords>& BitSet<NumWords>::unionWith(BitSet const& other) noexcept
-    {
-        for (i32 i = 0; i < NumWords; ++i)
-        {
-            words_[i] |= other.words_[i];
-        }
-        return *this;
+    GFL_HOST_DEVICE friend bool operator!=(BitSet const& a, BitSet const& b) noexcept { return !(a == b); }
+    GFL_HOST_DEVICE friend BitSet operator|(BitSet a, BitSet const& b) noexcept { return a.unionWith(b); }
+    GFL_HOST_DEVICE friend BitSet operator&(BitSet a, BitSet const& b) noexcept { return a.interWith(b); }
+    GFL_HOST_DEVICE friend BitSet operator-(BitSet a, BitSet const& b) noexcept { return a.diffWith(b); }
+    GFL_HOST_DEVICE friend BitSet operator-(BitSet a, i32 const value) noexcept {
+        a.remove(value);
+        return a;
     }
+    GFL_HOST_DEVICE friend BitSet operator~(BitSet a) noexcept { return a.complement(); }
+    GFL_HOST_DEVICE friend BitSet operator-(i32 const value, BitSet const& set) noexcept { return BitSet(value, set); }
+};
 
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    BitSet<NumWords>& BitSet<NumWords>::interWith(BitSet const& other) noexcept
-    {
-        for (i32 i = 0; i < NumWords; ++i)
-        {
-            words_[i] &= other.words_[i];
-        }
-        return *this;
-    }
+template<typename T> inline constexpr bool isBitSet = false;
+template<i32 Capacity> inline constexpr bool isBitSet<BitSet<Capacity>> = true;
 
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    BitSet<NumWords>& BitSet<NumWords>::diffWith(BitSet const& other) noexcept
-    {
-        for (i32 i = 0; i < NumWords; ++i)
-        {
-            words_[i] &= ~other.words_[i];
-        }
-        return *this;
-    }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    BitSet<NumWords>& BitSet<NumWords>::complement() noexcept
-    {
-        for (i32 i = 0; i < NumWords; ++i)
-        {
-            words_[i] = ~words_[i];
-        }
-        return *this;
-    }
-
-    template<i32 NumWords>
-    GFL_HOST
-    void BitSet<NumWords>::printAsInts(i32 const end) const noexcept
-    {
-        bool comma = false;
-        for(i32 val = 0; val < end; ++val)
-        {
-            if (contains(val))
-            {
-                printf(comma ? "," : "");
-                printf("%d", val);
-                comma = true;
-            }
-        }
-    }
-
-    template<i32 NumWords>
-   GFL_HOST_DEVICE
-   void BitSet<NumWords>::printAs01(i32 const end) const noexcept
-    {
-        bool comma = false;
-        for (i32 val = 0; val < end; ++val)
-        {
-            printf(comma ? "," : "");
-            printf(contains(val) ? "1" : "0");
-            comma = true;
-        }
-    }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    void BitSet<NumWords>::print() const noexcept
-    {
-        for (i32 wIdx = 0; wIdx < NumWords; ++wIdx)
-        {
-            gfl::printBits(words_[wIdx]);
-        }
-    }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    i32 BitSet<NumWords>::smallest() const noexcept
-    {
-        using namespace gfl;
-
-        i32 smallest = numeric_limits<i32>::max();
-        for (i32 wIdx = 0; wIdx < NumWords; ++wIdx)
-        {
-            i32 const wBegin = wIdx * sizeof(unsigned long long) * 8;
-            i32 const sWord = words_[wIdx] != 0 ? wBegin + lsb(words_[wIdx]) : numeric_limits<i32>::max();
-            smallest = min<int>(smallest, sWord);
-        }
-        return smallest;
-    }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    i32 BitSet<NumWords>::largest() const noexcept
-    {
-        using namespace gfl;
-
-        i32 largest = numeric_limits<i32>::min();
-        for (i32 wIdx = 0; wIdx < NumWords; ++wIdx)
-        {
-            i32 const wBegin = wIdx * sizeof(unsigned long long) * 8;
-            i32 const lWord = words_[wIdx] != 0 ? wBegin + msb(words_[wIdx]) : numeric_limits<i32>::min();
-            largest = max<int>(largest, lWord);
-        }
-        return largest;
-    }
-
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    tuple<int,int,int> BitSet<NumWords>::summary() const noexcept
-    {
-        using namespace gfl;
-
-        i32 smallest = numeric_limits<i32>::max();
-        i32 largest = numeric_limits<i32>::min();
-        i32 count = 0;
-        for (i32 wIdx = 0; wIdx < NumWords; ++wIdx)
-        {
-            i32 const wBegin = wIdx * sizeof(unsigned long long) * 8;
-            i32 const sWord = words_[wIdx] != 0 ? wBegin + lsb(words_[wIdx]) : numeric_limits<i32>::max();
-            i32 const lWord = words_[wIdx] != 0 ? wBegin + msb(words_[wIdx]) : numeric_limits<i32>::min();
-            i32 const cWord = words_[wIdx] != 0 ? popcount(words_[wIdx]) : 0;
-            smallest = gfl::min<i32>(smallest, sWord);
-            largest = gfl::max<i32>(largest, lWord);
-            count += cWord;
-        }
-        return {smallest,largest,count};
-    }
-
-
-    // Intersection Over Union
-    // Reference: https://en.wikipedia.org/wiki/Jaccard_index
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    f32 BitSet<NumWords>::iou(BitSet const & a, BitSet const & b) noexcept
-    {
-        using namespace gfl;
-
-        f32 intersectionSize = 0.0;
-        f32 unionSize = 0.0;
-        for (int wIdx = 0; wIdx < NumWords; wIdx += 1)
-        {
-            intersectionSize += popcount(a.words_[wIdx] & b.words_[wIdx]);
-            unionSize += popcount(a.words_[wIdx] | b.words_[wIdx]);
-        }
-        return unionSize > 0.0 ? intersectionSize / unionSize : 0.0;
-    }
-
-    template<i32 NumWords>
-    GFL_HOST_DEVICE
-    f32 BitSet<NumWords>::iou(BitSet const & other) const noexcept
-    {
-        return iou(*this,other);
-    }
-}
+static_assert(isBitSet<BitSet<128>>);
+static_assert(!isBitSet<int>);
+} // namespace gfl

@@ -1,12 +1,6 @@
-#include "lex_chain_bit.hpp"
+#include "global_constraints/lex_chain_bit.hpp"
 
-LexChainBit::LexChainBit(std::vector<var<int>::Ptr> const & rows) :
-            Constraint(rows.at(0)->getSolver()),
-            _rows(rows),
-            nRows(static_cast<int>(rows.size())),
-            nCols(static_cast<int>(rows.at(0)->size())),
-            colsUpperbound(nCols, 0)
-{};
+#include <algorithm>
 
 void LexChainBit::post()
 {
