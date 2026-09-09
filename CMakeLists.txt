@@ -26,14 +26,14 @@ message(STATUS "ENABLE_GPU support: ${ENABLE_GPU}")
 include(FetchContent)
 FetchContent_Declare(
         json
-        GIT_REPOSITORY https://github.com/nlohmann/json
-        GIT_TAG        v3.12.0
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
+        GIT_TAG        develop
         GIT_SHALLOW    TRUE
 )
 FetchContent_Declare(
         cli11
         GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
-        GIT_TAG        v2.6.2
+        GIT_TAG        main
         GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(json cli11)

@@ -32,7 +32,7 @@ class DecreasingBestFit {
     CPSolver::Ptr _cp;
     Veci const & _bin;
     vector<int> const & _w;
-    var<int>::Ptr & _nBins;
+    var<int>::Ptr _nBins;
     int const _capacity;
     int const _nItems;
     vector<int> _residual;
@@ -121,7 +121,7 @@ public:
         auto x = _bin[item];
         return Branches({
             [=]() { cp->post(x == bestBin); },
-            [this, &cp, &nBins, bestBin, item, weight]() {
+            [this, cp, nBins, bestBin, item, weight]() {
                 // On refusal, all the bins equivalent to the best one are ruled
                 // out, and so are all the items equivalent to the chosen one
                 auto const targetResidual = _residual[bestBin];
