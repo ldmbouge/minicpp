@@ -22,7 +22,7 @@ pair<int, vector<int>> readInstance(string const & path)
     vector<int> weights(nItems);
     for (auto & weight : weights)
         file >> weight;
-    sort(weights.begin(), weights.end(), greater<int>());
+    sort(weights.begin(), weights.end(), std::greater<int>());
     return {capacity, weights};
 }
 
@@ -30,7 +30,7 @@ pair<int, vector<int>> readInstance(string const & path)
 // fills best, after applying the dominance rules that leave no choice.
 class DecreasingBestFit {
     CPSolver::Ptr _cp;
-    vector<var<int>::Ptr> const & _bin;
+    Veci const & _bin;
     vector<int> const & _w;
     var<int>::Ptr & _nBins;
     int const _capacity;
@@ -88,7 +88,7 @@ class DecreasingBestFit {
     }
 
 public:
-    DecreasingBestFit(CPSolver::Ptr cp, vector<var<int>::Ptr> const & bin, vector<int> const & w, var<int>::Ptr nBins, int capacity) :
+    DecreasingBestFit(CPSolver::Ptr cp, Veci const & bin, vector<int> const & w, var<int>::Ptr nBins, int capacity) :
         _cp(cp), _bin(bin), _w(w), _nBins(nBins), _capacity(capacity), _nItems(scast<int>(bin.size())), _residual(nBins->max() + 1, capacity)
     {
         _binsByResidual.reserve(_residual.size());

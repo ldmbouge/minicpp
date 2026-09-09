@@ -65,7 +65,7 @@ if(ENABLE_GPU)
     enable_language(CUDA)
     find_package(CUDAToolkit REQUIRED)
 
-    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD 20)
     set(CMAKE_CUDA_STANDARD_REQUIRED ON)
     set(CMAKE_CUDA_ARCHITECTURES "native")
     set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
@@ -156,6 +156,10 @@ add_library(copl
     ${GLB_CONSTR_SRC}
 )
 
+# gfl needs C++20, the rest of the tree stays on C++17: a few of the MDD
+# examples use `requires` as an identifier, which C++20 turns into a keyword
+set_target_properties(copl PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+
 if (ENABLE_GPU)
     target_sources(copl PRIVATE ${GPU_CONSTR_SRC})
     target_link_libraries(copl PRIVATE CUDA::cudart)
@@ -176,7 +180,7 @@ message("${files}")
 
 if(ENABLE_GPU)
 	# Examples with a GPU variant of their propagators must go through nvcc
-	set_source_files_properties(examples/binpacking.cpp PROPERTIES LANGUAGE CUDA)
+	set_source_files_properties(examples/binpacking.cpp examples/langford.cpp PROPERTIES LANGUAGE CUDA)
 endif()
 
 foreach (file ${files})
@@ -196,6 +200,9 @@ foreach (file ${GPUfiles})
 	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json;CLI11::CLI11") # copl)
 	add_dependencies(${base} copl)
 endforeach()
+
+# The examples built on gfl need C++20 as well
+set_target_properties(binpacking langford PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 
 # Data files for the benchmarks
 ################################################################################

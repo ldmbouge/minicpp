@@ -2,40 +2,6 @@
 
 #include <algorithm>
 
-void BinPackingLoadGPU::post()
-{
-    for (auto const & l : _load)
-        l->propagateOnBoundChange(this);
-
-    for (auto const & b : _bin)
-        b->propagateOnDomainChange(this);
-
-    propagate();
-}
-
-void BinPackingLoadGPU::propagate()
-{
-    calculateNumBins();
-    saveBinLoadSizes();
-    calculateRequiredPossibleCandidates();
-    propagateLoadCoherence();
-    calculateSumLoads();
-    propagateBasicLoadTightening();
-    propagateBasicItemEliminationCommitment();
-    if (not checkBinLoadSizeChanges())
-    {
-        checkPackableBins();
-        propagateKnapsackLoadTightening();
-        propagateKnapsackItemEliminationCommitment();
-
-        if (not checkBinLoadSizeChanges())
-        {
-            prepareReductions();
-            checkLowerbounds();
-        }
-    }
-}
-
 void BinPackingLoadGPU::checkLowerbounds()
 {
     using namespace gfl;
@@ -53,37 +19,31 @@ void BinPackingLoadGPU::checkLowerbounds()
     cudaStreamSynchronize(_cuStreams[0]);
 
     // Launch the kernels
+    i32 kernelIdx = 0;
     for (i32 rIdx = 0; rIdx < REDUCTIONS_COUNT; rIdx += 1)
     {
-        // Calculate the reduction parameters
+        // Analyze the reduction. The kernels rebuild its weights in shared
+        // memory, so there is nothing to materialize here
         i32 const delta = deltaReductions[rIdx];
-        i32 const capacity = capacityBaseReduction + delta;
+        i32 const capacity = reductionCapacity(rIdx);
+        Reduction const reduction = analyzeReduction(rIdx, false);
 
-        // Analyze the reduction
-        i32 notZeroCount = 0;
-        i32 maxWeight = 0;
-        for (i32 wIdx = 0; wIdx < nWeights; wIdx += 1)
+        // One kernel per dual-feasible function, each on a stream of its own
+        Dffs::forEach([&](auto dff)
         {
-            i32 const weight = weightsBaseReduction[wIdx] + (wIdx < nBins ? delta : 0);
-            notZeroCount += weight != 0;
-            maxWeight = std::max(maxWeight, weight);
-        }
+            using D = decltype(dff);
+            cudaStream_t const stream = _cuStreams[kernelIdx];
+            kernelIdx += 1;
 
-        auto launch = [&](auto kernel, LambdaRange lRange, i32 kIdx) {
+            LambdaRange lRange = D::lambdaRange(capacity);
+            lRange = D::needsSanitizing ? sanitizeLambdaRange(lRange, reduction.notZeroCount, reduction.maxWeight) : lRange;
             i32 const lRangeSize = lRange.max - lRange.min + 1;
             if (lRangeSize <= 0)
                 return;
-            u32 const nBlocks = max<u32>(1u, ceilDiv<u32>(lRangeSize, BlockSize));
-            cudaStream_t const stream = _cuStreams[rIdx * DFFS_COUNT + kIdx];
-            kernel<<<nBlocks, BlockSize, _sharedMemSize, stream>>>(_id, _w, delta, lRange.min, lRange.max);
-        };
 
-        launch(calcDffLowerboundKernel<fCCM1_d>, lCCM1(capacity), 0);
-        launch(calcDffLowerboundKernel<fMT_d>,   lMT(capacity),   1);
-        launch(calcDffLowerboundKernel<fBJ1_d>,  lBJ1(capacity),  2);
-        launch(calcDffLowerboundKernel<fVB2_d>,  sanitizeLambdaRange(lVB2(capacity), notZeroCount, maxWeight), 3);
-        launch(calcDffLowerboundKernel<fFS1_d>,  sanitizeLambdaRange(lFS1(capacity), notZeroCount, maxWeight), 4);
-        launch(calcDffLowerboundKernel<fRAD2_d>, lRAD2(capacity), 5);
+            u32 const nBlocks = max<u32>(1u, ceilDiv<u32>(lRangeSize, BlockSize));
+            calcDffLowerboundKernel<D::transform><<<nBlocks, BlockSize, _sharedMemSize, stream>>>(_id, _w, delta, lRange.min, lRange.max);
+        });
     }
 
     // Wait for the kernels and copy the lowerbound back

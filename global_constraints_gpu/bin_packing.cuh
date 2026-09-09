@@ -44,8 +44,6 @@ class BinPackingLoadGPU : public BinPackingLoad
         {
             using namespace gfl;
 
-            setPriority(CLOW);
-
             _ioRegion = _mPool.record([this]() {
                 _id = _mPool.make<InstanceData>();
                 _w = _mPool.make<Weights>(_mPool, nItems + nBins);
@@ -58,133 +56,13 @@ class BinPackingLoadGPU : public BinPackingLoad
                 cudaStreamCreate(&_cuStreams[sIdx]);
         }
 
-        void post() override;
-        void propagate() override;
-
     private:
-        void checkLowerbounds();
+        void checkLowerbounds() override;
 };
-
-// Dual-Feasible Functions ----------------------------------------------------
-
-GFL_DEVICE inline gfl::i32 fMT_d(gfl::i32 w, gfl::i32 l, gfl::i32 c)
-{
-    using namespace gfl;
-
-    // Branch-less f0 transformation
-    i32 const c0 = w > c - l;
-    i32 const c1 = l <= w and w <= c - l;
-    i32 const c2 = w < l;
-
-    i32 const v0 = c;
-    i32 const v1 = w;
-    i32 const v2 = 0;
-
-    return (c0 * v0) + (c1 * v1) + (c2 * v2);
-}
-
-GFL_DEVICE inline gfl::i32 fCCM1_d(gfl::i32 w, gfl::i32 l, gfl::i32 c)
-{
-    using namespace gfl;
-
-    // Branch-less fCCM1 transformation
-    i32 const c0 = 2 * w > c;  // x > c / 2
-    i32 const c1 = 2 * w == c; // x == c / 2
-    i32 const c2 = 2 * w < c;  // x < c / 2
-
-    i32 const v0 = 2 * (c / l - (c - w) / l);
-    i32 const v1 = c / l;
-    i32 const v2 = 2 * (w / l);
-
-    return (c0 * v0) + (c1 * v1) + (c2 * v2);
-}
-
-GFL_DEVICE inline gfl::i32 fFS1_d(gfl::i32 w, gfl::i32 l, gfl::i32 c)
-{
-    using namespace gfl;
-
-    // Branch-less fFS1 transformation
-    i32 const c0 = (w * (l + 1)) % c == 0;
-    i32 const c1 = (w * (l + 1)) % c != 0;
-
-    i32 const v0 = w * l;
-    i32 const v1 = ((w * (l + 1)) / c) * c;
-
-    return (c0 * v0) + (c1 * v1);
-}
-
-GFL_DEVICE inline gfl::i32 fBJ1_d(gfl::i32 w, gfl::i32 l, gfl::i32 c)
-{
-    using namespace gfl;
-
-    // Branch-less fBJ1 transformation
-    i32 const p = l - (c % l);
-
-    i32 const c0 = w % l <= c % l;
-    i32 const c1 = w % l > c % l;
-
-    i32 const v0 = (w / l) * p;
-    i32 const v1 = (w / l) * p + (w % l) - (c % l);
-
-    return (c0 * v0) + (c1 * v1);
-}
-
-GFL_DEVICE inline gfl::i32 fVB2Base_d(gfl::i32 w, gfl::i32 l, gfl::i32 c)
-{
-    gfl::i32 const v = gfl::ceilDiv<gfl::i32>(l * w, c);
-    return v > 0 ? v - 1 : 0;
-}
-
-GFL_DEVICE inline gfl::i32 fVB2_d(gfl::i32 w, gfl::i32 l, gfl::i32 c)
-{
-    using namespace gfl;
-
-    i32 const c0 = 2 * w > c;
-    i32 const c1 = 2 * w == c;
-    i32 const c2 = 2 * w < c;
-
-    i32 const t0 = fVB2Base_d(c, l, c);
-    i32 const t1 = fVB2Base_d(w, l, c);
-    i32 const t2 = fVB2Base_d(c - w, l, c);
-
-    i32 const v0 = 2 * t0 - 2 * t2;
-    i32 const v1 = t0;
-    i32 const v2 = 2 * t1;
-
-    return (c0 * v0) + (c1 * v1) + (c2 * v2);
-}
-
-GFL_DEVICE inline gfl::i32 fRAD2Base_d(gfl::i32 w, gfl::i32 l, gfl::i32 c)
-{
-    using namespace gfl;
-
-    i32 const c0 = w < l;
-    i32 const c1 = l <= w and w <= c - 2 * l;
-    i32 const c2 = c - 2 * l < w and w < 2 * l;
-
-    i32 const v0 = 0;
-    i32 const v1 = c / 3;
-    i32 const v2 = c / 2;
-
-    return (c0 * v0) + (c1 * v1) + (c2 * v2);
-}
-
-GFL_DEVICE inline gfl::i32 fRAD2_d(gfl::i32 w, gfl::i32 l, gfl::i32 c)
-{
-    using namespace gfl;
-
-    i32 const c0 = w < 2 * l;
-    i32 const c1 = 2 * l <= w;
-
-    i32 const v0 = fRAD2Base_d(w, l, c);
-    i32 const v1 = c - fRAD2Base_d(c - w, l, c);
-
-    return (c0 * v0) + (c1 * v1);
-}
 
 // Kernels --------------------------------------------------------------------
 
-template<gfl::i32 f(gfl::i32, gfl::i32, gfl::i32)>
+template<int f(int, int, int)>
 GFL_GLOBAL void calcDffLowerboundKernel(gfl::MirrorPtr<BinPackingLoadGPU::InstanceData> id,
                                         gfl::MirrorPtr<BinPackingLoadGPU::Weights> w,
                                         gfl::i32 const deltaReduction,

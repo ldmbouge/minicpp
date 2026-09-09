@@ -7,6 +7,7 @@
 
 #include "constraint.hpp"
 #include "intvar.hpp"
+#include "gfl/FunQual.hpp"
 #include "gfl/MathUtils.hpp"
 
 // References:
@@ -74,7 +75,8 @@ class BinPackingLoad : public Constraint
         void propagateKnapsackItemEliminationCommitment();
         void saveBinLoadSizes();
         bool checkBinLoadSizeChanges();
-        void checkLowerbounds();
+        /// The only step a device may take over; the rest of propagate is common
+        virtual void checkLowerbounds();
         std::tuple<bool,int,int> noSum(VectorView<ItemInfo> const & items_info, int alpha, int beta);
         static int sumWeights(VectorView<ItemInfo> const & items_info);
 
@@ -88,20 +90,137 @@ class BinPackingLoad : public Constraint
 
         void prepareReductions();
 
+        /// What the lower bounds need to know about one reduction of the instance
+        struct Reduction {int notZeroCount; int maxWeight;};
 
+        int reductionCapacity(int rIdx) const {return capacityBaseReduction + deltaReductions[rIdx];};
+        Reduction analyzeReduction(int rIdx, bool materialize);
+
+
+    public:
         // Dual-Feasible Functions
-        static int const DFFS_COUNT = 6;
+        // Branch-less transformations, defined here rather than in the .cpp
+        // because the GPU kernels instantiate the very same ones. Public
+        // because those kernels name them from outside the class
+        GFL_HOST_DEVICE static int fCCM1(int w, int l, int c)
+        {
+            // Conditions
+            int const c0 = 2 * w > c;  // x > c / 2
+            int const c1 = 2 * w == c; // x == c / 2
+            int const c2 = 2 * w < c;  // x < c / 2
+            assert(c0 + c1 + c2 == 1);
 
-        static int fCCM1(int w, int l, int c);
-        static int fMT(int w, int l, int c);
-        static int fBJ1(int w, int l, int c);
-        static int fVB2Base(int w, int l, int c);
-        static int fVB2(int w, int l, int c);
-        static int fFS1(int w, int l, int c);
-        static int fRAD2Base(int w, int l, int c);
-        static int fRAD2(int w, int l, int c);
+            // Values
+            int const v0 = 2 * ((c / l) - ((c - w) / l));
+            int const v1 = c / l;
+            int const v2 = 2 * (w / l);
+
+            return (c0 * v0) + (c1 * v1) + (c2 * v2);
+        }
+
+        GFL_HOST_DEVICE static int fMT(int w, int l, int c)
+        {
+            // Conditions
+            int const c0 = w < l;
+            int const c1 = l <= w and w <= c - l;
+            int const c2 = c - l < w;
+            assert(c0 + c1 + c2 == 1);
+
+            // Values
+            int const v0 = 0;
+            int const v1 = w;
+            int const v2 = c;
+
+            return (c0 * v0) + (c1 * v1) + (c2 * v2);
+        }
+
+        GFL_HOST_DEVICE static int fBJ1(int w, int l, int c)
+        {
+            // Auxiliary values
+            int const p = l - (c % l);
+
+            // Conditions
+            int const c0 = w % l <= c % l;
+            int const c1 = w % l > c % l;
+
+            // Values
+            int const v0 = (w / l) * p;
+            int const v1 = (w / l) * p + (w % l) - (c % l);
+
+            return (c0 * v0) + (c1 * v1);
+        }
+
+        GFL_HOST_DEVICE static int fVB2Base(int w, int l, int c)
+        {
+            int const v = gfl::ceilDiv<int>(l * w, c);
+            return v > 0 ? v - 1 : 0;
+        }
+
+        GFL_HOST_DEVICE static int fVB2(int w, int l, int c)
+        {
+            // Conditions
+            int const c0 = 2 * w > c;
+            int const c1 = 2 * w == c;
+            int const c2 = 2 * w < c;
+
+            // Auxiliary values
+            int const t0 = fVB2Base(c, l, c);
+            int const t1 = fVB2Base(w, l, c);
+            int const t2 = fVB2Base(c - w, l, c);
+
+            // Values
+            int const v0 = 2 * t0 - 2 * t2;
+            int const v1 = t0;
+            int const v2 = 2 * t1;
+
+            return (c0 * v0) + (c1 * v1) + (c2 * v2);
+        }
+
+        GFL_HOST_DEVICE static int fFS1(int w, int l, int c)
+        {
+            // Conditions
+            int const c0 = w * (l + 1) % c == 0;
+            int const c1 = w * (l + 1) % c != 0;
+            assert(c0 + c1 == 1);
+
+            // Values
+            int const v0 = w * l;
+            int const v1 = ((w * (l + 1)) / c) * c;
+
+            return (c0 * v0) + (c1 * v1);
+        }
+
+        GFL_HOST_DEVICE static int fRAD2Base(int w, int l, int c)
+        {
+            // Conditions
+            int const c0 = w < l;
+            int const c1 = l <= w and w <= c - 2 * l;
+            int const c2 = c - 2 * l < w and w < 2 * l;
+
+            // Values
+            int const v0 = 0;
+            int const v1 = c / 3;
+            int const v2 = c / 2;
+
+            return (c0 * v0) + (c1 * v1) + (c2 * v2);
+        }
+
+        GFL_HOST_DEVICE static int fRAD2(int w, int l, int c)
+        {
+            // Conditions
+            int const c0 = w < 2 * l;
+            int const c1 = 2 * l <= w;
+            assert(c0 + c1 == 1);
+
+            // Values
+            int const v0 = fRAD2Base(w, l, c);
+            int const v1 = c - fRAD2Base(c - w, l, c);
+
+            return (c0 * v0) + (c1 * v1);
+        }
 
 
+    protected:
         // Lambdas
         static int const LAMBDA_SAMPLES  = 256;
         struct LambdaRange {int min; int max;};
@@ -113,6 +232,38 @@ class BinPackingLoad : public Constraint
         static LambdaRange lFS1(int c)  {return {1, 100};};
         static LambdaRange lRAD2(int c) {return {c / 4 + 1, c / 3};};
         static LambdaRange sanitizeLambdaRange(LambdaRange lambda, int nWeights, int maxWeight);
+
+
+        // Roster of the dual-feasible functions the lowerbounds are built on:
+        // the transformation, the lambda range to sample, and whether that
+        // range needs sanitizing first. Both devices walk this one roster, so a
+        // function added here is picked up by the CPU propagator and by its GPU
+        // counterpart at once
+        template<int f(int,int,int), LambdaRange l(int), bool sanitize>
+        struct Dff
+        {
+            static constexpr auto transform = f;
+            static constexpr auto lambdaRange = l;
+            static constexpr bool needsSanitizing = sanitize;
+        };
+
+        template<typename... Fs>
+        struct DffRoster
+        {
+            static int const COUNT = sizeof...(Fs);
+            /// Calls `visit` once per dual-feasible function, in roster order
+            template<typename Visitor>
+            static void forEach(Visitor && visit) {(visit(Fs()), ...);};
+        };
+
+        using Dffs = DffRoster<Dff<fCCM1, lCCM1, false>,
+                               Dff<fMT,   lMT,   false>,
+                               Dff<fBJ1,  lBJ1,  false>,
+                               Dff<fVB2,  lVB2,  true>,
+                               Dff<fFS1,  lFS1,  true>,
+                               Dff<fRAD2, lRAD2, false>>;
+
+        static int const DFFS_COUNT = Dffs::COUNT;
 
 
         // Lowerbounds

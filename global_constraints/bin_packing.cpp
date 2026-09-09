@@ -275,56 +275,56 @@ void BinPackingLoad::propagateKnapsackItemEliminationCommitment()
 
 void BinPackingLoad::checkLowerbounds()
 {
-
     int lowerbound = 0;
-    int const nWeights = static_cast<int>(weightsBaseReduction.size());
 
     for (int rIdx = 0; rIdx < REDUCTIONS_COUNT; rIdx += 1)
     {
-        // Calculate reduction parameters
-        int const & delta = deltaReductions[rIdx];
-        int const capacity = capacityBaseReduction + delta;
+        int const capacity = reductionCapacity(rIdx);
 
         if (lowerbound <= nBins and capacity > 0)
         {
-            // Calculate reduction
-            int notZeroCount = 0;
-            int maxWeight = 0;
+            // Calculate the reduction
+            Reduction const reduction = analyzeReduction(rIdx, true);
             std::vector<int> & weights = weightsCurrentReduction;
-            for (int wIdx = 0; wIdx < nWeights; wIdx += 1)
-            {
-                int weight = weightsBaseReduction[wIdx] + (wIdx < nBins ? delta : 0);
-                notZeroCount += weight != 0;
-                maxWeight = std::max(maxWeight, weight);
-                weights[wIdx] = weight;
-            }
 
             // Standard lowerbound
             //std::sort(weights.begin(), weights.end(), std::greater<int>());
             //lowerbound = calcL2(weights, capacity);
             //if (lowerbound > nBins) failNow();
 
-
-            lowerbound = std::max(lowerbound, calcDffLowerbound<fCCM1,lCCM1>(weights, capacity, notZeroCount, maxWeight));
-            if (lowerbound > nBins) failNow();
-
-            lowerbound = std::max(lowerbound, calcDffLowerbound<fMT,lMT>(weights, capacity, notZeroCount, maxWeight));
-            if (lowerbound > nBins) failNow();
-
-            lowerbound = std::max(lowerbound, calcDffLowerbound<fBJ1,lBJ1>(weights, capacity, notZeroCount, maxWeight));
-            if (lowerbound > nBins) failNow();
-
-            lowerbound = std::max(lowerbound, calcDffLowerbound<fVB2,lVB2>(weights, capacity, notZeroCount, maxWeight, true));
-            if (lowerbound > nBins) failNow();
-
-            lowerbound = std::max(lowerbound, calcDffLowerbound<fFS1,lFS1>(weights, capacity, notZeroCount, maxWeight, true));
-            if (lowerbound > nBins) failNow();
-
-            lowerbound = std::max(lowerbound, calcDffLowerbound<fRAD2,lRAD2>(weights, capacity, notZeroCount, maxWeight));
-            if (lowerbound > nBins) failNow();
-
+            // Dual-feasible-function lowerbounds
+            Dffs::forEach([&](auto dff)
+            {
+                using D = decltype(dff);
+                int const dffLowerbound = calcDffLowerbound<D::transform, D::lambdaRange>(weights, capacity, reduction.notZeroCount, reduction.maxWeight, D::needsSanitizing);
+                lowerbound = std::max(lowerbound, dffLowerbound);
+                if (lowerbound > nBins)
+                {
+                    failNow();
+                }
+            });
         }
     }
+}
+
+BinPackingLoad::Reduction BinPackingLoad::analyzeReduction(int rIdx, bool materialize)
+{
+    // The virtual weights of the bins take the delta, the item ones do not.
+    // The GPU rebuilds them in shared memory, hence the optional materialization
+    int const delta = deltaReductions[rIdx];
+    int const nWeights = static_cast<int>(weightsBaseReduction.size());
+    Reduction reduction = {0, 0};
+    for (int wIdx = 0; wIdx < nWeights; wIdx += 1)
+    {
+        int const weight = weightsBaseReduction[wIdx] + (wIdx < nBins ? delta : 0);
+        reduction.notZeroCount += weight != 0;
+        reduction.maxWeight = std::max(reduction.maxWeight, weight);
+        if (materialize)
+        {
+            weightsCurrentReduction[wIdx] = weight;
+        }
+    }
+    return reduction;
 }
 
 void BinPackingLoad::saveBinLoadSizes()
@@ -512,128 +512,3 @@ int BinPackingLoad::calcL2(std::vector<int> const & weights, int capacity)
     }
     return maxLB;
 }
-
-int BinPackingLoad::fMT(int w, int l, int c)
-{
-    // Branch-less f0 transformation
-
-    // Conditions
-    int const c0 = w < l;
-    int const c1 = l <= w and w <= c - l;
-    int const c2 = c - l < w;
-    assert(c0 + c1 + c2 == 1);
-
-    // Values
-    int const v0 = 0;
-    int const v1 = w;
-    int const v2 = c;
-
-    return (c0 * v0) + (c1 * v1) + (c2 * v2);
-}
-
-int BinPackingLoad::fRAD2Base(int w, int l, int c)
-{
-    // Conditions
-    int const c0 = w < l;
-    int const c1 = l <= w and w <= c - 2 * l;
-    int const c2 = c - 2 * l < w and w < 2 * l;
-
-    // Values
-    int const v0 = 0;
-    int const v1 = c / 3;
-    int const v2 = c / 2;
-
-    return (c0 * v0) + (c1 * v1) + (c2 * v2);
-}
-
-int BinPackingLoad::fRAD2(int w, int l, int c)
-{
-    // Conditions
-    int const c0 = w < 2 * l;
-    int const c1 = 2 * l <= w;
-    assert(c0 + c1 == 1);
-
-    // Values
-    int const v0 = fRAD2Base(w, l, c);
-    int const v1 = c - fRAD2Base(c - w, l, c);
-
-    return (c0 * v0) + (c1 * v1);
-}
-
-int BinPackingLoad::fVB2Base(int w, int l, int c)
-{
-    int const v = gfl::ceilDiv<int>(l * w, c);
-    return v > 0 ? v - 1 : 0;
-}
-
-int BinPackingLoad::fVB2(int w, int l, int c)
-{
-    int const c0 = 2 * w > c;
-    int const c1 = 2 * w == c;
-    int const c2 = 2 * w < c;
-
-    int const t0 = fVB2Base(c, l, c);
-    int const t1 = fVB2Base(w, l, c);
-    int const t2 = fVB2Base(c - w, l, c);
-
-    int const v0 = 2 * t0 - 2 * t2;
-    int const v1 = t0;
-    int const v2 = 2 * t1;
-
-    return (c0 * v0) + (c1 * v1) + (c2 * v2);
-}
-
-int BinPackingLoad::fCCM1(int w, int l, int c)
-{
-    // Branch-less fCMM transformation
-
-    // Conditions
-    int const c0 = 2 * w > c;  // x > c / 2
-    int const c1 = 2 * w == c; // x == c / 2
-    int const c2 = 2 * w < c;  // x < c / 2
-    assert(c0 + c1 + c2 == 1);
-
-    // Values
-    int const v0 = 2 * ((c / l) - ((c - w) / l));
-    int const v1 = c / l;
-    int const v2 = 2 * (w / l);
-
-    return (c0 * v0) + (c1 * v1) + (c2 * v2);
-}
-
-int BinPackingLoad::fFS1(int w, int l, int c)
-{
-    // Branch-less fFS1 transformation
-
-    // Conditions
-    int c0 = w * (l + 1) % c == 0;
-    int c1 = w * (l + 1) % c != 0;
-    assert(c0 + c1 == 1);
-
-    // Values
-    int v0 = w * l;
-    int v1 = ((w * (l + 1)) / c) * c;
-
-    return (c0 * v0) + (c1 * v1);
-}
-
-int BinPackingLoad::fBJ1(int w, int l, int c)
-{
-    // Branch-less fBJ1 transformation
-
-    // Auxiliary values
-    int const p = l - (c % l);
-
-    // Conditions
-    int const c0 = w % l <= c % l;
-    int const c1 = w % l > c % l;
-
-    // Values
-    int const v0 = (w / l) * p;
-    int const v1 = (w / l) * p + (w % l) - (c % l);
-
-    return (c0 * v0) + (c1 * v1);
-}
-
-
-
