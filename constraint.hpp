@@ -312,12 +312,17 @@ public:
 };
 
 class Circuit :public Constraint {
-   Factory::Veci  _x;
    trail<int>* _dest;
    trail<int>* _orig;
    trail<int>* _lengthToDest;
    void bind(int i);
    void setup(CPSolver::Ptr cp);
+protected:
+   Factory::Veci  _x;
+   /// Posts the alldifferent that Circuit relies on. Overridden to swap in
+   /// another propagator for it -- a stronger one, or a GPU one -- without
+   /// touching the subtour bookkeeping.
+   virtual void postAllDifferent();
 public:
    template <class Vec> Circuit(const Vec& x)
       : Constraint(x.front()->getSolver()),
@@ -330,6 +335,19 @@ public:
       setup(cp);
    }
    void post() override;
+};
+
+/**
+ * Circuit whose alldifferent enforces domain consistency rather than the value
+ * consistency Circuit settles for. Costlier per propagation, but it prunes
+ * strictly more.
+ * @see Circuit
+ */
+class CircuitAC : public Circuit {
+protected:
+   void postAllDifferent() override;
+public:
+   template <class Vec> CircuitAC(const Vec& x) : Circuit(x) {}
 };
 
 class Minimize : public Objective {

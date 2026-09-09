@@ -13,28 +13,55 @@
  * Copyright (c)  2018. by Laurent Michel, Pierre Schaus, Pascal Van Hentenryck
  */
 
-#include <iostream>
-#include <iomanip>
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
+#include "alldifferent.hpp"
 #include "search.hpp"
+#include "utils.hpp"
+#include "gfl/Alias.hpp"
+#include <CLI/CLI.hpp>
 
-int main(int argc,char* argv[])
+#include <iostream>
+
+using namespace std;
+using namespace Factory;
+using namespace gfl;
+
+// The n-queens problem: place n queens on an n x n board so that no two share a
+// row, a column or a diagonal. One variable per column holds the row of its
+// queen, which takes care of the columns; the three alldifferents rule out a
+// shared row and a shared diagonal in either direction.
+//
+// Counting every solution keeps the propagators busy over a large search tree,
+// which is what makes this a reasonable workout for the alldifferent the -g
+// flag moves to the GPU. The board has to be big for that to pay off: the
+// residual graph only gets dense enough to beat Tarjan's algorithm once there
+// are many queens sharing many rows.
+
+int main(int argc, char * argv[])
 {
-    using namespace std;
-    using namespace Factory;
-    const int n = 8;
+    // Parse the command line
+    auto n = 8;
+    auto timeout = highest<int>(); // ~68 years
+    auto firstOnly = false;
+    auto gpu = false;
+
+    CLI::App app{"A MiniCPP-based n-queens solver"};
+    app.add_option("-n", n, "How many queens")->check(CLI::PositiveNumber);
+    app.add_option("-t", timeout, "Timeout in seconds");
+    app.add_flag("-1", firstOnly, "Stop at the first solution instead of counting them all");
+    app.add_flag("-g", gpu, "Run the alldifferent constraints on the GPU");
+    CLI11_PARSE(app, argc, argv);
+
+    auto const dev = gpu ? GPU : CPU;
+
     CPSolver::Ptr cp  = Factory::makeSolver();
     auto q = Factory::intVarArray(cp,n,1,n);
-    cp->post(Factory::allDifferentAC(q));
+    cp->post(Factory::allDifferentAC(q,dev));
     cp->post(Factory::allDifferentAC(Factory::intVarArray(cp,n,[q](int i) {
                                                                   return q[i] + i;
-                                                               })));
+                                                               }),dev));
     cp->post(Factory::allDifferentAC(Factory::intVarArray(cp,n,[q](int i) {
                                                                   return q[i] - i;
-                                                               })));
+                                                               }),dev));
 
     DFSearch search(cp,[=]() {
                           auto x = selectMin(q,
@@ -49,12 +76,10 @@ int main(int argc,char* argv[])
 
     //search.onSolution([&q]() { cout << "sol = " << q << endl;});
 
-    auto stat = search.solve();
-    /*
-    auto stat = search.solve([](const SearchStatistics& s) {
-                                return RuntimeMonitor::elapsedSince(s.startTime()) > 100;
-                             });
-    */
+    auto limits = [=](SearchStatistics const & ss) {
+        return RuntimeMonitor::elapsedSeconds(ss.getStartTime()) > timeout || (firstOnly && ss.getSolutions() > 0);
+    };
+    auto stat = search.solve(limits);
     cout << stat << endl;
     
     cp.dealloc();

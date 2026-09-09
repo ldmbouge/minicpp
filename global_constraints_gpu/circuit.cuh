@@ -13,14 +13,24 @@
  * Copyright (c) 2022. by Fabio Tardivo
  */
 
+
 #pragma once
 
 #include "constraint.hpp"
 
+/**
+ * @brief Circuit whose alldifferent runs on the GPU.
+ *
+ * Only the alldifferent changes: the successor/predecessor bookkeeping that
+ * rules out subtours stays on the CPU, in the base class. The propagator it
+ * posts filters exactly like CircuitAC's, so the two explore the same search
+ * tree.
+ * @see AllDifferentGPU
+ */
 class CircuitGPU : public Circuit
 {
     public:
-        template <class Vec> CircuitGPU(Vec const & x, int offset = 0) : Circuit(x, offset) { setPriority(CLOW);};
+        template <class Vec> CircuitGPU(Vec const & x) : Circuit(x) {}
     protected:
         void postAllDifferent() override;
 };

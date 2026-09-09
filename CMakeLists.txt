@@ -90,6 +90,7 @@ set(GPU_CONSTR_SRC
         global_constraints_gpu/all_different.cu
         global_constraints_gpu/cumulative.cu
         global_constraints_gpu/bin_packing.cu
+        global_constraints_gpu/circuit.cu
 )
 
 set(GLB_CONSTR_SRC
@@ -180,7 +181,8 @@ message("${files}")
 
 if(ENABLE_GPU)
 	# Examples with a GPU variant of their propagators must go through nvcc
-	set_source_files_properties(examples/binpacking.cpp examples/langford.cpp PROPERTIES LANGUAGE CUDA)
+	set_source_files_properties(examples/binpacking.cpp examples/langford.cpp
+	                            examples/nqueensAC.cpp examples/tsp.cpp PROPERTIES LANGUAGE CUDA)
 endif()
 
 foreach (file ${files})
@@ -202,7 +204,7 @@ foreach (file ${GPUfiles})
 endforeach()
 
 # The examples built on gfl need C++20 as well
-set_target_properties(binpacking langford PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
+set_target_properties(binpacking langford nqueensAC tsp PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 
 # Data files for the benchmarks
 ################################################################################

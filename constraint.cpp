@@ -814,10 +814,21 @@ void Circuit::setup(CPSolver::Ptr cp)
    }
 }
 
-void Circuit::post()
+void Circuit::postAllDifferent()
 {
    auto cp = _x[0]->getSolver();
    cp->post(Factory::allDifferent(_x));
+}
+
+void CircuitAC::postAllDifferent()
+{
+   auto cp = _x[0]->getSolver();
+   cp->post(Factory::allDifferentAC(_x));
+}
+
+void Circuit::post()
+{
+   postAllDifferent();
    if (_x.size() == 1) {
       _x[0]->assign(0);
       return ;      

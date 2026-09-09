@@ -13,16 +13,12 @@
  * Copyright (c) 2022. by Fabio Tardivo
  */
 
+
 #include "all_different.cuh"
 #include "circuit.cuh"
 
 void CircuitGPU::postAllDifferent()
 {
-    std::vector<var<int>::Ptr> vars;
-    for(auto i = 0u; i < _x.size(); i += 1)
-    {
-        vars.push_back(_x[i]);
-    }
     auto cp = _x[0]->getSolver();
-    cp->post(new (cp) AllDifferentGPU(vars));
+    cp->post(new (cp) AllDifferentGPU(_x));
 }
