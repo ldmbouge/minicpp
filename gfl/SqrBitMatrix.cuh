@@ -37,7 +37,7 @@
 // right and the lowest-numbered set column is a leading-zero count.
 
 namespace gfl {
-inline constexpr i32 BlockSide = 128;     // Rows (and threads) per tile
+inline constexpr i32 BlockSide = 128;     // Rows per tile
 inline constexpr i32 HalfBlockSide = 64;  // The scc64 special case
 inline constexpr i32 NoColumn = -1;       // firstSetColumn of an empty row
 

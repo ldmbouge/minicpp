@@ -22,11 +22,17 @@
 #include "Allocators.hpp"
 #include "DebugUtils.hpp"
 
-// Each tile primitive below is written once for both targets: on the device
-// thread t owns row t of the tile, on the host one loop walks all 128 rows.
-// GFL_ROW opens that loop off-device and names the row either way.
+// Each tile primitive below is written once for both targets: on the device the
+// launch shape decides how many rows a thread owns -- one each at 128 threads,
+// four each at 32 -- and on the host one loop walks all 128 rows. GFL_ROW opens
+// that loop and names the row either way.
+//
+// GFL_SYNC_ROWS orders the rows of a tile across the whole block. A block
+// barrier costs about a hundred cycles on Ada, but the arithmetic of the other
+// warps hides most of it -- running a tile on one warp to cheapen the barrier
+// costs far more in exposed work than it saves.
 #ifdef __CUDA_ARCH__
-#define GFL_ROW(name) u32 const name = threadIdx.x;
+#define GFL_ROW(name) for (u32 name = threadIdx.x; name < gfl::scast<u32>(gfl::BlockSide); name += blockDim.x)
 #define GFL_SYNC_ROWS() __syncthreads()
 #else
 #define GFL_ROW(name) for (u32 name = 0; name < gfl::scast<u32>(gfl::BlockSide); name += 1)
@@ -40,7 +46,7 @@ GFL_HOST_DEVICE i32 wordsPerRow(u32 const size) noexcept { return scast<i32>(siz
 
 GFL_HOST_DEVICE void checkTile(u32 const row, u32 const col) noexcept {
 #ifdef __CUDA_ARCH__
-    assert(blockDim.x == BlockSide);
+    assert(blockDim.x <= scast<u32>(BlockSide) and BlockSide % blockDim.x == 0);
 #endif
     assert(row % BlockSide == 0);
     assert(col % BlockSide == 0);
@@ -92,7 +98,7 @@ GFL_HOST_DEVICE void transposeBlock(u64 const* const block, u64* const transpose
 
 GFL_HOST_DEVICE void transposeBlock(u128 const* const block, u128* const transposed) {
 #ifdef __CUDA_ARCH__
-    assert(blockDim.x == BlockSide);
+    assert(blockDim.x <= scast<u32>(BlockSide) and BlockSide % blockDim.x == 0);
 #endif
     GFL_ROW(tRow) {
         u128 buffer = 0;
@@ -104,14 +110,14 @@ GFL_HOST_DEVICE void transposeBlock(u128 const* const block, u128* const transpo
 
 GFL_HOST_DEVICE void bitwiseAndBlock(u128 const* const aBlock, u128 const* const bBlock, u128* const cBlock) {
 #ifdef __CUDA_ARCH__
-    assert(blockDim.x == BlockSide);
+    assert(blockDim.x <= scast<u32>(BlockSide) and BlockSide % blockDim.x == 0);
 #endif
     GFL_ROW(bRow) { cBlock[bRow] = aBlock[bRow] & bBlock[bRow]; }
 }
 
 GFL_HOST_DEVICE void findSccBlock(u32 const col, u128 const* const block, u32* const scc) {
 #ifdef __CUDA_ARCH__
-    assert(blockDim.x == BlockSide);
+    assert(blockDim.x <= scast<u32>(BlockSide) and BlockSide % blockDim.x == 0);
 #endif
     GFL_ROW(bRow) {
         i32 const c = firstSetColumn(block[bRow]);
@@ -122,23 +128,26 @@ GFL_HOST_DEVICE void findSccBlock(u32 const col, u128 const* const block, u32* c
 
 GFL_HOST_DEVICE void reachabilityBlock(u128* const ijBlock, u128 const* const iBlock, u128 const* const kBlock) {
 #ifdef __CUDA_ARCH__
-    assert(blockDim.x == BlockSide);
+    assert(blockDim.x <= scast<u32>(BlockSide) and BlockSide % blockDim.x == 0);
 #endif
     // ijBlock may be iBlock or kBlock, so every row's read of step k has to
-    // happen before any row's write of step k, and vice versa
+    // happen before any row's write of step k, and vice versa. Row k is the
+    // only row every lane reads, and it cannot change at step k -- it can only
+    // gain bits it already has -- so it is taken once, up front, rather than
+    // once per row: a lane owning several rows would otherwise read it again
+    // after having written one of its own.
     for (i32 k = 0; k < BlockSide; k += 1) {
-        GFL_ROW(i) {
-            u128 const kRow = testColumn(iBlock[i], k) ? kBlock[k] : u128{0};
-            GFL_SYNC_ROWS();
-            ijBlock[i] |= kRow;
-            GFL_SYNC_ROWS();
-        }
+        u128 const pivot = kBlock[k];
+        GFL_SYNC_ROWS();
+        GFL_ROW(i)
+            if (testColumn(iBlock[i], k)) ijBlock[i] |= pivot;
+        GFL_SYNC_ROWS();
     }
 }
 
 GFL_HOST_DEVICE void reachabilityBlock3(u128* const ijBlock, u128 const* const iBlock, u128 const* const kBlock) {
 #ifdef __CUDA_ARCH__
-    assert(blockDim.x == BlockSide);
+    assert(blockDim.x <= scast<u32>(BlockSide) and BlockSide % blockDim.x == 0);
 #endif
     // The three tiles are distinct here, so a row can accumulate in a register
     GFL_ROW(i) {
@@ -364,6 +373,7 @@ GFL_GLOBAL void reachabilityArrangedKernel2(u32 const i, u32 const size, u32* co
 
     __shared__ u128 diagonal[BlockSide];
     __shared__ u128 block[BlockSide];
+    __shared__ u128 snapshot[BlockSide];
     u32 const x = blockIdx.x * BlockSide;
     bool const horizontal = blockIdx.y == 0;
 
@@ -371,11 +381,21 @@ GFL_GLOBAL void reachabilityArrangedKernel2(u32 const i, u32 const size, u32* co
 
     cpyArrangedToBlock(i, i, size, reach, diagonal);
     cpyArrangedToBlock(horizontal ? i : x, horizontal ? x : i, size, reach, block);
-    __syncthreads();
-    if (horizontal)
-        reachabilityBlock(block, diagonal, block);
-    else
-        reachabilityBlock(block, block, diagonal);
+
+    // Phase 1 leaves the diagonal transitively closed, so a second hop through
+    // it is already a first hop: one pass is the fixpoint, and the in place
+    // loop reachabilityBlock runs -- with its two barriers per step, because
+    // the destination aliases a source -- is redundant. Handing the aliased
+    // source in as a separate tile lets reachabilityBlock3 do it with a row
+    // accumulated in a register and no barrier at all.
+    if (horizontal) {
+        GFL_ROW(r) { snapshot[r] = block[r]; }
+        __syncthreads();
+        reachabilityBlock3(block, diagonal, snapshot);
+    } else {
+        __syncthreads();
+        reachabilityBlock3(block, block, diagonal);
+    }
     __syncthreads();
     cpyBlockToArranged(horizontal ? i : x, horizontal ? x : i, size, block, reach);
 }
