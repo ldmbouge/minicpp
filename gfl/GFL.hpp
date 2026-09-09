@@ -19,4 +19,5 @@
 #include "PackedUInts.hpp"
 #include "ParallelUtils.hpp"
 #include "Pools.hpp"
+#include "Timer.hpp"
 #include "VectorView.hpp"

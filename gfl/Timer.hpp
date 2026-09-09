@@ -1,146 +1,127 @@
 #pragma once
 
+#include <iomanip>
+#include <iostream>
+#include <mutex>
+#include <sstream>
 #include <string>
 #include <unordered_map>
-#include <mutex>
-#include <iostream>
-#include <sstream>
-#include <iomanip>
 
+#include "Alias.hpp"
 #include "ChronoUtils.hpp"
 
-namespace gfl
-{
-    // ── TimingData ────────────────────────────────────────────────────────────────
-
-    class TimingData
-    {
-    public:
-        gfl::TimePoint begin_time     = gfl::now();
-        double         total_run_time = 0.0;
-        int            count          = 0;
+namespace gfl {
+// A process-wide wall-clock profiler keyed by name. Each named timer keeps its
+// running total and call count, so summary() can report where the time went.
+// Use it through TIMED_SCOPE, which closes the timer on every exit path.
+class Timer {
+public:
+    struct Timing {
+        TimePoint begin{now()};
+        f64 totalMs{0.0};
+        i64 count{0};
     };
 
-    // ── Timer ─────────────────────────────────────────────────────────────────────
+private:
+    std::mutex _mutex;
+    TimePoint _programBegin{now()};
+    std::unordered_map<std::string, Timing> _timings;
 
-    class Timer
-    {
-    private:
-        inline static Timer* instance_ = nullptr;
+    Timer() = default;
+    // Function-local static: the C++ runtime makes the initialization
+    // thread-safe, which a lazily assigned pointer would not be
+    static Timer& get() {
+        static Timer instance;
+        return instance;
+    }
 
-        std::mutex                                  mutex_;
-        TimingData                                  program_data_;
-        std::unordered_map<std::string, TimingData> functions_data_;
+public:
+    GFL_DISABLE_COPY_AND_MOVE(Timer);
 
-        Timer() { program_data_.begin_time = gfl::now(); }
-
-        static Timer& get()
-        {
-            if (instance_ == nullptr)
-                instance_ = new Timer();
-            return *instance_;
-        }
+    // Times a scope, closing the timer however the scope is left
+    class Scoped {
+        std::string _name;
 
     public:
+        explicit Scoped(std::string name) : _name(gfl::move(name)) { Timer::begin(_name); }
+        ~Scoped() { Timer::end(_name); }
+        GFL_DISABLE_COPY_AND_MOVE(Scoped);
+    };
 
-        // ── Scoped ────────────────────────────────────────────────────────────────
+    static void begin(std::string const& name = "Anonymous") {
+        // Read the clock before taking the lock, so waiting for it is not timed
+        TimePoint const t = now();
+        Timer& timer = get();
+        std::lock_guard<std::mutex> const lock(timer._mutex);
+        timer._timings[name].begin = t;
+    }
 
-        class Scoped
-        {
-        public:
-            explicit Scoped(std::string const& name) : name_(name) { Timer::begin(name_); }
-            ~Scoped() { Timer::end(name_); }
+    static void end(std::string const& name = "Anonymous", bool const printElapsed = false) {
+        TimePoint const t = now();
+        Timer& timer = get();
+        std::lock_guard<std::mutex> const lock(timer._mutex);
 
-            Scoped(Scoped const&)            = delete;
-            Scoped& operator=(Scoped const&) = delete;
+        auto const it = timer._timings.find(name);
+        if (it == timer._timings.end()) {
+            std::cerr << "Timer::end: no timer named '" << name << "'\n";
+            return;
+        }
 
-        private:
-            std::string name_;
+        f64 const elapsedMs = elapsed<ms>(it->second.begin, t);
+        it->second.totalMs += elapsedMs;
+        it->second.count += 1;
+        if (printElapsed) std::cout << name << ": " << elapsedMs << " ms\n";
+    }
+
+    static void reset() {
+        Timer& timer = get();
+        std::lock_guard<std::mutex> const lock(timer._mutex);
+        timer._timings.clear();
+        timer._programBegin = now();
+    }
+
+    static std::string summary() {
+        constexpr i32 NameWidth = 30;
+        constexpr i32 ValueWidth = 12;
+
+        Timer& timer = get();
+        std::lock_guard<std::mutex> const lock(timer._mutex);
+        f64 const total = elapsed<ms>(timer._programBegin);
+
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(3);
+        auto row = [&](std::string const& name, f64 const avg, f64 const tot, i64 const count, f64 const pct) {
+            ss << "%% | " << std::left << std::setw(NameWidth) << name;
+            ss << " |" << std::right << std::setw(ValueWidth) << avg << " ms";
+            ss << " |" << std::right << std::setw(ValueWidth) << tot << " ms";
+            ss << " |" << std::right << std::setw(ValueWidth) << count << " calls";
+            ss << " |" << std::right << std::setw(ValueWidth) << pct << " %\n";
         };
 
-        // ── API ───────────────────────────────────────────────────────────────────
+        ss << "%% +-------------------\n";
+        ss << "%% | Profiling Summary\n";
+        ss << "%% +-------------------\n";
+        ss << "%% | " << std::left << std::setw(NameWidth) << "Name";
+        ss << " |" << std::right << std::setw(ValueWidth + 3) << "Average";
+        ss << " |" << std::right << std::setw(ValueWidth + 3) << "Total";
+        ss << " |" << std::right << std::setw(ValueWidth + 6) << "Called";
+        ss << " |" << std::right << std::setw(ValueWidth + 2) << "Percentage" << "\n";
 
-        static void begin(std::string const& name = "Anonymous")
-        {
-            auto t = gfl::now();
-            auto& inst = get();
-            std::lock_guard<std::mutex> lock(inst.mutex_);
-            inst.functions_data_[name].begin_time = t;
+        row("Total Run Time", total, total, 1, 100.0);
+        for (auto const& [name, t] : timer._timings) {
+            f64 const avg = t.count > 0 ? t.totalMs / scast<f64>(t.count) : 0.0;
+            f64 const pct = total > 0.0 ? 100.0 * t.totalMs / total : 0.0;
+            row(name, avg, t.totalMs, t.count, pct);
         }
-
-        static void end(std::string const& name = "Anonymous", bool print_elapsed = false)
-        {
-            auto t = gfl::now();
-            auto& inst = get();
-            std::lock_guard<std::mutex> lock(inst.mutex_);
-
-            auto it = inst.functions_data_.find(name);
-            if (it == inst.functions_data_.end()) {
-                std::cerr << "Timer::end — unknown timer '" << name << "'" << std::endl;
-                return;
-            }
-
-            double ms = gfl::elapsed<gfl::msec>(it->second.begin_time, t);
-            it->second.total_run_time += ms;
-            it->second.count++;
-
-            if (print_elapsed)
-                std::cout << name << ": " << ms << " ms" << std::endl;
-        }
-
-        static std::string summary()
-        {
-            auto&  inst  = get();
-            double total = gfl::elapsed<gfl::msec>(inst.program_data_.begin_time);
-
-            const int W_NAME = 30;
-            const int W_AVG  = 15;
-            const int W_TOT  = 15;
-            const int W_CNT  = 15;
-            const int W_PCT  = 15;
-
-            auto row = [&](std::stringstream& ss,
-                           const std::string& name,
-                           double avg, double tot, int cnt, double pct)
-            {
-                ss << "%% | ";
-                ss << std::left  << std::setw(W_NAME)    << name << " |";
-                ss << std::right << std::setw(W_AVG - 3) << avg  << " ms |";
-                ss << std::right << std::setw(W_TOT - 3) << tot  << " ms |";
-                ss << std::right << std::setw(W_CNT - 7) << cnt  << " times |";
-                ss << std::right << std::setw(W_PCT - 2) << pct  << " %" << std::endl;
-            };
-
-            std::stringstream ss;
-            ss << std::fixed << std::setprecision(3);
-            ss << "%% +-------------------"  << std::endl;
-            ss << "%% | Profiling Summary"   << std::endl;
-            ss << "%% +-------------------"  << std::endl;
-            ss << "%% | ";
-            ss << std::left  << std::setw(W_NAME) << "Function Name" << " |";
-            ss << std::right << std::setw(W_AVG)  << "Average"        << " |";
-            ss << std::right << std::setw(W_TOT)  << "Total"          << " |";
-            ss << std::right << std::setw(W_CNT)  << "Called"         << " |";
-            ss << std::right << std::setw(W_PCT)  << "Percentage"     << " |" << std::endl;
-
-            row(ss, "Total Run Time", total, total, 1, 100.0);
-
-            std::lock_guard<std::mutex> lock(inst.mutex_);
-            for (auto& [name, d] : inst.functions_data_) {
-                double avg = d.count > 0 ? d.total_run_time / d.count : 0.0;
-                double pct = total   > 0 ? 100.0 * d.total_run_time / total : 0.0;
-                row(ss, name, avg, d.total_run_time, d.count, pct);
-            }
-
-            return ss.str();
-        }
-    };
+        return ss.str();
+    }
+};
 }
 
-// Time the current scope using the function name as the timer key.
-// Usage: void myFunction() { TIMED_SCOPE(); ... }
-#define TIMED_SCOPE()       Timer::Scoped _scoped_timer_(__func__)
+// Times the current scope, keyed by the enclosing function's name.
+// Usage: void myFunction() { GFL_TIMED_SCOPE(); ... }
+#define GFL_TIMED_SCOPE() gfl::Timer::Scoped const _gflScopedTimer(__func__)
 
-// Time the current scope using a custom name as the timer key.
-// Usage: void myFunction() { TIMED_SCOPE_N("my section"); ... }
-#define TIMED_SCOPE_N(name) Timer::Scoped _scoped_timer_(name)
+// Times the current scope, keyed by a name of your own.
+// Usage: void myFunction() { GFL_TIMED_SCOPE_NAMED("inner loop"); ... }
+#define GFL_TIMED_SCOPE_NAMED(name) gfl::Timer::Scoped const _gflScopedTimer(name)

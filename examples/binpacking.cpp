@@ -22,9 +22,6 @@ pair<int, vector<int>> readInstance(string const & path)
     vector<int> weights(nItems);
     for (auto & weight : weights)
         file >> weight;
-
-    // The dominance rules of the search heuristic need the items by
-    // decreasing weight, so the packing is reported in that order too
     sort(weights.begin(), weights.end(), greater<int>());
     return {capacity, weights};
 }
@@ -33,20 +30,15 @@ pair<int, vector<int>> readInstance(string const & path)
 // fills best, after applying the dominance rules that leave no choice.
 class DecreasingBestFit {
     CPSolver::Ptr _cp;
-    Veci const & _bin;
+    vector<var<int>::Ptr> const & _bin;
     vector<int> const & _w;
-    var<int>::Ptr _nBins;
+    var<int>::Ptr & _nBins;
     int const _capacity;
     int const _nItems;
-    // Preallocated working memory to avoid reallocating at every node
     vector<int> _residual;
     vector<int> _binsByResidual;
 
-    bool fitsUnpacked(int i, int b) const {
-        return !_bin[i]->isBound() && _bin[i]->contains(b) && _w[i] <= _residual[b];
-    }
-
-    // Residual capacity of every bin, given the items already packed
+    bool fits(int i, int b) const { return !_bin[i]->isBound() && _bin[i]->contains(b) && _w[i] <= _residual[b]; }
     void calcResiduals() {
         fill(_residual.begin(), _residual.end(), _capacity);
         for (auto i = 0; i < _nItems; i += 1)
@@ -54,18 +46,17 @@ class DecreasingBestFit {
                 _residual[_bin[i]->min()] -= _w[i];
     }
 
-    // An item filling a bin exactly leaves nothing on the table: pack it there
     bool perfectFit(int nBins) {
-        auto assigned = false;
+        auto someItemAssigned = false;
         for (auto b = 0; b < nBins; b += 1)
             for (auto i = 0; i < _nItems; i += 1)
-                if (fitsUnpacked(i, b) && _residual[b] == _w[i]) {
+                if (fits(i, b) && _residual[b] == _w[i]) {
                     _residual[b] = 0;
                     _bin[i]->assign(b);
-                    assigned = true;
+                    someItemAssigned = true;
                     break;
                 }
-        return assigned;
+        return someItemAssigned;
     }
 
     // When no two of the remaining items fit together in a bin, that bin can
@@ -73,16 +64,15 @@ class DecreasingBestFit {
     bool onlyOneItemFits(int nBins) {
         _binsByResidual.resize(nBins);
         iota(_binsByResidual.begin(), _binsByResidual.end(), 0);
-        sort(_binsByResidual.begin(), _binsByResidual.end(),
-             [&](auto lhs, auto rhs) { return _residual[lhs] > _residual[rhs]; });
+        sort(_binsByResidual.begin(), _binsByResidual.end(), [&](auto lhs, auto rhs) { return _residual[lhs] > _residual[rhs]; });
 
-        auto assigned = false;
+        auto someItemAssigned = false;
         for (auto b : _binsByResidual) {
             // Items come by decreasing weight, so the first candidate found is
             // the heaviest one and the last two are the lightest ones
             auto heaviest = -1, lightest = -1, nextLightest = -1;
             for (auto i = 0; i < _nItems; i += 1)
-                if (fitsUnpacked(i, b)) {
+                if (fits(i, b)) {
                     heaviest = heaviest < 0 ? i : heaviest;
                     nextLightest = lightest;
                     lightest = i;
@@ -91,31 +81,24 @@ class DecreasingBestFit {
             if (nextLightest >= 0 && _w[lightest] + _w[nextLightest] > _residual[b]) {
                 _residual[b] -= _w[heaviest];
                 _bin[heaviest]->assign(b);
-                assigned = true;
+                someItemAssigned = true;
             }
         }
-        return assigned;
+        return someItemAssigned;
     }
 
 public:
-    DecreasingBestFit(CPSolver::Ptr cp, Veci const & bin, vector<int> const & w, var<int>::Ptr nBins, int capacity) :
-        _cp(cp), _bin(bin), _w(w), _nBins(nBins), _capacity(capacity), _nItems(scast<int>(bin.size())),
-        _residual(nBins->max() + 1, capacity)
+    DecreasingBestFit(CPSolver::Ptr cp, vector<var<int>::Ptr> const & bin, vector<int> const & w, var<int>::Ptr nBins, int capacity) :
+        _cp(cp), _bin(bin), _w(w), _nBins(nBins), _capacity(capacity), _nItems(scast<int>(bin.size())), _residual(nBins->max() + 1, capacity)
     {
         _binsByResidual.reserve(_residual.size());
     }
 
     Branches operator()() {
         auto const nBins = _nBins->max() + 1;
-
-        // Dominance rules, until neither one packs anything. Both always run
-        // (hence '|' and not '||'): each one feeds the other
         calcResiduals();
-        while (perfectFit(nBins) | onlyOneItemFits(nBins))
-            ;
+        while (perfectFit(nBins) | onlyOneItemFits(nBins)) {}
         _cp->fixpoint();
-
-        // The items being sorted, the heaviest unpacked one is the first one
         auto const unpacked = find_if(_bin.begin(), _bin.end(), [](auto const & x) { return !x->isBound(); });
         if (unpacked == _bin.end())
             return Branches({});
@@ -133,14 +116,12 @@ public:
                     bestResidual = residual;
                 }
             }
-        if (bestBin < 0)
-            return Branches({});
-
+        assert(bestBin >= 0);
         auto cp = _cp;
         auto x = _bin[item];
         return Branches({
             [=]() { cp->post(x == bestBin); },
-            [this, cp, nBins, bestBin, item, weight]() {
+            [this, &cp, &nBins, bestBin, item, weight]() {
                 // On refusal, all the bins equivalent to the best one are ruled
                 // out, and so are all the items equivalent to the chosen one
                 auto const targetResidual = _residual[bestBin];
