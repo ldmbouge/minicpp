@@ -14,6 +14,7 @@
  */
 
 #include "constraint.hpp"
+#include "profiling.hpp"
 #include <string.h>
 #include <limits>
 
@@ -728,6 +729,12 @@ void AllDifferentAC::init()
    _scc     = new (cp) int[_nNodes];
    _nSCC    = 0;
    _rg = new (cp) PGraph(_nVar,_minVal,_maxVal,_match,_varFor,_x.data());
+   if (profiling()) {
+      const std::string tag = " (" + std::to_string(_nNodes) + " nodes)";
+      _tagMatchCPU  = "alldifferent cpu match" + tag;
+      _tagSCCCPU    = "alldifferent cpu scc" + tag;
+      _tagFilterCPU = "alldifferent cpu filter" + tag;
+   }
 }
 
 void AllDifferentAC::post() 
@@ -794,12 +801,21 @@ void AllDifferentAC::filterDomains()
 
 void AllDifferentAC::propagate()
 {
-   if (calcMatch() < _nVar) 
-      failNow();
-   calcSCC();
+   {
+      Phase const p(_tagMatchCPU);
+      if (calcMatch() < _nVar)
+         failNow();
+   }
+   {
+      // Tarjan's algorithm: the phase AllDifferentGPU offloads to the device
+      Phase const p(_tagSCCCPU);
+      calcSCC();
+   }
    // A single component covers every edge, so nothing can be filtered
-   if (_nSCC > 1)
+   if (_nSCC > 1) {
+      Phase const p(_tagFilterCPU);
       filterDomains();
+   }
 }
 
 void Circuit::setup(CPSolver::Ptr cp)

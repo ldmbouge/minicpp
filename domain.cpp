@@ -14,6 +14,7 @@
  */
 
 #include "domain.hpp"
+#include "gfl/BitUtils.hpp"
 #include "fail.hpp"
 #include <iostream>
 
@@ -25,15 +26,55 @@ BitDomain::BitDomain(Trailer::Ptr eng,Storage::Ptr store,int min,int max)
     : _min(eng,min),
       _max(eng,max),
       _sz(eng,max - min + 1),
-      _imin(min)
+      _imin(min),
+      _nWords((max - min + 1 + 31) / 32)
 {
-   const int nb = (_sz >> 5) + ((_sz & 0x1f) != 0); // number of 32-bit words
+   const int nb = _nWords; // number of 32-bit words
    _dom = (trail<int>*)store->allocate(sizeof(trail<int>) * nb); // allocate storage from stack allocator
    for(int i=0;i<nb;i++)
       new (_dom+i) trail<int>(eng,0xffffffff);  // placement-new for each reversible.
    const bool partial = _sz & 0x1f;
    if (partial)
       _dom[nb - 1] = _dom[nb - 1] & ~(0xffffffff << (max - min + 1) % 32);
+}
+
+// Copies the domain out as a bitmap over the window [min,max], a whole 32-bit
+// word of values at a time rather than a value at a time. The value `min + k`
+// lands at bit `31 - (k % 32)` of `dst[k / 32]`, most significant bit first.
+//
+// Only the words spanning [_min,_max] are written; the rest are left alone, so
+// the caller clears `dst` (or the region it cares about) beforehand. The window
+// need not line up with the domain's own word grid -- the bits are shifted into
+// place -- but a caller that shares one buffer between variables wants `min` to
+// be the same for all of them.
+void BitDomain::dump(int min,int max,unsigned int* dst) const
+{
+   assert(min <= _min && _max <= max);
+   const int delta = min - _imin;   // window origin in the domain's coordinates
+   const int lo = _min - min, hi = _max - min;
+
+   auto word = [this](int i) noexcept -> unsigned int {
+      return 0 <= i && i < _nWords ? (unsigned int)_dom[i] : 0u;
+   };
+
+   for(int d = lo >> 5; d <= hi >> 5; ++d) {
+      // Gather the 32 values of this destination word, which straddle two
+      // source words whenever the window is not aligned with the domain
+      const int q = delta + (d << 5);
+      const int s = q >> 5, b = q & 0x1f;   // arithmetic shift: floor for q < 0
+      gfl::u32 bits = word(s) >> b;
+      if (b) bits |= word(s + 1) << (32 - b);
+
+      // Values outside [_min,_max] are not ours to report: the words the domain
+      // keeps may still carry stale bits below _min or above _max. The masks
+      // clamp on their own when this word lies wholly inside the live range
+      const int lob = lo - (d << 5), hib = hi - (d << 5);
+      bits &= gfl::highMask<gfl::u32>(32 - lob) & gfl::lowMask<gfl::u32>(hib + 1);
+
+      // The domain counts bits up from the least significant end, the bitmap
+      // reads them down from the most significant one
+      dst[d] = gfl::bitReverse<gfl::u32>(bits);
+   }
 }
 
 int BitDomain::count(int from,int to) const

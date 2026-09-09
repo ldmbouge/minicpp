@@ -18,6 +18,7 @@
 #ifndef __VARITF_H
 #define __VARITF_H
 
+#include <cassert>
 #include "avar.hpp"
 #include "store.hpp"
 #include "solver.hpp"
@@ -98,6 +99,30 @@ n    * variables must be solver allocated via the Factory.)
     * @see size()
     */
    virtual bool containsBase(int v) const { return contains(v);}
+   /**
+    * Copies the domain out as a bitmap over the window [min,max]: the value
+    * `min + k` lands at bit `31 - (k % 32)` of `dst[k / 32]`, most significant
+    * bit first. Only the words spanning [min(),max()] are written, so the
+    * caller must clear `dst` beforehand.
+    *
+    * The default walks the domain one value at a time, which is correct for
+    * every variable and view; the implementations backed by a bitset domain
+    * override it with a word-at-a-time copy.
+    * @param min the first value of the window, no greater than min()
+    * @param max the last value of the window, no less than max()
+    * @param dst the destination bitmap
+    */
+   virtual void dump(int min,int max,unsigned int* dst) const {
+      const int lo = this->min(), hi = this->max();
+      assert(min <= lo && hi <= max);
+      for(int d = (lo - min) >> 5; d <= (hi - min) >> 5; ++d)
+         dst[d] = 0;
+      for(int v = lo; v <= hi; ++v)
+         if (containsBase(v)) {
+            const int k = v - min;
+            dst[k >> 5] |= 0x80000000u >> (k & 0x1f);
+         }
+   }
    /**
     * Reports whether the variable was modified (lost at least 1 value) in the current node
     * @return true if and only if the variable lost at least 1 value

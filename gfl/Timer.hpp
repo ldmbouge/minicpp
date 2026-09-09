@@ -9,6 +9,7 @@
 
 #include "Alias.hpp"
 #include "ChronoUtils.hpp"
+#include "Macros.hpp"  // GFL_DISABLE_COPY_AND_MOVE
 
 namespace gfl {
 // A process-wide wall-clock profiler keyed by name. Each named timer keeps its

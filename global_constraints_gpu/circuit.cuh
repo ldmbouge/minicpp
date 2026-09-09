@@ -30,7 +30,10 @@
 class CircuitGPU : public Circuit
 {
     public:
-        template <class Vec> CircuitGPU(Vec const & x) : Circuit(x) {}
+        // Low priority, matching AllDifferentGPU: the alldifferent it posts is
+        // the expensive half, and deferring it lets the subtour bookkeeping
+        // narrow the domains first
+        template <class Vec> CircuitGPU(Vec const & x) : Circuit(x) { setPriority(CLOW);}
     protected:
         void postAllDifferent() override;
 };

@@ -35,6 +35,7 @@ class BitDomain {
    trail<int>*               _dom;
    trail<int>       _min,_max,_sz;
    const int        _imin;
+   const int        _nWords;
    int count(int from,int to) const;
    int findMin(int from) const;
    int findMax(int from) const;
@@ -52,6 +53,7 @@ public:
     bool isBound() const { return _sz == 1;}
     bool member(int v) const noexcept { return _min <= v && v <= _max && GETBIT(v);}
     bool memberBase(int v) const noexcept { return GETBIT(v);}
+    void dump(int min,int max,unsigned int* dst) const;
     bool changed() const noexcept { return !_sz.fresh();}
     void assign(int v,IntNotifier& x);
     void remove(int v,IntNotifier& x);

@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <string>
+
 #include "constraint.hpp"
 #include "intvar.hpp"
 
@@ -39,8 +41,28 @@
 class AllDifferentGPU : public AllDifferentAC
 {
     private:
+        // The value window is frozen at post time and snapped out to 32-bit
+        // word boundaries, so a domain can be dumped into a graph row a whole
+        // word of values at a time. Nodes are numbered values first, variables
+        // after, sink last, which puts value v at column v - _wMinVal and so
+        // lines the dump up with the start of the row.
+        gfl::i32 _wMinVal;      // First value of the window, a multiple of 32
+        gfl::i32 _wMaxVal;      // Last value of the window
+        gfl::i32 _wNVal;        // Window width, a multiple of 32
+        gfl::i32 _wNNodes;      // _wNVal + _nVar + 1
         gfl::u32 _nPadded;      // Node count rounded up for the kernels
         gfl::i64 _matrixBytes;  // _nPadded * _nPadded bits
+
+        gfl::u32 * _dumpBuf;    // One variable's domain, on its way to a row
+        gfl::u32 * _sccLocal;   // The labels again, off the pinned staging page
+
+        // Timer keys, tagged with the padded node count so the constraints of a
+        // model that posts several of them stay apart in the summary
+        std::string _tagMatch, _tagBuild, _tagDevice, _tagFilter, _tagHost;
+
+        // Below this many live edges the residual graph is cheaper to label on
+        // the CPU than to ship to the device. Read once from MINICPP_ADGPU_MIN_EDGES.
+        gfl::i64 _minEdges;
 
         gfl::u32 * _graph_h;    // Residual graph, staged in pinned host memory
         gfl::u32 * _reach_d;    // Closure, then closure AND its transpose
@@ -53,16 +75,19 @@ class AllDifferentGPU : public AllDifferentAC
         cudaGraphExec_t _cuGraph; // The captured graph-to-SCC pipeline
 
     public:
-        template<class Vec> AllDifferentGPU(Vec const & x) : AllDifferentAC(x) {}
+        // Low priority, so the cheap propagators reach their own fixpoint first
+        // and each trip to the device carries as many domain changes as it can
+        template<class Vec> AllDifferentGPU(Vec const & x) : AllDifferentAC(x) { setPriority(CLOW);}
         ~AllDifferentGPU() override;
 
         void post() override;
         void propagate() override;
 
     private:
+        void windowBounds();
         void allocate();
         void domains2graph();
         void recordGraph2scc();
         void graph2scc();
-        template<typename Row> void setEdge(gfl::u32 from, gfl::u32 to);
+        void setEdge(gfl::u32 from, gfl::u32 to, bool value);
 };

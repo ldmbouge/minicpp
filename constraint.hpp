@@ -23,6 +23,7 @@
 #include <stdint.h>
 #include "matrix.hpp"
 #include "intvar.hpp"
+#include <string>
 #include "acstr.hpp"
 #include "matching.hpp"
 
@@ -289,6 +290,9 @@ protected:
    int _nVar,_nVal,_nNodes;
    int* _scc;      // Component label per node, filled by calcSCC
    int _nSCC;      // How many components calcSCC found
+   // Timer keys, tagged with the node count so the constraints of a model that
+   // posts several of them stay apart. Only filled in when profiling is on.
+   std::string _tagMatchCPU,_tagSCCCPU,_tagFilterCPU;
    int valNode(int vid) const noexcept { return vid - _minVal + _nVar;}
    /// Sizes the graph and allocates the working arrays. Call once, from post.
    void init();

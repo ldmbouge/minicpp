@@ -56,6 +56,7 @@ public:
    bool isBound() const override { return _dom->isBound();}
    bool contains(int v) const override { return _dom->member(v);}
    bool containsBase(int v) const override { return _dom->memberBase(v);}
+   void dump(int min,int max,unsigned int* dst) const override { _dom->dump(min,max,dst);}
    bool changed() const noexcept override  { return _dom->changed();}
 
    void assign(int v) override;
@@ -202,6 +203,11 @@ public:
    int size() const override { return _x->size();}
    bool isBound() const override { return _x->isBound();}
    bool contains(int v) const override { return _x->contains(v - _o);}
+   bool containsBase(int v) const override { return _x->containsBase(v - _o);}
+   // Shifting the window by the same offset lines the two bitmaps up exactly:
+   // value `min + k` here is value `min - _o + k` underneath, so column k of
+   // the dump means the same thing on both sides
+   void dump(int min,int max,unsigned int* dst) const override { _x->dump(min - _o,max - _o,dst);}
    bool changed() const noexcept override  { return _x->changed();}
    
    void assign(int v) override { _x->assign(v - _o);}
