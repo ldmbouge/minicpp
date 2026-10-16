@@ -198,3 +198,45 @@ pybind11_add_module(minicpp pybridge.cpp)
 target_link_libraries(minicpp PRIVATE copl)
 add_dependencies(minicpp copl)
 
+find_package(Doxygen)
+if(DOXYGEN_FOUND)
+  include(FetchContent)
+  FetchContent_Declare(
+    doxygen-awesome-css
+    URL https://github.com/jothepro/doxygen-awesome-css/archive/refs/heads/main.zip
+  )
+  FetchContent_MakeAvailable(doxygen-awesome-css)
+  # Save the location the files were cloned into
+  # This allows us to get the path to doxygen-awesome.css
+  FetchContent_GetProperties(doxygen-awesome-css SOURCE_DIR AWESOME_CSS_DIR)
+  # Generate the Doxyfile
+  set(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
+  set(DOXYFILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
+  configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
+  set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs)
+  set(DOXYGEN_RECURSIVE YES)
+  set(DOXYGEN_EXTRACT_ALL YES)
+  set(DOXYGEN_HTML_EXTRA_STYLESHEET "${AWESOME_CSS_DIR}/doxygen-awesome.css")
+  set(DOXYGEN_EXCLUDE 
+        ${CMAKE_CURRENT_SOURCE_DIR}/data
+        ${CMAKE_CURRENT_SOURCE_DIR}/build
+        ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks
+		${CMAKE_CURRENT_SOURCE_DIR}/copl
+		${CMAKE_CURRENT_SOURCE_DIR}/.aider.tags.cache.v4
+      )
+  set(DOXYGEN_EXCLUDE_PATTERNS 
+        */.aider*
+        *.aider*
+  )
+  doxygen_add_docs(
+	    docs
+        ${CMAKE_CURRENT_SOURCE_DIR}/gfl/
+		${CMAKE_CURRENT_SOURCE_DIR}/examples/
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        COMMENT "Generating API documentation with Doxygen"
+		)
+else()
+  message(STATUS "Doxygen not found. Documentation target will not be available.")
+endif()
+  
+
