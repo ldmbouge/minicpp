@@ -1,7 +1,9 @@
 .tags*
 .DS_Store
+**/*~
 *.o
 *.d*
+*.log
 **/*.dSYM
 doc/**
 docs/**
