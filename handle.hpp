@@ -20,6 +20,7 @@
 
 /**
  * @brief Templated smart pointer for Constraint Programming.
+ * 
  * This class is used for the vast majority of objects created on behalf of a CP
  * solver instance. It is necessary for several reasons.
  * - First, when creating an STL container (e.g., `vector<T>`) to hold, for instance,
