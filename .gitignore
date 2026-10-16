@@ -4,9 +4,11 @@
 *.d*
 **/*.dSYM
 doc/**
+docs/**
 build
 minicpp.xcodeproj
 minicpp.sublime-workspace
 copl/copl.xcodeproj
 cmake-build-*
 .idea
+.aider*

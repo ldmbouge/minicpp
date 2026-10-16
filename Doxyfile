@@ -1,0 +1,145 @@
+# ==============================================================================
+# Project & Output Options
+# ==============================================================================
+PROJECT_NAME           = "MiniCPP"
+PROJECT_NUMBER         = "1.0.0"
+PROJECT_BRIEF          = "CP Solver in C++"
+OUTPUT_DIRECTORY       = "docs"
+CREATE_SUBDIRS         = YES
+ALLOW_UNICODE_NAMES    = YES
+OUTPUT_LANGUAGE        = English
+
+# ==============================================================================
+# Build & Parsing Options (Optimized for C++)
+# ==============================================================================
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+EXTRACT_PRIV_VIRTUAL   = YES
+EXTRACT_PACKAGE        = YES
+EXTRACT_STATIC         = YES
+EXTRACT_LOCAL_CLASSES  = YES
+EXTRACT_LOCAL_METHODS  = YES
+
+# Modern C++ and LLVM Specific Features
+EXTENSION_MAPPING      = H=C++ C=C++ hpp=C++ h=C++ cpp=C++ cc=C++ cxx=C++
+BUILTIN_STL_SUPPORT    = YES
+CPP_CLI_SUPPORT        = NO
+SIP_SUPPORT            = NO
+IDL_SUPPORT            = NO
+
+# Sort and Grouping
+SORT_MEMBER_DOCS       = YES
+SORT_BRIEF_DOCS        = YES
+SORT_MEMBERS_CTORS_1ST = YES
+SORT_GROUP_NAMES       = YES
+
+# Warning Handling
+WARN_IF_UNDOCUMENTED   = YES
+WARN_IF_DOC_ERROR      = YES
+WARN_NO_PARAMDOC       = YES
+WARN_FORMAT            = "$file:$line: $text"
+WARN_LOGFILE           = doxygen_warnings.log
+
+# ==============================================================================
+# Input Files & Directories
+# ==============================================================================
+# Adjust 'INPUT' to point to your include/ source directories
+INPUT                  = include \
+                         src \
+			 . \
+			 examples \
+			 gfl \
+			 global_constraints \
+			 global_constraints_gpu \
+                         README.md \
+			 README.GPU.md \
+			 TUTORIAL.md
+			 
+
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.c \
+                         *.cc \
+                         *.cxx \
+                         *.cpp \
+			 *.C \
+                         *.h \
+                         *.H \
+                         *.hh \
+                         *.hpp \
+                         *.md
+RECURSIVE              = YES
+EXCLUDE                = build \
+                         .git \
+			 data \
+			 copl \
+                         CMakeFiles
+USE_MDFILE_AS_MAINPAGE = README.md
+
+# ==============================================================================
+# Preprocessor & LLVM Attribute Handling
+# ==============================================================================
+# Doxygen needs to expand or ignore LLVM macros like LLVM_ATTRIBUTE_UNUSED, etc.
+ENABLE_PREPROCESSING   = YES
+MACRO_EXPANSION        = YES
+EXPAND_ONLY_PREDEF     = YES
+SEARCH_INCLUDES        = YES
+PREDEFINED             = "LLVM_READONLY=" \
+                         "LLVM_READNONE=" \
+                         "LLVM_NODISCARD=" \
+                         "LLVM_ATTRIBUTE_UNUSED=" \
+                         "LLVM_ATTRIBUTE_NORETURN=" \
+                         "LLVM_ATTRIBUTE_ALWAYS_INLINE=" \
+                         "LLVM_LIKELY(x)=x" \
+                         "LLVM_UNLIKELY(x)=x" \
+                         "LLVM_EXPLICIT=explicit" \
+                         "LLVM_CONSTEXPR=constexpr" \
+                         "LLVM_NOEXCEPT=noexcept" \
+                         "alignas(x)="
+
+# ==============================================================================
+# HTML & Modern Documentation Output
+# ==============================================================================
+GENERATE_HTML          = YES
+HTML_OUTPUT            = html
+HTML_FILE_EXTENSION    = .html
+HTML_COLORSTYLE_HUE    = 220
+HTML_COLORSTYLE_SAT    = 100
+HTML_COLORSTYLE_GAMMA  = 80
+# HTML_TIMESTAMP         = YES
+HTML_DYNAMIC_MENUS     = YES
+HTML_DYNAMIC_SECTIONS  = YES
+GENERATE_TREEVIEW      = YES
+TREEVIEW_WIDTH         = 280
+DISABLE_INDEX          = NO
+
+# Disable unused outputs
+GENERATE_LATEX         = NO
+GENERATE_RTF           = NO
+GENERATE_XML           = NO
+GENERATE_MAN           = NO
+
+# ==============================================================================
+# Graphviz & Diagram Generation (Requires Graphviz Installed)
+# ==============================================================================
+HAVE_DOT               = YES
+DOT_NUM_THREADS        = 0
+DOT_IMAGE_FORMAT       = svg
+INTERACTIVE_SVG        = YES
+
+# Inheritance & Collaboration Graphs
+CLASS_GRAPH            = YES
+COLLABORATION_GRAPH    = YES
+GROUP_GRAPHS           = YES
+UML_LOOK               = YES
+UML_LIMIT_NUM_FIELDS   = 10
+TEMPLATE_RELATIONS     = YES
+
+# Function Call Graphs
+CALL_GRAPH             = YES
+CALLER_GRAPH           = YES
+
+# Include Dependency Graphs
+INCLUDE_GRAPH          = YES
+INCLUDED_BY_GRAPH      = YES
+DIRECTORY_GRAPH        = YES
+DOT_GRAPH_MAX_NODES    = 100
