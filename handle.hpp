@@ -76,7 +76,9 @@ public:
     * @param p2 a smart pointer to a `X` instance to compare.
     * Typically \f$X <: T\f$
     */
-   template<class X> friend bool operator==(const handle_ptr<T>& p1,const handle_ptr<X>& p2)
+   template<class X>
+   requires std::derived_from<X,T>
+   friend bool operator==(const handle_ptr<T>& p1,const handle_ptr<X>& p2)
    {
       return p1._ptr == p2.get();
    }
