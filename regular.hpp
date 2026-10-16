@@ -16,6 +16,11 @@
 #ifndef __REGULAR_H
 #define __REGULAR_H
 
+/**
+ * @file regular.hpp the global constraint regular (implemented via tables)
+ *
+ */
+
 #include <set>
 #include <array>
 #include <map>
@@ -35,12 +40,12 @@ struct Transition {
 };
 
 class Automaton {
-   CPSolver::Ptr _cp;
-   Range<int>   _smb; // first to last symbol range (alphabet for the FSA)
-   Range<int>   _stt; // first to last state range (set of state identifiers in FSA)
-   int         _start;      // start state
-   std::set<int> _finals;   // all final states in the FSA
-   std::vector<Transition> _t; // transition table for the FSA
+   CPSolver::Ptr _cp; ///< solver owning this constraint
+   Range<int>   _smb; ///< first to last symbol range (alphabet for the FSA)
+   Range<int>   _stt; ///< first to last state range (set of state identifiers in FSA)
+   int         _start;      ///< start state
+   std::set<int> _finals;   ///< all final states in the FSA
+   std::vector<Transition> _t; ///< transition table for the FSA
 public:
    typedef handle_ptr<Automaton> Ptr;
    Automaton(CPSolver::Ptr s,int f,int l,int fState,int lState,
