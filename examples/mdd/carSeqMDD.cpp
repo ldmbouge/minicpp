@@ -81,7 +81,7 @@ public:
    int lb(int i) const { return _lb[i];}
    int ub(int i) const { return _ub[i];}
    int demand(int i) const { return _demand[i];}
-   int requires(int i,int j) const { return _require[i][j];}
+   int reqs(int i,int j) const { return _require[i][j];}
    friend std::ostream &operator<<(std::ostream &output, const Instance& i)
    {
       output << "{" << std::endl;
@@ -142,17 +142,17 @@ Instance Instance::readData(const char* filename)
       int nbConf = stats[2];
       auto lb = splitAsInt(lines[1],' ');
       auto ub = splitAsInt(lines[2],' ');
-      vector<vector<int>> requires(nbConf);
+      vector<vector<int>> reqs(nbConf);
       vector<int> demands(nbConf);
       for(int cid = 0; cid < nbConf;  cid++)
-         requires[cid].resize(nbOpts);
+         reqs[cid].resize(nbOpts);
       for(int cid = 0; cid < nbConf;  cid++){
          auto row = splitAsInt(lines[3+cid], ' ');
          demands[row[0]] = row[1];
          for(int o = 0; o < nbOpts;  o++)
-            requires[row[0]][o] = row[2+o];
+            reqs[row[0]][o] = row[2+o];
       }
-      return Instance(nbCars,nbOpts,nbConf,lb,ub,demands,requires);
+      return Instance(nbCars,nbOpts,nbConf,lb,ub,demands,reqs);
    }else
       throw;
 }
@@ -212,7 +212,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,Instance& in,MDDRelax::Ptr mdd
    vector<int> nbCarsByOption(nbO, 0);
    for(int o=0; o<nbO; o++){
      for(int i=0; i<in.nbConf(); i++) {
-       if ( in.requires(i,o) ) { nbCarsByOption[o] += in.demand(i); }
+       if ( in.reqs(i,o) ) { nbCarsByOption[o] += in.demand(i); }
      }
    }
 
@@ -237,7 +237,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,Instance& in,MDDRelax::Ptr mdd
    for (int conf=0; conf<nbConf; conf++) {
      int slackSum = 0;
      for (int opt=0; opt<nbO; opt++) {
-        if (in.requires(conf,opt)) slackSum -= (maxSlack - slack[opt].first + minSlack + 1);
+        if (in.reqs(conf,opt)) slackSum -= (maxSlack - slack[opt].first + minSlack + 1);
      }
      confSlack[conf].first = slackSum;
      confSlack[conf].second = conf;
@@ -267,13 +267,13 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,Instance& in,MDDRelax::Ptr mdd
      // // version 1: use Boolean membership
      // std::set<int> S;
      // for (int i=0; i<=mx; i++)
-     //   if (in.requires(i,opt)) {	S.insert(i); }
+     //   if (in.reqs(i,opt)) {	S.insert(i); }
      for(int c = 0; c < nbCars; c++){
        // // version 1: use Boolean membership
        // cp->post(isMember(bvars[o*nbCars + c], line[c], S));
 
        // version 2: use element constraint
-       auto rl = toVec(0,mx,[in,opt](int i) { return in.requires(i,opt);});
+       auto rl = toVec(0,mx,[in,opt](int i) { return in.reqs(i,opt);});
        cp->post(bvars[o*nbCars + c] == element(rl,line[c]));
      }
    }
@@ -372,7 +372,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line,Instance& in,MDDRelax::Ptr mdd
                         for(int o=0;o < in.nbOpts();o++) {
                            std::cout << in.lb(o) << '/' << in.ub(o) << ' ';
                            for(int c = 0;c < in.nbCars();c++) {
-                              if (in.requires(line[c]->min(),o))
+                              if (in.reqs(line[c]->min(),o))
                                  std::cout << 'Y';
                               else std::cout << ' ';
                            }
@@ -412,7 +412,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int mode, int width, int variabl
       for(int c = 0; c < nbC; c++) {
          for(int o= 0;o < nbO ; o++) {
             setup[c][o] = makeBoolVar(cp);
-            auto rl = toVec(0,mx,[in,o](int i) { return in.requires(i,o);});
+            auto rl = toVec(0,mx,[in,o](int i) { return in.reqs(i,o);});
             cp->post(setup[c][o] == element(rl,line[c]));
          }
       }
@@ -420,7 +420,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int mode, int width, int variabl
       for(int o = 0; o < nbO; o++){
          set<int> Confs;
          for(int i=0; i<in.nbConf(); i++) {
-           if ( in.requires(i,o) ) { Confs.insert(i); }
+           if ( in.reqs(i,o) ) { Confs.insert(i); }
          }
          addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
       }
@@ -428,7 +428,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int mode, int width, int variabl
       for(int o=0;o < nbO;o++) {
          int demandForOption = 0;
          for(int conf=0;conf < in.nbConf();conf++) {
-            if (in.requires(conf,o))
+            if (in.reqs(conf,o))
                demandForOption += in.demand(conf);
          }
          for(int i=0;i < demandForOption/in.lb(o);i++) {
@@ -451,7 +451,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int mode, int width, int variabl
          for(int c = 0; c < nbC; c++){
             setup[c][o] = makeBoolVar(cp);
             opts[c] = setup[c][o];
-            auto rl = toVec(0,mx,[in,o](int i) { return in.requires(i,o);});
+            auto rl = toVec(0,mx,[in,o](int i) { return in.reqs(i,o);});
             cp->post(setup[c][o] == element(rl,line[c]));
          }
          auto mdd = new MDDRelax(cp,width);
@@ -469,7 +469,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int mode, int width, int variabl
          //}
          std::set<int> configsWithO;
          for(int conf=0;conf < in.nbConf();conf++)
-            if (in.requires(conf,o))  configsWithO.insert(conf);
+            if (in.reqs(conf,o))  configsWithO.insert(conf);
          mdd->post(seqMDD3(mdd,line, in.ub(o), 0, in.lb(o), configsWithO));
       }
       cstr = mdd;

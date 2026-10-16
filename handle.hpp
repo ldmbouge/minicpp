@@ -16,6 +16,7 @@
 #ifndef __HANDLE_H
 #define __HANDLE_H
 
+#include <concepts>
 #include <memory>
 
 /**
@@ -119,7 +120,9 @@ public:
     * @param p2 a smart pointer to a `X` instance to compare.
     * Typically \f$X <: T\f$
     */
-   template<class X> friend bool operator==(const strict_ptr<T>& p1,const strict_ptr<X>& p2)
+   template<class X>
+   requires std::derived_from<X,T>
+   friend bool operator==(const strict_ptr<T>& p1,const strict_ptr<X>& p2)
    {
       return p1._ptr == p2.get();
    }
