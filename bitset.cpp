@@ -52,6 +52,34 @@ void StaticBitSet::remove(int pos)
    return;
 }
 
+void StaticBitSet::unionWith(const StaticBitSet& o)
+{
+   for (auto i = 0u; i < _words.size(); i++)
+      _words[i] |= o._words[i];
+}
+
+void StaticBitSet::intersectWith(const StaticBitSet& o)
+{
+   for (auto i = 0u; i < _words.size(); i++)
+      _words[i] &= o._words[i];
+}
+
+int StaticBitSet::count() const
+{
+   int c = 0;
+   for (int w : _words)
+      c += __builtin_popcount((unsigned)w);
+   return c;
+}
+
+int StaticBitSet::intersectCount(const StaticBitSet& o) const
+{
+   int c = 0;
+   for (auto i = 0u; i < _words.size(); i++)
+      c += __builtin_popcount((unsigned)(_words[i] & o._words[i]));
+   return c;
+}
+
 SparseBitSet::SparseBitSet(Trailer::Ptr eng, Storage::Ptr store, int sz)
    : _sz(sz)
 {

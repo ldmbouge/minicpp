@@ -67,9 +67,30 @@ public:
    void propagate() override;
 };
 
+class NegTableCT : public Constraint { // no row of table may equal (x0,...,xk)
+   std::vector<var<int>::Ptr>                          _vars;
+   std::vector<std::vector<int>>                       _table;     // forbidden tuples, duplicates removed
+   std::vector<int>                                    _mins;      // initial min of each variable
+   std::vector<std::vector<StaticBitSet>>              _conflicts; // _conflicts[i][v - _mins[i]] = tuples with x_i = v
+public:
+   template <class Vec> NegTableCT(const Vec& x, const std::vector<std::vector<int>>& table)
+      : Constraint(x[0]->getSolver()),
+        _table(table)
+   {
+      for (const auto& vp : x)
+         _vars.push_back(vp);
+   }
+   ~NegTableCT() {}
+   void post() override;
+   void propagate() override;
+};
+
 namespace Factory {
    template <class Vec, class T> Constraint::Ptr table(const Vec& x, const T& table) {
       return new (x[0]->getSolver()) TableCT(x, table);
+   }
+   template <class Vec, class T> Constraint::Ptr negTable(const Vec& x, const T& table) {
+      return new (x[0]->getSolver()) NegTableCT(x, table);
    }
 };
 

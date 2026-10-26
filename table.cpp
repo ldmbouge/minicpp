@@ -129,3 +129,61 @@ void TableCT::updateTable()
          break;
    }
 }
+
+void NegTableCT::post()
+{
+   // remove duplicate rows: the counting argument below assumes distinct tuples
+   std::sort(_table.begin(),_table.end());
+   _table.erase(std::unique(_table.begin(),_table.end()),_table.end());
+   for (auto i = 0u; i < _vars.size(); i++) {
+      const auto& vp = _vars[i];
+      _mins.push_back(vp->min());
+      _conflicts.emplace_back(std::vector<StaticBitSet>());
+      for (int v = vp->min(); v <= vp->max(); v++) {
+         _conflicts[i].emplace_back(StaticBitSet((int)_table.size())); // starts with every tuple
+         for (auto t = 0u; t < _table.size(); t++)
+            if (_table[t][i] != v)
+               _conflicts[i].back().remove(t);
+      }
+   }
+   for (const auto& vp : _vars)
+      vp->propagateOnDomainChange(this);
+   propagate();
+}
+
+void NegTableCT::propagate()
+{
+   const auto n = _vars.size();
+   // menacing = tuples whose every value is still in its variable's domain
+   StaticBitSet menacing((int)_table.size());
+   StaticBitSet conflictsi((int)_table.size());
+   for (auto i = 0u; i < n; i++) {
+      conflictsi.clear();
+      for (int v = _vars[i]->min(); v <= _vars[i]->max(); v++)
+         if (_vars[i]->contains(v))
+            conflictsi.unionWith(_conflicts[i][v - _mins[i]]);
+      menacing.intersectWith(conflictsi);
+   }
+   // Domain sizes are read once so that removals below do not mix
+   // a stale menacing set with fresh domain sizes.
+   std::vector<long long> sizes(n);
+   for (auto i = 0u; i < n; i++)
+      sizes[i] = _vars[i]->size();
+   const long long nbTuples = _table.size();
+   for (auto i = 0u; i < n; i++) {
+      // number of assignments of the other variables, capped above nbTuples
+      long long others = 1;
+      for (auto j = 0u; j < n && others <= nbTuples; j++)
+         if (j != i)
+            others *= sizes[j];
+      if (others > nbTuples)
+         continue;
+      const int iMax = _vars[i]->max();
+      for (int v = _vars[i]->min(); v <= iMax; v++) {
+         if (!_vars[i]->contains(v)) continue;
+         // every assignment with x_i = v is forbidden
+         if (menacing.intersectCount(_conflicts[i][v - _mins[i]]) >= others)
+            _vars[i]->remove(v);
+      }
+   }
+}

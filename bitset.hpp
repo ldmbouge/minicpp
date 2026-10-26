@@ -32,9 +32,14 @@ public:
    StaticBitSet(int sz);
    StaticBitSet(StaticBitSet&& bs) : _words(std::move(bs._words)),_sz(bs._sz) {}
    int operator[] (int i) { return _words[i];}
+   int operator[] (int i) const { return _words[i];}
    void clear();
    void remove (int pos);
    bool contains(int pos) const;
+   void unionWith(const StaticBitSet& o);           // this |= o
+   void intersectWith(const StaticBitSet& o);       // this &= o
+   int count() const;                               // number of bits set
+   int intersectCount(const StaticBitSet& o) const; // number of bits set in this & o
 };
 
 class SparseBitSet {
