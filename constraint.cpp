@@ -1321,3 +1321,47 @@ void EQAbsDiffBC::post()
    }
 }
 /***/
+
+void Absolute::post()
+{
+   _y->removeBelow(0);
+   _x->propagateOnDomainChange(this);   // holes in x can raise y.min
+   _y->propagateOnBoundChange(this);
+   propagate();
+}
+
+void Absolute::propagate()
+{
+   if (_x->isBound()) {
+      _y->assign(std::abs(_x->min()));
+      setActive(false);
+   } else if (_y->isBound()) {  // x in {-y, y}
+      const int v = _y->min();
+      if (!_x->contains(-v))
+         _x->assign(v);
+      else if (!_x->contains(v))
+         _x->assign(-v);
+      else {
+         for (int i = _x->min(); i <= _x->max(); i++)
+            if (i != v && i != -v)
+               _x->remove(i);
+      }
+      setActive(false);
+   } else if (_x->min() >= 0) {
+      _y->removeBelow(_x->min());
+      _y->removeAbove(_x->max());
+      _x->removeBelow(_y->min());
+      _x->removeAbove(_y->max());
+   } else if (_x->max() <= 0) {
+      _y->removeBelow(-_x->max());
+      _y->removeAbove(-_x->min());
+      _x->removeBelow(-_y->max());
+      _x->removeAbove(-_y->min());
+   } else {
+      _y->removeAbove(std::max(_x->max(),-_x->min()));
+      _x->removeAbove(_y->max());
+      _x->removeBelow(-_y->max());
+      while (!_x->contains(_y->min()) && !_x->contains(-_y->min()))
+         _y->remove(_y->min());
+   }
+}

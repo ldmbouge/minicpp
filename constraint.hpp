@@ -466,6 +466,15 @@ public:
    void post() override;
 };
 
+class Absolute : public Constraint { // y == |x|
+   var<int>::Ptr _x,_y;
+public:
+   Absolute(var<int>::Ptr x,var<int>::Ptr y)
+      : Constraint(x->getSolver()),_x(x),_y(y) {}
+   void post() override;
+   void propagate() override;
+};
+
 
 class interval {
 public:
@@ -1179,6 +1188,21 @@ namespace Factory
     */
    inline Constraint::Ptr equalAbsDiff(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y) {
       return new (x->getSolver()) EQAbsDiffBC(z,x,y);
+   }
+   /**
+    * Factory function that creates a fresh variable equal to \f$|x|\f$
+    * @param x an integer variable
+    * @return a fresh integer variable `y` constrained to \f$y = |x|\f$
+    * @see Absolute
+    */
+   inline var<int>::Ptr abs(var<int>::Ptr x) {
+      auto cp = x->getSolver();
+      auto y = makeIntVar(cp,0,std::max(x->max(),-x->min()));
+      TRYFAIL
+         cp->post(new (cp) Absolute(x,y));
+      ONFAIL
+      ENDFAIL
+      return y;
    }
 };
 
