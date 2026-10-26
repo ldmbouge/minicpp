@@ -43,10 +43,10 @@ class TableCT : public Constraint {
       int getMax() const noexcept    { return _max;}
    };
    std::map<int, Entry>                                _entries;
-   std::vector<std::vector<StaticBitSet>>              _supports;
+   std::vector<std::vector<StaticBitSet<>>>            _supports;
    std::vector<std::vector<int>>                       _table;
    std::vector<std::vector<int>>                       _residues;
-   SparseBitSet                                        _currTable;
+   SparseBitSet<>                                      _currTable;
    std::vector<var<int>::Ptr>                          _vars;
    std::vector<var<int>::Ptr>                          _Sval;
    std::vector<var<int>::Ptr>                          _Ssup;
@@ -71,7 +71,7 @@ class NegTableCT : public Constraint { // no row of table may equal (x0,...,xk)
    std::vector<var<int>::Ptr>                          _vars;
    std::vector<std::vector<int>>                       _table;     // forbidden tuples, duplicates removed
    std::vector<int>                                    _mins;      // initial min of each variable
-   std::vector<std::vector<StaticBitSet>>              _conflicts; // _conflicts[i][v - _mins[i]] = tuples with x_i = v
+   std::vector<std::vector<StaticBitSet<>>>            _conflicts; // _conflicts[i][v - _mins[i]] = tuples with x_i = v
 public:
    template <class Vec> NegTableCT(const Vec& x, const std::vector<std::vector<int>>& table)
       : Constraint(x[0]->getSolver()),

@@ -24,12 +24,12 @@ void TableCT::post()
    for (const auto& vp : _vars) {
       _entries.emplace(vp->getId(), Entry(currIndex, vp->min(), vp->max()));  // build entries for each var
       _lastSizes.push_back(trail<int>(vp->getSolver()->getStateManager(), vp->size()));  // record initial var domain size
-      _supports.emplace_back(std::vector<StaticBitSet>(0));  // init vector of bitsets for var's supports
+      _supports.emplace_back(std::vector<StaticBitSet<>>(0));  // init vector of bitsets for var's supports
       _residues.emplace_back(std::vector<int>());
-      std::vector<StaticBitSet>& v = _supports.back();
+      std::vector<StaticBitSet<>>& v = _supports.back();
       std::vector<int>& r = _residues.back();
       for (int val=vp->min(); val <= vp->max(); val++) {
-         v.emplace_back(StaticBitSet((int)_table.size()));  // make bitset for this value
+         v.emplace_back(StaticBitSet<>((int)_table.size()));  // make bitset for this value
          // loop through table to see which table vectors support this value
          if (vp->contains(val)) { // if the value is in the domain.... We need to collate all the tuples supporting it.
             for (auto i=0u; i < _table.size(); i++) {
@@ -138,9 +138,9 @@ void NegTableCT::post()
    for (auto i = 0u; i < _vars.size(); i++) {
       const auto& vp = _vars[i];
       _mins.push_back(vp->min());
-      _conflicts.emplace_back(std::vector<StaticBitSet>());
+      _conflicts.emplace_back(std::vector<StaticBitSet<>>());
       for (int v = vp->min(); v <= vp->max(); v++) {
-         _conflicts[i].emplace_back(StaticBitSet((int)_table.size())); // starts with every tuple
+         _conflicts[i].emplace_back(StaticBitSet<>((int)_table.size())); // starts with every tuple
          for (auto t = 0u; t < _table.size(); t++)
             if (_table[t][i] != v)
                _conflicts[i].back().remove(t);
@@ -155,8 +155,8 @@ void NegTableCT::propagate()
 {
    const auto n = _vars.size();
    // menacing = tuples whose every value is still in its variable's domain
-   StaticBitSet menacing((int)_table.size());
-   StaticBitSet conflictsi((int)_table.size());
+   StaticBitSet<> menacing((int)_table.size());
+   StaticBitSet<> conflictsi((int)_table.size());
    for (auto i = 0u; i < n; i++) {
       conflictsi.clear();
       for (int v = _vars[i]->min(); v <= _vars[i]->max(); v++)
