@@ -184,6 +184,16 @@ public:
    void post() override;
 };
 
+class IsLessOrEqualVar : public Constraint { // b <=> x <= y
+   var<bool>::Ptr _b;
+   var<int>::Ptr _x,_y;
+public:
+   IsLessOrEqualVar(var<bool>::Ptr b,var<int>::Ptr x,var<int>::Ptr y)
+      : Constraint(x->getSolver()),_b(b),_x(x),_y(y) {}
+   void post() override;
+   void propagate() override;
+};
+
 class Sum : public Constraint { // s = Sum({x0,...,xk})
    Factory::Veci _x;
    trail<int>    _nUnBounds;
@@ -844,11 +854,17 @@ namespace Factory
       ENDFAIL
       return b;
    }
+   /**
+    * Factory reification function that creates a fresh variable equal to the truth value of \f$x \leq y\f$
+    * @param x an integer variable
+    * @param y an integer variable
+    * @return a fresh Boolean variable `z` constrained to \f$z \Leftrightarrow x \leq y\f$
+    * @see IsLessOrEqualVar
+    */
    inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x, var<int>::Ptr y) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       TRYFAIL
-         var<int>::Ptr z = x - y;
-         x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b, z, 0));  // b ⟺ z ≤ 0 ⟺ x ≤ y
+         x->getSolver()->post(new (x->getSolver()) IsLessOrEqualVar(b, x, y));
       ONFAIL
       ENDFAIL
       return b;

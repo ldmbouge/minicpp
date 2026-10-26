@@ -500,7 +500,34 @@ void IsLessOrEqual::post()
             b->assign(1);
          else if (x->min() > c)
             b->assign(0);
-      });        
+      });
+   }
+}
+
+void IsLessOrEqualVar::post()
+{
+   _x->propagateOnBoundChange(this);
+   _y->propagateOnBoundChange(this);
+   _b->propagateOnBind(this);
+   propagate();
+}
+
+void IsLessOrEqualVar::propagate()
+{
+   if (_b->isTrue()) {            // x <= y
+      _x->removeAbove(_y->max());
+      _y->removeBelow(_x->min());
+      setActive(_x->max() > _y->min());
+   } else if (_b->isFalse()) {    // x >= y + 1
+      _x->removeBelow(_y->min() + 1);
+      _y->removeAbove(_x->max() - 1);
+      setActive(_x->min() <= _y->max());
+   } else if (_x->max() <= _y->min()) {
+      _b->assign(true);
+      setActive(false);
+   } else if (_x->min() > _y->max()) {
+      _b->assign(false);
+      setActive(false);
    }
 }
 
