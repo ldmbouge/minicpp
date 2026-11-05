@@ -23,6 +23,9 @@
 #include <vector>
 #include <concepts>
 #include <type_traits>
+#include <numeric>
+#include <iterator>
+#include <utility>
 
 //#define TRACE(...) __VA_ARGS__
 #define TRACE(...)
@@ -71,6 +74,38 @@ inline int floorLogarithm (int base, int number)
 inline int ceilLogarithm(int base, int number)
 {
     return static_cast<int>((std::ceil(logarithm(base, number))));
+}
+
+/**
+ * Sum of the (numeric) elements of a container, computed with std::accumulate.
+ * Only enabled for arithmetic element types so that it never competes with the
+ * variable-based Factory::sum overloads.
+ * @param c any container with begin()/end()
+ * @return the sum, of the container's element type (0 when empty)
+ */
+template <class C,
+          class T = std::decay_t<decltype(*std::begin(std::declval<const C&>()))>,
+          std::enable_if_t<std::is_arithmetic_v<T>, int> = 0>
+T sum(const C& c)
+{
+    return std::accumulate(std::begin(c), std::end(c), T{});
+}
+
+/**
+ * Sum of f(x) over the elements x of a container, computed with std::accumulate.
+ * Only enabled when f returns an arithmetic type. Useful for nested containers:
+ *    sum(matrix, [](const auto& row) { return sum(row); })
+ * @param c any container with begin()/end()
+ * @param f a function applied to each element
+ * @return the sum of the f(x), of f's result type (0 when empty)
+ */
+template <class C, class F,
+          class R = std::decay_t<decltype(std::declval<F&>()(*std::begin(std::declval<const C&>())))>,
+          std::enable_if_t<std::is_arithmetic_v<R>, int> = 0>
+R sum(const C& c, F f)
+{
+    return std::accumulate(std::begin(c), std::end(c), R{},
+                           [&f](R acc, const auto& x) { return acc + f(x); });
 }
 
 inline void printError(std::string const & error)

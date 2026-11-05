@@ -906,8 +906,11 @@ namespace Factory
     * @param xs a vector of `n` var<int>::Ptr (or var<bool>::Ptr)
     * @return a fresh variable `z` such that \f$z = \sum_{i=0}^{n-1} xs_i \f$
     * @see Sum
+    * Disabled for containers of numbers, which the plain ::sum in utils.hpp handles.
     */
-   template <class Vec> var<int>::Ptr sum(Vec& xs) {
+   template <class Vec,
+             std::enable_if_t<!std::is_arithmetic_v<std::decay_t<decltype(*std::begin(std::declval<Vec&>()))>>, int> = 0>
+   var<int>::Ptr sum(Vec& xs) {
       int sumMin = 0,sumMax = 0;
       for(const auto& x : xs) {
          sumMin += x->min();

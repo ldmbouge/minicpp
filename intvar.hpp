@@ -514,6 +514,30 @@ namespace Factory {
       return x;
    }
    /**
+    * Factory method. Allocates a rows x cols matrix of integer variables and
+    * populates entry [i][j] by calling body(i,j).
+    * @param cps the owner of the variables
+    * @param rows the number of rows (from 0 to rows-1)
+    * @param cols the number of columns (from 0 to cols-1)
+    * @param body a function of type `(int,int) -> var<int>::Ptr`
+    * @return a `Matrix<var<int>::Ptr,2>`; `flat()` gives all variables, row by row.
+    */
+   template <typename Fun>
+   Matrix<var<int>::Ptr,2> intVarMatrix(CPSolver::Ptr cps,int rows,int cols,Fun body) {
+      Matrix<var<int>::Ptr,2> x({rows,cols});
+      for(int i=0;i < rows;i++)
+         for(int j=0;j < cols;j++)
+            x[i][j] = body(i,j);
+      return x;
+   }
+   /**
+    * Factory method. Allocates a rows x cols matrix of fresh integer variables,
+    * each with domain [min,max].
+    */
+   inline Matrix<var<int>::Ptr,2> intVarMatrix(CPSolver::Ptr cps,int rows,int cols,int min,int max) {
+      return intVarMatrix(cps,rows,cols,[cps,min,max](int,int) { return makeIntVar(cps,min,max);});
+   }
+   /**
     * Convenience function to sum up the number of values in an list of vectors (template)
     * provided as argument.
     * @param v the list of vectors

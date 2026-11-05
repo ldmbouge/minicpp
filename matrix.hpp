@@ -19,7 +19,7 @@
 #include <vector>
 #include <array>
 #include <functional>
-#include "intvar.hpp"
+#include "store.hpp"   // Storage, stl::StackAdapter: all that Matrix needs
 
 
 template<class Container,class T,int a> class matrix ;
@@ -113,5 +113,9 @@ template <class T,typename Body> std::vector<T> slice(int l,int u,Body b) {
       x.emplace_back(b(k));
    return x;
 }
+
+// Included last: intvar.hpp includes this header and defines
+// Factory::intVarMatrix on top of Matrix, so Matrix must be complete first.
+#include "intvar.hpp"
 
 #endif

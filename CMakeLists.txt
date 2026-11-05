@@ -89,6 +89,9 @@ set(GPU_CONSTR_SRC
 
 set(GLB_CONSTR_SRC
   global_constraints/cumulative.cpp
+  global_constraints/disjunctive.cpp
+  global_constraints/tasksequence.cpp
+  global_constraints/disjunctiveresource.cpp
 )
 
 # Auxiliary functions
