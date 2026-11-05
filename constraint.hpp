@@ -20,6 +20,8 @@
 #include <array>
 #include <algorithm>
 #include <iomanip>
+#include <limits>
+#include <cassert>
 #include <stdint.h>
 #include "matrix.hpp"
 #include "intvar.hpp"
@@ -182,6 +184,16 @@ public:
    IsLessOrEqual(var<bool>::Ptr b,var<int>::Ptr x,int c)
       : Constraint(x->getSolver()),_b(b),_x(x),_c(c) {}
    void post() override;
+};
+
+class IsLessOrEqualVar : public Constraint { // b <=> x <= y
+   var<bool>::Ptr _b;
+   var<int>::Ptr _x,_y;
+public:
+   IsLessOrEqualVar(var<bool>::Ptr b,var<int>::Ptr x,var<int>::Ptr y)
+      : Constraint(x->getSolver()),_b(b),_x(x),_y(y) {}
+   void post() override;
+   void propagate() override;
 };
 
 class Sum : public Constraint { // s = Sum({x0,...,xk})
@@ -454,6 +466,32 @@ public:
   EQAbsDiffBC(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y)
        : Constraint(x->getSolver()),_z(z),_x(x),_y(y) {}
    void post() override;
+};
+
+class Maximum : public Constraint { // y == max(x0,...,xk)
+   Factory::Veci _x;
+   var<int>::Ptr _y;
+public:
+   template <class Vec> Maximum(const Vec& x,var<int>::Ptr y)
+      : Constraint(y->getSolver()),
+        _x(x.size(),Factory::alloci(y->getStore())),
+        _y(y)
+   {
+      int i = 0;
+      for(auto& xi : x)
+         _x[i++] = xi;
+   }
+   void post() override;
+   void propagate() override;
+};
+
+class Absolute : public Constraint { // y == |x|
+   var<int>::Ptr _x,_y;
+public:
+   Absolute(var<int>::Ptr x,var<int>::Ptr y)
+      : Constraint(x->getSolver()),_x(x),_y(y) {}
+   void post() override;
+   void propagate() override;
 };
 
 
@@ -844,11 +882,17 @@ namespace Factory
       ENDFAIL
       return b;
    }
+   /**
+    * Factory reification function that creates a fresh variable equal to the truth value of \f$x \leq y\f$
+    * @param x an integer variable
+    * @param y an integer variable
+    * @return a fresh Boolean variable `z` constrained to \f$z \Leftrightarrow x \leq y\f$
+    * @see IsLessOrEqualVar
+    */
    inline var<bool>::Ptr isLessOrEqual(var<int>::Ptr x, var<int>::Ptr y) {
       var<bool>::Ptr b = makeBoolVar(x->getSolver());
       TRYFAIL
-         var<int>::Ptr z = x - y;
-         x->getSolver()->post(new (x->getSolver()) IsLessOrEqual(b, z, 0));  // b ⟺ z ≤ 0 ⟺ x ≤ y
+         x->getSolver()->post(new (x->getSolver()) IsLessOrEqualVar(b, x, y));
       ONFAIL
       ENDFAIL
       return b;
@@ -1166,6 +1210,42 @@ namespace Factory
     */
    inline Constraint::Ptr equalAbsDiff(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y) {
       return new (x->getSolver()) EQAbsDiffBC(z,x,y);
+   }
+   /**
+    * Factory function that creates a fresh variable equal to \f$|x|\f$
+    * @param x an integer variable
+    * @return a fresh integer variable `y` constrained to \f$y = |x|\f$
+    * @see Absolute
+    */
+   inline var<int>::Ptr abs(var<int>::Ptr x) {
+      auto cp = x->getSolver();
+      auto y = makeIntVar(cp,0,std::max(x->max(),-x->min()));
+      TRYFAIL
+         cp->post(new (cp) Absolute(x,y));
+      ONFAIL
+      ENDFAIL
+      return y;
+   }
+   /**
+    * Factory function that creates a fresh variable equal to the maximum of the input variables
+    * @param xs a non-empty container of `n` var<int>::Ptr
+    * @return a fresh integer variable `y` constrained to \f$y = \max_{i=0}^{n-1} xs_i\f$
+    * @see Maximum
+    */
+   template <class Vec> var<int>::Ptr maximum(const Vec& xs) {
+      assert(xs.size() > 0);
+      auto cp = xs[0]->getSolver();
+      int yMin = std::numeric_limits<int>::min(),yMax = std::numeric_limits<int>::min();
+      for(auto& xi : xs) {
+         yMin = std::max(yMin,xi->min());
+         yMax = std::max(yMax,xi->max());
+      }
+      auto y = makeIntVar(cp,yMin,yMax);
+      TRYFAIL
+         cp->post(new (cp) Maximum(xs,y));
+      ONFAIL
+      ENDFAIL
+      return y;
    }
 };
 

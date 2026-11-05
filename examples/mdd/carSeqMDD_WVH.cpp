@@ -80,7 +80,7 @@ public:
    int lb(int i) const { return _lb[i];}
    int ub(int i) const { return _ub[i];}
    int demand(int i) const { return _demand[i];}
-   int requires(int i,int j) const { return _require[i][j];}
+   int reqs(int i,int j) const { return _require[i][j];}
    friend std::ostream &operator<<(std::ostream &output, const Instance& i)
    {
       output << "{" << std::endl;
@@ -141,17 +141,17 @@ Instance Instance::readData(const char* filename)
       int nbConf = stats[2];
       auto lb = splitAsInt(lines[1],' ');
       auto ub = splitAsInt(lines[2],' ');
-      vector<vector<int>> requires(nbConf);
+      vector<vector<int>> reqs(nbConf);
       vector<int> demands(nbConf);
       for(int cid = 0; cid < nbConf;  cid++)
-         requires[cid].resize(nbOpts);
+         reqs[cid].resize(nbOpts);
       for(int cid = 0; cid < nbConf;  cid++){
          auto row = splitAsInt(lines[3+cid], ' ');
          demands[row[0]] = row[1];
          for(int o = 0; o < nbOpts;  o++)
-            requires[row[0]][o] = row[2+o];
+            reqs[row[0]][o] = row[2+o];
       }
-      return Instance(nbCars,nbOpts,nbConf,lb,ub,demands,requires);
+      return Instance(nbCars,nbOpts,nbConf,lb,ub,demands,reqs);
    }else
       throw;
 }
@@ -181,7 +181,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
   vector<int> nbCarsByOption(nbO, 0);
   for(int o=0; o<nbO; o++){
     for(int i=0; i<in.nbConf(); i++) {
-      if ( in.requires(i,o) ) { nbCarsByOption[o] += in.demand(i); }
+      if ( in.reqs(i,o) ) { nbCarsByOption[o] += in.demand(i); }
     }
   }
 
@@ -202,7 +202,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
   // some computations for ssu value ordering heuristic
   // taken from Comet model carg:
   //   int sutil[o in Options] = 100*(sod[o] * ub[o]) / (nbCars * lb[o]);
-  //   int ssu[c in Configs] = sum(o in Options: requires[o,c] == 1) sutil[o];
+  //   int ssu[c in Configs] = sum(o in Options: reqs[o,c] == 1) sutil[o];
   vector<int> sutil(nbO);
   for(int o=0; o<nbO; o++){
     sutil[o] = 100*nbCarsByOption[o]*in.ub(o) / (nbVars*in.lb(o));
@@ -211,7 +211,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
   for(int c=0; c<in.nbConf(); c++) {
     ssu[c] = 0;
     for(int o=0; o<nbO; o++) {
-      ssu[c] += (in.requires(c,o))*sutil[o];
+      ssu[c] += (in.reqs(c,o))*sutil[o];
     }
   }
 
@@ -255,7 +255,7 @@ void solveModel(CPSolver::Ptr cp,const Veci& line, Instance& in, int timelimit, 
                         for(int o=0;o < in.nbOpts();o++) {
                            std::cout << in.lb(o) << '/' << in.ub(o) << ' ';
                            for(int c = 0;c < in.nbCars();c++) {
-                              if (in.requires(line[c]->min(),o))
+                              if (in.reqs(line[c]->min(),o))
                                  std::cout << 'Y';
                               else std::cout << ' ';
                            }
@@ -339,7 +339,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
    for(int o = 0; o < nbO; o++){
      set<int> Confs;
      for(int i=0; i<in.nbConf(); i++) {
-       if ( in.requires(i,o) ) { Confs.insert(i); }
+       if ( in.reqs(i,o) ) { Confs.insert(i); }
      }
      std::cout << "use seqMDD3 constraint for option " << o << std::endl;     
      mdd->post(seqMDD3(mdd, line, in.ub(o), 0, in.lb(o), Confs));
@@ -385,7 +385,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
    for(int o = 0; o < nbO; o++){
      set<int> Confs;
      for(int i=0; i<in.nbConf(); i++) {
-       if ( in.requires(i,o) ) { Confs.insert(i); }
+       if ( in.reqs(i,o) ) { Confs.insert(i); }
      }
      addCumulSeq(cp, line, in.ub(o), 0, in.lb(o), Confs);
    }

@@ -126,7 +126,9 @@ public:
       long   _num;
       iterator(T* d,long num = 0) : _data(d),_num(num) {}
    public:
-      using iterator_category = std::input_iterator_tag;
+     using iterator_concept = std::bidirectional_iterator_tag; // or std::random_access_iterator_tag
+     using iterator_category = std::bidirectional_iterator_tag;
+     //     using iterator_category = std::input_iterator_tag;
       using value_type = T;
       using difference_type = long;
       using pointer = T*;
