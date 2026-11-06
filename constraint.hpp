@@ -1124,6 +1124,22 @@ namespace Factory
       std::vector<int> flat(array.size());
       for(int i=0;i < (int)array.size();i++)
          flat[i] = array[i];
+      return new (y->getSolver()) Element1DDC(flat,y,z);
+   }
+   /**
+    * Factory function that returns a global constraint requiring \f$z = array[y]\f$
+    * @param array a vector of `n` integer constants
+    * @param y an integer variable to index into `array`
+    * @param z an integer variable
+    * @return a new constraint that imposes \f$z=array[y]\f$
+    * Note: the constraint enforces bound consistency on `z`. Cheaper than `element` when
+    * holes in `z` do not prune (e.g., a cost read through a successor variable).
+    * @see Element1D
+    */
+   template <class Vec> Constraint::Ptr elementBC(const Vec& array,var<int>::Ptr y,var<int>::Ptr z) {
+      std::vector<int> flat(array.size());
+      for(int i=0;i < (int)array.size();i++)
+         flat[i] = array[i];
       return new (y->getSolver()) Element1D(flat,y,z);
    }
    /**

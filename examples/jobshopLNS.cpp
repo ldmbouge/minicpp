@@ -108,7 +108,7 @@ int main(int argc, char* argv[])
              }),
       [&] { return label(cp, makespan); });
 
-   int const maxFailures = 3 * in.nbJobs() * nbMachines;
+   int const maxFailures = 1 * in.nbJobs() * nbMachines;
    DFSearch search(cp, lns(cp, capture, freeze, core,
                            [maxFailures](const SearchStatistics& s) {
                               return s.numberOfFailures() >= maxFailures;

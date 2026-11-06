@@ -266,6 +266,7 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
    m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
+   m.def("elementBC",&Factory::elementBC<std::vector<int>>);
    m.def("element",[](const std::vector<std::vector<int>>& mat,var<int>::Ptr x,var<int>::Ptr y) {
                       Matrix<int,2> d({(int) mat.size(),(int) mat.front().size()});
                       for(auto i = 0u ; i < mat.size();i++)

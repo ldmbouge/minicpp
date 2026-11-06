@@ -13,7 +13,7 @@ distSucc = intVarArray(cp,n,1000)
 
 cp.post(circuit(succ))
 for i in range(0,n):
-    cp.post(element(data[i],succ[i],distSucc[i]))
+    cp.post(elementBC(data[i],succ[i],distSucc[i]))   # bounds consistent: holes in distSucc do not prune here
 obj = minimize(sum(distSucc))
 
 print("Starting search...")
