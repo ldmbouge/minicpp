@@ -10,6 +10,7 @@
 #include <vector>
 #include <map>
 #include <algorithm>
+#include <climits>
 #include "solver.hpp"
 #include "intvar.hpp"
 #include "constraint.hpp"
@@ -472,6 +473,109 @@ static void testLnsFreezeNeedsSolution()
    CHECK(nFreeze == 0);
 }
 
+// Minimize the sum of 4 pairwise-different values in [0,9]; the core search
+// tries the largest values first, so the first solutions are poor.
+struct SumModel {
+   CPSolver::Ptr    _cp;
+   Veci             _x;
+   var<int>::Ptr    _total;
+   std::vector<int> _best;
+   SumModel() : _cp(makeSolver()), _x(intVarArray(_cp, 4, 0, 9)), _best(4) {
+      for (int i = 0; i < 4; i++)
+         for (int j = i + 1; j < 4; j++)
+            _cp->post(notEqual(_x[i], _x[j]));
+      _total = Factory::sum(_x);
+   }
+   std::function<Branches(void)> largestFirst() {
+      auto cp = _cp; auto x = _x;
+      return forall(cp, range(0, 3), [cp, x](int i) { return label(cp, x[i], [](int v) { return -v; }); });
+   }
+   void capture() { for (int i = 0; i < 4; i++) _best[i] = _x[i]->min(); }
+   void freezeAll() { for (int i = 0; i < 4; i++) _cp->post(_x[i] == _best[i]); }
+};
+
+static void testLnsStall()
+{
+   // freeze fixes the whole incumbent, so no iteration after the first can
+   // improve: with maxStall = 2, lns runs exactly 2 more iterations and stops
+   // by itself (the search completes, no outer limit needed).
+   SumModel m;
+   int nFreeze = 0, nCapture = 0;
+   DFSearch search(m._cp, lns(m._cp,
+      [&] { nCapture++; m.capture(); },
+      [&] { nFreeze++; m.freezeAll(); },
+      m.largestFirst(),
+      [](const SearchStatistics& s) { return s.numberOfFailures() >= 20; },
+      2));
+   auto stat = search.optimize(minimize(m._total), [](const SearchStatistics& s) { return s.numberOfNodes() >= 100000; });
+   CHECK(stat.getCompleted());
+   CHECK(nCapture >= 1);
+   CHECK(nFreeze == 2);
+}
+
+static void testLnsStallNeedsIncumbent()
+{
+   // Without a solution, iterations are not stalls: maxStall = 1 must not stop
+   // the lns on an infeasible model; only the outer limit does.
+   CPSolver::Ptr cp = makeSolver();
+   auto y = pigeonhole(cp, 5);
+   int nCapture = 0, nFreeze = 0;
+   DFSearch search(cp, lns(cp, [&] { nCapture++; }, [&] { nFreeze++; }, firstFail(cp, y),
+                           [](const SearchStatistics& s) { return s.numberOfFailures() >= 3; }, 1));
+   auto stat = search.solve([](const SearchStatistics& s) { return s.numberOfNodes() >= 500; });
+   CHECK(!stat.getCompleted());
+   CHECK(nCapture == 0);
+   CHECK(nFreeze == 0);
+}
+
+static void testAndThenOrder()
+{
+   // Plain branchings: andThen enumerates a's solutions, then b's, from the
+   // same root state (b sees x unconstrained by a's choices).
+   CPSolver::Ptr cp = makeSolver();
+   auto x = intVarArray(cp, 1, 0, 2);
+   bool inB = false;
+   std::vector<std::pair<bool, int>> sols;
+   auto a = [cp, x]() -> Branches { return label(cp, x[0]); };
+   auto b = [cp, x, &inB]() -> Branches { inB = true; return label(cp, x[0], [](int v) { return -v; }); };
+   DFSearch search(cp, andThen(cp, a, b));
+   search.onSolution([&] { sols.push_back({inB, x[0]->min()}); });
+   auto stat = search.solve();
+   CHECK(stat.getCompleted());
+   CHECK((sols == std::vector<std::pair<bool, int>>{{false, 0}, {false, 1}, {false, 2},
+                                                    {true, 2}, {true, 1}, {true, 0}}));
+}
+
+static void testAndThenKeepsIncumbent()
+{
+   // Phase a: lns with a poor core, cut at 5 failures per iteration, stopped
+   // after 2 stalls. Phase b: a complete smallest-first search from the root.
+   // b only finds solutions better than a's best, and reaches the optimum 6.
+   SumModel m;
+   bool inB = false;
+   std::vector<std::pair<bool, int>> sols;
+   auto a = lns(m._cp, [&] { m.capture(); }, [&] { m.freezeAll(); }, m.largestFirst(),
+                [](const SearchStatistics& s) { return s.numberOfFailures() >= 5; }, 2);
+   auto cp = m._cp; auto x = m._x;
+   auto smallest = forall(cp, range(0, 3), [cp, x](int i) { return label(cp, x[i]); });
+   auto b = [&inB, smallest]() -> Branches { inB = true; return smallest(); };
+   DFSearch search(m._cp, andThen(m._cp, a, b));
+   search.onSolution([&] { sols.push_back({inB, m._total->min()}); });
+   auto stat = search.optimize(minimize(m._total));
+   CHECK(stat.getCompleted());
+   int bestA = INT_MAX, nB = 0;
+   for (auto& [phaseB, v] : sols) {
+      if (!phaseB) bestA = std::min(bestA, v);
+      else {
+         nB++;
+         CHECK(v < bestA);              // b starts from a's incumbent
+      }
+   }
+   CHECK(bestA < INT_MAX);              // a found solutions
+   CHECK(nB >= 1);                      // and b improved on them
+   CHECK(sols.back().second == 6);      // 0 + 1 + 2 + 3
+}
+
 int main()
 {
    testVanilla();
@@ -491,6 +595,10 @@ int main()
    testRepeatStopsOnSearchLimit();
    testLns();
    testLnsFreezeNeedsSolution();
+   testLnsStall();
+   testLnsStallNeedsIncumbent();
+   testAndThenOrder();
+   testAndThenKeepsIncumbent();
    if (failures) {
       std::cerr << failures << " failure(s)\n";
       return 1;

@@ -91,6 +91,7 @@ public:
    // Start variable of operation op of job (Matrix has no const subscript;
    // its storage is row-major).
    var<int>::Ptr start(int job, int op) const { return _start.flat()[job * _in.nbMachines() + op]; }
+   auto allStarts() { return _start.flat();}
    var<int>::Ptr                                makespan() const { return _makespan; }
    const std::vector<DisjunctiveResource::Ptr>& disjunctive() const { return _disjunctive; }
 

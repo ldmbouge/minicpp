@@ -24,6 +24,7 @@
 // so that a run can be reproduced.
 
 #include <iostream>
+#include <algorithm>
 #include <climits>
 #include <cstdlib>
 #include <random>
@@ -33,6 +34,7 @@
 #include "RuntimeMonitor.hpp"
 #include "range.hpp"
 #include "jobshop.hpp"
+#include "fds.hpp"
 
 using namespace Factory;
 
@@ -61,14 +63,25 @@ int main(int argc, char* argv[])
    int const nbMachines = in.nbMachines();
 
    // Best solution: for every machine, the successor of each node (0 is the
-   // source, 1..n the tasks, n+1 the sink).
+   // source, task t is node t+1, n+1 is the sink). It is rebuilt from the start
+   // times, which are fixed at a leaf; the successor variables need not be
+   // (a core search on the starts, such as fds, leaves most of them unbound).
    std::vector<std::vector<int>> bestSucc(nbMachines);
    auto capture = [&] {
       for (int m = 0; m < nbMachines; m++) {
-         auto const& succ = disjunctive[m]->successors();
-         bestSucc[m].resize(succ.size());
-         for (size_t k = 0; k < succ.size(); k++)
-            bestSucc[m][k] = succ[k]->min();       // all bound at a leaf
+         auto const& d = disjunctive[m];
+         int const n = d->size();
+         std::vector<int> order(n);                // tasks of machine m, by start time
+         for (int t = 0; t < n; t++) order[t] = t;
+         std::stable_sort(order.begin(), order.end(),
+                          [&](int a, int b) { return d->est(a) < d->est(b); });
+         bestSucc[m].assign(n + 1, n + 1);
+         int prev = 0;
+         for (int t : order) {
+            bestSucc[m][prev] = t + 1;
+            prev = t + 1;
+         }
+         bestSucc[m][prev] = n + 1;
       }
    };
 
@@ -96,24 +109,27 @@ int main(int argc, char* argv[])
    // Core search: machines in mainPureCP's order, each sequenced as in
    // mainSubpathLNS (by ect, then est), then the makespan. The order key is
    // computed in 64 bits: objcp's 32-bit ORInt can overflow once ls >= 2^15.
+   auto startDates = model.allStarts();
    auto core = land(
-      forall(cp, range(0, nbMachines - 1),
-             [&d=disjunctive](int m) {
-                return (long long)d[m]->globalSlack() + ((long long)d[m]->localSlack() << 16);
-             },
-             [&d=disjunctive,&cp](int m) {
-                return sequence(cp, d[m],
-                                [&](int t) { return d[m]->ect(t); },
-                                [&](int t) { return d[m]->est(t); });
-             }),
+//fds(cp,startDates),
+                    forall(cp, range(0, nbMachines - 1),
+                           [&d=disjunctive](int m) {
+                              return (long long)d[m]->globalSlack() + ((long long)d[m]->localSlack() << 16);
+                           },
+                           [&d=disjunctive,&cp](int m) {
+                              return sequence(cp, d[m],
+                                              [&](int t) { return d[m]->ect(t); },
+                                              [&](int t) { return d[m]->est(t); });
+                           }),
       [&] { return label(cp, makespan); });
 
-   int const maxFailures = 1 * in.nbJobs() * nbMachines;
+   int const maxFailures = 3 * in.nbJobs() * nbMachines;
+   //DFSearch search(cp, std::move(core));
    DFSearch search(cp, lns(cp, capture, freeze, core,
                            [maxFailures](const SearchStatistics& s) {
-                              return s.numberOfFailures() >= maxFailures;
+                               return s.numberOfFailures() >= maxFailures;
                            }));
-
+   
    int best = INT_MAX;
    search.onSolution([&]() {
       if (!model.checkSchedule()) {

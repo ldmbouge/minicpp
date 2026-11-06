@@ -112,26 +112,9 @@ public:
    int numberOfSolutions() const noexcept {return solutions;}
    int numberOfFailures() const noexcept { return failures;}
    int numberOfNodes() const noexcept { return nodes;}
-   // A copy of the counters whose clock starts now: the baseline of a scoped limit.
-   SearchStatistics snapshot() const {
-      SearchStatistics s(*this);
-      s._startTime = s._initTime = RuntimeMonitor::now();
-      return s;
-   }
-   // Moves the counters of a baseline forward by those of d (time untouched).
-   void advance(const SearchStatistics& d) {
-      nodes     += d.nodes;
-      failures  += d.failures;
-      solutions += d.solutions;
-   }
-   // Counters accumulated since base, timed from base's clock: what a scoped limit sees.
-   SearchStatistics since(const SearchStatistics& base) const {
-      SearchStatistics s(*this);
-      s.nodes     -= base.nodes;
-      s.failures  -= base.failures;
-      s.solutions -= base.solutions;
-      s._startTime = s._initTime = base._startTime;
-      return s;
+   // Counters of a scoped limit (leaves the global __nbn/__nbf alone).
+   void countScoped(int dNodes, int dFailures, int dSolutions) noexcept {
+      nodes += dNodes; failures += dFailures; solutions += dSolutions;
    }
    RuntimeMonitor::HRClock getStartTime() const noexcept {return _startTime;}
    RuntimeMonitor::HRClock startTime() const noexcept {return _startTime;}
@@ -277,11 +260,15 @@ namespace detail {
    /**
     * Shared implementation of the scoped limits (limitFailures, limitTime).
     * The scope is the subtree below the first node where the closure runs.
-    * Entering it records a baseline of the search statistics and registers the
-    * limit with the solver, so that repeat(...) sees it. `lim` is an ordinary
-    * Limit, evaluated on the statistics accumulated since the scope was entered.
-    * Only what happens inside the scope counts: after body is done, the
-    * search that follows it is outside. Once the limit holds, every remaining
+    * Entering it starts the scope's own statistics and registers the limit
+    * with the solver, so that repeat(...) sees it. `lim` is an ordinary Limit,
+    * evaluated on the scope's statistics: every alternative that body returns
+    * is wrapped, so its try and its failure are counted exactly when they
+    * happen inside the scope (as objcp's limitFailures counts the failed tries
+    * in its scope), and a completed body counts as a solution. Failures
+    * elsewhere (after body completed, or in what follows the scope in a land)
+    * are never seen. A solution the objective rejects fails in dfs, outside
+    * any try, so it does not count either. Once the limit holds, every remaining
     * node of the scope fails and the search resumes outside the scope (the search-wide Limit given to solve/optimize,
     * in contrast, stops the whole search). Once body is done in a subtree, the
     * limit no longer applies there. The scope markers are trailed, so leaving
@@ -295,54 +282,52 @@ namespace detail {
       class State {
          trail<bool>      _entered;    // this subtree is inside the scope
          trail<bool>      _done;       // body completed in this subtree
-         SearchStatistics _base;       // the scope's counters are measured from here
-         SearchStatistics _pausedAt;   // statistics when body last completed
-         bool             _paused = false;
-         // Counts made after body completed happened outside the scope. When
-         // the search comes back into the scope, move the baseline past them,
-         // so that the limit only counts what happened inside (as objcp does).
-         void resume(const SearchStatistics& now) {
-            if (!_paused) return;
-            _base.advance(now.since(_pausedAt));
-            _paused = false;
-         }
+         SearchStatistics _scoped;     // tries, failures, solutions in the scope; clock from entry
       public:
          State(Trailer::Ptr sm) : _entered(sm, false), _done(sm, false) {}
          bool isEntered() const { return _entered; }
          bool isDone() const { return _done; }
-         void enter(const SearchStatistics& now) {
-            _entered = true;
-            _base    = now.snapshot();
-            _paused  = false;
-         }
-         void complete(const SearchStatistics& now) {
-            _done     = true;
-            _pausedAt = now;
-            _paused   = true;
-         }
-         bool isExceeded(const Limit& lim, const SearchStatistics& now) {
-            if (_done) return false;
-            resume(now);
-            return lim(now.since(_base));
-         }
+         void enter()        { _entered = true; _scoped = SearchStatistics(); }
+         void complete()     { _done = true; _scoped.countScoped(0, 0, 1); }
+         void countTry()     { _scoped.countScoped(1, 0, 0); }
+         void countFailure() { _scoped.countScoped(0, 1, 0); }
+         bool isExceeded(const Limit& lim) const { return !_done && lim(_scoped); }
       };
       auto st = std::make_shared<State>(cp->getStateManager());
-      auto isExceeded = [cp, st, lim]() -> bool {
-         return st->isExceeded(lim, *cp->searchStatistics());
+      auto isExceeded = [st, lim]() -> bool { return st->isExceeded(lim); };
+      // (the scope is not called `st` here: TRYFAIL declares a local of that name)
+      auto wrap = [st](std::function<void(void)> alt) -> std::function<void(void)> {
+         return [scope = st, alt] {
+            scope->countTry();
+            TRYFAIL
+               alt();
+            ONFAIL
+               scope->countFailure();
+               failNow();                        // still a failure for dfs
+            ENDFAIL
+         };
       };
-      return [cp, st, isExceeded, body]() -> Branches {
+      return [cp, st, isExceeded, wrap, body]() -> Branches {
          if (st->isDone())
             return Branches({});
-         assert(cp->searchStatistics() && "scoped limits must run inside a DFSearch");
          if (!st->isEntered()) {
-            st->enter(*cp->searchStatistics());
+            st->enter();
             cp->enterLimit(isExceeded);
          } else if (isExceeded())
             return Branches({ [] { failNow(); } });   // fail inside dfs, not across this call
          Branches b = body();
-         if (b.size() == 0)
-            st->complete(*cp->searchStatistics());
-         return b;
+         if (b.size() == 0) {
+            st->complete();
+            return b;
+         }
+         if (b.isUnbounded())                       // e.g. a repeat inside the scope
+            return Branches::unbounded([b, wrap]() mutable -> std::function<void(void)> {
+               auto alt = b.next();
+               return alt ? wrap(alt) : alt;
+            });
+         std::vector<std::function<void(void)>> alts;
+         for (auto& alt : b) alts.push_back(wrap(alt));
+         return Branches(alts);
       };
    }
 }
@@ -444,10 +429,15 @@ std::function<Branches(void)> repeat(CPSolver::Ptr cp, Body body, OnRepeat onRep
  * captured solution; until a first solution has been captured, freeze is
  * skipped and the iteration searches from scratch.
  *
- * lns is meant to be the whole search (its leaves are the solutions). It runs
- * until stopped from outside: use the Limit given to optimize, or wrap it in a
- * scoped limit. Without an iteration limit, every iteration is a complete
- * search of its neighbourhood.
+ * lns is meant to be the whole search (its leaves are the solutions), or the
+ * first phase of andThen(...). It runs until stopped from outside (the Limit
+ * given to optimize, or a scoped limit around it), or, when maxStall > 0, after
+ * maxStall consecutive iterations without an improving solution. Under
+ * optimize, every solution an iteration reaches improves on the incumbent, so
+ * an iteration improves exactly when it finds a solution. Stalls are counted
+ * only once there is an incumbent: iterations still looking for a first
+ * solution never stop the lns. Without an iteration limit, every iteration is
+ * a complete search of its neighbourhood.
  *
  * @param cp             the solver
  * @param capture        `void()`: record the current (complete) solution
@@ -455,25 +445,42 @@ std::function<Branches(void)> repeat(CPSolver::Ptr cp, Body body, OnRepeat onRep
  *                       last captured solution; a failure starts the next iteration
  * @param search         the core search, a branching `void -> Branches`
  * @param iterationLimit optional: bounds each iteration
+ * @param maxStall       stop after that many consecutive iterations without
+ *                       improvement; <= 0 (the default): never
  */
 template <class Capture, class Freeze, class Search>
 std::function<Branches(void)> lns(CPSolver::Ptr cp, Capture capture, Freeze freeze,
-                                  Search search, Limit iterationLimit)
+                                  Search search, Limit iterationLimit, int maxStall = 0)
 {
-   auto hasSolution = std::make_shared<bool>(false);
-   std::function<Branches(void)> body = [search, capture, hasSolution]() -> Branches {
+   struct Progress {
+      bool _hasSolution = false;   // an incumbent exists
+      bool _improved    = false;   // the current iteration found a solution
+      bool _started     = false;   // an iteration has run
+      int  _stalls      = 0;       // consecutive iterations without improvement
+   };
+   auto p = std::make_shared<Progress>();
+   std::function<Branches(void)> body = [search, capture, p]() -> Branches {
       Branches b = search();
       if (b.size() == 0) {          // a leaf: the solution DFS is about to report
          capture();
-         *hasSolution = true;
+         p->_hasSolution = p->_improved = true;
       }
       return b;
    };
    if (iterationLimit)
       body = detail::limit(cp, iterationLimit, std::move(body));
-   return repeat(cp, std::move(body), [freeze, hasSolution] {
-      if (*hasSolution) freeze();
-   });
+   // repeat calls until() once before each iteration, i.e., right after the
+   // previous one ended: account for that iteration, then decide.
+   auto until = [p, maxStall] {
+      if (p->_started && p->_hasSolution)
+         p->_stalls = p->_improved ? 0 : p->_stalls + 1;
+      p->_started  = true;
+      p->_improved = false;
+      return maxStall > 0 && p->_stalls >= maxStall;
+   };
+   return repeat(cp, std::move(body), [freeze, p] {
+      if (p->_hasSolution) freeze();
+   }, until);
 }
 
 /** lns with no iteration limit. */
@@ -481,6 +488,34 @@ template <class Capture, class Freeze, class Search>
 std::function<Branches(void)> lns(CPSolver::Ptr cp, Capture capture, Freeze freeze, Search search)
 {
    return lns(cp, std::move(capture), std::move(freeze), std::move(search), Limit());
+}
+
+/**
+ * Two search phases from the same node: runs the branching a and, once a's
+ * subtree is exhausted (for an lns, when its repeat stops), comes back to the
+ * node where andThen was entered and runs the branching b from there.
+ * Both phases start from the same state: what a posted is undone, while what
+ * is not trailed carries over, in particular the objective's incumbent
+ * (Minimize/Maximize re-apply their primal bound at every fixpoint), so under
+ * optimize b only looks for solutions better than a's best. A leaf of either
+ * phase (empty Branches) is a solution, as for any branching. A search-wide
+ * Limit (given to solve/optimize) covers both phases.
+ *
+ * Typical use: andThen(cp, lns(..., maxStall), proofSearch).
+ */
+template <class A, class B>
+std::function<Branches(void)> andThen(CPSolver::Ptr cp, A a, B b)
+{
+   enum Phase { Fresh = 0, InA = 1, InB = 2 };
+   auto phase = std::make_shared<trail<int>>(cp->getStateManager(), (int)Fresh);
+   return [phase, a, b]() mutable -> Branches {
+      switch ((int)*phase) {
+         case Fresh: return [phase] { *phase = (int)InA; }     // left: phase a
+                          | [phase] { *phase = (int)InB; };    // right, once a is done: phase b
+         case InA:   return a();
+         default:    return b();
+      }
+   };
 }
 
 namespace detail {
