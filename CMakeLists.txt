@@ -92,6 +92,12 @@ set(GLB_CONSTR_SRC
   global_constraints/disjunctive.cpp
   global_constraints/tasksequence.cpp
   global_constraints/disjunctiveresource.cpp
+  global_constraints/sum.cpp
+  global_constraints/clause.cpp
+  global_constraints/alldifferent.cpp
+  global_constraints/circuit.cpp
+  global_constraints/element.cpp
+  global_constraints/maximum.cpp
 )
 
 # Auxiliary functions

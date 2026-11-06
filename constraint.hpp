@@ -26,7 +26,12 @@
 #include "matrix.hpp"
 #include "intvar.hpp"
 #include "acstr.hpp"
-#include "matching.hpp"
+#include "global_constraints/sum.hpp"
+#include "global_constraints/clause.hpp"
+#include "global_constraints/alldifferent.hpp"
+#include "global_constraints/circuit.hpp"
+#include "global_constraints/element.hpp"
+#include "global_constraints/maximum.hpp"
 
 /**
  * @brief Equality constraint: x == c
@@ -196,134 +201,6 @@ public:
    void propagate() override;
 };
 
-class Sum : public Constraint { // s = Sum({x0,...,xk})
-   Factory::Veci _x;
-   trail<int>    _nUnBounds;
-   trail<int>    _sumBounds;
-   unsigned int _n;
-   std::vector<unsigned long> _unBounds;
-public:
-   template <class Vec> Sum(const Vec& x,var<int>::Ptr s)
-       : Constraint(s->getSolver()),
-         _x(x.size() + 1,Factory::alloci(s->getStore())), 
-         _nUnBounds(s->getSolver()->getStateManager(),(int)x.size()+1),
-         _sumBounds(s->getSolver()->getStateManager(),0),
-         _n((int)x.size() + 1),
-         _unBounds(_n)
-    {
-       int i = 0;
-       for(auto& xi : x)
-          _x[i++] = xi;
-       _x[_n-1] = Factory::minus(s);
-       for(typename Vec::size_type i=0;i < _n;i++)
-          _unBounds[i] = i;
-    }
-   void post() override;
-   void propagate() override;
-};
-
-class SumBool : public Constraint {
-   Factory::Vecb _x;
-   int           _c;
-   trail<int>    _nbOne,_nbZero;
-public:
-   template <class Vec> SumBool(const Vec& x,int c)
-      : Constraint(x[0]->getSolver()),
-        _x(x.size(),Factory::allocb(x[0]->getStore())),
-        _c(c),
-        _nbOne(x[0]->getSolver()->getStateManager(),0),
-        _nbZero(x[0]->getSolver()->getStateManager(),0)
-   {
-       int i = 0;
-       for(auto& xi : x)
-          _x[i++] = xi;      
-   }
-   void propagateIdx(int k);
-   void post() override;
-};
-
-class Clause : public Constraint { // x0 OR x1 .... OR xn
-   std::vector<var<bool>::Ptr> _x;
-   trail<int> _wL,_wR;
-public:
-   Clause(const std::vector<var<bool>::Ptr>& x);
-   void post() override { propagate();}
-   void propagate() override;
-};
-
-class IsClause : public Constraint { // b <=> x0 OR .... OR xn
-   var<bool>::Ptr _b;
-   std::vector<var<bool>::Ptr> _x;
-   std::vector<int> _unBounds;
-   trail<int>      _nUnBounds;
-   Clause::Ptr        _clause;
-public:
-   IsClause(var<bool>::Ptr b,const std::vector<var<bool>::Ptr>& x);
-   void post() override;
-   void propagate() override;
-};
-
-class AllDifferentBinary :public Constraint {
-   Factory::Veci _x;
-public:
-  AllDifferentBinary(const Factory::Veci& x)
-    : Constraint(x[0]->getSolver()),
-      _x(x.size(),Factory::alloci(x[0]->getStore())) {
-    int i  = 0;
-    for(auto& xi : x)
-      _x[i++] = xi;
-  }
-  template <class Vec> AllDifferentBinary(const Vec& x)
-    : Constraint(x[0]->getSolver()),
-      _x(x.size(),Factory::alloci(x[0]->getStore()))
-   {
-     int i  = 0;
-     for(auto& xi : x)
-       _x[i++] = xi;
-   }
-  void post() override;
-};
-
-class AllDifferentAC : public Constraint {
-   Factory::Veci    _x;
-   MaximumMatching _mm;
-   PGraph*         _rg;
-   int* _match,*_varFor;
-   int _minVal,_maxVal;
-   int _nVar,_nVal,_nNodes;
-   int updateRange();
-   int valNode(int vid) const noexcept { return vid - _minVal + _nVar;}
-public:
-   template <class Vec> AllDifferentAC(const Vec& x)
-      : Constraint(x[0]->getSolver()),
-        _x(x.begin(),x.end(),Factory::alloci(x[0]->getStore())),
-        _mm(_x,x[0]->getStore()) {}
-   ~AllDifferentAC() {}
-   void post() override;
-   void propagate() override;
-};
-
-class Circuit :public Constraint {
-   Factory::Veci  _x;
-   trail<int>* _dest;
-   trail<int>* _orig;
-   trail<int>* _lengthToDest;
-   void bind(int i);
-   void setup(CPSolver::Ptr cp);
-public:
-   template <class Vec> Circuit(const Vec& x)
-      : Constraint(x.front()->getSolver()),
-        _x(x.size(),Factory::alloci(x.front()->getStore()))
-   {
-      int i = 0;
-      auto cp = x[0]->getSolver();
-      for(auto& xi : x)
-         _x[i++] = xi;
-      setup(cp);
-   }
-   void post() override;
-};
-
 class Minimize : public Objective {
    var<int>::Ptr _obj;
    int        _primal;
@@ -360,129 +237,12 @@ public:
    bool isMin() const override { return false; }
 };
 
-class Element2D : public Constraint {
-   struct Triplet {
-      int x,y,z;
-      Triplet() : x(0),y(0),z(0) {}
-      Triplet(int a,int b,int c) : x(a),y(b),z(c) {}
-      Triplet(const Triplet& t) : x(t.x),y(t.y),z(t.z) {}
-   };
-   Matrix<int,2> _matrix;
-   var<int>::Ptr _x,_y,_z;
-   int _n,_m;
-   trail<int>* _nRowsSup;
-   trail<int>* _nColsSup;
-   trail<int> _low,_up;
-   std::vector<Triplet> _xyz;
-   void updateSupport(int lostPos);
-public:
-   Element2D(const Matrix<int,2>& mat,var<int>::Ptr x,var<int>::Ptr y,var<int>::Ptr z);
-   void post() override;;
-   void propagate() override;
-   void print(std::ostream& os) const override;
-};
-
-class Element1D : public Constraint {
-   std::vector<int> _t;
-   var<int>::Ptr _y;
-   var<int>::Ptr _z;
-public:
-   Element1D(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z);
-   void post() override;
-};
-
-class Element1DBasic : public Constraint { // z == t[y]
-   std::vector<int> _t;
-   var<int>::Ptr _y;
-   var<int>::Ptr _z;
-   struct Pair {
-      int _k;
-      int _v;
-      Pair() : _k(0),_v(0) {}
-      Pair(int k,int v) : _k(k),_v(v) {}
-      Pair(const Pair& p) : _k(p._k),_v(p._k) {}
-   };
-   Pair* _kv;
-   trail<int> _from,_to;
-public:
-   Element1DBasic(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z);
-   void post() override;
-   void propagate() override;
-   void print(std::ostream& os) const override;
-};
-
-class Element1DDC : public Constraint { // z =DC= t[y] (Domain consistent version)
-   std::vector<int> _t;
-   var<int>::Ptr    _y;
-   var<int>::Ptr    _z;
-   // Internal state
-   struct DCIndex {    // for each value v in D(z) we maintain the support and the head of a list
-      int        _v;   // the actual value from D(z)
-      int        _k;   // the first index in t s.t. t[k]==v. The next index is in _list[k] (i.e., t[list[k]]==v)
-      trail<int> _s;   // |{j in D(y) : t[j] == v }|
-   }; 
-   int      _endOfList; // endoflist marker
-   DCIndex*    _values; // an array that holds, for each value in D(z), the support structure
-   int*          _list; // holds _all_ the list indices (one list per index value) |_list| = range(t)
-   int            _nbv; // number of values in _values
-   int     _yMin,_yMax;
-   BitDomain::Ptr _zOld,_yOld;
-   int findIndex(int target) const;
-   void zLostValue(int v);
-   void yLostValue(int v);
-public:
-   Element1DDC(const std::vector<int>& array,var<int>::Ptr y,var<int>::Ptr z);
-   void post() override;
-   void propagate() override;
-   void print(std::ostream& os) const override;
-};
-
-class Element1DVar : public Constraint {  // _z = _array[y]
-   Factory::Veci  _array;
-   var<int>::Ptr   _y,_z;
-   std::vector<int> _yValues;
-   var<int>::Ptr _supMin,_supMax;
-   int _zMin,_zMax;
-   void equalityPropagate();
-   void filterY();
-public:
-   template <class Vec> Element1DVar(const Vec& array,var<int>::Ptr y,var<int>::Ptr z)
-      : Constraint(y->getSolver()),
-        _array(array.size(),Factory::alloci(z->getStore())),
-        _y(y),
-        _z(z),
-        _yValues(_y->size())
-   {
-      for(auto i = 0u;i < array.size();i++)
-         _array[i] = array[i];
-   }
-   void post() override;
-   void propagate() override;
-};
-
 class EQAbsDiffBC : public Constraint { // z == |x - y|
   var<int>::Ptr _z,_x,_y;
 public:
   EQAbsDiffBC(var<int>::Ptr z,var<int>::Ptr x,var<int>::Ptr y)
        : Constraint(x->getSolver()),_z(z),_x(x),_y(y) {}
    void post() override;
-};
-
-class Maximum : public Constraint { // y == max(x0,...,xk)
-   Factory::Veci _x;
-   var<int>::Ptr _y;
-public:
-   template <class Vec> Maximum(const Vec& x,var<int>::Ptr y)
-      : Constraint(y->getSolver()),
-        _x(x.size(),Factory::alloci(y->getStore())),
-        _y(y)
-   {
-      int i = 0;
-      for(auto& xi : x)
-         _x[i++] = xi;
-   }
-   void post() override;
-   void propagate() override;
 };
 
 class Absolute : public Constraint { // y == |x|
