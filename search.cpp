@@ -14,6 +14,7 @@
  */
 
 #include "search.hpp"
+#include <cassert>
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "tracer.hpp"
@@ -26,6 +27,8 @@ SearchStatistics DFSearch::solve(SearchStatistics& stats,Limit limit)
 {
     stats.setIntVars(_cp->getNbVars());
     stats.setPropagators(_cp->getNbProp());
+    auto const prevStats = _cp->searchStatistics();   // restored below: searches may nest
+    _cp->setSearchStatistics(&stats);
     _sm->withNewState(VVFun([this,&stats,&limit]() {
                                try {
                                   dfs(stats,limit);
@@ -33,6 +36,7 @@ SearchStatistics DFSearch::solve(SearchStatistics& stats,Limit limit)
                                   stats.setNotCompleted();
                                }
                             }));
+    _cp->setSearchStatistics(prevStats);
     stats.setSolveTime();
     stats.setPropagations(_cp->getPropagations());
     return stats;
@@ -55,12 +59,15 @@ SearchStatistics DFSearch::solve()
 SearchStatistics DFSearch::solveSubjectTo(Limit limit,std::function<void(void)> subjectTo)
 {
     SearchStatistics stats;
+    auto const prevStats = _cp->searchStatistics();
+    _cp->setSearchStatistics(&stats);
     _sm->withNewState(VVFun([this,&stats,&limit,&subjectTo]() {
                                try {
                                   subjectTo();
                                   dfs(stats,limit);
                                } catch(StopException& sx) {}
                             }));
+    _cp->setSearchStatistics(prevStats);
     return stats;
 }
 
@@ -105,7 +112,9 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
    static int nS = 0;
     Branches branches = _branching();
     //std::cout << "RECUR\n"; 
-    if (branches.size() == 0) {
+    if (branches.isUnbounded())
+       dfsUnbounded(branches, stats, limit);
+    else if (branches.size() == 0) {
        nS++;
        //std::cout<< "DFSFail -> sol " << nS << std::endl;
        stats.incrSolutions();
@@ -149,6 +158,36 @@ void DFSearch::dfs(SearchStatistics& stats,const Limit& limit)
           throw StopException();
        }
     }
+}
+
+// Explores an unbounded Branches (see repeat in search.hpp): alternatives are
+// pulled one at a time until the generator is exhausted or the limit is hit.
+void DFSearch::dfsUnbounded(Branches& branches,SearchStatistics& stats,const Limit& limit)
+{
+   while (!limit(stats)) {
+      auto alt = branches.next();
+      if (!alt) break;                     // no more alternatives
+      stats.incrNodes();
+      _sm->saveState();
+      try {
+         TRYFAIL {
+            alt();
+            dfs(stats, limit);
+         } ONFAIL {
+            stats.incrFailures();
+            notifyFailure();
+         }
+         ENDFAIL {
+            _sm->restoreState();
+         }
+      } catch(...) {  // same as dfs: also lets a StopException unwind level by level
+         stats.incrFailures();
+         notifyFailure();
+         _sm->restoreState();
+      }
+   }
+   if (limit(stats))
+      throw StopException();
 }
 
 SearchStatistics BFSearch::solve(SearchStatistics& stats,Limit limit)
@@ -217,6 +256,7 @@ void BFSearch::bfs(SearchStatistics& stats,const Limit& limit)
    Tracer* tracer = _cp->tracer();
    while (true) {
       Branches branches = _branching();
+      assert(!branches.isUnbounded() && "BFSearch does not support unbounded branchings (repeat)");
       if (branches.size() == 0) {
          //nS++;
          //std::cout<< "BFSFail -> sol " << nS << std::endl;

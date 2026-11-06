@@ -18,6 +18,7 @@
 
 #include <list>
 #include <deque>
+#include <vector>
 #include <functional>
 #include <stdlib.h>
 #include <setjmp.h>
@@ -32,6 +33,7 @@ typedef std::reference_wrapper<std::function<void(void)>> Closure;
 class Controller;
 class Tracer;
 class Checkpoint;
+class SearchStatistics;
 
 class DEPQueue {
    std::deque<Constraint::Ptr>  _q[2];
@@ -68,6 +70,9 @@ protected:
    size_t                    _nbProp;
    bool                   _inRestore;
    bool                 _inBranching;
+   const SearchStatistics*                _stats;     // live statistics of the running search
+   std::vector<std::function<bool(void)>> _limits;    // isExceeded() of the scoped limits...
+   trail<int>                             _nbLimits;  // ...entered on the current path: the first _nbLimits
 public:
    template<typename T> friend class var;
    typedef handle_ptr<CPSolver> Ptr;
@@ -78,6 +83,12 @@ public:
    unsigned long long getPropagations() {return _propagations;};
    size_t getNbVars() noexcept { return _iVars.size();}
    size_t getNbProp() noexcept { return _nbProp;}
+   // The statistics of the running search, set by DFSearch (nullptr outside a search).
+   const SearchStatistics* searchStatistics() const noexcept { return _stats;}
+   void setSearchStatistics(const SearchStatistics* s) noexcept { _stats = s;}
+   // Scoped search limits (see limitFailures / limitTime in search.hpp).
+   void enterLimit(std::function<bool(void)> isExceeded);
+   bool isAborted() const;   // some scoped limit entered on the current path is exceeded
     void registerVar(AVar::Ptr avar);
     void schedule(Constraint::Ptr& c) {
         if (c->isActive() && !c->isScheduled()) {

@@ -289,6 +289,189 @@ static void testSequenceResource()
    CHECK(std::unique(orders.begin(), orders.end()) == orders.end());   // 6 distinct orders
 }
 
+
+// ---------------------------------------------------------------------------
+// Scoped limits and repeat
+// ---------------------------------------------------------------------------
+
+// Pigeonhole: n variables in [0,n-2], pairwise different. Infeasible, but
+// forward checking only finds out deep in the tree, after many failures.
+static Veci pigeonhole(CPSolver::Ptr cp, int n)
+{
+   auto y = intVarArray(cp, n, 0, n - 2);
+   for (int i = 0; i < n; i++)
+      for (int j = i + 1; j < n; j++)
+         cp->post(notEqual(y[i], y[j]));
+   return y;
+}
+
+static void testLimitFailures()
+{
+   // a in [0,2] is labelled outside the scope; the infeasible pigeonhole
+   // search runs inside limitFailures(3). Each value of a re-enters the scope
+   // with a fresh count, so every a gets some failures, but fewer than without
+   // the limit; the search itself completes normally (the scope only cuts).
+   auto run = [](bool limited, std::vector<int>& perA, SearchStatistics& out) {
+      CPSolver::Ptr cp = makeSolver();
+      auto a = makeIntVar(cp, 0, 2);
+      auto y = pigeonhole(cp, 5);
+      auto inner = firstFail(cp, y);
+      auto body  = limited ? limitFailures(cp, 3, inner) : inner;
+      DFSearch search(cp, land(firstFail(cp, std::vector<var<int>::Ptr>{a}), body));
+      perA.assign(3, 0);
+      search.onFailure([&] { if (a->isBound()) perA[a->min()]++; });
+      out = search.solve();
+   };
+   std::vector<int> unl, lim;
+   SearchStatistics su, sl;
+   run(false, unl, su);
+   run(true, lim, sl);
+   CHECK(su.numberOfSolutions() == 0 && sl.numberOfSolutions() == 0);
+   CHECK(sl.getCompleted());
+   for (int v = 0; v < 3; v++) {
+      CHECK(lim[v] >= 3);            // the limit was reached in every scope instance
+      CHECK(lim[v] < unl[v]);        // ...and it cut the search
+   }
+}
+
+static void testLimitDoneScope()
+{
+   // Once the limited part is done, the limit no longer applies: the search
+   // after it (with plenty of failures) is not cut by limitFailures(1).
+   auto run = [](bool limited) {
+      CPSolver::Ptr cp = makeSolver();
+      auto x = makeIntVar(cp, 0, 1);
+      auto z = intVarArray(cp, 3, 0, 3);
+      cp->post(sum(z, 6));
+      for (int i = 0; i < 3; i++)
+         for (int j = i + 1; j < 3; j++)
+            cp->post(notEqual(z[i], z[j]));
+      auto first = firstFail(cp, std::vector<var<int>::Ptr>{x});
+      DFSearch search(cp, land(limited ? limitFailures(cp, 1, first) : first, firstFail(cp, z)));
+      return search.solve();
+   };
+   auto su = run(false), sl = run(true);
+   CHECK(su.numberOfFailures() > 1);  // the second part does fail
+   CHECK(sl.numberOfSolutions() == su.numberOfSolutions());
+   CHECK(sl.numberOfFailures() == su.numberOfFailures());
+}
+
+static void testRepeat()
+{
+   // Three iterations over two booleans. onRepeat posts x0 == nRep % 2, so
+   // iteration 1 has 4 solutions and iterations 2 and 3 have 2 each; if the
+   // posting of iteration 2 (x0 == 1) leaked into iteration 3 (x0 == 0),
+   // iteration 3 would have none.
+   CPSolver::Ptr cp = makeSolver();
+   auto x = intVarArray(cp, 2, 0, 1);
+   int nRep = 0;
+   std::vector<int> solsPerIter(3, 0);
+   DFSearch search(cp, repeat(cp, firstFail(cp, x),
+                              [&] { nRep++; cp->post(x[0] == nRep % 2); },
+                              [&] { return nRep == 2; }));
+   search.onSolution([&] { solsPerIter[nRep]++; });
+   auto stat = search.solve();
+   CHECK(nRep == 2);
+   CHECK(solsPerIter == (std::vector<int>{4, 2, 2}));
+   CHECK(stat.numberOfSolutions() == 8);
+   CHECK(stat.getCompleted());
+}
+
+static void testRepeatLimitedIterations()
+{
+   // The usual LNS shape: each iteration's body is wrapped in limitFailures.
+   // Every iteration starts a fresh count, so each one reaches the limit.
+   CPSolver::Ptr cp = makeSolver();
+   auto y = pigeonhole(cp, 5);
+   int nRep = 0;
+   std::vector<int> failsPerIter(4, 0);
+   DFSearch search(cp, repeat(cp, limitFailures(cp, 4, firstFail(cp, y)),
+                              [&] { nRep++; },
+                              [&] { return nRep == 3; }));
+   search.onFailure([&] { failsPerIter[nRep]++; });
+   auto stat = search.solve();
+   CHECK(nRep == 3);
+   for (int k = 0; k < 4; k++)
+      CHECK(failsPerIter[k] >= 4);
+   CHECK(stat.getCompleted());
+}
+
+static void testRepeatStopsOnScopedLimit()
+{
+   // repeat with no `until` inside limitFailures(10): every iteration fails,
+   // and once the enclosing scope has 10 failures repeat stops (objcp's
+   // isAborted). The search-wide limit is only a guard against looping forever.
+   CPSolver::Ptr cp = makeSolver();
+   auto y = pigeonhole(cp, 4);
+   int nRep = 0;
+   DFSearch search(cp, limitFailures(cp, 10, repeat(cp, firstFail(cp, y), [&] { nRep++; })));
+   auto stat = search.solve([](const SearchStatistics& s) { return s.numberOfFailures() >= 10000; });
+   CHECK(stat.getCompleted());              // not stopped by the guard
+   CHECK(stat.numberOfFailures() < 100);
+   CHECK(nRep >= 1);
+}
+
+static void testRepeatStopsOnSearchLimit()
+{
+   // repeat with no `until` and no scoped limit: the Limit given to solve stops it.
+   CPSolver::Ptr cp = makeSolver();
+   auto x = intVarArray(cp, 2, 0, 1);
+   int nRep = 0;
+   DFSearch search(cp, repeat(cp, firstFail(cp, x), [&] { nRep++; }));
+   auto stat = search.solve([](const SearchStatistics& s) { return s.numberOfSolutions() >= 10; });
+   CHECK(!stat.getCompleted());
+   CHECK(stat.numberOfSolutions() == 10);
+   CHECK(nRep == 2);                        // 4 + 4 + 2 solutions
+}
+
+static void testLns()
+{
+   // Minimize the sum of 4 pairwise-different values in [0,9]. The core search
+   // tries the largest values first, so the first solution is poor (9+8+7+6).
+   // Each iteration is limited to 20 failures and freezes one variable of the
+   // last captured solution. Every captured solution must improve on the
+   // previous one, and the search-wide limit is what stops lns.
+   CPSolver::Ptr cp = makeSolver();
+   auto x = intVarArray(cp, 4, 0, 9);
+   for (int i = 0; i < 4; i++)
+      for (int j = i + 1; j < 4; j++)
+         cp->post(notEqual(x[i], x[j]));
+   auto total = Factory::sum(x);
+   auto obj = minimize(total);
+   std::vector<int> best(4), objectives;
+   int nFreeze = 0;
+   auto core = forall(cp, range(0, 3), [&](int i) { return label(cp, x[i], [](int v) { return -v; }); });
+   DFSearch search(cp, lns(cp,
+      [&] { for (int i = 0; i < 4; i++) best[i] = x[i]->min();
+            objectives.push_back(total->min()); },
+      [&] { int const k = nFreeze++ % 4; cp->post(x[k] == best[k]); },
+      core,
+      [](const SearchStatistics& s) { return s.numberOfFailures() >= 20; }));
+   auto stat = search.optimize(obj, [](const SearchStatistics& s) { return s.numberOfNodes() >= 3000; });
+   CHECK(!stat.getCompleted());
+   CHECK(objectives.size() >= 2);
+   CHECK(objectives.front() == 30);
+   for (size_t k = 1; k < objectives.size(); k++)
+      CHECK(objectives[k] < objectives[k - 1]);
+   CHECK(objectives.back() >= 6);
+   CHECK(nFreeze >= 1);
+}
+
+static void testLnsFreezeNeedsSolution()
+{
+   // With no solution captured yet, freeze must not run: each iteration
+   // searches from scratch (here an infeasible model, cut at 3 failures).
+   CPSolver::Ptr cp = makeSolver();
+   auto y = pigeonhole(cp, 5);
+   int nCapture = 0, nFreeze = 0;
+   DFSearch search(cp, lns(cp, [&] { nCapture++; }, [&] { nFreeze++; }, firstFail(cp, y),
+                           [](const SearchStatistics& s) { return s.numberOfFailures() >= 3; }));
+   auto stat = search.solve([](const SearchStatistics& s) { return s.numberOfNodes() >= 500; });
+   CHECK(!stat.getCompleted());
+   CHECK(nCapture == 0);
+   CHECK(nFreeze == 0);
+}
+
 int main()
 {
    testVanilla();
@@ -300,6 +483,14 @@ int main()
    testSequence();
    testLandVariadic();
    testSequenceResource();
+   testLimitFailures();
+   testLimitDoneScope();
+   testRepeat();
+   testRepeatLimitedIterations();
+   testRepeatStopsOnScopedLimit();
+   testRepeatStopsOnSearchLimit();
+   testLns();
+   testLnsFreezeNeedsSolution();
    if (failures) {
       std::cerr << failures << " failure(s)\n";
       return 1;

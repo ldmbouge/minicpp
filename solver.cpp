@@ -22,7 +22,9 @@
 
 CPSolver::CPSolver()
     : _sm(new Trailer),
-      _store(new Storage(_sm))
+      _store(new Storage(_sm)),
+      _stats(nullptr),
+      _nbLimits(_sm, 0)
 {
     _varId  = 0;
     _propagations = 0;
@@ -35,6 +37,20 @@ CPSolver::~CPSolver()
    _store.dealloc();
    _sm.dealloc();
    std::cout << "CPSolver::~CPSolver(" << this << ")" << std::endl;
+}
+
+void CPSolver::enterLimit(std::function<bool(void)> isExceeded)
+{
+   _limits.resize(_nbLimits);          // entries past _nbLimits were backtracked over
+   _limits.push_back(std::move(isExceeded));
+   _nbLimits = (int)_limits.size();
+}
+
+bool CPSolver::isAborted() const
+{
+   for (int k = 0; k < _nbLimits; k++)
+      if (_limits[k]()) return true;
+   return false;
 }
 
 void CPSolver::post(Constraint::Ptr c, bool enforceFixPoint)

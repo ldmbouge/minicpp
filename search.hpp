@@ -31,17 +31,34 @@
 #include "RuntimeMonitor.hpp"
 #include "commandList.hpp"
 #include <utils.hpp>
+#include <cassert>
 
 class Branches {
-   std::vector<std::function<void(void)>> _alts;
+   std::vector<std::function<void(void)>>         _alts;
+   std::function<std::function<void(void)>(void)> _next;   // set only for unbounded Branches
 public:
-   Branches(const Branches& b) : _alts(std::move(b._alts)) {}
+   Branches(const Branches& b) : _alts(std::move(b._alts)), _next(b._next) {}
    Branches(std::vector<std::function<void(void)>> alts) : _alts(alts) {}
    Branches(std::initializer_list<std::function<void(void)>> alts) { _alts.insert(_alts.begin(),alts.begin(),alts.end());}
    ~Branches() {}
    std::vector<std::function<void(void)>>::iterator begin() { return _alts.begin();}
    std::vector<std::function<void(void)>>::iterator end()   { return _alts.end();}
    size_t size() const { return _alts.size();}
+   /**
+    * Branches whose alternatives are produced on demand: DFS calls next() for
+    * each alternative and stops when it returns an empty function (or when the
+    * search limit is reached). Used by repeat(...), whose series has no bound.
+    */
+   // An unbounded Branches holds one placeholder alternative, so that the
+   // combinators' "done" test (size() == 0) correctly sees it as non-empty.
+   // DFS never runs the placeholder: it pulls alternatives with next() instead.
+   static Branches unbounded(std::function<std::function<void(void)>(void)> next) {
+      Branches b(std::vector<std::function<void(void)>>{ [] { failNow(); } });
+      b._next = std::move(next);
+      return b;
+   }
+   bool isUnbounded() const { return (bool)_next;}
+   std::function<void(void)> next() { return _next();}
 };
 
 /*
@@ -95,6 +112,27 @@ public:
    int numberOfSolutions() const noexcept {return solutions;}
    int numberOfFailures() const noexcept { return failures;}
    int numberOfNodes() const noexcept { return nodes;}
+   // A copy of the counters whose clock starts now: the baseline of a scoped limit.
+   SearchStatistics snapshot() const {
+      SearchStatistics s(*this);
+      s._startTime = s._initTime = RuntimeMonitor::now();
+      return s;
+   }
+   // Moves the counters of a baseline forward by those of d (time untouched).
+   void advance(const SearchStatistics& d) {
+      nodes     += d.nodes;
+      failures  += d.failures;
+      solutions += d.solutions;
+   }
+   // Counters accumulated since base, timed from base's clock: what a scoped limit sees.
+   SearchStatistics since(const SearchStatistics& base) const {
+      SearchStatistics s(*this);
+      s.nodes     -= base.nodes;
+      s.failures  -= base.failures;
+      s.solutions -= base.solutions;
+      s._startTime = s._initTime = base._startTime;
+      return s;
+   }
    RuntimeMonitor::HRClock getStartTime() const noexcept {return _startTime;}
    RuntimeMonitor::HRClock startTime() const noexcept {return _startTime;}
    friend std::ostream& operator<<(std::ostream& os,const SearchStatistics& ss) {
@@ -120,6 +158,7 @@ class DFSearch {
    std::vector<std::function<void(void)>>    _solutionListeners;
    std::vector<std::function<void(void)>>    _failureListeners;
    void dfs(SearchStatistics& stats,const Limit& limit);
+   void dfsUnbounded(Branches& branches,SearchStatistics& stats,const Limit& limit);
 public:
    DFSearch(CPSolver::Ptr cp,std::function<Branches(void)>&& b)
       : _sm(cp->getStateManager()),_cp(cp),_branching(std::move(b)) {
@@ -236,6 +275,216 @@ inline Branches operator|(std::function<void(void)> b0, std::function<void(void)
 
 namespace detail {
    /**
+    * Shared implementation of the scoped limits (limitFailures, limitTime).
+    * The scope is the subtree below the first node where the closure runs.
+    * Entering it records a baseline of the search statistics and registers the
+    * limit with the solver, so that repeat(...) sees it. `lim` is an ordinary
+    * Limit, evaluated on the statistics accumulated since the scope was entered.
+    * Only what happens inside the scope counts: after body is done, the
+    * search that follows it is outside. Once the limit holds, every remaining
+    * node of the scope fails and the search resumes outside the scope (the search-wide Limit given to solve/optimize,
+    * in contrast, stops the whole search). Once body is done in a subtree, the
+    * limit no longer applies there. The scope markers are trailed, so leaving
+    * and re-entering the scope (e.g., the next LNS iteration) starts afresh.
+    * Named detail::limit because solve/optimize call their Limit parameter
+    * `limit`, which would hide a global function of that name.
+    */
+   template <class Body>
+   std::function<Branches(void)> limit(CPSolver::Ptr cp, Limit lim, Body body)
+   {
+      class State {
+         trail<bool>      _entered;    // this subtree is inside the scope
+         trail<bool>      _done;       // body completed in this subtree
+         SearchStatistics _base;       // the scope's counters are measured from here
+         SearchStatistics _pausedAt;   // statistics when body last completed
+         bool             _paused = false;
+         // Counts made after body completed happened outside the scope. When
+         // the search comes back into the scope, move the baseline past them,
+         // so that the limit only counts what happened inside (as objcp does).
+         void resume(const SearchStatistics& now) {
+            if (!_paused) return;
+            _base.advance(now.since(_pausedAt));
+            _paused = false;
+         }
+      public:
+         State(Trailer::Ptr sm) : _entered(sm, false), _done(sm, false) {}
+         bool isEntered() const { return _entered; }
+         bool isDone() const { return _done; }
+         void enter(const SearchStatistics& now) {
+            _entered = true;
+            _base    = now.snapshot();
+            _paused  = false;
+         }
+         void complete(const SearchStatistics& now) {
+            _done     = true;
+            _pausedAt = now;
+            _paused   = true;
+         }
+         bool isExceeded(const Limit& lim, const SearchStatistics& now) {
+            if (_done) return false;
+            resume(now);
+            return lim(now.since(_base));
+         }
+      };
+      auto st = std::make_shared<State>(cp->getStateManager());
+      auto isExceeded = [cp, st, lim]() -> bool {
+         return st->isExceeded(lim, *cp->searchStatistics());
+      };
+      return [cp, st, isExceeded, body]() -> Branches {
+         if (st->isDone())
+            return Branches({});
+         assert(cp->searchStatistics() && "scoped limits must run inside a DFSearch");
+         if (!st->isEntered()) {
+            st->enter(*cp->searchStatistics());
+            cp->enterLimit(isExceeded);
+         } else if (isExceeded())
+            return Branches({ [] { failNow(); } });   // fail inside dfs, not across this call
+         Branches b = body();
+         if (b.size() == 0)
+            st->complete(*cp->searchStatistics());
+         return b;
+      };
+   }
+}
+
+/**
+ * Objective-CP's `limitFailures: n in: body`: once body's subtree has met n
+ * failures, the rest of that subtree is abandoned and the search resumes
+ * outside it. Re-entering the scope (e.g., the next repeat iteration) starts a
+ * new count.
+ */
+template <class Body>
+std::function<Branches(void)> limitFailures(CPSolver::Ptr cp, int n, Body body)
+{
+   return detail::limit(cp, [n](const SearchStatistics& s) { return s.numberOfFailures() >= n; },
+                        std::move(body));
+}
+
+/**
+ * Objective-CP's `limitTime: t in: body`, with t in seconds: once body's
+ * subtree has run for t seconds, the rest of it is abandoned and the search
+ * resumes outside it. To bound a whole search, pass a Limit to solve/optimize.
+ */
+template <class Body>
+std::function<Branches(void)> limitTime(CPSolver::Ptr cp, double seconds, Body body)
+{
+   return detail::limit(cp, [seconds](const SearchStatistics& s) {
+                           return RuntimeMonitor::elapsedSeconds(s.startTime()) >= seconds; },
+                        std::move(body));
+}
+
+/**
+ * Objective-CP's `repeat: body onRepeat: onRepeat until: until`. At the node
+ * where it is entered, it offers an unbounded series of alternatives, all
+ * starting from the state at that node: the first runs body, and each later
+ * one runs onRepeat() and then body. Within an iteration, body runs until it
+ * reports done (empty Branches). The series stops once until() holds or an
+ * enclosing scoped limit (limitFailures, limitTime) has fired; the Limit given
+ * to solve/optimize also stops it. onRepeat may post constraints (e.g., to
+ * freeze part of a solution); if that fails, the next iteration starts.
+ * Typically body is wrapped in limitFailures, so that each iteration is bounded.
+ */
+template <class Body, class OnRepeat, class Until>
+std::function<Branches(void)> repeat(CPSolver::Ptr cp, Body body, OnRepeat onRepeat, Until until)
+{
+   class State {
+      enum Phase { Fresh = 0, Running = 1, Done = 2 };
+      trail<int> _phase;           // Fresh at the repeat node, then Running/Done in an iteration
+      int        _iteration = 0;   // not trailed: iterations started so far
+   public:
+      State(Trailer::Ptr sm) : _phase(sm, Fresh) {}
+      bool isFresh() const { return _phase == Fresh; }
+      bool isDone() const { return _phase == Done; }
+      void run() { _phase = Running; }
+      void complete() { _phase = Done; }
+      int  nextIteration() { return _iteration++; }
+   };
+   auto st = std::make_shared<State>(cp->getStateManager());
+   return [cp, st, body, onRepeat, until]() -> Branches {
+      if (st->isDone())
+         return Branches({});
+      if (!st->isFresh()) {                 // inside an iteration
+         Branches b = body();
+         if (b.size() == 0)
+            st->complete();
+         return b;
+      }
+      return Branches::unbounded([cp, st, onRepeat, until]() -> std::function<void(void)> {
+         if (until() || cp->isAborted())
+            return nullptr;
+         int const k = st->nextIteration();
+         return [st, onRepeat, k] {
+            st->run();
+            if (k > 0) onRepeat();
+         };
+      });
+   };
+}
+
+/** repeat(cp, body, onRepeat) with no `until`: runs until a limit stops it. */
+template <class Body, class OnRepeat>
+std::function<Branches(void)> repeat(CPSolver::Ptr cp, Body body, OnRepeat onRepeat)
+{
+   return repeat(cp, std::move(body), std::move(onRepeat), [] { return false; });
+}
+
+/**
+ * Large neighbourhood search, Objective-CP's LNS template:
+ *
+ *    repeat: { limit: { search } }
+ *    onRepeat: { freeze a fragment of the best solution }
+ *
+ * Each iteration runs `search` from the state at the lns node, under
+ * `iterationLimit` (an ordinary Limit, evaluated on what happens inside the
+ * iteration only; e.g. a failure count). Whenever `search` reaches a solution
+ * (it reports done with empty Branches), `capture()` is called first, so that
+ * it can record the solution; DFS then notifies the solution as usual, which
+ * tightens the objective under optimize. From the second iteration on,
+ * `freeze()` runs before `search` and may post constraints that fix part of the
+ * captured solution; until a first solution has been captured, freeze is
+ * skipped and the iteration searches from scratch.
+ *
+ * lns is meant to be the whole search (its leaves are the solutions). It runs
+ * until stopped from outside: use the Limit given to optimize, or wrap it in a
+ * scoped limit. Without an iteration limit, every iteration is a complete
+ * search of its neighbourhood.
+ *
+ * @param cp             the solver
+ * @param capture        `void()`: record the current (complete) solution
+ * @param freeze         `void()`: post constraints fixing a fragment of the
+ *                       last captured solution; a failure starts the next iteration
+ * @param search         the core search, a branching `void -> Branches`
+ * @param iterationLimit optional: bounds each iteration
+ */
+template <class Capture, class Freeze, class Search>
+std::function<Branches(void)> lns(CPSolver::Ptr cp, Capture capture, Freeze freeze,
+                                  Search search, Limit iterationLimit)
+{
+   auto hasSolution = std::make_shared<bool>(false);
+   std::function<Branches(void)> body = [search, capture, hasSolution]() -> Branches {
+      Branches b = search();
+      if (b.size() == 0) {          // a leaf: the solution DFS is about to report
+         capture();
+         *hasSolution = true;
+      }
+      return b;
+   };
+   if (iterationLimit)
+      body = detail::limit(cp, iterationLimit, std::move(body));
+   return repeat(cp, std::move(body), [freeze, hasSolution] {
+      if (*hasSolution) freeze();
+   });
+}
+
+/** lns with no iteration limit. */
+template <class Capture, class Freeze, class Search>
+std::function<Branches(void)> lns(CPSolver::Ptr cp, Capture capture, Freeze freeze, Search search)
+{
+   return lns(cp, std::move(capture), std::move(freeze), std::move(search), Limit());
+}
+
+namespace detail {
+   /**
     * Shared implementation of the forall combinators (see forall below).
     * Mirrors ORControl's forall:suchThat:orderedBy:do: loop:
     *  - on entry, elements failing suchThat are dropped for good;
@@ -250,49 +499,67 @@ namespace detail {
    std::function<Branches(void)> forall(CPSolver::Ptr cp, const Set& S,
                                         Filter suchThat, Order order, Body body)
    {
-      enum Phase { Fresh = 0, Running = 1, Finished = 2 };
-      struct State {
-         std::vector<int>         values;    // elements of S, in iteration order
-         std::vector<trail<bool>> used;      // done with, or dropped on entry
-         trail<int>               current;   // index being processed, -1 if none
-         trail<int>               phase;     // Fresh, Running or Finished
-         State(Trailer::Ptr sm, const Set& S) : current(sm, -1), phase(sm, Fresh) {
-            for (auto v : S) values.push_back(v);
-            used.assign(values.size(), trail<bool>(sm, false));   // never resized
-         }
-      };
       using Key = std::decay_t<decltype(order(0))>;
-      auto st = std::make_shared<State>(cp->getStateManager(), S);
-      return [st, suchThat, order, body]() -> Branches {
-         int const n = (int)st->values.size();
-         if (st->phase == Finished)
-            return Branches({});
-         if (st->phase == Fresh) {           // entering the loop
-            for (int k = 0; k < n; k++)
-               if (!suchThat(st->values[k])) st->used[k] = true;
-            st->phase = Running;
+      // The loop's trailed state. _used is filled once and never resized, so
+      // the addresses recorded on the trail stay valid.
+      class State {
+         enum Phase { Fresh = 0, Running = 1, Finished = 2 };
+         std::vector<int>         _values;    // elements of S, in iteration order
+         std::vector<trail<bool>> _used;      // done with, or dropped on entry
+         trail<int>               _current;   // index being processed, -1 if none
+         trail<int>               _phase;     // Fresh, Running or Finished
+      public:
+         State(Trailer::Ptr sm, const Set& S) : _current(sm, -1), _phase(sm, Fresh) {
+            for (auto v : S) _values.push_back(v);
+            _used.assign(_values.size(), trail<bool>(sm, false));
          }
-         for (;;) {
-            int const c = st->current;
-            if (c >= 0) {
-               Branches b = body(st->values[c]);
-               if (b.size() != 0)
-                  return b;
-               st->used[c] = true;            // body(values[c]) is done
-               st->current = -1;
-            }
+         bool isFinished() const { return _phase == Finished; }
+         // On first entry, drop for good the elements failing suchThat.
+         void enter(const Filter& suchThat) {
+            if (_phase != Fresh) return;
+            for (int k = 0; k < (int)_values.size(); k++)
+               if (!suchThat(_values[k])) _used[k] = true;
+            _phase = Running;
+         }
+         bool hasCurrent() const { return _current >= 0; }
+         int  currentValue() const { return _values[_current]; }
+         // body(currentValue()) is done.
+         void completeCurrent() {
+            _used[_current] = true;
+            _current = -1;
+         }
+         // Make the qualifying element with the smallest key current (ties:
+         // earliest in S). Returns false, and finishes the loop, if none.
+         bool selectNext(const Filter& suchThat, const Order& order) {
             int next = -1;
             std::optional<Key> best;
-            for (int k = 0; k < n; k++) {
-               if (st->used[k] || !suchThat(st->values[k])) continue;
-               Key key = order(st->values[k]);
+            for (int k = 0; k < (int)_values.size(); k++) {
+               if (_used[k] || !suchThat(_values[k])) continue;
+               Key key = order(_values[k]);
                if (!best || key < *best) { best = key; next = k; }
             }
             if (next < 0) {
-               st->phase = Finished;
-               return Branches({});
+               _phase = Finished;
+               return false;
             }
-            st->current = next;
+            _current = next;
+            return true;
+         }
+      };
+      auto st = std::make_shared<State>(cp->getStateManager(), S);
+      return [st, suchThat, order, body]() -> Branches {
+         if (st->isFinished())
+            return Branches({});
+         st->enter(suchThat);
+         for (;;) {
+            if (st->hasCurrent()) {
+               Branches b = body(st->currentValue());
+               if (b.size() != 0)
+                  return b;
+               st->completeCurrent();
+            }
+            if (!st->selectNext(suchThat, order))
+               return Branches({});
          }
       };
    }
@@ -556,6 +823,10 @@ typename Container::value_type selectMax(const Container& c,Predicate test, Fun 
 }
 
 
+// Unused: Var cannot be deduced, so callers would have to name it explicitly.
+// Superseded by the branchings firstFail(cp, vars) and smallest(cp, vars)
+// (largest has no branching counterpart).
+/*
 template<class Vars, class Var>
 Var first_fail(Vars const & vars) {
    return selectMin(
@@ -595,6 +866,7 @@ Var largest(Vars const & vars) {
                     [](const auto& x) { return x->max();}
                     );
 }
+*/
 
 
 // Values selections
