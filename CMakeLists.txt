@@ -130,21 +130,21 @@ add_library(copl
 	lex.cpp
 	mallocWatch.cpp
 	matching.cpp
-	mdd.cpp
-	mddAlldiff.cpp
-	mddAmong.cpp
-	mddGcc.cpp
-	mddAbs.cpp
-	mddMaximumCutObjective.cpp
-    mddPrecedence.cpp
-	mddGoc.cpp
-	mddSeq.cpp
-	mddSum.cpp
-    mddTSPSum.cpp
-	mdddelta.cpp
-	mddnode.cpp
-	mddrelax.cpp
-	mddstate.cpp
+	mdd/mdd.cpp
+	mdd/mddAlldiff.cpp
+	mdd/mddAmong.cpp
+	mdd/mddGcc.cpp
+	mdd/mddAbs.cpp
+	mdd/mddMaximumCutObjective.cpp
+    mdd/mddPrecedence.cpp
+	mdd/mddGoc.cpp
+	mdd/mddSeq.cpp
+	mdd/mddSum.cpp
+    mdd/mddTSPSum.cpp
+	mdd/mdddelta.cpp
+	mdd/mddnode.cpp
+	mdd/mddrelax.cpp
+	mdd/mddstate.cpp
 	regular.cpp
 	search.cpp
 	solver.cpp

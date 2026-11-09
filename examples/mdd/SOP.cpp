@@ -25,9 +25,9 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
-#include "mddrelax.hpp"
-#include "mddConstraints.hpp"
+#include "mdd/mdd.hpp"
+#include "mdd/mddrelax.hpp"
+#include "mdd/mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 
 using namespace std;

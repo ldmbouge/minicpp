@@ -8,7 +8,7 @@
 #include <iomanip>
 #include <stdint.h>
 #include "intvar.hpp"
-#include "mddstate.hpp"
+#include "mdd/mddstate.hpp"
 
 namespace Factory {
    MDDCstrDesc::Ptr absDiffMDD(MDD::Ptr m, const Factory::Veci& vars);

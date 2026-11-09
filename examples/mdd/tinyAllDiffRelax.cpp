@@ -23,10 +23,10 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
-#include "mddConstraints.hpp"
+#include "mdd/mdd.hpp"
+#include "mdd/mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
-#include "mddrelax.hpp"
+#include "mdd/mddrelax.hpp"
 
 int main(int argc,char* argv[])
 {

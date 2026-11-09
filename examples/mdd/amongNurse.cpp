@@ -34,10 +34,10 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mdd.hpp"
+#include "mdd/mdd.hpp"
 #include "RuntimeMonitor.hpp"
-#include "mddrelax.hpp"
-#include "mddConstraints.hpp"
+#include "mdd/mddrelax.hpp"
+#include "mdd/mddConstraints.hpp"
 #include "matrix.hpp"
 
 using namespace Factory;

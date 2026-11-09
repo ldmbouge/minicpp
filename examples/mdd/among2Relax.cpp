@@ -22,8 +22,8 @@
 #include "intvar.hpp"
 #include "constraint.hpp"
 #include "search.hpp"
-#include "mddrelax.hpp"
-#include "mddConstraints.hpp"
+#include "mdd/mddrelax.hpp"
+#include "mdd/mddConstraints.hpp"
 #include "RuntimeMonitor.hpp"
 #include <climits>
 
