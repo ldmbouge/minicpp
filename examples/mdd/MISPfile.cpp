@@ -374,7 +374,7 @@ int main(int argc,char* argv[])
    int mode  = (argc >= 3 && strncmp(argv[2],"-m",2)==0) ? atoi(argv[2]+2) : 1;
    int maxRebootDistance = (argc >= 4 && strncmp(argv[3],"-r",2)==0) ? atoi(argv[3]+2) : INT_MAX;
    int maxSplitIter = (argc >= 5 && strncmp(argv[4],"-i",2)==0) ? atoi(argv[4]+2) : INT_MAX;
-   const char* fileName = (argc >= 6 && strncmp(argv[5],"-f",2)==0) ? argv[5]+2 : "data/brock200_1.clq";
+   const char* fileName = (argc >= 6 && strncmp(argv[5],"-f",2)==0) ? argv[5]+2 : "data/misp/brock200_1.clq";
    int nodePriority = (argc >= 7 && strncmp(argv[6],"-n",2)==0) ? atoi(argv[6]+2) : 0;
    int nodePriorityAggregateStrategy = (argc >= 8 && strncmp(argv[7],"-na",3)==0) ? atoi(argv[7]+3) : 1;
    int candidatePriority = (argc >= 9 && strncmp(argv[8],"-c",2)==0) ? atoi(argv[8]+2) : 0;

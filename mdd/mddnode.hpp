@@ -131,8 +131,7 @@ public:
       _inQueue = (enum Direction)(_inQueue | d);
    }
    void leaveQueue(enum Direction d) const noexcept {
-     if (parents.size() > 0 || children.size() > 0) // hmmm. The node shouldn't be active
-       _inQueue = (enum Direction)(_inQueue & ~d);    // so avoid trailing by not resetting
+     _inQueue = (enum Direction)(_inQueue & ~d);   // always: a deleted node may be revived by backtracking
      switch(d) {
        case Down: _fq = nullptr;break;
        case Up:   _bq = nullptr;break;
@@ -166,7 +165,10 @@ public:
 private:   
    int pos;
    int _nid;
-   mutable trail<enum Direction> _inQueue;
+   // Not trailed: it mirrors membership in the MDD's work queues (_fwd/_bwd), which are not trailed either.
+   // A trailed flag reverts on backtrack to "queued" while the node is no longer in the queue, which then
+   // blocks every later enQueue of that node and leaves its state stale.
+   mutable enum Direction _inQueue;
    bool _active;
    unsigned short layer;
    TVec<MDDEdge::Ptr,unsigned short> children;

@@ -68,7 +68,7 @@ MDDNode::MDDNode(int nid,Storage::Ptr mem, Trailer::Ptr t,const MDDState& down, 
 		 int dsz,unsigned layer, int id)
    : pos(id),
      _nid(nid),
-     _inQueue(t,None),
+     _inQueue(None),
      _active(true),
      layer(layer),
      children(t,mem,std::max(dsz,1)),
