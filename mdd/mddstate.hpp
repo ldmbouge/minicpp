@@ -1492,6 +1492,7 @@ public:
    double candidateSplitPriority(const MDDState& state, void* arcs, int numArcs, int cPriority) const;
    std::vector<int> equivalenceValue(const MDDState& downState, const MDDState& upState, int cPriority = 0);
    int bestValueFor(TVec<MDDNode*>* layer);
+   bool hasBestValue() const noexcept { return (bool)_bestValue;}   // a constraint installed a value heuristic
    //int valueScoreFor(TVec<MDDNode*>* layer);
    bool hasNodeSplitRule() const noexcept { return _onSplit.size() > 0;}
    bool hasCandidateSplitRule() const noexcept { return _candidateSplit.size() > 0;}

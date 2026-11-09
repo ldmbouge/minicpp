@@ -97,7 +97,9 @@ Pool::~Pool()
 
 void* Pool::allocate(std::size_t sz)
 {
-   if (sz & 0xF)  // unaligned on 8 bytes boundary
+   if (sz == 0)   // as operator new: a 0-byte request still gets a unique, valid block
+      sz = 16;    // (e.g., an MDD whose constraints define no state)
+   if (sz & 0xF)  // unaligned on 16 bytes boundary
       sz = (sz | 0xF) + 1; // increase to align
    assert((sz & 0xF) == 0 && sz != 0);           // check alignment
    auto s = _store[_seg];

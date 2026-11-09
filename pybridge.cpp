@@ -102,24 +102,27 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__ne__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::operator!=(a,b);},py::is_operator())
       .def("__eq__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::equal(a,b,0);},py::is_operator())
       .def("__ne__",[](const var<int>::Ptr& a,int b) {
+         decltype(Factory::operator!=(a,b)) rv;   // no return inside TRYFAIL: it would skip ONFAIL's restore
          TRYFAIL {
-            return Factory::operator!=(a,b);
+            rv = Factory::operator!=(a,b);
          } ONFAIL {
             //std::cout << "failure in x!=" << b << std::endl;
             throw Failure; // convert longjmp/setjmp back to C++ exception to go through pybind layer
          } ENDFAIL
+         return rv;
       },py::is_operator())
       .def("__eq__",[](const var<int>::Ptr& a,int b) {
+         decltype(Factory::operator==(a,b)) rv;   // no return inside TRYFAIL: it would skip ONFAIL's restore
          TRYFAIL {
-            auto rv =  Factory::operator==(a,b);
+            rv =  Factory::operator==(a,b);
             //std::cout << "Got: ";
             //rv->print(std::cout);
             //std::cout << "\n";
-            return rv;
          } ONFAIL {
 	    //std::cout << "failure in x==" << b << std::endl;
             throw Failure; // convert longjmp/setjmp back to C++ exception to go through pybind layer
          } ENDFAIL
+         return rv;
       },py::is_operator())
       .def("__le__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::operator<=(a,b);},py::is_operator())
       .def("__ge__",[](const var<int>::Ptr& a,const var<int>::Ptr& b) { return Factory::operator>=(a,b);},py::is_operator())

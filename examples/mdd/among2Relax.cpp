@@ -55,7 +55,7 @@ int main(int argc,char* argv[])
                             for(i=0u;i< v.size();i++)
                                if (v[i]->size() > 1)
                                   break;
-                            auto x = v[i];
+                            auto x = i < v.size() ? v[i] : nullptr;   // nullptr: every variable is fixed
                             /*
                             auto x = selectMin(v,
                                                [](const auto& x) { return x->size() > 1;},

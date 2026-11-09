@@ -116,22 +116,25 @@ namespace Factory {
    {
       return ADStub {vars,opts};
    }
+   /**
+    * Stub for allDiffMDD2. Posting it fills in the constraint's "all" properties
+    * (down and up), which other constraints can share once the stub is posted:
+    *    auto ad = Factory::allDiffMDD2(vars,opts);
+    *    mdd->post(ad);
+    *    mdd->post(Factory::tspSumMDD(vars,matrix,ad,z,obj,tspOpts));
+    */
    struct ADStub2 {
-      const Factory::Veci& _vars;
-      MDDPBitSequence::Ptr& _all;
-      MDDPBitSequence::Ptr& _allup;
-      MDDOpts              _opts;
+      const Factory::Veci&         _vars;
+      MDDOpts                      _opts;
+      mutable MDDPBitSequence::Ptr _all;     // set by execute
+      mutable MDDPBitSequence::Ptr _allup;   // set by execute
       MDDCstrDesc::Ptr execute(MDD::Ptr m) const { return allDiffMDD2(m,_vars,_all,_allup,_opts);}
+      MDDPBitSequence::Ptr all() const   { return _all;}
+      MDDPBitSequence::Ptr allup() const { return _allup;}
    };
    inline ADStub2 allDiffMDD2(const Factory::Veci& vars,MDDOpts opts = {.eqThreshold = 4})
    {
-      MDDPBitSequence::Ptr all;
-      MDDPBitSequence::Ptr allup;
-      return ADStub2 {vars,all,allup,opts};
-   }
-   inline ADStub2 allDiffMDD2(const Factory::Veci& vars,MDDPBitSequence::Ptr& all,MDDPBitSequence::Ptr& allup,MDDOpts opts = {.eqThreshold = 4})
-   {
-      return ADStub2 {vars,all,allup,opts};
+      return ADStub2 {vars,opts};
    }
 
    
@@ -347,9 +350,10 @@ namespace Factory {
    {
       return TSPStub {vars,matrix,nullptr,nullptr,z,objective,opts};
    }
-   inline TSPStub tspSumMDD(const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, MDDPBitSequence::Ptr all, MDDPBitSequence::Ptr allup, var<int>::Ptr z, Objective::Ptr objective = nullptr, MDDOpts opts = {.cstrP = 0})
+   // Shares the "all" properties of an allDiffMDD2 stub, which must be posted first.
+   inline TSPStub tspSumMDD(const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, const ADStub2& ad, var<int>::Ptr z, Objective::Ptr objective = nullptr, MDDOpts opts = {.cstrP = 0})
    {
-      return TSPStub {vars,matrix,all,allup,z,objective,opts};
+      return TSPStub {vars,matrix,ad.all(),ad.allup(),z,objective,opts};
    }
 
    MDDCstrDesc::Ptr tspSumMDD2(MDD::Ptr m, const Factory::Veci& vars, const std::vector<std::vector<int>>& matrix, MDDPBitSequence::Ptr all, MDDPBitSequence::Ptr allup, var<int>::Ptr z, Objective::Ptr objective, MDDOpts opts);

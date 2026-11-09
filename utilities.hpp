@@ -173,8 +173,9 @@ public:
       long long _cw; // current word
       iterator(long long* t,short nbw,short at)
          : _t(t),_nbw(nbw),_cwi(at),_cw((at < nbw) ? t[at] : 0) {
-         while (_cw == 0 && ++_cwi < _nbw) 
-            _cw = _t[_cwi];         
+         // _cwi < _nbw: an empty set (no words) must stop at _cwi == 0 == end()
+         while (_cw == 0 && _cwi < _nbw && ++_cwi < _nbw)
+            _cw = _t[_cwi];
       }
       iterator(long long* t,short nbw) : _t(t),_nbw(nbw),_cwi(nbw),_cw(0) {} // end constructor
    public:

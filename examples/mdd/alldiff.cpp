@@ -143,8 +143,9 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   cp->post(vars[5] == 6);
 
   auto start = RuntimeMonitor::cputime();
-  MDDRelax* mdd = nullptr;
-  try {
+  // volatile: mdd is set inside TRYFAIL and read in ONFAIL, after a longjmp
+  MDDRelax* volatile mdd = nullptr;
+  TRYFAIL
     if ((mode == 1 || mode == 2) && sameMDD) {
       mdd = newMDDRelax(cp, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, maxConstraintPriority);
     }
@@ -180,7 +181,7 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
     if (sameMDD && mdd) {
       cp->post(mdd);
     }
-  } catch(Status s) {
+  ONFAIL
      auto end = RuntimeMonitor::cputime();
      std::cout << "model infeasible during post" << std::endl;
      std::cout << "Time : " << RuntimeMonitor::milli(start,end) << '\n';
@@ -228,8 +229,8 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   std::cout << "\t}\n";  
   std::cout << "}\n}\n";
      return;
-  }
-  
+  ENDFAIL
+
   
   DFSearch search(cp,[=]() {
       unsigned i = 0u;

@@ -27,6 +27,7 @@
 #include <limits>
 #include <iterator>
 #include <climits>
+#include <stdexcept>
 
 #include "solver.hpp"
 #include "trailable.hpp"
@@ -166,7 +167,7 @@ Instance Instance::readData(const char* filename)
       }
       return Instance(numNodes,numEdges,cliques);
    }else
-      throw;
+      throw std::runtime_error(std::string("cannot read ") + filename);
 }
 
 template <class Vec>
@@ -408,6 +409,7 @@ int main(int argc,char* argv[])
    } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
       std::cerr << "Unable to find the file" << std::endl;
+      return 1;
    }
 
    return 0;   

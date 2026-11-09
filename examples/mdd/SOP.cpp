@@ -129,10 +129,9 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, in
       }
       mdd->getSpec().setNodePriorityAggregateStrategy(nodePriorityAggregateStrategy);
       mdd->getSpec().setCandidatePriorityAggregateStrategy(candidatePriorityAggregateStrategy);
-      MDDPBitSequence::Ptr all;
-      MDDPBitSequence::Ptr allup;
-      mdd->post(Factory::allDiffMDD2(vars,all,allup,allDiffOpts));
-      mdd->post(Factory::tspSumMDD(vars,matrix,all,allup,z,obj,tspOpts));
+      auto ad = Factory::allDiffMDD2(vars,allDiffOpts);
+      mdd->post(ad);
+      mdd->post(Factory::tspSumMDD(vars,matrix,ad,z,obj,tspOpts));
 
 //Since first and last variable values are set, we don't add precedence constraints for them
       int i = 0;
@@ -159,10 +158,9 @@ void buildModel(int numVars, vector<vector<int>> matrix, int mode, int width, in
       }
       mdd->getSpec().setNodePriorityAggregateStrategy(nodePriorityAggregateStrategy);
       mdd->getSpec().setCandidatePriorityAggregateStrategy(candidatePriorityAggregateStrategy);
-      MDDPBitSequence::Ptr all;
-      MDDPBitSequence::Ptr allup;
-      mdd->post(Factory::allDiffMDD2(vars,all,allup,allDiffOpts));
-      mdd->post(Factory::tspSumMDD(vars,matrix,all,allup,z,obj,tspOpts));
+      auto ad = Factory::allDiffMDD2(vars,allDiffOpts);
+      mdd->post(ad);
+      mdd->post(Factory::tspSumMDD(vars,matrix,ad,z,obj,tspOpts));
 
       std::vector<std::pair<int,int>> precedences;
       int i = 0;
@@ -297,7 +295,8 @@ int main(int argc,char* argv[])
                                 "ry48p.2.sop",   //38
                                 "ry48p.3.sop",   //39
                                 "ry48p.4.sop"};  //40
-   const string matrixFile = "/Users/rebeccagentzel/minicpp/data/" + matrixFiles[fileIndex];
+   // relative to build/, where the examples run: the instances are in the repository's data/
+   const string matrixFile = "../data/" + matrixFiles[fileIndex];
 
    cout << "width = " << width << endl;   
    cout << "mode = " << mode << endl;

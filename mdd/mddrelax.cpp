@@ -1300,7 +1300,7 @@ void MDDRelax::buildNextRestrictedLayer(unsigned int i)
    assert(restrictedLayers[i].size() == 1);
    auto parent = restrictedLayers[i][0];
    MDDState downState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeDown()),Down);
-   MDDState upState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Up,false,true);
+   MDDState upState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeUp()),Up,false,true);
    MDDState combinedState(trail,&_mddspec,(char*)alloca(sizeof(char)*_mddspec.layoutSizeCombined()),Bi,false,true);
    _sf->createStateDown(downState,parent->pack(),i,x[i],xv,false);
    MDDNode* child = _nf->makeNode(downState,upState,combinedState,x[i]->size(),i+1,(int)restrictedLayers[i+1].size());
@@ -1564,6 +1564,7 @@ void MDDRelax::propagate()
          makeRestrictedMDD();
       }
 
+      // No return inside TRYFAIL: it would skip ONFAIL's restore of the failure handler.
       if (cp->isInBranching() && !cp->isInRestore()) { //Is testing new branch
          assert(layers[_lastTrimmedLayer+1].size() == 1);
          _mddspec.reachedFixpoint(layers[_lastTrimmedLayer+1][0]->pack());
@@ -1571,32 +1572,31 @@ void MDDRelax::propagate()
          _fwd->clear();
          _bwd->clear();
          setScheduled(false);
-         return;
-      }
-
-      do {
-         _fwd->init(); 
-         _bwd->init();
-         ++iterMDD;++iter;
-         _deltaDown->clear();
-         _deltaUp->clear();
-         _deltaCombinedUp->clear();
-         //auto start = RuntimeMonitor::now();
-         computeUp();
-         //timeDoingUp += RuntimeMonitor::elapsedSinceMicro(start);
-         _sf->clear();
-         _deltaCombinedDown->clear();
-         computeDown(iter);
+      } else {
+         do {
+            _fwd->init();
+            _bwd->init();
+            ++iterMDD;++iter;
+            _deltaDown->clear();
+            _deltaUp->clear();
+            _deltaCombinedUp->clear();
+            //auto start = RuntimeMonitor::now();
+            computeUp();
+            //timeDoingUp += RuntimeMonitor::elapsedSinceMicro(start);
+            _sf->clear();
+            _deltaCombinedDown->clear();
+            computeDown(iter);
+            assert(layers[numVariables].size() == 1);
+            if (!_mddspec.usesUp()) _bwd->clear();
+            change = !_fwd->empty() || !_bwd->empty();
+            for(int l=0;l < (int) numVariables;l++)
+               trimVariable(l);
+         } while (change);
          assert(layers[numVariables].size() == 1);
-         if (!_mddspec.usesUp()) _bwd->clear();
-         change = !_fwd->empty() || !_bwd->empty();
-         for(int l=0;l < (int) numVariables;l++)
-            trimVariable(l);
-      } while (change);
-      assert(layers[numVariables].size() == 1);
-      _mddspec.reachedFixpoint(sink->pack());
-      setScheduled(false);
-  ONFAIL    
+         _mddspec.reachedFixpoint(sink->pack());
+         setScheduled(false);
+      }
+  ONFAIL
       queue.clear();
       setScheduled(false);
       failNow();
@@ -1625,7 +1625,11 @@ void MDDRelax::refreshAll()
 
 int MDDRelax::selectValueFor(var<int>::Ptr theVar)
 {
-  return _mddspec.bestValueFor(&layers[layerAbove(theVar)]);
+   // Only some constraints (e.g., sum, tspSum) install a value heuristic; otherwise use the generic one.
+   if (_mddspec.hasBestValue())
+      return _mddspec.bestValueFor(&layers[layerAbove(theVar)]);
+   else
+      return bestValue(this,theVar);
 }
 
 void MDDRelax::checkGraph()
