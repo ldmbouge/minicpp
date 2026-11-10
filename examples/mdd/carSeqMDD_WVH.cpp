@@ -372,12 +372,12 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
    // }
 
    cout << "about to post MDD" << endl;
-   try {
+   TRYFAIL
       cp->post(mdd);
-   } catch(Status s) {
+   ONFAIL
       std::cout << "Failure raised during the post";
       exit(1);
-   }
+   ENDFAIL
 
    cout << "about to post cumulSeq" << endl;
 

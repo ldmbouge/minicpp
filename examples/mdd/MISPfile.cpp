@@ -418,9 +418,11 @@ int main(int argc,char* argv[])
    try {
       Instance instance = Instance::readData(fileName);
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp, width, mode, maxRebootDistance, maxSplitIter, instance, nodePriority, nodePriorityAggregateStrategy, candidatePriority, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, approxEquivMode, equivalenceThreshold, sameMDD);
-   } catch(Status s) {
-      std::cout << "model infeasible during post" << std::endl;
+      TRYFAIL
+         buildModel(cp, width, mode, maxRebootDistance, maxSplitIter, instance, nodePriority, nodePriorityAggregateStrategy, candidatePriority, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, approxEquivMode, equivalenceThreshold, sameMDD);
+      ONFAIL
+         std::cout << "model infeasible during post" << std::endl;
+      ENDFAIL
    } catch (std::exception& e) {
       std::cerr << e.what() << std::endl;
       std::cerr << "Unable to find the file" << std::endl;

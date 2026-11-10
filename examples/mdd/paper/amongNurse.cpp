@@ -475,9 +475,11 @@ int main(int argc,char* argv[])
    std::cout << "horizonSize = " << horizonSize << std::endl;
    try {
       CPSolver::Ptr cp  = Factory::makeSolver();
-      buildModel(cp, width, mode, maxRebootDistance, maxSplitIterFactor, constraintSet, horizonSize);
-   } catch(Status s) {
-      std::cout << "model infeasible during post" << std::endl;
+      TRYFAIL
+         buildModel(cp, width, mode, maxRebootDistance, maxSplitIterFactor, constraintSet, horizonSize);
+      ONFAIL
+         std::cout << "model infeasible during post" << std::endl;
+      ENDFAIL
    } catch (std::exception& e) {
       std::cerr << "Unable to find the file" << std::endl;
    }
