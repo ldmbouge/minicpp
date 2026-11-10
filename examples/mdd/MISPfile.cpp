@@ -226,10 +226,12 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
   };
 
   if (mode == 0) {
+    cout << "classic encoding" << endl;
     for (auto clique : cliques) {
       auto adv = all(cp, clique, vars);
-      mdd->post(Factory::upToOneMDD(mdd, adv, included, opts));
+      cp->post(Factory::atMost(adv, 1, 1));   // at most one node per clique takes value 1
     }
+    cp->post(Factory::sum(vars, objective));
   } else if (mode == 1) {
     cout << "amongMDD2 encoding" << endl;
     if (sameMDD) mdd = newMDDRelax(cp, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact);
@@ -249,6 +251,19 @@ void buildModel(CPSolver::Ptr cp, int relaxSize, int mode, int maxRebootDistance
       auto adv = all(cp, clique, vars);
       addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [adv, included,opts](MDDRelax* mdd) { 
          mdd->post(Factory::upToOneMDD(mdd, adv, included,opts));
+      });
+    }
+  } else if (mode == 3) {
+    cout << "atMostMDD2 encoding" << endl;
+    if (sameMDD) mdd = newMDDRelax(cp, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact);
+
+    for (auto clique : cliques) {
+      auto adv = all(cp, clique, vars);
+      auto advi = Factory::intVarArray(cp, (int)adv.size(), [&](int i) { return adv[i]; });
+      // Bounds for every value: ValueMap defaults a missing value to 0, which would forbid all 0 arcs.
+      std::map<int,int> ub = {{0, (int)adv.size() + 1}, {1, 1}};
+      addMDDConstraint(cp, mdd, relaxSize, maxRebootDistance, maxSplitIter, nodePriorityAggregateStrategy, candidatePriorityAggregateStrategy, useApproxEquiv, approxThenExact, sameMDD, [advi, ub](MDDRelax* mdd) {
+         mdd->post(Factory::atMostMDD2(mdd, advi, ub));
       });
     }
   }

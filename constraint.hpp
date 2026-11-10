@@ -29,6 +29,7 @@
 #include "global_constraints/sum.hpp"
 #include "global_constraints/clause.hpp"
 #include "global_constraints/alldifferent.hpp"
+#include "global_constraints/cardinality.hpp"
 #include "global_constraints/circuit.hpp"
 #include "global_constraints/element.hpp"
 #include "global_constraints/maximum.hpp"
@@ -858,6 +859,51 @@ namespace Factory
     */
    template <class Vec> Constraint::Ptr allDifferentAC(const Vec& xs) {
       return new (xs[0]->getSolver()) AllDifferentAC(xs);
+   }
+   /**
+    * Factory function that returns a global cardinality constraint over the variables in `xs`
+    * @param xs a vector of `n` variables
+    * @param low maps a value `v` to the least number of variables that must take `v` (0 if absent)
+    * @param up maps a value `v` to the largest number of variables that may take `v` (`n` if absent)
+    * @return a global constraint enforcing \f$\forall v : low_v \leq |\{i : xs_i = v\}| \leq up_v\f$
+    * Note: counting propagator (fails on violated counts, removes full values, binds needed values)
+    * @see Cardinality
+    */
+   template <class Vec> Constraint::Ptr cardinality(const Vec& xs,const std::map<int,int>& low,const std::map<int,int>& up) {
+      return new (xs[0]->getSolver()) Cardinality(xs,low,up);
+   }
+   /**
+    * Same as `cardinality`, but the constraint enforces domain consistency (flow based)
+    * @see CardinalityDC
+    */
+   template <class Vec> Constraint::Ptr cardinalityDC(const Vec& xs,const std::map<int,int>& low,const std::map<int,int>& up) {
+      return new (xs[0]->getSolver()) CardinalityDC(xs,low,up);
+   }
+   /**
+    * Factory function: each value `v` in `low` is taken by at least `low[v]` variables of `xs`
+    * @see cardinality
+    */
+   template <class Vec> Constraint::Ptr atLeast(const Vec& xs,const std::map<int,int>& low) {
+      return new (xs[0]->getSolver()) Cardinality(xs,low,{});
+   }
+   /**
+    * Factory function: value `v` is taken by at least `k` variables of `xs`
+    */
+   template <class Vec> Constraint::Ptr atLeast(const Vec& xs,int v,int k) {
+      return new (xs[0]->getSolver()) Cardinality(xs,{{v,k}},{});
+   }
+   /**
+    * Factory function: each value `v` in `up` is taken by at most `up[v]` variables of `xs`
+    * @see cardinality
+    */
+   template <class Vec> Constraint::Ptr atMost(const Vec& xs,const std::map<int,int>& up) {
+      return new (xs[0]->getSolver()) Cardinality(xs,{},up);
+   }
+   /**
+    * Factory function: value `v` is taken by at most `k` variables of `xs`
+    */
+   template <class Vec> Constraint::Ptr atMost(const Vec& xs,int v,int k) {
+      return new (xs[0]->getSolver()) Cardinality(xs,{},{{v,k}});
    }
    /**
     * Factory function that return a circuit constraint over the variables held in `xs`
