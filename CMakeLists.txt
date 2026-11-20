@@ -32,6 +32,9 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 string(APPEND CMAKE_CXX_FLAGS " -Wall -Wsign-compare -Wno-unused-but-set-variable")
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    string(APPEND CMAKE_CXX_FLAGS " -Wno-vla-cxx-extension")   # VLAs are a GCC/Clang extension
+endif()
 
 # CUDA
 if(ENABLE_GPU)
