@@ -1,5 +1,4 @@
 # Core library
-################################################################################
 add_library(copl
         core/acstr.cpp
         core/commandList.cpp

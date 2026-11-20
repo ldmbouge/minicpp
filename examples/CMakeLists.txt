@@ -1,5 +1,4 @@
 # One executable per source file, named after the file
-################################################################################
 file(GLOB EXAMPLE_SRC CONFIGURE_DEPENDS
         basic/*.cpp
         scheduling/*.cpp
