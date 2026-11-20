@@ -17,17 +17,17 @@
 #include <iomanip>
 #include <string.h>
 #include <limits>
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
 #include "mdd/mdd.hpp"
 #include "mdd/mddrelax.hpp"
 #include "mdd/mddConstraints.hpp"
-#include "RuntimeMonitor.hpp"
-#include "table.hpp"
-#include "range.hpp"
+#include "util/RuntimeMonitor.hpp"
+#include "constraints/table.hpp"
+#include "core/range.hpp"
 
 // ------------------------------------------------------------
 // Utility functions

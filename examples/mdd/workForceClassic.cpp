@@ -12,13 +12,13 @@
 #include <limits>
 #include <iterator>
 
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
-#include "RuntimeMonitor.hpp"
-#include "matrix.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
+#include "util/RuntimeMonitor.hpp"
+#include "core/matrix.hpp"
 
 
 using namespace std;
@@ -282,8 +282,8 @@ int main(int argc,char* argv[])
    int mode = (argc >= 2 && strncmp(argv[1],"-m",2)==0) ? atoi(argv[1]+2) : 1;  
    cout << "mode = " << mode << endl;
    
-   const char* jobsFile = "data/workforce100-jobs.csv";
-   const char* compatFile = "data/workforce100.csv";
+   const char* jobsFile = "data/workforce/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce/workforce100.csv";
    try {
       auto jobsCSV = csv(jobsFile,true);
       auto compat = csv(compatFile,false);

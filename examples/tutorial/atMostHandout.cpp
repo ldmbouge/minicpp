@@ -15,14 +15,14 @@
 
 #include <iostream>
 #include <iomanip>
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
 #include "mdd/mddrelax.hpp"
 #include "mdd/mddConstraints.hpp"
-#include "RuntimeMonitor.hpp"
+#include "util/RuntimeMonitor.hpp"
 
 namespace  Factory {
    /**

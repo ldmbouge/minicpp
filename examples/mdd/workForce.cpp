@@ -12,15 +12,15 @@
 #include <limits>
 #include <iterator>
 
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
 #include "mdd/mddrelax.hpp"
 #include "mdd/mddConstraints.hpp"
-#include "RuntimeMonitor.hpp"
-#include "matrix.hpp"
+#include "util/RuntimeMonitor.hpp"
+#include "core/matrix.hpp"
 
 
 using namespace std;
@@ -543,8 +543,8 @@ void buildModel(CPSolver::Ptr cp, vector<Job>& jobs, vector<vector<int>> compat,
 
 int main(int argc,char* argv[])
 {
-   const char* jobsFile = "./data/workforce100-jobs.csv";
-   const char* compatFile = "./data/workforce100.csv";
+   const char* jobsFile = "data/workforce/workforce100-jobs.csv";
+   const char* compatFile = "data/workforce/workforce100.csv";
    int mode = (argc >= 2 && strncmp(argv[1],"-m",2)==0) ? atoi(argv[1]+2) : 1;
    int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 2;
    int over  = (argc >= 4 && strncmp(argv[3],"-o",2)==0) ? atoi(argv[3]+2) : 60;

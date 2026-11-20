@@ -20,7 +20,7 @@ from pathlib import Path
 # CONFIG
 # ---------------------------------------------------------------------------
 EXES = ["./rcpsp_cli"]          # solver executables to run
-INSTANCE_DIR = "../data"        # paths from the instances file are relative to this
+INSTANCE_DIR = "data"           # paths from the instances file are relative to this
 LOG_DIR = "./logs"
 TIMEOUT = 300                   # solver timeout (s); passed as -t and used in name
 KILL_GRACE = 30                 # `timeout` kills this many seconds past TIMEOUT

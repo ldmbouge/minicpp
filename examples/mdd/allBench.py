@@ -108,7 +108,7 @@ sequenceNurseConstraints = [Constraint(checkSequence, SequenceParameters(length=
                             Constraint(checkSequence, SequenceParameters(length=7, lower=2, upper=4, values=[2,3])),
                             Constraint(checkSequence, SequenceParameters(length=7, lower=0, upper=6, values=[1,2,3]))]
 workForceConstraints = []
-file = open("build/data/workForce100-jobs.csv", "r")
+file = open("data/workforce/workforce100-jobs.csv", "r")
 file.readline()
 startTimes = []
 endTimes = []

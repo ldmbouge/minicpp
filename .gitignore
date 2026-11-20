@@ -7,7 +7,6 @@
 *.log
 **/*.dSYM
 doc/**
-docs/**
 build
 minicpp.xcodeproj
 minicpp.sublime-workspace

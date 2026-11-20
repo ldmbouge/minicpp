@@ -25,16 +25,16 @@
 #include <iostream>
 #include <map>
 
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
 #include "mdd/mddrelax.hpp"
-#include "RuntimeMonitor.hpp"
+#include "util/RuntimeMonitor.hpp"
 #include "mdd/mddConstraints.hpp"
 
-#include "matrix.hpp"
+#include "core/matrix.hpp"
 
 
 using namespace std;
@@ -484,7 +484,7 @@ int main(int argc,char* argv[])
 {
    int mode = (argc >= 2 && strncmp(argv[1],"-m",2)==0) ? atoi(argv[1]+2) : 1;
    int width = (argc >= 3 && strncmp(argv[2],"-w",2)==0) ? atoi(argv[2]+2) : 1;
-   const char* filename = (argc >= 4) ? argv[3] : "data/dataMini";
+   const char* filename = (argc >= 4) ? argv[3] : "data/carseq/dataMini";
    int variableSearchHeuristic = (argc >= 5 && strncmp(argv[4],"-var",4)==0) ? atoi(argv[4]+4) : 1;
    int valueSearchHeuristic = (argc >= 6 && strncmp(argv[5],"-val",4)==0) ? atoi(argv[5]+4) : 0;
 

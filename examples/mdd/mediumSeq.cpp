@@ -22,16 +22,16 @@
 #include <fstream>      // std::ifstream
 #include <iomanip>
 #include <iostream>
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
 #include "mdd/mddrelax.hpp"
 #include "mdd/mddConstraints.hpp"
 
-#include "RuntimeMonitor.hpp"
-#include "matrix.hpp"
+#include "util/RuntimeMonitor.hpp"
+#include "core/matrix.hpp"
 
 #define SZ_VAR 20
 #define SZ_VAL 20
