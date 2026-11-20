@@ -22,3 +22,6 @@ endforeach()
 
 list(LENGTH EXAMPLE_SRC EXAMPLE_COUNT)
 message(STATUS "Examples: ${EXAMPLE_COUNT} targets")
+
+# Instances: examples open "data/..." relative to their own directory
+file(CREATE_LINK ${PROJECT_SOURCE_DIR}/data ${CMAKE_CURRENT_BINARY_DIR}/data SYMBOLIC)
