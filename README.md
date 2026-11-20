@@ -64,6 +64,15 @@ Where `root` is the folder where you have decompressed the library (or cloned th
 You ought to be rewarded with a complete build. Feel free to omit the build type, or use `Debug` as the value
 of that environment variable to compile in Debug mode.
 
+To run the unit tests (in `tests/`) from the `build` folder:
+```
+ctest --output-on-failure
+```
+Pass `-DBUILD_TESTING=OFF` (or `-DBUILD_EXAMPLES=OFF`) to `cmake` to skip building the tests (or the examples).
+
+More documentation is in `docs/`: the [tutorial](docs/TUTORIAL.md), the [GPU build](docs/GPU.md),
+and the API reference, generated with `cmake --build . --target docs` (needs `doxygen`).
+
 ## Advanced compilation
 
 - To compile *fzn-minicpp* is enough to have a recent version of a GCC (>= 7) and CMake (>= 3.5).

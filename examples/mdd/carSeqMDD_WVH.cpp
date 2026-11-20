@@ -24,16 +24,16 @@
 #include <fstream>      // std::ifstream
 #include <iomanip>
 #include <iostream>
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
 #include "mdd/mddrelax.hpp"
 #include "mdd/mddConstraints.hpp"
 
-#include "RuntimeMonitor.hpp"
-#include "matrix.hpp"
+#include "util/RuntimeMonitor.hpp"
+#include "core/matrix.hpp"
 
 
 using namespace std;
@@ -398,7 +398,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int width, int timelimit, int se
 int main(int argc,char* argv[])
 {
    int width = (argc >= 2 && strncmp(argv[1],"-w",2)==0) ? atoi(argv[1]+2) : 1;
-   const char* filename = (argc >= 3) ? argv[2] : "data/dataMini";
+   const char* filename = (argc >= 3) ? argv[2] : "data/carseq/dataMini";
    int searchMode = (argc >= 4 && strncmp(argv[3],"-s",2)==0) ? atoi(argv[3]+2) : 0;
    int timelimit = (argc >= 5 && strncmp(argv[4],"-t",2)==0) ? atoi(argv[4]+2) : 60;
 

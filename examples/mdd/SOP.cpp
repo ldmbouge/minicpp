@@ -20,15 +20,15 @@
 #include <sstream>
 #include <cstring>
 
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
 #include "mdd/mdd.hpp"
 #include "mdd/mddrelax.hpp"
 #include "mdd/mddConstraints.hpp"
-#include "RuntimeMonitor.hpp"
+#include "util/RuntimeMonitor.hpp"
 
 using namespace std;
 using namespace Factory;
@@ -296,7 +296,7 @@ int main(int argc,char* argv[])
                                 "ry48p.3.sop",   //39
                                 "ry48p.4.sop"};  //40
    // relative to build/, where the examples run: the instances are in the repository's data/
-   const string matrixFile = "../data/" + matrixFiles[fileIndex];
+   const string matrixFile = "data/sop/" + matrixFiles[fileIndex];
 
    cout << "width = " << width << endl;   
    cout << "mode = " << mode << endl;

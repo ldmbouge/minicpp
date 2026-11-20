@@ -25,16 +25,16 @@
 #include <iostream>
 #include <map>
 #include <cstring>
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
 // #include "mdd/mddrelax.hpp"
 // #include "mdd/mddConstraints.hpp"
 
-#include "RuntimeMonitor.hpp"
-#include "matrix.hpp"
+#include "util/RuntimeMonitor.hpp"
+#include "core/matrix.hpp"
 #include <math.h>
 #include <limits.h>
 
@@ -476,7 +476,7 @@ void buildModel(CPSolver::Ptr cp, Instance& in, int timelimit)
 
 int main(int argc,char* argv[])
 {
-   const char* filename = (argc >= 2) ? argv[1] : "data/dataMini";
+   const char* filename = (argc >= 2) ? argv[1] : "data/carseq/dataMini";
    int timelimit = (argc >= 3 && strncmp(argv[2],"-t",2)==0) ? atoi(argv[2]+2) : 60;
    
    std::cout << "filename = " << filename << std::endl;   

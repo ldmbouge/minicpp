@@ -17,14 +17,14 @@
 #include <iomanip>
 #include <limits>
 #include <string.h>
-#include "solver.hpp"
-#include "trailable.hpp"
-#include "intvar.hpp"
-#include "constraint.hpp"
-#include "search.hpp"
-#include "RuntimeMonitor.hpp"
-#include "table.hpp"
-#include "range.hpp"
+#include "core/solver.hpp"
+#include "core/trailable.hpp"
+#include "core/intvar.hpp"
+#include "core/constraint.hpp"
+#include "core/search.hpp"
+#include "util/RuntimeMonitor.hpp"
+#include "constraints/table.hpp"
+#include "core/range.hpp"
 
 using namespace std;
 int main(int argc,char* argv[]) {

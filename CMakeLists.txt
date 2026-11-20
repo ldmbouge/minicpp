@@ -1,253 +1,147 @@
 cmake_minimum_required(VERSION 3.28)
 
-project(miniCPP VERSION 1.1)
+project(miniCPP VERSION 1.1 LANGUAGES CXX)
 
-configure_file(miniCPP.h.in miniCPP.h)
-
-# ------------------------------------------------------------------------
-# Let's go for Debug by default
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Debug)
+# Build type
+################################################################################
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Debug CACHE STRING "Build type" FORCE)
 endif()
-# ------------------------------------------------------------------------
+message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
+# Options
+################################################################################
+option(USE_CXX_EXCEPTIONS "Signal failures with C++ exceptions instead of setjmp/longjmp" OFF)
+option(ENABLE_GPU "Enable GPU support (CUDA)" OFF)
+option(BUILD_EXAMPLES "Build the examples" ON)
+option(BUILD_TESTING "Build the unit tests" ON)
+set(BUILD_PYTHON_BINDINGS AUTO CACHE STRING "Build the experimental Python bindings (ON, OFF or AUTO)")
+set_property(CACHE BUILD_PYTHON_BINDINGS PROPERTY STRINGS AUTO ON OFF)
+message(STATUS "USE_CXX_EXCEPTIONS: ${USE_CXX_EXCEPTIONS}")
+message(STATUS "ENABLE_GPU: ${ENABLE_GPU}")
+
+# C++
+################################################################################
 set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-option(USE_CXX_EXCEPTIONS "Enable C++ exception support" ON)
-# GPU support
-option(ENABLE_GPU "Enable GPU support" OFF)
-message(STATUS "ENABLE_GPU support: ${ENABLE_GPU}")
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# Executables at the top of the build tree, next to the copied data/ folder
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
 
-# Dependencies
-# Third party open-source library for:
-# - JSON files parsing (header only)
-# - Command line parsing (header only)
+# CUDA
+################################################################################
+if(ENABLE_GPU)
+    # Default to the local GPU unless set with -DCMAKE_CUDA_ARCHITECTURES=...
+    # or the CUDAARCHS environment variable. Must come before enable_language.
+    if(NOT DEFINED CMAKE_CUDA_ARCHITECTURES AND NOT DEFINED ENV{CUDAARCHS})
+        set(CMAKE_CUDA_ARCHITECTURES native)
+    endif()
+    enable_language(CUDA)
+    find_package(CUDAToolkit REQUIRED)
+
+    set(CMAKE_CUDA_STANDARD 20)             # handle.hpp uses C++20 requires-clauses (nvcc >= 12)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
+
+    string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -g -G")
+    string(APPEND CMAKE_CUDA_FLAGS_RELWITHDEBINFO " -lineinfo")
+    # In CMAKE_CUDA_FLAGS so it also reaches the device-link step
+    string(APPEND CMAKE_CUDA_FLAGS " -Xnvlink -w")
+endif()
+
+# Dependencies (open-source, header-only)
+################################################################################
 include(FetchContent)
 FetchContent_Declare(
-        json
-        GIT_REPOSITORY https://github.com/nlohmann/json
+        json                                # JSON parsing
+        GIT_REPOSITORY https://github.com/nlohmann/json.git
         GIT_TAG        v3.12.0
         GIT_SHALLOW    TRUE
 )
 FetchContent_Declare(
-        cli11
+        cli11                               # command-line parsing
         GIT_REPOSITORY https://github.com/CLIUtils/CLI11.git
         GIT_TAG        v2.6.2
         GIT_SHALLOW    TRUE
 )
 FetchContent_MakeAvailable(json cli11)
 
-# experimental
-#set(CXX /opt/homebrew/Cellar/llvm/18.1.8/bin/clang)
-set(CMAKE_CXX_COMPILER /usr/bin/clang++)
-
-set(CMAKE_CXX_FLAGS "-fPIC -Wall -Wsign-compare -Wno-vla-cxx-extension -Wno-unused-but-set-variable")
-
-# experimental
-set(CXX /usr/bin/clang++)
-
-if(ENABLE_GPU)
-  set(CMAKE_CXX_FLAGS_DEBUG "-g -DGPUON=1")
-  set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPUON=1")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
-else()
-  set(CMAKE_CXX_FLAGS_DEBUG "-g -DGPUON=0")
-   set(CMAKE_CXX_FLAGS_RELEASE "-O3 -D_NDEBUG -DNDEBUG -DGPUON=0")  #  -target wasm64 -nostdlib -Wl,--no-entry -Wl,--export-all
-endif()
-  
-message("FR   : ${CMAKE_CXX_FLAGS_RELEASE}")
-message("Build: ${CMAKE_BUILD_TYPE}")
-
-if(ENABLE_GPU)
-    set(CMAKE_CXX_EXTENSIONS OFF)
-    enable_language(CUDA)
-    find_package(CUDAToolkit REQUIRED)
-
-    set(CMAKE_CUDA_STANDARD 17)
-    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
-    set(CMAKE_CUDA_ARCHITECTURES "native")
-    set(CMAKE_CUDA_SEPARABLE_COMPILATION ON)
-
-    string(APPEND CMAKE_CUDA_FLAGS_DEBUG " -g -G")
-    string(APPEND CMAKE_CUDA_FLAGS_RELWITHDEBINFO " -lineinfo")
-
-    # Suppress warnings
-    string(APPEND CMAKE_CUDA_FLAGS " -Xnvlink -w") # Suppress linking warning
-    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 177")
-    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 550")
-    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 815")
-    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 830")
-    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 997")
-    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 68")
-    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 128")
-    string(APPEND CMAKE_CUDA_FLAGS " --diag-suppress 2417")
-endif()
-
-set(GPU_CONSTR_SRC
-        global_constraints_gpu/cumulative.cu
+# Warnings (after the dependencies, so they only apply to this project)
+################################################################################
+add_compile_options(
+        $<$<COMPILE_LANGUAGE:CXX>:-Wall>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wsign-compare>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-unused-but-set-variable>
+        $<$<AND:$<COMPILE_LANGUAGE:CXX>,$<CXX_COMPILER_ID:AppleClang,Clang>>:-Wno-vla-cxx-extension>
+        $<$<COMPILE_LANGUAGE:CUDA>:--diag-suppress=68,128,177,550,815,830,997,2417>
 )
 
-set(GLB_CONSTR_SRC
-  global_constraints/cumulative.cpp
-  global_constraints/disjunctive.cpp
-  global_constraints/tasksequence.cpp
-  global_constraints/disjunctiveresource.cpp
-  global_constraints/sum.cpp
-  global_constraints/clause.cpp
-  global_constraints/alldifferent.cpp
-  global_constraints/cardinality.cpp
-  global_constraints/circuit.cpp
-  global_constraints/element.cpp
-  global_constraints/maximum.cpp
-)
+# Targets
+################################################################################
+add_subdirectory(src)
 
-# Auxiliary functions
-function(add_executables DIR FILTER LIBS)
-    string(TOUPPER "${DIR}" DIR_UPPER)
-    set(DIR_MSG "${DIR_UPPER}: ")
-    file(GLOB DIR_SRC "${PROJECT_SOURCE_DIR}/${DIR}/${FILTER}")
-    foreach (EXE_SRC ${DIR_SRC})
-        get_filename_component(EXE_NAME ${EXE_SRC} NAME_WE)
-        set(DIR_MSG "${DIR_MSG} ${EXE_NAME}")
-        add_executable(${EXE_NAME} ${EXE_SRC})
-        foreach (LIB ${LIBS})
-            target_link_libraries(${EXE_NAME} ${LIB})
-        endforeach()
-    endforeach()
-    message(STATUS ${DIR_MSG})
-endfunction()
-
-include_directories(. gfl)
-
-add_library(copl
-	RuntimeMonitor.cpp
-	fail.cpp
-	acstr.cpp
-	bitset.cpp
-    commandList.cpp
-	constraint.cpp
-	domain.cpp
-	intvar.cpp
-	lex.cpp
-	mallocWatch.cpp
-	matching.cpp
-	mdd/mdd.cpp
-	mdd/mddAlldiff.cpp
-	mdd/mddAmong.cpp
-	mdd/mddGcc.cpp
-	mdd/mddAbs.cpp
-	mdd/mddMaximumCutObjective.cpp
-    mdd/mddPrecedence.cpp
-	mdd/mddGoc.cpp
-	mdd/mddSeq.cpp
-	mdd/mddSum.cpp
-    mdd/mddTSPSum.cpp
-	mdd/mdddelta.cpp
-	mdd/mddnode.cpp
-	mdd/mddrelax.cpp
-	mdd/mddstate.cpp
-	regular.cpp
-	search.cpp
-	solver.cpp
-	store.cpp
-	table.cpp
-    tracer.cpp
-	trail.cpp
-	trailable.cpp
-    profile.cpp
-    ttable.cpp
-    ${GLB_CONSTR_SRC}
-)
-
-if (ENABLE_GPU)
-    target_sources(copl PRIVATE ${GPU_CONSTR_SRC})
-    target_link_libraries(copl PRIVATE CUDA::cudart)
-    target_include_directories(copl PRIVATE ${CUDAToolkit_INCLUDE_DIRS})
+if(BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
-#This is the full list of exapmles for miniCPP		
-################################################################################
-file(GLOB files "examples/*.cpp" "examples/mdd/*.cpp" "examples/tutorial/*.cpp")
-
-if(ENABLE_GPU)
-file(GLOB GPUfiles "examples/*.cu")
+if(BUILD_TESTING)
+    enable_testing()                        # run with ctest from the build dir
+    add_subdirectory(tests)
 endif()
 
-#file(GLOB files "examples/tutorial/*.cpp" "examples/mdd/amongNurse.cpp" "examples/mdd/amongNurse2.cpp")
-list(FILTER files EXCLUDE REGEX ".*/examples/mainCont.cpp")
-message("${files}")
+# Instances: link data/ into the build tree so that the executables and the
+# scripts in benchmarks/ can open "data/..." when run from there. Falls back
+# to a copy where symlinks are not available.
+set(DATA_LINK ${PROJECT_BINARY_DIR}/data)
+if(IS_DIRECTORY ${DATA_LINK} AND NOT IS_SYMLINK ${DATA_LINK})
+    file(REMOVE_RECURSE ${DATA_LINK})       # stale copy from an older build
+endif()
+file(CREATE_LINK ${PROJECT_SOURCE_DIR}/data ${DATA_LINK} SYMBOLIC RESULT DATA_LINK_RESULT)
+if(NOT DATA_LINK_RESULT EQUAL 0)
+    file(COPY ${PROJECT_SOURCE_DIR}/data DESTINATION ${PROJECT_BINARY_DIR})
+endif()
 
-foreach (file ${files})
-	get_filename_component(base ${file} NAME_WE)
-	get_filename_component(dir ${file} DIRECTORY)
-	message("BASE IS: [${base}]")
-	add_executable(${base} ${dir}/${base}.cpp)
-	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json;CLI11::CLI11") # copl)
-	add_dependencies(${base} copl)
-endforeach()
+if(BUILD_PYTHON_BINDINGS STREQUAL "AUTO")
+    find_package(pybind11 CONFIG QUIET)
+    if(pybind11_FOUND)
+        add_subdirectory(bindings/python)
+    else()
+        message(STATUS "pybind11 not found: skipping the Python bindings")
+    endif()
+elseif(BUILD_PYTHON_BINDINGS)
+    find_package(pybind11 CONFIG REQUIRED)
+    add_subdirectory(bindings/python)
+endif()
 
-foreach (file ${GPUfiles})
-	get_filename_component(base ${file} NAME_WE)
-	get_filename_component(dir ${file} DIRECTORY)
-	message("BASE IS: [${base}]")
-	add_executable(${base} ${dir}/${base}.cu)
-	target_link_libraries(${base} "copl;nlohmann_json::nlohmann_json;CLI11::CLI11") # copl)
-	add_dependencies(${base} copl)
-endforeach()
-
-# Data files for the benchmarks
+# Documentation
 ################################################################################
-file(COPY "examples/data" DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
-# Python3 bindings (Experimental)
-################################################################################
-#[[ add_subdirectory(pybind11)  ]]
-
-find_package(pybind11 REQUIRED)
-pybind11_add_module(minicpp pybridge.cpp)
-target_link_libraries(minicpp PRIVATE copl)
-add_dependencies(minicpp copl)
-
-find_package(Doxygen)
+find_package(Doxygen OPTIONAL_COMPONENTS dot)
 if(DOXYGEN_FOUND)
-  include(FetchContent)
-  FetchContent_Declare(
-    doxygen-awesome-css
-    URL https://github.com/jothepro/doxygen-awesome-css/archive/refs/heads/main.zip
-  )
-  FetchContent_MakeAvailable(doxygen-awesome-css)
-  # Save the location the files were cloned into
-  # This allows us to get the path to doxygen-awesome.css
-  FetchContent_GetProperties(doxygen-awesome-css SOURCE_DIR AWESOME_CSS_DIR)
-  # Generate the Doxyfile
-  set(DOXYFILE_IN ${CMAKE_CURRENT_SOURCE_DIR}/Doxyfile)
-  set(DOXYFILE_OUT ${CMAKE_CURRENT_BINARY_DIR}/Doxyfile)
-  configure_file(${DOXYFILE_IN} ${DOXYFILE_OUT} @ONLY)
-  set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs)
-  set(DOXYGEN_RECURSIVE YES)
-  set(DOXYGEN_EXTRACT_ALL YES)
-  set(DOXYGEN_EXTRACT_PRIVATE YES)
-  set(DOXYGEN_HTML_EXTRA_STYLESHEET "${AWESOME_CSS_DIR}/doxygen-awesome.css")
-  set(DOXYGEN_EXCLUDE 
-        ${CMAKE_CURRENT_SOURCE_DIR}/data
-        ${CMAKE_CURRENT_SOURCE_DIR}/build
-        ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks
-		${CMAKE_CURRENT_SOURCE_DIR}/copl
-		${CMAKE_CURRENT_SOURCE_DIR}/.aider.tags.cache.v4
-      )
-  set(DOXYGEN_EXCLUDE_PATTERNS 
-        */.aider*
-        *.aider*
-  )
-  doxygen_add_docs(
-	    docs
-        ${CMAKE_CURRENT_SOURCE_DIR}/gfl/
-		${CMAKE_CURRENT_SOURCE_DIR}/examples/
-        ${CMAKE_CURRENT_SOURCE_DIR}
-        COMMENT "Generating API documentation with Doxygen"
-		)
-else()
-  message(STATUS "Doxygen not found. Documentation target will not be available.")
-endif()
-  
+    FetchContent_Declare(
+            doxygen-awesome-css
+            GIT_REPOSITORY https://github.com/jothepro/doxygen-awesome-css.git
+            GIT_TAG        v2.3.4
+            GIT_SHALLOW    TRUE
+    )
+    FetchContent_MakeAvailable(doxygen-awesome-css)
+    FetchContent_GetProperties(doxygen-awesome-css SOURCE_DIR AWESOME_CSS_DIR)
 
+    # Graphs only when Graphviz is installed
+    if(DOXYGEN_DOT_FOUND)
+        set(DOXYGEN_HAVE_DOT YES)
+    else()
+        set(DOXYGEN_HAVE_DOT NO)
+    endif()
+
+    # Settings live in docs/Doxyfile.in; HTML goes to <build>/docs/html
+    configure_file(docs/Doxyfile.in Doxyfile @ONLY)
+    add_custom_target(docs
+            COMMAND Doxygen::doxygen ${PROJECT_BINARY_DIR}/Doxyfile
+            WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+            COMMENT "Generating API documentation with Doxygen"
+            VERBATIM
+    )
+else()
+    message(STATUS "Doxygen not found: the docs target is not available")
+endif()
