@@ -1,85 +1,44 @@
-# ==============================================================================
-# Project & Output Options
-# ==============================================================================
-PROJECT_NAME           = "MiniCPP"
+# Only settings that differ from Doxygen's defaults.
+# To see every option and its default: doxygen -g
+
+# Project & output
+PROJECT_NAME           = "@PROJECT_NAME@"
 PROJECT_NUMBER         = "@PROJECT_VERSION@"
-PROJECT_BRIEF          = "CP Solver in C++"
+PROJECT_BRIEF          = "@PROJECT_DESCRIPTION@"
 OUTPUT_DIRECTORY       = "@PROJECT_BINARY_DIR@/docs"
 CREATE_SUBDIRS         = YES
 ALLOW_UNICODE_NAMES    = YES
-OUTPUT_LANGUAGE        = English
 
-# ==============================================================================
-# Build & Parsing Options (Optimized for C++)
-# ==============================================================================
+# What to extract
 EXTRACT_ALL            = YES
 EXTRACT_PRIVATE        = YES
 EXTRACT_PRIV_VIRTUAL   = YES
-EXTRACT_PACKAGE        = YES
 EXTRACT_STATIC         = YES
-EXTRACT_LOCAL_CLASSES  = YES
-EXTRACT_LOCAL_METHODS  = YES
-
-# Modern C++ and LLVM Specific Features
-EXTENSION_MAPPING      = H=C++ C=C++ hpp=C++ h=C++ cpp=C++ cc=C++ cxx=C++
 BUILTIN_STL_SUPPORT    = YES
-CPP_CLI_SUPPORT        = NO
-SIP_SUPPORT            = NO
-IDL_SUPPORT            = NO
 
-# Sort and Grouping
-SORT_MEMBER_DOCS       = YES
 SORT_BRIEF_DOCS        = YES
 SORT_MEMBERS_CTORS_1ST = YES
 SORT_GROUP_NAMES       = YES
-###HTML_EXTRA_STYLESHEET  = doxygen-modern.css
-HTML_EXTRA_STYLESHEET  = @AWESOME_CSS_DIR@/doxygen-awesome.css \
-                         @AWESOME_CSS_DIR@/doxygen-awesome-sidebar-only.css
 
-# Warning Handling
-WARN_IF_UNDOCUMENTED   = YES
-WARN_IF_DOC_ERROR      = YES
-WARN_NO_PARAMDOC       = YES
-WARN_FORMAT            = "$file:$line: $text"
-WARN_LOGFILE           = "@PROJECT_BINARY_DIR@/docs/doxygen_warnings.log"
-
-# ==============================================================================
-# Input Files & Directories
-# ==============================================================================
-# Adjust 'INPUT' to point to your include/ source directories
+# Input
 INPUT                  = "@PROJECT_SOURCE_DIR@/README.md" \
                          "@PROJECT_SOURCE_DIR@/docs" \
                          "@PROJECT_SOURCE_DIR@/src" \
                          "@PROJECT_SOURCE_DIR@/examples"
-
-
+EXCLUDE                = "@PROJECT_SOURCE_DIR@/examples/pybench" \
+                         "@PROJECT_SOURCE_DIR@/src/util/xxhash.h"
+FILE_PATTERNS          = *.h *.hh *.hpp *.c *.cc *.cpp *.cxx *.cu *.cuh *.md
+RECURSIVE              = YES
+USE_MDFILE_AS_MAINPAGE = "@PROJECT_SOURCE_DIR@/README.md"
 STRIP_FROM_PATH        = "@PROJECT_SOURCE_DIR@"
 STRIP_FROM_INC_PATH    = "@PROJECT_SOURCE_DIR@/src"
-INPUT_ENCODING         = UTF-8
-FILE_PATTERNS          = *.c \
-                         *.cc \
-                         *.cxx \
-                         *.cpp \
-			 *.C \
-                         *.h \
-                         *.H \
-                         *.hh \
-                         *.hpp \
-                         *.cu \
-                         *.cuh \
-                         *.md
-RECURSIVE              = YES
-EXCLUDE                = "@PROJECT_SOURCE_DIR@/examples/pybench"
-USE_MDFILE_AS_MAINPAGE = "@PROJECT_SOURCE_DIR@/README.md"
 
-# ==============================================================================
-# Preprocessor & LLVM Attribute Handling
-# ==============================================================================
-# Doxygen needs to expand or ignore LLVM macros like LLVM_ATTRIBUTE_UNUSED, etc.
-ENABLE_PREPROCESSING   = YES
+# Doxygen doesn't know CUDA extensions by default
+EXTENSION_MAPPING      = cu=C++ cuh=C++
+
+# Preprocessor: hide LLVM and CUDA annotations from the parser
 MACRO_EXPANSION        = YES
 EXPAND_ONLY_PREDEF     = YES
-SEARCH_INCLUDES        = YES
 PREDEFINED             = "LLVM_READONLY=" \
                          "LLVM_READNONE=" \
                          "LLVM_NODISCARD=" \
@@ -91,55 +50,32 @@ PREDEFINED             = "LLVM_READONLY=" \
                          "LLVM_EXPLICIT=explicit" \
                          "LLVM_CONSTEXPR=constexpr" \
                          "LLVM_NOEXCEPT=noexcept" \
-                         "alignas(x)="
+                         "alignas(x)=" \
+                         "__global__=" \
+                         "__device__=" \
+                         "__host__=" \
+                         "__forceinline__=inline"
 
-# ==============================================================================
-# HTML & Modern Documentation Output
-# ==============================================================================
-GENERATE_HTML          = YES
-HTML_OUTPUT            = html
-HTML_FILE_EXTENSION    = .html
-HTML_COLORSTYLE_HUE    = 220
-HTML_COLORSTYLE_SAT    = 100
-HTML_COLORSTYLE_GAMMA  = 80
-# HTML_TIMESTAMP         = YES
-HTML_DYNAMIC_MENUS     = YES
-HTML_DYNAMIC_SECTIONS  = YES
+# Warnings
+WARN_NO_PARAMDOC       = YES
+WARN_LOGFILE           = "@PROJECT_BINARY_DIR@/docs/doxygen_warnings.log"
+
+# HTML output (doxygen-awesome-css, sidebar-only layout)
+GENERATE_LATEX         = NO
 GENERATE_TREEVIEW      = YES
 TREEVIEW_WIDTH         = 280
-DISABLE_INDEX          = NO
-# doxygen-awesome-css, sidebar-only layout
-FULL_SIDEBAR           = NO
+HTML_DYNAMIC_SECTIONS  = YES
 HTML_COLORSTYLE        = LIGHT
+HTML_EXTRA_STYLESHEET  = "@AWESOME_CSS_DIR@/doxygen-awesome.css" \
+                         "@AWESOME_CSS_DIR@/doxygen-awesome-sidebar-only.css"
 
-# Disable unused outputs
-GENERATE_LATEX         = NO
-GENERATE_RTF           = NO
-GENERATE_XML           = NO
-GENERATE_MAN           = NO
-
-# ==============================================================================
-# Graphviz & Diagram Generation (Requires Graphviz Installed)
-# ==============================================================================
-HAVE_DOT               = @DOXYGEN_HAVE_DOT@
-DOT_NUM_THREADS        = 0
+# Graphs (need Graphviz; HAVE_DOT is YES/NO depending on whether CMake found it)
+# Class, collaboration, include, group and directory graphs are on by default.
+HAVE_DOT               = @Doxygen_dot_FOUND@
 DOT_IMAGE_FORMAT       = svg
 INTERACTIVE_SVG        = YES
-
-# Inheritance & Collaboration Graphs
-CLASS_GRAPH            = YES
-COLLABORATION_GRAPH    = YES
-GROUP_GRAPHS           = YES
 UML_LOOK               = YES
-UML_LIMIT_NUM_FIELDS   = 10
 TEMPLATE_RELATIONS     = YES
-
-# Function Call Graphs
 CALL_GRAPH             = YES
 CALLER_GRAPH           = YES
-
-# Include Dependency Graphs
-INCLUDE_GRAPH          = YES
-INCLUDED_BY_GRAPH      = YES
-DIRECTORY_GRAPH        = YES
 DOT_GRAPH_MAX_NODES    = 100

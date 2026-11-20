@@ -112,6 +112,7 @@ There is *preliminary* documentation produced by `doxygen` (it needs
 
 ```
 cd ~/work/minicpp/build
+cmake .. -DBUILD_DOCS=ON
 cmake --build . --target docs
 ```
 

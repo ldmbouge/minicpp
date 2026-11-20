@@ -1,7 +1,5 @@
-.tags*
 .cache
 .DS_Store
-**/*~
 *.o
 *.d*
 *.log
@@ -13,4 +11,3 @@ minicpp.sublime-workspace
 copl/copl.xcodeproj
 cmake-build-*
 .idea
-.aider*
