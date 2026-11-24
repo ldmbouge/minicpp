@@ -1,6 +1,6 @@
 #include <algorithm>
 #include <cassert>
-#include "constraints_gpu/binpacking.cuh"
+#include "constraints/binpacking_gpu.cuh"
 
 // Dual-Feasible Functions (branch-less, mirror the CPU versions in constraints/binpacking.cpp)
 

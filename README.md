@@ -49,7 +49,7 @@ Multi-valued Decision Diagrams.
 
 MiniCPP includes the Bin Packing solver of [CP for Bin Packing with Multi-Core and GPUs](https://doi.org/10.4230/LIPIcs.CP.2024.28):
 the `BinPackingLoad` constraint (`src/constraints/binpacking.hpp`), with lower bounds from Dual-Feasible Functions
-that can also be computed on the GPU (`src/constraints_gpu/binpacking.cuh`). Instances from
+that can also be computed on the GPU (`src/constraints/binpacking_gpu.cuh`). Instances from
 [BPPLIB](https://site.unibo.it/operations-research/en/research/bpplib-a-bin-packing-problem-library)
 are in `data/bpp/`. From the `build/examples` folder:
 ```
@@ -74,7 +74,7 @@ CPU constraint for comparison (see the [GPU build](docs/GPU.md)).
 
 MiniCPP includes the Cumulative constraint of [Constraint propagation on GPU: a case study for the cumulative
 constraint](https://doi.org/10.1007/s10601-024-09371-w), with Time-Tabling (`cumulativeTT`) and Energetic Reasoning
-(`cumulativeER`) propagators; Energetic Reasoning can also run on the GPU (`src/constraints_gpu/cumulative.cuh`).
+(`cumulativeER`) propagators; Energetic Reasoning can also run on the GPU (`src/constraints/cumulative_gpu.cuh`).
 The `rcpsp_cli` example solves Resource-Constrained Project Scheduling instances from
 [PSPLIB](https://www.om-db.wi.tum.de/psplib/) (in `data/rcpsp/`), choosing the propagation with `-a`
 (`TT`, `ER`, `ER-GPU` or `TT+ER-GPU`). It needs `-DENABLE_GPU=ON`; from the `build/examples` folder:

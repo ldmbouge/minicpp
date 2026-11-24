@@ -2,7 +2,7 @@
 // Propagation: load coherence, load tightening and item elimination/commitment
 // (basic and knapsack-based, Shaw 2004), and a feasibility check with lower bounds
 // from Dual-Feasible Functions applied to reductions of the current partial packing.
-// The GPU variant (constraints_gpu/binpacking.cuh) computes the same lower bounds on the GPU.
+// The GPU variant (constraints/binpacking_gpu.cuh) computes the same lower bounds on the GPU.
 // References:
 // - A Constraint for Bin Packing (DOI: 10.1007/978-3-540-30201-8_47)
 // - CP for Bin Packing with Multi-Core and GPUs (DOI: 10.4230/LIPIcs.CP.2024.28)

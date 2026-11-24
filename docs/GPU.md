@@ -25,11 +25,11 @@ version rather than the GPU version.
 That is:
 
 ```
-emacs ../examples_gpu/rcpsp.cu
+emacs ../examples/gpu/rcpsp.cu
 ```
 The extension (`cu`)  tells to invoke the C++ version that supports CUDA (line 68). That's a CPP file really. The matching
-header  (if one existed) would be  in `../examples_gpu/rcpsp.cuh`. Note that this is the case for the propagator
-source code (`.cu` and `.cuh` extensions in `../gpu_constraints/`).
+header  (if one existed) would be  in `../examples/gpu/rcpsp.cuh`. Note that this is the case for the propagator
+source code (the `*_gpu.cu` and `*_gpu.cuh` files in `../src/constraints/`).
 
 On a test machine @UConn, the difference is:
 
@@ -41,7 +41,7 @@ On a test machine @UConn, the difference is:
 # Bin Packing
 
 `binpacking_gpu` solves Bin Packing instances (BPPLIB format, in `data/bpp/`) with the lower bounds of the
-bin packing constraint computed on the GPU (`src/constraints_gpu/binpacking.cu`). `-a CPU` switches to the CPU
+bin packing constraint computed on the GPU (`src/constraints/binpacking_gpu.cu`). `-a CPU` switches to the CPU
 constraint with the same model and search, and `-s` prints the search statistics:
 
 ```

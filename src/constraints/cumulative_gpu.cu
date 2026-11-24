@@ -1,7 +1,7 @@
 #include "gfl/Arrays.hpp"
 #include "gfl/Memory.hpp"
 #include "gfl/CudaUtils.hpp"
-#include "cumulative.cuh"
+#include "constraints/cumulative_gpu.cuh"
 
 GFL_GLOBAL void calcRiKernel(gfl::MirrorPtr<CumulativeGPU::StartIntervals> si,
                              gfl::MirrorPtr<CumulativeGPU::ProcessingTimes> p,
