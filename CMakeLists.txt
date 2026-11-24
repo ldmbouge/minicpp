@@ -66,34 +66,44 @@ FetchContent_Declare(
         GIT_TAG        v2.7.2
         GIT_SHALLOW    TRUE
 )
-FetchContent_MakeAvailable(json cli11)
+set(MINICPP_DEPENDENCIES json cli11)
+if(BUILD_PYTHON_BINDINGS)
+    find_package(Python 3 REQUIRED COMPONENTS Interpreter Development.Module)
+    FetchContent_Declare(
+            pybind11                        # Python bindings
+            GIT_REPOSITORY https://github.com/pybind/pybind11.git
+            GIT_TAG        v3.0.1           # or the latest 3.x tag
+            GIT_SHALLOW    TRUE
+    )
+    list(APPEND MINICPP_DEPENDENCIES pybind11)
+endif()
+if(BUILD_DOCS)
+    FetchContent_Declare(
+            doxygen-awesome-css             # Documentation theme
+            GIT_REPOSITORY https://github.com/jothepro/doxygen-awesome-css.git
+            GIT_TAG        v2.5.0
+            GIT_SHALLOW    TRUE
+    )
+    FetchContent_GetProperties(doxygen-awesome-css SOURCE_DIR AWESOME_CSS_DIR)
+    list(APPEND MINICPP_DEPENDENCIES doxygen-awesome-css)
+endif()
+FetchContent_MakeAvailable(${MINICPP_DEPENDENCIES})
 
+# Targets
 add_subdirectory(src)
-
 if(BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
-
 if(BUILD_TESTING)
     enable_testing()                        # run with ctest from the build dir
     add_subdirectory(tests)
 endif()
-
 if(BUILD_PYTHON_BINDINGS)
-    find_package(pybind11 CONFIG REQUIRED)
     add_subdirectory(bindings/python)
 endif()
 
 # Documentation
 if(BUILD_DOCS)
-    FetchContent_Declare(
-            doxygen-awesome-css
-            GIT_REPOSITORY https://github.com/jothepro/doxygen-awesome-css.git
-            GIT_TAG        v2.5.0
-            GIT_SHALLOW    TRUE
-    )
-    FetchContent_MakeAvailable(doxygen-awesome-css)
-    FetchContent_GetProperties(doxygen-awesome-css SOURCE_DIR AWESOME_CSS_DIR)
     find_package(Doxygen REQUIRED OPTIONAL_COMPONENTS dot)
     configure_file(docs/Doxyfile.in Doxyfile @ONLY)
     add_custom_target(docs
