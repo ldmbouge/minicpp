@@ -72,6 +72,22 @@ CPU constraint for comparison (see the [GPU build](docs/GPU.md)).
 	doi       = {10.4230/LIPIcs.CP.2024.28}
 		}
 
+The symmetry breaking constraint `LexChainBit` (`src/constraints/lexchainbit.hpp`) propagates the constraints (S4) of
+[An Experimental Study on Symmetry Breaking Constraints Impact for the One Dimensional Bin-Packing Problem](https://doi.org/10.15439/2020F19):
+an item can be in a bin after bin c only if an earlier item is in bin c.
+
+	@inproceedings{HadjSalem2020,
+	author    = {Khadija Hadj Salem and Yann Kieffer},
+	title     = {An Experimental Study on Symmetry Breaking Constraints Impact for the One Dimensional Bin-Packing Problem},
+	booktitle = {Proceedings of the 2020 Federated Conference on Computer Science and Information Systems, {FedCSIS} 2020},
+	editor    = {M. Ganzha and L. Maciaszek and M. Paprzycki},
+	series    = {Annals of Computer Science and Information Systems},
+	volume    = {21},
+	pages     = {317--326},
+	year      = {2020},
+	doi       = {10.15439/2020F19}
+		}
+
 # Cumulative
 
 MiniCPP includes the Cumulative constraint of [Constraint propagation on GPU: a case study for the cumulative
