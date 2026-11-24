@@ -5,7 +5,7 @@
 
 #include <CLI/CLI.hpp>
 #include "../basic/binpacking.hpp"
-#include "constraints_gpu/binpacking.cuh"
+#include "constraints/binpacking_gpu.cuh"
 
 int main(int argc, char* argv[])
 {

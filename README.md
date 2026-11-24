@@ -49,9 +49,11 @@ Multi-valued Decision Diagrams.
 
 MiniCPP includes the Bin Packing solver of [CP for Bin Packing with Multi-Core and GPUs](https://doi.org/10.4230/LIPIcs.CP.2024.28):
 the `BinPackingLoad` constraint (`src/constraints/binpacking.hpp`), with lower bounds from Dual-Feasible Functions
-that can also be computed on the GPU (`src/constraints_gpu/binpacking.cuh`). Instances from
+that can also be computed on the GPU (`src/constraints/binpacking_gpu.cuh`). Instances from
 [BPPLIB](https://site.unibo.it/operations-research/en/research/bpplib-a-bin-packing-problem-library)
-are in `data/bpp/`. From the `build/examples` folder:
+are in `data/bpp/`. The example models are `examples/basic/binpacking.cpp` (CPU) and
+`examples/gpu/binpacking_gpu.cu` (GPU), sharing the model and search in `examples/basic/binpacking.hpp`.
+From the `build/examples` folder:
 ```
 ./binpacking -s -t 10 -i data/bpp/FalkenauerT/Falkenauer_t120_00.BPP
 ./binpacking_gpu -s -t 10 -i data/bpp/Scholl2/N3W2B1R1.BPP   # needs -DENABLE_GPU=ON
@@ -73,9 +75,10 @@ CPU constraint for comparison (see the [GPU build](docs/GPU.md)).
 # Cumulative
 
 MiniCPP includes the Cumulative constraint of [Constraint propagation on GPU: a case study for the cumulative
-constraint](https://doi.org/10.1007/s10601-024-09371-w), with Time-Tabling (`cumulativeTT`) and Energetic Reasoning
-(`cumulativeER`) propagators; Energetic Reasoning can also run on the GPU (`src/constraints_gpu/cumulative.cuh`).
-The `rcpsp_cli` example solves Resource-Constrained Project Scheduling instances from
+constraint](https://doi.org/10.1007/s10601-024-09371-w), with Time-Tabling (`cumulativeTT`, `src/constraints/ttable.hpp`)
+and Energetic Reasoning (`cumulativeER`, `src/constraints/cumulative.hpp`) propagators; Energetic Reasoning can also
+run on the GPU (`src/constraints/cumulative_gpu.cuh`). The factories are in `src/scheduling/scheduling.hpp`.
+The `rcpsp_cli` example (`examples/gpu/rcpsp_cli.cu`) solves Resource-Constrained Project Scheduling instances from
 [PSPLIB](https://www.om-db.wi.tum.de/psplib/) (in `data/rcpsp/`), choosing the propagation with `-a`
 (`TT`, `ER`, `ER-GPU` or `TT+ER-GPU`). It needs `-DENABLE_GPU=ON`; from the `build/examples` folder:
 ```

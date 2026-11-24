@@ -63,8 +63,8 @@ endif()
 
 if(ENABLE_GPU)
     target_sources(copl PRIVATE
-            constraints_gpu/binpacking.cu
-            constraints_gpu/cumulative.cu
+            constraints/binpacking_gpu.cu
+            constraints/cumulative_gpu.cu
     )
     target_compile_definitions(copl PUBLIC ENABLE_GPU=1)
     target_link_libraries(copl PUBLIC CUDA::cudart)

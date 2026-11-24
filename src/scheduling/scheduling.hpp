@@ -13,7 +13,7 @@
 #include "constraints/disjunctive.hpp"
 #include "constraints/tasksequence.hpp"
 #if __CUDACC__
-#include "constraints_gpu/cumulative.cuh"
+#include "constraints/cumulative_gpu.cuh"
 #endif
 
 namespace Factory {
