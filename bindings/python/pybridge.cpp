@@ -30,6 +30,7 @@
 #include "core/matrix.hpp"
 #include "core/constraint.hpp"
 #include "core/search.hpp"
+#include "constraints/table.hpp"
 
 namespace py = pybind11;
 
@@ -243,7 +244,28 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("boolVarArray",(Factory::Vecb (*)(CPSolver::Ptr,int,bool))(&Factory::boolVarArray),"factory method var<bool>[]");
 
    m.def("equal",py::overload_cast<var<int>::Ptr,var<int>::Ptr,int>(&Factory::equal));
+   m.def("equal",py::overload_cast<var<int>::Ptr,var<int>::Ptr,var<int>::Ptr>(&Factory::equal),
+         py::arg("x"),py::arg("y"),py::arg("z"),"Post x == y + z (bounds consistent).");
    m.def("notEqual",&Factory::notEqual);
+   // inside/outside prune x right away and run the fixpoint, so they can fail here, before
+   // anything is posted: convert that failure to a C++ exception to cross the Python boundary.
+   // They return no constraint (None); cp.post(None) does nothing, as in C++.
+   m.def("inside",[](var<int>::Ptr x,std::set<int> S) {
+      TRYFAIL {
+         Factory::inside(x,S);
+      } ONFAIL {
+         throw Failure;
+      } ENDFAIL
+      return Constraint::Ptr();
+   },py::arg("x"),py::arg("S"),"Restrict x to the values in S (applied immediately).");
+   m.def("outside",[](var<int>::Ptr x,std::set<int> S) {
+      TRYFAIL {
+         Factory::outside(x,S);
+      } ONFAIL {
+         throw Failure;
+      } ENDFAIL
+      return Constraint::Ptr();
+   },py::arg("x"),py::arg("S"),"Remove the values in S from x (applied immediately).");
    m.def("isEqual",&Factory::isEqual);
    m.def("isLarger",&Factory::isLarger);
    m.def("isLess",&Factory::isLess);
@@ -282,6 +304,12 @@ PYBIND11_MODULE(minicpp,m) {
 
    m.def("circuit",(Constraint::Ptr (*)(const Factory::Veci&))&Factory::circuit<Factory::Veci>);
    m.def("circuit",&Factory::circuit<std::vector<var<int>::Ptr>>);
+   // table(x, rows): x must equal one of the rows (Compact-Table); negTable: none of them.
+   using Rows = std::vector<std::vector<int>>;
+   m.def("table",&Factory::table<Factory::Veci,Rows>,py::arg("x"),py::arg("rows"));
+   m.def("table",&Factory::table<std::vector<var<int>::Ptr>,Rows>,py::arg("x"),py::arg("rows"));
+   m.def("negTable",&Factory::negTable<Factory::Veci,Rows>,py::arg("x"),py::arg("rows"));
+   m.def("negTable",&Factory::negTable<std::vector<var<int>::Ptr>,Rows>,py::arg("x"),py::arg("rows"));
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
    m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
    m.def("elementBC",&Factory::elementBC<std::vector<int>>);
