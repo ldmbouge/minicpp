@@ -6,7 +6,6 @@ print(cp)
 
 a0 = minicpp.makeIntVar(cp,1,n)
 q = minicpp.intVarArray(cp,n,1,n)
-z = input()
 
 print("a0 = ",a0)
 print(q)
@@ -17,11 +16,9 @@ print(len(q))
 
 
 print("PRIOR Loop")
-# This loop is still broken. But the uncommented one is fine
-# seems like the iterator doesn't do quite the right thing.
-#for x in q:
-#    pass
-#print(x)
+for x in q:
+    pass
+print(x)
 
 for i in range(0,len(q)):
     print(q[i])

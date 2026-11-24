@@ -44,9 +44,12 @@ PYBIND11_MODULE(minicpp,m) {
    //py::bind_vector<std::vector<var<int>::Ptr>>(m, "VectorVarInt");
 
    py::register_exception_translator([](std::exception_ptr p) {
+                                        // Only the solver's failure (a thrown Status) becomes "FAIL";
+                                        // anything else escapes to pybind11's standard translators
+                                        // (std::invalid_argument -> ValueError, ...).
                                         try {
                                            if (p) std::rethrow_exception(p);
-                                        } catch (...) {
+                                        } catch (Status) {
                                            PyErr_SetString(PyExc_RuntimeError, "FAIL");
                                         }
                                      });
@@ -61,7 +64,6 @@ PYBIND11_MODULE(minicpp,m) {
       // .def("__repr__",[](const ConstraintDesc& s) {
       //    std::ostringstream str;
       //    s.print(str);
-      //    str << std::ends;
       //    return str.str();         
       // });
    py::class_<Constraint,Constraint::Ptr>(m,"Constraint")
@@ -74,7 +76,6 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__repr__",[](const Constraint& s) {
                          std::ostringstream str;
                          s.print(str);
-                         str << std::ends;
                          return str.str();
                       });
 
@@ -131,7 +132,6 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__repr__",[](const var<int>& s) {
                          std::ostringstream str;
                          s.print(str);
-                         str << std::ends;
                          return str.str();
                       });
    py::class_<var<bool>,AVar,var<bool>::Ptr>(m,"VarBool")
@@ -142,7 +142,6 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__repr__",[](const var<bool>& s) {
                          std::ostringstream str;
                          s.print(str);
-                         str << std::ends;
                          return str.str();
                       });
 
@@ -174,7 +173,7 @@ PYBIND11_MODULE(minicpp,m) {
          "Post the constraint `c` and runs the fixpoint as required.")
       .def("__repr__",[](const CPSolver& s) {
                          std::ostringstream str;
-                         str << s << std::ends;
+                         str << s;
                          return str.str();
                       });
 
@@ -187,7 +186,7 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__iter__",[](const Factory::Veci& s) { return py::make_iterator(s.begin(),s.end(),pybind11::return_value_policy::reference_internal);},py::keep_alive<0,1>())
       .def("__repr__",[](const Factory::Veci& s) {
                          std::ostringstream str;
-                         str << s << std::ends;
+                         str << s;
                          return str.str();
                       });
    py::class_<EVec<var<bool>::Ptr,stl::StackAdapter<var<bool>::Ptr,Storage::Ptr>>>(m,"VecBoolVar")
@@ -197,7 +196,7 @@ PYBIND11_MODULE(minicpp,m) {
       .def("__iter__",[](const Factory::Vecb& s) { return py::make_iterator(s.begin(),s.end(), pybind11::return_value_policy::reference_internal);},py::keep_alive<0,1>())
       .def("__repr__",[](const Factory::Vecb& s) {
                          std::ostringstream str;
-                         str << s << std::ends;
+                         str << s;
                          return str.str();
                       });
 
@@ -213,7 +212,7 @@ PYBIND11_MODULE(minicpp,m) {
       .def("getCompleted",&SearchStatistics::getCompleted)
       .def("__repr__",[](const SearchStatistics& s) {
                          std::ostringstream str;
-                         str << s << std::ends;
+                         str << s;
                          return str.str();
                       });      
       
@@ -261,7 +260,23 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,int)>(&Factory::sum));
    m.def("sum",static_cast<var<int>::Ptr (*)(Factory::Veci&)>(&Factory::sum<Factory::Veci>));
    m.def("sum",static_cast<var<int>::Ptr (*)(std::vector<var<int>::Ptr>&)>(&Factory::sum<std::vector<var<int>::Ptr>>));
-   m.def("allDifferent",(Constraint::Ptr (*)(const Factory::Veci&))&Factory::allDifferent<Factory::Veci>);   
+   // Weighted sum: a fresh variable equal to sum_i xs[i] * coefs[i]. Same model as the C++
+   // Factory::sum(xs,{c0,c1,...}), whose std::initializer_list pybind11 cannot bind.
+   auto weightedSum = [](const auto& xs,const std::vector<int>& coefs) {
+      if (xs.size() != coefs.size())
+         throw std::invalid_argument("sum(xs,coefs): xs and coefs must have the same length");
+      if (xs.size() == 0)
+         throw std::invalid_argument("sum(xs,coefs): xs must not be empty");
+      Factory::Veci vec(xs.size(),Factory::alloci(xs[0]->getStore()));
+      for(auto i = 0u; i < xs.size(); i++)
+         vec[i] = Factory::operator*(xs[i],coefs[i]);
+      return Factory::sum(vec);
+   };
+   m.def("sum",[weightedSum](const Factory::Veci& xs,const std::vector<int>& coefs) { return weightedSum(xs,coefs);},
+         py::arg("xs"),py::arg("coefs"),"A fresh variable equal to the sum of xs[i] * coefs[i].");
+   m.def("sum",[weightedSum](const std::vector<var<int>::Ptr>& xs,const std::vector<int>& coefs) { return weightedSum(xs,coefs);},
+         py::arg("xs"),py::arg("coefs"),"A fresh variable equal to the sum of xs[i] * coefs[i].");
+   m.def("allDifferent",(Constraint::Ptr (*)(const Factory::Veci&))&Factory::allDifferent<Factory::Veci>);
    m.def("allDifferent", &Factory::allDifferent<std::vector<var<int>::Ptr>>);
    m.def("allDifferentAC",&Factory::allDifferentAC<std::vector<var<int>::Ptr>>);
 
@@ -278,6 +293,7 @@ PYBIND11_MODULE(minicpp,m) {
                       return Factory::element(d,x,y);
                    });
    m.def("minimize",&Factory::minimize);
+   m.def("maximize",&Factory::maximize);
    
    m.def("firstFail",&firstFail<Factory::Veci>);
    m.def("firstFail",&firstFail<std::vector<var<int>::Ptr>>);
@@ -288,6 +304,9 @@ PYBIND11_MODULE(minicpp,m) {
    using FVInt2Bool = std::function<bool(var<int>::Ptr)>;
    using FVInt2Int  = std::function<int(var<int>::Ptr)>;
    m.def("selectMin",static_cast<var<int>::Ptr (*)(const Factory::Veci&,FVInt2Bool,FVInt2Int)>(&selectMin3));
+   // The first variable passing the test, or None.
+   m.def("selectFirst",static_cast<var<int>::Ptr (*)(const Factory::Veci&,FVInt2Bool)>(&selectFirst));
+   m.def("selectFirst",static_cast<var<int>::Ptr (*)(const std::vector<var<int>::Ptr>&,FVInt2Bool)>(&selectFirst));
    m.def("indomain_min",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_min));
    m.def("indomain_max",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_max));
 }
