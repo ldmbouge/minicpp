@@ -37,3 +37,17 @@ On a test machine @UConn, the difference is:
 |----------|------|------|
 | j60_10_1 | 2.6s | 0.05 |
 |          |      |      |
+
+# Bin Packing
+
+`binpacking_gpu` solves Bin Packing instances (BPPLIB format, in `data/bpp/`) with the lower bounds of the
+bin packing constraint computed on the GPU (`src/constraints_gpu/binpacking.cu`). `-a CPU` switches to the CPU
+constraint with the same model and search, and `-s` prints the search statistics:
+
+```
+./binpacking_gpu -s -t 10 -i data/bpp/Scholl2/N3W2B1R1.BPP
+./binpacking_gpu -s -t 10 -a CPU -i data/bpp/Scholl2/N3W2B1R1.BPP
+```
+
+The kernels use `__reduce_max_sync`, which needs a GPU of compute capability 8.0 (Ampere) or newer.
+The CPU-only build has the same model as `binpacking` (`examples/basic/binpacking.cpp`).

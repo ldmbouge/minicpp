@@ -14,6 +14,7 @@ add_library(copl
         core/trailable.cpp
 
         constraints/alldifferent.cpp
+        constraints/binpacking.cpp
         constraints/cardinality.cpp
         constraints/circuit.cpp
         constraints/clause.cpp
@@ -22,6 +23,7 @@ add_library(copl
         constraints/disjunctiveresource.cpp
         constraints/element.cpp
         constraints/lex.cpp
+        constraints/lexchainbit.cpp
         constraints/matching.cpp
         constraints/maximum.cpp
         constraints/profile.cpp
@@ -61,6 +63,7 @@ endif()
 
 if(ENABLE_GPU)
     target_sources(copl PRIVATE
+            constraints_gpu/binpacking.cu
             constraints_gpu/cumulative.cu
     )
     target_compile_definitions(copl PUBLIC ENABLE_GPU=1)
