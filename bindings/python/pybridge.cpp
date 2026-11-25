@@ -446,6 +446,31 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("firstFailInterchangeable",&firstFailInterchangeable<std::vector<var<int>::Ptr>>);
    // land([b1, ..., bn]): at each node, the branches of the first b_i that has any.
    m.def("land",[](const std::vector<std::function<Branches(void)>>& bs) { return land(bs);});
+   // Restarts and LNS (see search.hpp). Callbacks may be Python functions; a failure
+   // raised in one (e.g. by cp.post in freeze) is a failure for the search, as dfs
+   // treats any exception thrown by an alternative as a failure.
+   using Body = std::function<Branches(void)>;
+   using VFun = std::function<void(void)>;
+   // limitFailures(cp, n, body): abandon body's subtree once it has met n failures.
+   m.def("limitFailures",[](CPSolver::Ptr cp,int n,Body body) { return limitFailures(cp,n,std::move(body));},
+         py::arg("cp"),py::arg("n"),py::arg("body"));
+   // limitTime(cp, seconds, body): abandon body's subtree once it has run for that long.
+   m.def("limitTime",[](CPSolver::Ptr cp,double seconds,Body body) { return limitTime(cp,seconds,std::move(body));},
+         py::arg("cp"),py::arg("seconds"),py::arg("body"));
+   // repeat(cp, body, onRepeat, until=None): an unbounded series of iterations of body
+   // from the same node; onRepeat() runs before every iteration but the first.
+   m.def("repeat",[](CPSolver::Ptr cp,Body body,VFun onRepeat,std::function<bool(void)> until) {
+      if (until)
+         return repeat(cp,std::move(body),std::move(onRepeat),std::move(until));
+      return repeat(cp,std::move(body),std::move(onRepeat));
+   },py::arg("cp"),py::arg("body"),py::arg("onRepeat"),py::arg("until") = py::none());
+   // lns(cp, capture, freeze, search, iterationLimit=None, maxStall=0): large neighbourhood
+   // search. capture() records each solution; freeze() fixes a fragment of the last one
+   // (skipped until there is one); each iteration runs search under iterationLimit.
+   m.def("lns",[](CPSolver::Ptr cp,VFun capture,VFun freeze,Body search,Limit iterationLimit,int maxStall) {
+      return lns(cp,std::move(capture),std::move(freeze),std::move(search),std::move(iterationLimit),maxStall);
+   },py::arg("cp"),py::arg("capture"),py::arg("freeze"),py::arg("search"),
+     py::arg("iterationLimit") = py::none(),py::arg("maxStall") = 0);
    m.def("DFFFail",[](CPSolver::Ptr cp,const Factory::Veci& vars) {
                       DFSearch search(cp,firstFail(cp,vars));
                       return search;
