@@ -31,6 +31,7 @@
 #include "core/constraint.hpp"
 #include "core/search.hpp"
 #include "constraints/table.hpp"
+#include "constraints/lex.hpp"
 
 namespace py = pybind11;
 
@@ -57,7 +58,9 @@ PYBIND11_MODULE(minicpp,m) {
    
    py::class_<Branches>(m,"Branches")
       .def(py::init<>())
-      .def(py::init<std::function<void(void)>,std::function<void(void)>>(),py::keep_alive<1,2>());
+      .def(py::init<std::function<void(void)>,std::function<void(void)>>(),py::keep_alive<1,2>())
+      // Branches([f1, ..., fn]): n alternatives, tried left to right.
+      .def(py::init<std::vector<std::function<void(void)>>>());
    
    //py::class_<Chooser>(m,"Chooser");
    py::class_<AVar,AVar::Ptr>(m,"AVar");
@@ -140,6 +143,22 @@ PYBIND11_MODULE(minicpp,m) {
       .def("isTrue",&var<bool>::isTrue)
       .def("isFalse",&var<bool>::isFalse)
       .def("assign",&var<bool>::assign)
+      // b == c / b != c with a Boolean constant: constraints to post (no propagation yet).
+      .def("__eq__",[](const var<bool>::Ptr& x,bool c) { return Factory::operator==(x,c);},py::is_operator())
+      .def("__ne__",[](const var<bool>::Ptr& x,bool c) { return Factory::operator!=(x,c);},py::is_operator())
+      // b * a / a * b with an int constant: an integer view equal to a*b (no constraint posted).
+      .def("__mul__",[](const var<bool>::Ptr& x,int a) { return Factory::operator*(x,a);},py::is_operator())
+      .def("__rmul__",[](const var<bool>::Ptr& x,int a) { return Factory::operator*(x,a);},py::is_operator())
+      // x * y on Booleans: a fresh Boolean equal to x && y (Factory::operator*).
+      .def("__mul__",[](const var<bool>::Ptr& x,const var<bool>::Ptr& y) {
+         var<bool>::Ptr rv;   // no return inside TRYFAIL: it would skip ONFAIL's restore
+         TRYFAIL {
+            rv = Factory::operator*(x,y);
+         } ONFAIL {
+            throw Failure;
+         } ENDFAIL
+         return rv;
+      },py::is_operator())
       .def("__repr__",[](const var<bool>& s) {
                          std::ostringstream str;
                          s.print(str);
@@ -182,6 +201,16 @@ PYBIND11_MODULE(minicpp,m) {
    py::class_<stl::StackAdapter<var<int>::Ptr,Storage::Ptr>>(m,"Alloci");
    py::class_<EVec<var<int>::Ptr,stl::StackAdapter<var<int>::Ptr,Storage::Ptr>>>(m,"VecIntVar")
       .def("__getitem__",[](const Factory::Veci& s,size_t i) { return s[i];})
+      // xs[y] with a variable index: a fresh variable equal to xs[y] (Factory::elementVar).
+      .def("__getitem__",[](const Factory::Veci& s,var<int>::Ptr y) {
+         var<int>::Ptr rv;   // no return inside TRYFAIL: it would skip ONFAIL's restore
+         TRYFAIL {
+            rv = Factory::elementVar(s,y);
+         } ONFAIL {
+            throw Failure;
+         } ENDFAIL
+         return rv;
+      })
       .def("__setitem__",[](Factory::Veci& s,size_t i,var<int>::Ptr e) { s[i] = e;})
       .def("__len__",[](const Factory::Veci& s) { return s.size();})
       .def("__iter__",[](const Factory::Veci& s) { return py::make_iterator(s.begin(),s.end(),pybind11::return_value_policy::reference_internal);},py::keep_alive<0,1>())
@@ -274,6 +303,16 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("isLessOrEqual",static_cast<var<bool>::Ptr (*)(var<int>::Ptr,var<int>::Ptr)>(&Factory::isLessOrEqual));
    m.def("isLessOrEqual",static_cast<var<bool>::Ptr (*)(var<int>::Ptr,const int)>(&Factory::isLessOrEqual));
    m.def("isLargerOrEqual",&Factory::isLargerOrEqual);
+   // implies(a, b): a fresh Boolean equal to a => b. It posts constraints, hence TRYFAIL.
+   m.def("implies",[](var<bool>::Ptr a,var<bool>::Ptr b) {
+      var<bool>::Ptr rv;
+      TRYFAIL {
+         rv = Factory::implies(a,b);
+      } ONFAIL {
+         throw Failure;
+      } ENDFAIL
+      return rv;
+   },py::arg("a"),py::arg("b"));
    
    m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,int)>(&Factory::sum));
    m.def("sum",static_cast<Constraint::Ptr (*)(const Factory::Veci&,var<int>::Ptr)>(&Factory::sum));
@@ -284,6 +323,22 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("sum",static_cast<Constraint::Ptr (*)(const std::vector<var<bool>::Ptr>&,int)>(&Factory::sum));
    m.def("sum",static_cast<var<int>::Ptr (*)(Factory::Veci&)>(&Factory::sum<Factory::Veci>));
    m.def("sum",static_cast<var<int>::Ptr (*)(std::vector<var<int>::Ptr>&)>(&Factory::sum<std::vector<var<int>::Ptr>>));
+   // sum(bs) over Booleans: a fresh variable equal to the number of true entries.
+   // It posts a Sum, hence TRYFAIL.
+   auto boolSum = [](auto& bs) {
+      if (bs.size() == 0) throw std::invalid_argument("sum(bs): bs must not be empty");
+      var<int>::Ptr rv;
+      TRYFAIL {
+         rv = Factory::sum(bs);
+      } ONFAIL {
+         throw Failure;
+      } ENDFAIL
+      return rv;
+   };
+   m.def("sum",[boolSum](Factory::Vecb& bs) { return boolSum(bs);});
+   m.def("sum",[boolSum](std::vector<var<bool>::Ptr>& bs) { return boolSum(bs);});
+   // isClause(b, xs): b <=> (xs[0] or ... or xs[n-1]).
+   m.def("isClause",&Factory::isClause<std::vector<var<bool>::Ptr>>,py::arg("b"),py::arg("xs"));
    // Weighted sum: a fresh variable equal to sum_i xs[i] * coefs[i]. Same model as the C++
    // Factory::sum(xs,{c0,c1,...}), whose std::initializer_list pybind11 cannot bind.
    auto weightedSum = [](const auto& xs,const std::vector<int>& coefs) {
@@ -312,9 +367,35 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("table",&Factory::table<std::vector<var<int>::Ptr>,Rows>,py::arg("x"),py::arg("rows"));
    m.def("negTable",&Factory::negTable<Factory::Veci,Rows>,py::arg("x"),py::arg("rows"));
    m.def("negTable",&Factory::negTable<std::vector<var<int>::Ptr>,Rows>,py::arg("x"),py::arg("rows"));
+   // lexLeq(x, y): x is lexicographically <= y. Factory::lexLeq aborts on a size
+   // mismatch, so the check is done here and raised as ValueError instead.
+   auto lexLeq = [](const auto& x,const auto& y) {
+      if (x.size() != y.size()) throw std::invalid_argument("lexLeq(x,y): x and y must have the same length");
+      if (x.size() == 0) throw std::invalid_argument("lexLeq(x,y): x and y must not be empty");
+      return Factory::lexLeq(x,y);
+   };
+   m.def("lexLeq",[lexLeq](const Factory::Veci& x,const Factory::Veci& y) { return lexLeq(x,y);},py::arg("x"),py::arg("y"));
+   m.def("lexLeq",[lexLeq](const std::vector<var<int>::Ptr>& x,const std::vector<var<int>::Ptr>& y) { return lexLeq(x,y);},py::arg("x"),py::arg("y"));
+   m.def("lexLeq",[lexLeq](const std::vector<var<bool>::Ptr>& x,const std::vector<var<bool>::Ptr>& y) { return lexLeq(x,y);},py::arg("x"),py::arg("y"));
    m.def("clause",&Factory::clause<std::vector<var<bool>::Ptr>>);
    m.def("element",py::overload_cast<const std::vector<int>&,var<int>::Ptr,var<int>::Ptr>(&Factory::element<std::vector<int>>));
    m.def("elementBC",&Factory::elementBC<std::vector<int>>);
+   // element(array, y): a fresh variable equal to array[y] (domain consistent). It posts, hence TRYFAIL.
+   m.def("element",[](const std::vector<int>& array,var<int>::Ptr y) {
+      if (array.size() == 0) throw std::invalid_argument("element(array,y): array must not be empty");
+      var<int>::Ptr rv;
+      TRYFAIL {
+         rv = Factory::element(array,y);
+      } ONFAIL {
+         throw Failure;
+      } ENDFAIL
+      return rv;
+   },py::arg("array"),py::arg("y"));
+   // elementVar(xs, y, z): z == xs[y] over variables (domain consistent).
+   m.def("elementVar",static_cast<Constraint::Ptr (*)(const Factory::Veci&,var<int>::Ptr,var<int>::Ptr)>(&Factory::elementVar<Factory::Veci>),
+         py::arg("xs"),py::arg("y"),py::arg("z"));
+   m.def("elementVar",static_cast<Constraint::Ptr (*)(const std::vector<var<int>::Ptr>&,var<int>::Ptr,var<int>::Ptr)>(&Factory::elementVar<std::vector<var<int>::Ptr>>),
+         py::arg("xs"),py::arg("y"),py::arg("z"));
    m.def("element",[](const std::vector<std::vector<int>>& mat,var<int>::Ptr x,var<int>::Ptr y) {
                       Matrix<int,2> d({(int) mat.size(),(int) mat.front().size()});
                       for(auto i = 0u ; i < mat.size();i++)
@@ -327,6 +408,12 @@ PYBIND11_MODULE(minicpp,m) {
    
    m.def("firstFail",&firstFail<Factory::Veci>);
    m.def("firstFail",&firstFail<std::vector<var<int>::Ptr>>);
+   m.def("firstFail",&firstFail<std::vector<var<bool>::Ptr>>);
+   // firstFailInterchangeable(cp, xs): first-fail, trying only the values 0..maxUsed+1.
+   m.def("firstFailInterchangeable",&firstFailInterchangeable<Factory::Veci>);
+   m.def("firstFailInterchangeable",&firstFailInterchangeable<std::vector<var<int>::Ptr>>);
+   // land([b1, ..., bn]): at each node, the branches of the first b_i that has any.
+   m.def("land",[](const std::vector<std::function<Branches(void)>>& bs) { return land(bs);});
    m.def("DFFFail",[](CPSolver::Ptr cp,const Factory::Veci& vars) {
                       DFSearch search(cp,firstFail(cp,vars));
                       return search;
@@ -339,4 +426,12 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("selectFirst",static_cast<var<int>::Ptr (*)(const std::vector<var<int>::Ptr>&,FVInt2Bool)>(&selectFirst));
    m.def("indomain_min",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_min));
    m.def("indomain_max",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_max));
+   // selectFirstFail(xs): the unbound variable with the smallest domain (first on ties), or None.
+   m.def("selectFirstFail",&selectFirstFail<Factory::Veci>);
+   m.def("selectFirstFail",&selectFirstFail<std::vector<var<int>::Ptr>>);
+   // maxBoundValue(xs, none=-1): the largest value among the bound variables, or `none`.
+   m.def("maxBoundValue",&maxBoundValue<Factory::Veci>,py::arg("xs"),py::arg("none") = -1);
+   m.def("maxBoundValue",&maxBoundValue<std::vector<var<int>::Ptr>>,py::arg("xs"),py::arg("none") = -1);
+   m.def("indomainUpTo",&indomainUpTo<var<int>::Ptr>,py::arg("cp"),py::arg("x"),py::arg("lo"),py::arg("hi"),
+         "Branches x == lo | ... | x == hi.");
 }

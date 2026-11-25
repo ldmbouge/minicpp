@@ -27,7 +27,7 @@ int main(int argc,char* argv[])
     using namespace std;
     using namespace Factory;
 
-    ifstream data("data/stablemarriage/stable_marriage.txt");
+    ifstream data("../data/stablemarriage/stable_marriage.txt");
     int n;
     data >> n;
     Matrix<int,2> rankWomen({n,n});
@@ -72,10 +72,10 @@ int main(int argc,char* argv[])
     search.onSolution([&wife,&husband]() {
                          cout << "wife = ";
                          for(auto i=0u;i < wife.size();i++)
-                            cout << setw(4) << wife[i] << " ";
+                            cout << setw(3) << wife[i]->min() << " ";
                          cout << " | husband = ";
                          for(auto i=0u;i < husband.size();i++)
-                            cout << setw(4) << husband[i] << " ";
+                            cout << setw(3) << husband[i]->min() << " ";
                          cout << endl;
                       });
     

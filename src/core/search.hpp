@@ -808,6 +808,29 @@ typename Container::value_type selectFirst(const Container& c,Predicate test)
    return typename Container::value_type();
 }
 
+/**
+ * The unbound variable of `c` with the smallest domain (the first one on ties),
+ * or a null handle when every variable is bound. The selection of firstFail.
+ */
+template <class Container>
+typename Container::value_type selectFirstFail(const Container& c) {
+   return selectMin(c,
+                    [](const auto& x) { return x->size() > 1;},
+                    [](const auto& x) { return x->size();});
+}
+
+/**
+ * The largest value among the bound variables of `c`, or `none` (default -1)
+ * when no variable is bound. Unbound variables are ignored: their min need not
+ * be a value in use.
+ */
+template <class Container> int maxBoundValue(const Container& c,int none = -1) {
+   int maxUsed = none;
+   for(const auto& x : c)
+      if (x->isBound() && x->min() > maxUsed)
+         maxUsed = x->min();
+   return maxUsed;
+}
 
 template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr cp,const Container& c) {
    using namespace Factory;
@@ -936,6 +959,37 @@ template <class Var> Branches indomain_max(CPSolver::Ptr cp, Var var) {
          };
    } else
       return Branches({});
+}
+
+/**
+ * Branches x == lo | x == lo+1 | ... | x == hi, tried left to right.
+ * Every value is posted, even one no longer in D(x) (that branch just fails),
+ * so the search tree is the same as the one of the equivalent hand-written loop.
+ * @return no branches when `var` is null or lo > hi
+ */
+template <class Var> Branches indomainUpTo(CPSolver::Ptr cp, Var var, int lo, int hi) {
+   using namespace Factory;
+   std::vector<std::function<void(void)>> alts;
+   if (var)
+      for(int v = lo; v <= hi; v++)
+         alts.push_back([cp,var,v] { return cp->post(var == v);});
+   return Branches(alts);
+}
+
+/**
+ * First-fail for interchangeable values (slabs, bins, colours, ...): select the
+ * unbound variable with the smallest domain (first one on ties), let maxUsed be
+ * the largest value already bound in `c` (-1 if none), and branch on
+ * x == 0 | ... | x == maxUsed + 1. Values above maxUsed + 1 are symmetric to
+ * maxUsed + 1, so trying them would only revisit equivalent subtrees.
+ * Assumes the values start at 0.
+ */
+template <class Container> std::function<Branches(void)> firstFailInterchangeable(CPSolver::Ptr cp,const Container& c) {
+   return [=]() {
+      auto sx = selectFirstFail(c);
+      if (!sx) return Branches({});
+      return indomainUpTo(cp,sx,0,maxBoundValue(c) + 1);
+   };
 }
 
 template <class Var> Branches indomain_split(CPSolver::Ptr cp, Var var) {
