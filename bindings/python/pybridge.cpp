@@ -247,6 +247,8 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("equal",py::overload_cast<var<int>::Ptr,var<int>::Ptr,var<int>::Ptr>(&Factory::equal),
          py::arg("x"),py::arg("y"),py::arg("z"),"Post x == y + z (bounds consistent).");
    m.def("notEqual",&Factory::notEqual);
+   m.def("equalAbsDiff",&Factory::equalAbsDiff,py::arg("z"),py::arg("x"),py::arg("y"),
+         "Post z == |x - y| (bounds consistent).");
    // inside/outside prune x right away and run the fixpoint, so they can fail here, before
    // anything is posted: convert that failure to a C++ exception to cross the Python boundary.
    // They return no constraint (None); cp.post(None) does nothing, as in C++.
