@@ -50,12 +50,13 @@ int main(int argc,char* argv[])
     Objective::Ptr obj = Factory::minimize(Factory::sum(wDist));
 
     DFSearch search(cp,firstFail(cp,x));
-    std::vector<int> best(n);    
+    std::vector<int> best(n);
+    bool hasBest = false;   // best holds a solution only once one was found
 
-    
-    search.onSolution([&x,&obj,&best,n]() {
+    search.onSolution([&x,&obj,&best,&hasBest,n]() {
                          for(int i=0;i<n;i++)
                             best[i] = x[i]->min();
+                         hasBest = true;
                          cout << "objective = " << obj->value() << endl;
                       });
 
@@ -72,9 +73,10 @@ int main(int argc,char* argv[])
                                 [&failureLimit](const SearchStatistics& stats) {
                                    return stats.numberOfFailures() >= failureLimit;
                                 },
-                                [n,cp,&x,best,&dist,&gen] {
+                                [n,cp,&x,&best,&hasBest,&dist,&gen] {
+                                   if (!hasBest) return;   // no incumbent yet: search from scratch
                                    for(int j=0;j < n;j++)
-                                      if (dist(gen) < 5)
+                                      if (dist(gen) < 25)
                                          cp->post(x[j] == best[j]);
                                 });
     }

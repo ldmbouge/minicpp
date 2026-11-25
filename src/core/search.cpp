@@ -63,8 +63,19 @@ SearchStatistics DFSearch::solveSubjectTo(Limit limit,std::function<void(void)> 
     _cp->setSearchStatistics(&stats);
     _sm->withNewState(VVFun([this,&stats,&limit,&subjectTo]() {
                                try {
-                                  subjectTo();
-                                  dfs(stats,limit);
+                                  // subjectTo may fail at the root (e.g. an LNS fragment that is
+                                  // infeasible): there is then nothing to search. Without this
+                                  // TRYFAIL, failNow() would jump through a null jmp_buf.
+                                  bool feasible = true;
+                                  TRYFAIL {
+                                     subjectTo();
+                                  } ONFAIL {
+                                     feasible = false;
+                                  } ENDFAIL
+                                  if (feasible)
+                                     dfs(stats,limit);
+                                  else
+                                     stats.incrFailures();
                                } catch(StopException& sx) {}
                             }));
     _cp->setSearchStatistics(prevStats);
@@ -100,8 +111,19 @@ SearchStatistics DFSearch::optimizeSubjectTo(Objective::Ptr obj,Limit limit,std:
    SearchStatistics stats;
    _sm->withNewState(VVFun([this,&stats,obj,&limit,&subjectTo]() {
                               try {
-                                 subjectTo();
-                                 stats = optimize(obj,limit);
+                                 // subjectTo may fail at the root (e.g. an LNS fragment that is
+                                 // infeasible): there is then nothing to search. Without this
+                                 // TRYFAIL, failNow() would jump through a null jmp_buf.
+                                 bool feasible = true;
+                                 TRYFAIL {
+                                    subjectTo();
+                                 } ONFAIL {
+                                    feasible = false;
+                                 } ENDFAIL
+                                 if (feasible)
+                                    stats = optimize(obj,limit);
+                                 else
+                                    stats.incrFailures();
                               } catch(StopException& sx) {}
                            }));
    return stats;
