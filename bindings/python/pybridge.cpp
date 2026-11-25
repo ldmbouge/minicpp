@@ -32,6 +32,7 @@
 #include "core/search.hpp"
 #include "constraints/table.hpp"
 #include "constraints/lex.hpp"
+#include "constraints/regular.hpp"
 
 namespace py = pybind11;
 
@@ -83,6 +84,9 @@ PYBIND11_MODULE(minicpp,m) {
                          return str.str();
                       });
 
+   py::class_<Automaton,Automaton::Ptr>(m,"Automaton")
+      .def_property_readonly("start",&Automaton::getStart)
+      .def_property_readonly("finals",&Automaton::getFinals);
    py::class_<Objective,Objective::Ptr>(m,"Objective")
       .def("tighten",&Objective::tighten)
       .def("value",&Objective::value);
@@ -367,6 +371,28 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("table",&Factory::table<std::vector<var<int>::Ptr>,Rows>,py::arg("x"),py::arg("rows"));
    m.def("negTable",&Factory::negTable<Factory::Veci,Rows>,py::arg("x"),py::arg("rows"));
    m.def("negTable",&Factory::negTable<std::vector<var<int>::Ptr>,Rows>,py::arg("x"),py::arg("rows"));
+   // automaton(cp, firstSymbol, lastSymbol, firstState, lastState, start, finals, transitions):
+   // a finite automaton for regular. Each transition is a (from, symbol, to) triple.
+   m.def("automaton",[](CPSolver::Ptr cp,int f,int l,int fs,int ls,int start,std::set<int> finals,
+                        const std::vector<std::array<int,3>>& tf) {
+      if (f > l)   throw std::invalid_argument("automaton: firstSymbol > lastSymbol");
+      if (fs > ls) throw std::invalid_argument("automaton: firstState > lastState");
+      auto isState = [fs,ls](int s) { return fs <= s && s <= ls;};
+      if (!isState(start)) throw std::invalid_argument("automaton: start is not a state");
+      for(int s : finals)
+         if (!isState(s)) throw std::invalid_argument("automaton: a final is not a state");
+      std::vector<Transition> t;
+      for(const auto& e : tf) {
+         if (!isState(e[0]) || !isState(e[2]) || e[1] < f || e[1] > l)
+            throw std::invalid_argument("automaton: transition out of the state or symbol range");
+         t.push_back({e[0],e[1],e[2]});
+      }
+      return Factory::automaton(cp,f,l,fs,ls,start,finals,t);
+   },py::arg("cp"),py::arg("firstSymbol"),py::arg("lastSymbol"),py::arg("firstState"),py::arg("lastState"),
+     py::arg("start"),py::arg("finals"),py::arg("transitions"));
+   // regular(x, A): the sequence x is a word accepted by A.
+   m.def("regular",&Factory::regular<Factory::Veci>,py::arg("x"),py::arg("A"));
+   m.def("regular",&Factory::regular<std::vector<var<int>::Ptr>>,py::arg("x"),py::arg("A"));
    // lexLeq(x, y): x is lexicographically <= y. Factory::lexLeq aborts on a size
    // mismatch, so the check is done here and raised as ValueError instead.
    auto lexLeq = [](const auto& x,const auto& y) {
@@ -409,6 +435,12 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("firstFail",&firstFail<Factory::Veci>);
    m.def("firstFail",&firstFail<std::vector<var<int>::Ptr>>);
    m.def("firstFail",&firstFail<std::vector<var<bool>::Ptr>>);
+   // inputOrderIncreasing / inputOrderDecreasing(cp, xs): static order (first unbound
+   // variable of xs), trying min (resp. max) first, else removing it.
+   m.def("inputOrderIncreasing",&inputOrderIncreasing<Factory::Veci>);
+   m.def("inputOrderIncreasing",&inputOrderIncreasing<std::vector<var<int>::Ptr>>);
+   m.def("inputOrderDecreasing",&inputOrderDecreasing<Factory::Veci>);
+   m.def("inputOrderDecreasing",&inputOrderDecreasing<std::vector<var<int>::Ptr>>);
    // firstFailInterchangeable(cp, xs): first-fail, trying only the values 0..maxUsed+1.
    m.def("firstFailInterchangeable",&firstFailInterchangeable<Factory::Veci>);
    m.def("firstFailInterchangeable",&firstFailInterchangeable<std::vector<var<int>::Ptr>>);
@@ -426,6 +458,9 @@ PYBIND11_MODULE(minicpp,m) {
    m.def("selectFirst",static_cast<var<int>::Ptr (*)(const std::vector<var<int>::Ptr>&,FVInt2Bool)>(&selectFirst));
    m.def("indomain_min",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_min));
    m.def("indomain_max",static_cast<Branches (*)(CPSolver::Ptr,var<int>::Ptr)>(&indomain_max));
+   // selectFirstUnbound(xs): the first unbound variable of xs (in order), or None.
+   m.def("selectFirstUnbound",&selectFirstUnbound<Factory::Veci>);
+   m.def("selectFirstUnbound",&selectFirstUnbound<std::vector<var<int>::Ptr>>);
    // selectFirstFail(xs): the unbound variable with the smallest domain (first on ties), or None.
    m.def("selectFirstFail",&selectFirstFail<Factory::Veci>);
    m.def("selectFirstFail",&selectFirstFail<std::vector<var<int>::Ptr>>);

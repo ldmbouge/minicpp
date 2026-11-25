@@ -846,6 +846,45 @@ template <class Container> std::function<Branches(void)> firstFail(CPSolver::Ptr
    };
 }
 
+/**
+ * The first unbound variable of `c`, in the order of `c`, or a null handle
+ * when every variable is bound. The selection of a static variable ordering.
+ */
+template <class Container>
+typename Container::value_type selectFirstUnbound(const Container& c) {
+   return selectFirst(c,[](const auto& x) { return !x->isBound();});
+}
+
+/**
+ * Static variable ordering, increasing values: the first unbound variable x of
+ * `c` (in the order of `c`), branching x == min(x) | x != min(x).
+ */
+template <class Container> std::function<Branches(void)> inputOrderIncreasing(CPSolver::Ptr cp,const Container& c) {
+   using namespace Factory;
+   return [=]() {
+      auto sx = selectFirstUnbound(c);
+      if (!sx) return Branches({});
+      int v = sx->min();
+      return [cp,sx,v] { return cp->post(sx == v);}
+         |  [cp,sx,v] { return cp->post(sx != v);};
+   };
+}
+
+/**
+ * Static variable ordering, decreasing values: the first unbound variable x of
+ * `c` (in the order of `c`), branching x == max(x) | x != max(x).
+ */
+template <class Container> std::function<Branches(void)> inputOrderDecreasing(CPSolver::Ptr cp,const Container& c) {
+   using namespace Factory;
+   return [=]() {
+      auto sx = selectFirstUnbound(c);
+      if (!sx) return Branches({});
+      int v = sx->max();
+      return [cp,sx,v] { return cp->post(sx == v);}
+         |  [cp,sx,v] { return cp->post(sx != v);};
+   };
+}
+
 template <class Container> std::function<Branches(void)> smallest(CPSolver::Ptr cp,const Container& c) {
    using namespace Factory;
    return [=]() {
