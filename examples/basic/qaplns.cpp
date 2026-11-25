@@ -52,19 +52,21 @@ int main(int argc,char* argv[])
     DFSearch search(cp,firstFail(cp,x));
     std::vector<int> best(n);
     bool hasBest = false;   // best holds a solution only once one was found
+    int bestValue = 0;      // its objective value (obj->value() is not meaningful after the search)
 
-    search.onSolution([&x,&obj,&best,&hasBest,n]() {
+    search.onSolution([&x,&obj,&best,&hasBest,&bestValue,n]() {
                          for(int i=0;i<n;i++)
                             best[i] = x[i]->min();
                          hasBest = true;
-                         cout << "objective = " << obj->value() << endl;
+                         bestValue = obj->value();
+                         cout << "objective = " << bestValue << endl;
                       });
 
     int nRestarts = 1000;
     int failureLimit = 100;
     std::random_device rand;  
     std::mt19937 gen(rand()); 
-    std::uniform_int_distribution<> dist(0, 100);
+    std::uniform_int_distribution<> dist(0, 99);   // dist(gen) < 25: exactly 25%
 
     for(int i=0;i<nRestarts;i++) {
        if (i%10==0)
@@ -80,6 +82,14 @@ int main(int argc,char* argv[])
                                          cp->post(x[j] == best[j]);
                                 });
     }
+    if (hasBest) {
+       cout << "Best: " << bestValue << endl;
+       cout << "Assignment:";
+       for(int i=0;i<n;i++)
+          cout << ' ' << best[i];
+       cout << endl;
+    } else
+       cout << "Best: none found" << endl;
     cp.dealloc();
     return 0;
 }

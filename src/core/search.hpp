@@ -140,6 +140,16 @@ class DFSearch {
    std::function<Branches(void)>   _branching;
    std::vector<std::function<void(void)>>    _solutionListeners;
    std::vector<std::function<void(void)>>    _failureListeners;
+   // Objectives whose tighten() is already a solution listener. optimize can be
+   // called many times on the same objective (restarts, LNS): the listener must be
+   // registered once, not once per call.
+   std::vector<Objective::Ptr>               _tightened;
+   void tightenOnSolution(Objective::Ptr obj) {
+      for(const auto& o : _tightened)
+         if (o == obj) return;
+      _tightened.push_back(obj);
+      onSolution([obj] { obj->tighten();});
+   }
    void dfs(SearchStatistics& stats,const Limit& limit);
    void dfsUnbounded(Branches& branches,SearchStatistics& stats,const Limit& limit);
 public:
@@ -191,6 +201,16 @@ class BFSearch {
    std::function<Branches(void)>   _branching;
    std::vector<std::function<void(void)>>    _solutionListeners;
    std::vector<std::function<void(void)>>    _failureListeners;
+   // Objectives whose tighten() is already a solution listener. optimize can be
+   // called many times on the same objective (restarts, LNS): the listener must be
+   // registered once, not once per call.
+   std::vector<Objective::Ptr>               _tightened;
+   void tightenOnSolution(Objective::Ptr obj) {
+      for(const auto& o : _tightened)
+         if (o == obj) return;
+      _tightened.push_back(obj);
+      onSolution([obj] { obj->tighten();});
+   }
    Objective::Ptr _objective;
    void bfs(SearchStatistics& stats,const Limit& limit);
    std::shared_ptr<Checkpoint> _before;

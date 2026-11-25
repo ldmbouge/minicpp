@@ -84,20 +84,20 @@ SearchStatistics DFSearch::solveSubjectTo(Limit limit,std::function<void(void)> 
 
 SearchStatistics DFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats,Limit limit)
 {
-   onSolution([obj] { obj->tighten();});
+   tightenOnSolution(obj);
    return solve(stats,limit);
 }
 
 SearchStatistics DFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats)
 {
-   onSolution([obj] { obj->tighten();});
+   tightenOnSolution(obj);
    return solve(stats,[](const SearchStatistics& ss) { return false;});
 }
 
 SearchStatistics DFSearch::optimize(Objective::Ptr obj,Limit limit)
 {
    SearchStatistics stats;
-   onSolution([obj] { obj->tighten();});
+   tightenOnSolution(obj);
    return solve(stats,limit);
 }
 
@@ -247,14 +247,14 @@ SearchStatistics BFSearch::solve()
 SearchStatistics BFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats,Limit limit)
 {
    _objective = obj;
-   onSolution([obj] { obj->tighten();});
+   tightenOnSolution(obj);
    return solve(stats,limit);
 }
 
 SearchStatistics BFSearch::optimize(Objective::Ptr obj,SearchStatistics& stats)
 {
    _objective = obj;
-   onSolution([obj] { obj->tighten();});
+   tightenOnSolution(obj);
    return solve(stats,[](const SearchStatistics& ss) { return false;});
 }
 
@@ -262,7 +262,7 @@ SearchStatistics BFSearch::optimize(Objective::Ptr obj,Limit limit)
 {
    _objective = obj;
    SearchStatistics stats;
-   onSolution([obj] { obj->tighten();});
+   tightenOnSolution(obj);
    return solve(stats,limit);
 }
 
